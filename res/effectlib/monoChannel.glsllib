@@ -1,0 +1,28 @@
+#ifndef MONO_CHANNEL_GLSLLIB
+#define MONO_CHANNEL_GLSLLIB
+
+#ifdef UIC_DEFINE_API
+#define mono_alpha 0
+#define mono_average 1
+#define mono_luminance 2
+#define mono_maximum 3
+#endif
+
+float monoChannel( in vec4 t, in int monoSource )
+{
+  switch( monoSource )
+  {
+    case mono_alpha :
+      return( t.w );
+    case mono_average :
+      return( ( t.x + t.y + t.z ) / 3.0f );
+    case mono_luminance :
+      return( luminance( t.xyz ) );
+    case mono_maximum :
+      return( max( t.x, max( t.y, t.z ) ) );
+    default :
+      return( 1.0f );
+  }
+}
+
+#endif

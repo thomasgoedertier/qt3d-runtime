@@ -1,0 +1,11 @@
+vec4 customCurveLayer( in vec3 L, in float normal_reflectivity, in float grazing_reflectivity, in float exponent, float weight, in vec3 layercolor, vec4 layer, vec4 base, in float alpha )
+{
+  vec3 H = normalize( viewDir + L );
+  vec3 refl = reflect( -viewDir, H );
+  float reflWt = clamp( dot( surfNormal, refl ) + 1.0, 0.0, 1.0 );
+
+  float curveFactor = mix( normal_reflectivity, grazing_reflectivity, pow(1.0 - abs(dot( viewDir, H )), exponent) );
+  curveFactor *= weight * reflWt;
+
+  return( vec4( mix( base.rgb, layercolor * layer.rgb, curveFactor ), mix(alpha, 1.0, curveFactor) ) );
+}

@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<Effect>
+    <MetaData>
+        <Property name="FocusDistance" formalName="Focus Distance" description="Objects exactly distance +- &quot;In Focus Width&quot; from the camera will be in focus" default="600"/>
+        <Property name="FocusWidth" formalName="Depth of Field" description="Objects within this range of Focus Distance will be in focus" default="20"/>
+        <Property name="DepthDebug" formalName="Debug Focus Rendering" type="Boolean" description="Allows you to see exactly how the Focus variables work.  Black objects are in focus, white are blurred" default="False"/>
+        <Property name="DepthSampler" type="Texture" filter="nearest" clamp="clamp"/>
+        <Property name="SourceSampler" type="Texture" filter="linear" clamp="clamp"/>
+    </MetaData>
+    <Shaders>
+        <Shared>
+#include "blur.glsllib"
+const float BlurAmount = 4.0;
+        </Shared>
+        <Shader name="DOWNSAMPLE">
+            <VertexShader>
+void vert()
+{
+    SetupBoxBlurCoords(vec2(Texture0Info.xy));
+}
+            </VertexShader>
+            <FragmentShader>
+void frag() // Simple averaging box blur.
+{
+    gl_FragColor = BoxDepthBlur(DepthSampler, Texture0, Texture0Info.z, FocusDistance, FocusWidth, FocusWidth);
+}
+            </FragmentShader>
+        </Shader>
+        <Shader name="BLUR">
+            <VertexShader>
+
+void vert()
+{
+    SetupPoissonBlurCoords( BlurAmount, DestSize.xy );
+}
+
+            </VertexShader>
+            <FragmentShader>
+
+void frag() // Mix the input blur and the depth texture with the sprite
+{
+    float centerMultiplier = GetDepthMultiplier( TexCoord, DepthSampler, FocusDistance, FocusWidth, FocusWidth );
+    if ( DepthDebug )
+    {
+        gl_FragColor = vec4( centerMultiplier,centerMultiplier,centerMultiplier, 1.0 );
+    }
+    else
+    {
+        vec4 blurColor = PoissonDepthBlur(Texture0, Texture0Info.z, DepthSampler, FocusDistance, FocusWidth, FocusWidth );
+        gl_FragColor = mix( texture2D_SourceSampler(TexCoord), blurColor, centerMultiplier );
+    }
+}
+            </FragmentShader>
+        </Shader>
+    </Shaders>
+    <Passes>
+        <Buffer name="downsample_buffer" type="ubyte" format="rgba" filter="linear" wrap="clamp" size=".5" lifetime="frame"/>
+        <Pass shader="DOWNSAMPLE" input="[source]" output="downsample_buffer">
+            <DepthInput param="DepthSampler"/>
+        </Pass>
+        <Pass shader="BLUR" input="downsample_buffer">
+            <BufferInput value="[source]" param="SourceSampler" />
+            <DepthInput param="DepthSampler"/>
+        </Pass>
+    </Passes>
+</Effect>

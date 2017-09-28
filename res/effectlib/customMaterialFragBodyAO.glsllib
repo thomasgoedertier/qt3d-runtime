@@ -1,0 +1,60 @@
+#ifndef CUSTOM_MATERIAL_FRAG_BODY_AO_GLSLLIB
+#define CUSTOM_MATERIAL_FRAG_BODY_AO_GLSLLIB
+
+  bool twoSided = false;
+  vec3 materialEmissive = vec3( 0.0f, 0.0f, 0.0f );
+
+  float materialIOR = computeIOR();
+
+  if ( gl_FrontFacing )
+  {
+    materialEmissive = computeFrontMaterialEmissive() * computeMaterialEmissiveMask();
+  }
+  else
+  {
+    materialIOR = 1.0f / materialIOR;
+    twoSided = evalTwoSided();
+    if ( twoSided )
+    {
+      normal = -normal;
+      materialEmissive = computeBackMaterialEmissive() * computeMaterialEmissiveMask();
+    }
+  }
+
+  vec4 rgba = vec4( materialEmissive, 0.0f );
+
+  // compute ambient occlusion
+  float aoFactor = customMaterialAO( );
+
+  vec3 lightAmbient, lightDiffuse, lightSpecular, L;
+  for ( int i=0 ; i<uNumLights ; i++ )
+  {
+    sampleLight( lights[i], varWorldPos, L, lightAmbient, lightDiffuse, lightSpecular);
+    lightAmbient *= aoFactor;
+    lightDiffuse *= aoFactor;
+
+    //evalTemporariesPerLightSource( normal, L, lightDiffuse, lightSpecular, materialIOR );
+    if (gl_FrontFacing)
+      computeFrontLayerColor( normal, L, viewDir, lightDiffuse, lightSpecular, materialIOR, aoFactor );
+    else
+      computeBackLayerColor( normal, L, viewDir, lightDiffuse, lightSpecular, materialIOR, aoFactor );
+  }
+  for ( int i=0 ; i < uNumAreaLights; ++i )
+  {
+    if (gl_FrontFacing)
+      computeFrontAreaColor( i, arealights[i].diffuse, arealights[i].specular );
+    else
+      computeBackAreaColor( i, arealights[i].diffuse, arealights[i].specular );
+  }
+
+  if ( 0.0f < alpha )
+  {
+    if (gl_FrontFacing)
+      computeFrontLayerEnvironment( normal, viewDir, aoFactor );
+    else
+      computeBackLayerEnvironment( normal, viewDir, aoFactor );
+  }
+
+  rgba += computeLayerWeights( alpha );
+
+#endif

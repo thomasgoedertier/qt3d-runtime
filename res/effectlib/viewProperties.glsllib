@@ -1,0 +1,11 @@
+#ifndef VIEW_PROPERTIES_GLSLLIB
+#define VIEW_PROPERTIES_GLSLLIB
+
+uniform mat4 viewProjectionMatrix;
+uniform mat4 viewMatrix;
+uniform vec2 camera_properties; //near clip x, far clip y
+#ifndef SSAO_CUSTOM_MATERIAL_GLSLLIB
+uniform vec3 eyePosition; //position in world space of the camera
+#endif
+
+#endif

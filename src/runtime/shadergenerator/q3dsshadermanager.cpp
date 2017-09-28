@@ -1,0 +1,762 @@
+/****************************************************************************
+**
+** Copyright (C) 2017 The Qt Company Ltd.
+** Contact: http://www.qt.io/licensing/
+**
+** This file is part of Qt 3D Studio.
+**
+** $QT_BEGIN_LICENSE:GPL$
+** Commercial License Usage
+** Licensees holding valid commercial Qt licenses may use this file in
+** accordance with the commercial license agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and The Qt Company. For licensing terms
+** and conditions see https://www.qt.io/terms-conditions. For further
+** information use the contact form at https://www.qt.io/contact-us.
+**
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License version 3 or (at your option) any later version
+** approved by the KDE Free Qt Foundation. The licenses are as published by
+** the Free Software Foundation and appearing in the file LICENSE.GPL3
+** included in the packaging of this file. Please review the following
+** information to ensure the GNU General Public License requirements will
+** be met: https://www.gnu.org/licenses/gpl-3.0.html.
+**
+** $QT_END_LICENSE$
+**
+****************************************************************************/
+
+#include "q3dsshadermanager_p.h"
+#include "q3dsshadergenerators_p.h"
+#include <QOpenGLContext>
+
+QT_BEGIN_NAMESPACE
+
+Q3DSShaderManager &Q3DSShaderManager::instance()
+{
+    static Q3DSShaderManager instance;
+
+    return instance;
+}
+
+Q3DSDefaultMaterialShaderGenerator *Q3DSShaderManager::defaultMaterialShaderGenerator()
+{
+    return m_materialShaderGenerator;
+}
+
+Qt3DRender::QShaderProgram *Q3DSShaderManager::generateShaderProgram(Q3DSDefaultMaterial &material,
+                                                                     const QVector<Q3DSLightNode*> &lights,
+                                                                     bool hasTransparency,
+                                                                     const Q3DSShaderFeatureSet &featureSet)
+{
+    Q3DSSubsetMaterialVertexPipeline pipeline(*m_materialShaderGenerator, *m_shaderProgramGenerator, false);
+    return m_materialShaderGenerator->generateShader(material, pipeline, featureSet, lights, hasTransparency);
+}
+
+Qt3DRender::QShaderProgram *Q3DSShaderManager::getCubeDepthNoTessShader()
+{
+    if (!m_cubeDepthShader) {
+        m_shaderProgramGenerator->beginProgram();
+        Q3DSAbstractShaderStageGenerator *vertexShader = m_shaderProgramGenerator->getStage(Q3DSShaderGeneratorStages::Vertex);
+        Q3DSAbstractShaderStageGenerator *fragmentShader = m_shaderProgramGenerator->getStage(Q3DSShaderGeneratorStages::Fragment);
+
+        vertexShader->addIncoming("attr_pos", "vec3");
+        vertexShader->addUniform("modelMatrix", "mat4");
+        vertexShader->addUniform("modelViewProjection", "mat4");
+        vertexShader->addOutgoing("world_pos", "vec4");
+        vertexShader->append("void main() {");
+        vertexShader->append("    world_pos = modelMatrix * vec4( attr_pos, 1.0 );");
+        vertexShader->append("    world_pos /= world_pos.w;");
+        vertexShader->append("    gl_Position = modelViewProjection * vec4( attr_pos, 1.0 );");
+        vertexShader->append("}");
+
+        fragmentShader->addUniform("camera_position", "vec3");
+        fragmentShader->addUniform("camera_properties", "vec2");
+        fragmentShader->append("void main() {");
+        fragmentShader->append("    vec3 camPos = vec3( camera_position.x, camera_position.y, -camera_position.z );");
+        fragmentShader->append("    float dist = length( world_pos.xyz - camPos );");
+        fragmentShader->append("    dist = (dist - camera_properties.x) / (camera_properties.y - camera_properties.x);"); // prop.x == nearPlane, prop.y == farPlane
+        fragmentShader->append("    fragOutput = vec4(dist, dist, dist, 1.0);");
+        fragmentShader->append("}");
+
+        m_cubeDepthShader = m_shaderProgramGenerator->compileGeneratedShader(QLatin1String("cubemap face depth shader"), Q3DSShaderFeatureSet());
+    }
+
+    return m_cubeDepthShader;
+}
+
+Qt3DRender::QShaderProgram *Q3DSShaderManager::getOrthographicDepthNoTessShader()
+{
+    if (!m_orthoDepthShader) {
+        m_shaderProgramGenerator->beginProgram();
+        Q3DSAbstractShaderStageGenerator *vertexShader = m_shaderProgramGenerator->getStage(Q3DSShaderGeneratorStages::Vertex);
+        Q3DSAbstractShaderStageGenerator *fragmentShader = m_shaderProgramGenerator->getStage(Q3DSShaderGeneratorStages::Fragment);
+
+        vertexShader->addIncoming("attr_pos", "vec3");
+        vertexShader->addUniform("modelViewProjection", "mat4");
+        vertexShader->addOutgoing("outDepth", "vec3");
+        vertexShader->append("void main() {");
+        vertexShader->append("    gl_Position = modelViewProjection * vec4( attr_pos, 1.0 );");
+        vertexShader->append("    outDepth.x = gl_Position.z / gl_Position.w;");
+        vertexShader->append("}");
+
+        fragmentShader->append("void main() {");
+        fragmentShader->append("    float depth = (outDepth.x + 1.0) * 0.5;");
+        fragmentShader->append("    fragOutput = vec4(depth);");
+        fragmentShader->append("}");
+
+        m_orthoDepthShader = m_shaderProgramGenerator->compileGeneratedShader(QLatin1String("orthographic depth shader"), Q3DSShaderFeatureSet());
+    }
+
+    return m_orthoDepthShader;
+}
+
+Qt3DRender::QShaderProgram *Q3DSShaderManager::getDepthPrepassShader(bool displaced)
+{
+    if (!m_depthPrePassShader) {
+        m_shaderProgramGenerator->beginProgram();
+        Q3DSAbstractShaderStageGenerator *vertexShader = m_shaderProgramGenerator->getStage(Q3DSShaderGeneratorStages::Vertex);
+        Q3DSAbstractShaderStageGenerator *fragmentShader = m_shaderProgramGenerator->getStage(Q3DSShaderGeneratorStages::Fragment);
+
+        vertexShader->addIncoming("attr_pos", "vec3");
+        vertexShader->addUniform("modelViewProjection", "mat4");
+        vertexShader->append("void main() {");
+
+        if (displaced) {
+            // NB some uniform names are modified compared to NDD in order to match the names used in the normal pass.
+            vertexShader->addIncoming("attr_uv0", "vec2");
+            vertexShader->addIncoming("attr_norm", "vec3");
+            vertexShader->addUniform("displacementMap_sampler", "sampler2D");
+            vertexShader->addUniform("displaceAmount", "float");
+            vertexShader->addUniform("displacementMap_rotations", "vec4");
+            vertexShader->addUniform("displacementMap_offsets", "vec3");
+            vertexShader->addInclude("uicDefaultMaterialFileDisplacementTexture.glsllib");
+
+            vertexShader->append("    vec3 uTransform = vec3( displacementMap_rotations.x, displacementMap_rotations.y, "
+                            "displacementMap_offsets.x );");
+            vertexShader->append("    vec3 vTransform = vec3( displacementMap_rotations.z, displacementMap_rotations.w, "
+                            "displacementMap_offsets.y );");
+            vertexShader->addFunction("getTransformedUVCoords");
+            vertexShader->append("    vec2 uv_coords = attr_uv0;");
+            vertexShader->append("    uv_coords = getTransformedUVCoords( vec3( uv_coords, 1.0), uTransform, vTransform );");
+            vertexShader->append("    vec3 displacedPos = uicDefaultMaterialFileDisplacementTexture( displacementMap_sampler, displaceAmount, uv_coords, attr_norm, attr_pos );");
+            vertexShader->append("    gl_Position = modelViewProjection * vec4(displacedPos, 1.0);");
+        } else {
+            vertexShader->append("    gl_Position = modelViewProjection * vec4(attr_pos, 1.0);");
+        }
+        vertexShader->append("}");
+
+        fragmentShader->append("void main() {");
+        fragmentShader->append("    fragOutput = vec4(0.0);");
+        fragmentShader->append("}");
+
+        m_depthPrePassShader = m_shaderProgramGenerator->compileGeneratedShader(displaced ? QLatin1String("depth prepass displaced") : QLatin1String("depth prepass"), Q3DSShaderFeatureSet());
+    }
+
+    return m_depthPrePassShader;
+}
+
+Qt3DRender::QShaderProgram *Q3DSShaderManager::getOrthoShadowBlurXShader()
+{
+    if (!m_orthoShadowBlurXShader) {
+        m_shaderProgramGenerator->beginProgram();
+        Q3DSAbstractShaderStageGenerator *vertexShader = m_shaderProgramGenerator->getStage(Q3DSShaderGeneratorStages::Vertex);
+        Q3DSAbstractShaderStageGenerator *fragmentShader = m_shaderProgramGenerator->getStage(Q3DSShaderGeneratorStages::Fragment);
+
+        // NB! The vertex shader is modified compared to the original: It uses
+        // Qt3D attribute names (vertexPosition instead of attr_pos) and takes
+        // modelMatrix into account.
+        vertexShader->addIncoming("vertexPosition", "vec3");
+        vertexShader->addIncoming("vertexTexCoord", "vec2"); // texcoord behavior is not the same as in the cube blur shaders
+        vertexShader->addUniform("modelMatrix", "mat4");
+        vertexShader->addOutgoing("uv_coords", "vec2");
+        vertexShader->append("void main() {");
+        vertexShader->append("    vec4 pos = modelMatrix * vec4(vertexPosition, 1.0);");
+        vertexShader->append("    gl_Position = pos;");
+        vertexShader->append("    uv_coords = vertexTexCoord;");
+        vertexShader->append("}");
+
+        fragmentShader->addUniform("camera_properties", "vec2");
+        fragmentShader->addUniform("depthSrc", "sampler2D");
+        fragmentShader->append("void main() {");
+        fragmentShader->append("    vec2 ofsScale = vec2( camera_properties.x / 7680.0, 0.0 );");
+        fragmentShader->append("    float depth0 = texture(depthSrc, uv_coords).x;");
+        fragmentShader->append("    float depth1 = texture(depthSrc, uv_coords + ofsScale).x;");
+        fragmentShader->append("    depth1 += texture(depthSrc, uv_coords - ofsScale).x;");
+        fragmentShader->append(
+                    "    float depth2 = texture(depthSrc, uv_coords + 2.0 * ofsScale).x;");
+        fragmentShader->append("    depth2 += texture(depthSrc, uv_coords - 2.0 * ofsScale).x;");
+        fragmentShader->append(
+                    "    float outDepth = 0.38774 * depth0 + 0.24477 * depth1 + 0.06136 * depth2;");
+        fragmentShader->append("    fragOutput = vec4(outDepth);");
+        fragmentShader->append("}");
+
+        m_orthoShadowBlurXShader = m_shaderProgramGenerator->compileGeneratedShader(QLatin1String("shadow map blur X shader"), Q3DSShaderFeatureSet());
+    }
+
+    return m_orthoShadowBlurXShader;
+}
+
+Qt3DRender::QShaderProgram *Q3DSShaderManager::getOrthoShadowBlurYShader()
+{
+    if (!m_orthoShadowBlurYShader) {
+        m_shaderProgramGenerator->beginProgram();
+        Q3DSAbstractShaderStageGenerator *vertexShader = m_shaderProgramGenerator->getStage(Q3DSShaderGeneratorStages::Vertex);
+        Q3DSAbstractShaderStageGenerator *fragmentShader = m_shaderProgramGenerator->getStage(Q3DSShaderGeneratorStages::Fragment);
+
+        // NB! The vertex shader is modified compared to the original: It uses
+        // Qt3D attribute names (vertexPosition instead of attr_pos) and takes
+        // modelMatrix into account.
+        vertexShader->addIncoming("vertexPosition", "vec3");
+        vertexShader->addIncoming("vertexTexCoord", "vec2"); // texcoord behavior is not the same as in the cube blur shaders
+        vertexShader->addUniform("modelMatrix", "mat4");
+        vertexShader->addOutgoing("uv_coords", "vec2");
+        vertexShader->append("void main() {");
+        vertexShader->append("    vec4 pos = modelMatrix * vec4(vertexPosition, 1.0);");
+        vertexShader->append("    gl_Position = pos;");
+        vertexShader->append("    uv_coords = vertexTexCoord;");
+        vertexShader->append("}");
+
+        fragmentShader->addUniform("camera_properties", "vec2");
+        fragmentShader->addUniform("depthSrc", "sampler2D");
+        fragmentShader->append("void main() {");
+        fragmentShader->append("    vec2 ofsScale = vec2( 0.0, camera_properties.x / 7680.0 );");
+        fragmentShader->append("    float depth0 = texture(depthSrc, uv_coords).x;");
+        fragmentShader->append("    float depth1 = texture(depthSrc, uv_coords + ofsScale).x;");
+        fragmentShader->append("    depth1 += texture(depthSrc, uv_coords - ofsScale).x;");
+        fragmentShader->append(
+                    "    float depth2 = texture(depthSrc, uv_coords + 2.0 * ofsScale).x;");
+        fragmentShader->append("    depth2 += texture(depthSrc, uv_coords - 2.0 * ofsScale).x;");
+        fragmentShader->append(
+                    "    float outDepth = 0.38774 * depth0 + 0.24477 * depth1 + 0.06136 * depth2;");
+        fragmentShader->append("    fragOutput = vec4(outDepth);");
+        fragmentShader->append("}");
+
+        m_orthoShadowBlurYShader = m_shaderProgramGenerator->compileGeneratedShader(QLatin1String("shadow map blur Y shader"), Q3DSShaderFeatureSet());
+    }
+
+    return m_orthoShadowBlurYShader;
+}
+
+Qt3DRender::QShaderProgram *Q3DSShaderManager::getCubeShadowBlurXShader(const Q3DSGraphicsLimits &)
+{
+    if (!m_cubeShadowBlurXShader) {
+        m_shaderProgramGenerator->beginProgram();
+        Q3DSAbstractShaderStageGenerator *vertexShader = m_shaderProgramGenerator->getStage(Q3DSShaderGeneratorStages::Vertex);
+        Q3DSAbstractShaderStageGenerator *fragmentShader = m_shaderProgramGenerator->getStage(Q3DSShaderGeneratorStages::Fragment);
+
+        // NB! The vertex shader is modified compared to the original: It uses
+        // Qt3D attribute names (vertexPosition instead of attr_pos) and takes
+        // modelMatrix into account.
+        vertexShader->addIncoming("vertexPosition", "vec3");
+        vertexShader->addUniform("modelMatrix", "mat4");
+        vertexShader->addOutgoing("uv_coords", "vec2");
+        vertexShader->append("void main() {");
+        vertexShader->append("    vec4 pos = modelMatrix * vec4(vertexPosition, 1.0);");
+        vertexShader->append("    gl_Position = pos;");
+        vertexShader->append("    uv_coords.xy = pos.xy;");
+        vertexShader->append("}");
+
+        // This with the ShadowBlurYShader design for a 2-pass 5x5 (sigma=1.0)
+        // Weights computed using -- http://dev.theomader.com/gaussian-kernel-calculator/
+        fragmentShader->addUniform("camera_properties", "vec2");
+        fragmentShader->addUniform("depthCube", "samplerCube");
+        fragmentShader->append("layout(location = 0) out vec4 frag0;");
+        fragmentShader->append("layout(location = 1) out vec4 frag1;");
+        fragmentShader->append("layout(location = 2) out vec4 frag2;");
+        fragmentShader->append("layout(location = 3) out vec4 frag3;");
+        fragmentShader->append("layout(location = 4) out vec4 frag4;");
+        fragmentShader->append("layout(location = 5) out vec4 frag5;");
+        fragmentShader->append("void main() {");
+        fragmentShader->append("    float ofsScale = camera_properties.x / 2500.0;");
+        fragmentShader->append("    vec3 dir0 = vec3(1.0, -uv_coords.y, -uv_coords.x);");
+        fragmentShader->append("    vec3 dir1 = vec3(-1.0, -uv_coords.y, uv_coords.x);");
+        fragmentShader->append("    vec3 dir2 = vec3(uv_coords.x, 1.0, uv_coords.y);");
+        fragmentShader->append("    vec3 dir3 = vec3(uv_coords.x, -1.0, -uv_coords.y);");
+        fragmentShader->append("    vec3 dir4 = vec3(uv_coords.x, -uv_coords.y, 1.0);");
+        fragmentShader->append("    vec3 dir5 = vec3(-uv_coords.x, -uv_coords.y, -1.0);");
+        fragmentShader->append("    float depth0;");
+        fragmentShader->append("    float depth1;");
+        fragmentShader->append("    float depth2;");
+        fragmentShader->append("    float outDepth;");
+        fragmentShader->append("    depth0 = texture(depthCube, dir0).x;");
+        fragmentShader->append(
+                    "    depth1 = texture(depthCube, dir0 + vec3(0.0, 0.0, -ofsScale)).x;");
+        fragmentShader->append(
+                    "    depth1 += texture(depthCube, dir0 + vec3(0.0, 0.0, ofsScale)).x;");
+        fragmentShader->append(
+                    "    depth2 = texture(depthCube, dir0 + vec3(0.0, 0.0, -2.0*ofsScale)).x;");
+        fragmentShader->append(
+                    "    depth2 += texture(depthCube, dir0 + vec3(0.0, 0.0, 2.0*ofsScale)).x;");
+        fragmentShader->append(
+                    "    outDepth = 0.38774 * depth0 + 0.24477 * depth1 + 0.06136 * depth2;");
+        fragmentShader->append("    frag0 = vec4(outDepth);");
+
+        fragmentShader->append("    depth0 = texture(depthCube, dir1).x;");
+        fragmentShader->append(
+                    "    depth1 = texture(depthCube, dir1 + vec3(0.0, 0.0, -ofsScale)).x;");
+        fragmentShader->append(
+                    "    depth1 += texture(depthCube, dir1 + vec3(0.0, 0.0, ofsScale)).x;");
+        fragmentShader->append(
+                    "    depth2 = texture(depthCube, dir1 + vec3(0.0, 0.0, -2.0*ofsScale)).x;");
+        fragmentShader->append(
+                    "    depth2 += texture(depthCube, dir1 + vec3(0.0, 0.0, 2.0*ofsScale)).x;");
+        fragmentShader->append(
+                    "    outDepth = 0.38774 * depth0 + 0.24477 * depth1 + 0.06136 * depth2;");
+        fragmentShader->append("    frag1 = vec4(outDepth);");
+
+        fragmentShader->append("    depth0 = texture(depthCube, dir2).x;");
+        fragmentShader->append(
+                    "    depth1 = texture(depthCube, dir2 + vec3(-ofsScale, 0.0, 0.0)).x;");
+        fragmentShader->append(
+                    "    depth1 += texture(depthCube, dir2 + vec3(ofsScale, 0.0, 0.0)).x;");
+        fragmentShader->append(
+                    "    depth2 = texture(depthCube, dir2 + vec3(-2.0*ofsScale, 0.0, 0.0)).x;");
+        fragmentShader->append(
+                    "    depth2 += texture(depthCube, dir2 + vec3(2.0*ofsScale, 0.0, 0.0)).x;");
+        fragmentShader->append(
+                    "    outDepth = 0.38774 * depth0 + 0.24477 * depth1 + 0.06136 * depth2;");
+        fragmentShader->append("    frag2 = vec4(outDepth);");
+
+        fragmentShader->append("    depth0 = texture(depthCube, dir3).x;");
+        fragmentShader->append(
+                    "    depth1 = texture(depthCube, dir3 + vec3(-ofsScale, 0.0, 0.0)).x;");
+        fragmentShader->append(
+                    "    depth1 += texture(depthCube, dir3 + vec3(ofsScale, 0.0, 0.0)).x;");
+        fragmentShader->append(
+                    "    depth2 = texture(depthCube, dir3 + vec3(-2.0*ofsScale, 0.0, 0.0)).x;");
+        fragmentShader->append(
+                    "    depth2 += texture(depthCube, dir3 + vec3(2.0*ofsScale, 0.0, 0.0)).x;");
+        fragmentShader->append(
+                    "    outDepth = 0.38774 * depth0 + 0.24477 * depth1 + 0.06136 * depth2;");
+        fragmentShader->append("    frag3 = vec4(outDepth);");
+
+        fragmentShader->append("    depth0 = texture(depthCube, dir4).x;");
+        fragmentShader->append(
+                    "    depth1 = texture(depthCube, dir4 + vec3(-ofsScale, 0.0, 0.0)).x;");
+        fragmentShader->append(
+                    "    depth1 += texture(depthCube, dir4 + vec3(ofsScale, 0.0, 0.0)).x;");
+        fragmentShader->append(
+                    "    depth2 = texture(depthCube, dir4 + vec3(-2.0*ofsScale, 0.0, 0.0)).x;");
+        fragmentShader->append(
+                    "    depth2 += texture(depthCube, dir4 + vec3(2.0*ofsScale, 0.0, 0.0)).x;");
+        fragmentShader->append(
+                    "    outDepth = 0.38774 * depth0 + 0.24477 * depth1 + 0.06136 * depth2;");
+        fragmentShader->append("    frag4 = vec4(outDepth);");
+
+        fragmentShader->append("    depth0 = texture(depthCube, dir5).x;");
+        fragmentShader->append(
+                    "    depth1 = texture(depthCube, dir5 + vec3(-ofsScale, 0.0, 0.0)).x;");
+        fragmentShader->append(
+                    "    depth1 += texture(depthCube, dir5 + vec3(ofsScale, 0.0, 0.0)).x;");
+        fragmentShader->append(
+                    "    depth2 = texture(depthCube, dir5 + vec3(-2.0*ofsScale, 0.0, 0.0)).x;");
+        fragmentShader->append(
+                    "    depth2 += texture(depthCube, dir5 + vec3(2.0*ofsScale, 0.0, 0.0)).x;");
+        fragmentShader->append(
+                    "    outDepth = 0.38774 * depth0 + 0.24477 * depth1 + 0.06136 * depth2;");
+        fragmentShader->append("    frag5 = vec4(outDepth);");
+
+        fragmentShader->append("}");
+
+        m_cubeShadowBlurXShader = m_shaderProgramGenerator->compileGeneratedShader(QLatin1String("cubemap shadow blur X shader"), Q3DSShaderFeatureSet());
+    }
+
+    return m_cubeShadowBlurXShader;
+}
+
+Qt3DRender::QShaderProgram *Q3DSShaderManager::getCubeShadowBlurYShader(const Q3DSGraphicsLimits &)
+{
+    if (!m_cubeShadowBlurYShader) {
+        m_shaderProgramGenerator->beginProgram();
+        Q3DSAbstractShaderStageGenerator *vertexShader = m_shaderProgramGenerator->getStage(Q3DSShaderGeneratorStages::Vertex);
+        Q3DSAbstractShaderStageGenerator *fragmentShader = m_shaderProgramGenerator->getStage(Q3DSShaderGeneratorStages::Fragment);
+
+        // NB! The vertex shader is modified compared to the original: It uses
+        // Qt3D attribute names (vertexPosition instead of attr_pos) and takes
+        // modelMatrix into account.
+        vertexShader->addIncoming("vertexPosition", "vec3");
+        vertexShader->addUniform("modelMatrix", "mat4");
+        vertexShader->addOutgoing("uv_coords", "vec2");
+        vertexShader->append("void main() {");
+        vertexShader->append("    vec4 pos = modelMatrix * vec4(vertexPosition, 1.0);");
+        vertexShader->append("    gl_Position = pos;");
+        vertexShader->append("    uv_coords.xy = pos.xy;");
+        vertexShader->append("}");
+
+        // This with the ShadowBlurXShader design for a 2-pass 5x5 (sigma=1.0)
+        // Weights computed using -- http://dev.theomader.com/gaussian-kernel-calculator/
+        fragmentShader->addUniform("camera_properties", "vec2");
+        fragmentShader->addUniform("depthCube", "samplerCube");
+        fragmentShader->append("layout(location = 0) out vec4 frag0;");
+        fragmentShader->append("layout(location = 1) out vec4 frag1;");
+        fragmentShader->append("layout(location = 2) out vec4 frag2;");
+        fragmentShader->append("layout(location = 3) out vec4 frag3;");
+        fragmentShader->append("layout(location = 4) out vec4 frag4;");
+        fragmentShader->append("layout(location = 5) out vec4 frag5;");
+        fragmentShader->append("void main() {");
+        fragmentShader->append("    float ofsScale = camera_properties.x / 2500.0;");
+        fragmentShader->append("    vec3 dir0 = vec3(1.0, -uv_coords.y, -uv_coords.x);");
+        fragmentShader->append("    vec3 dir1 = vec3(-1.0, -uv_coords.y, uv_coords.x);");
+        fragmentShader->append("    vec3 dir2 = vec3(uv_coords.x, 1.0, uv_coords.y);");
+        fragmentShader->append("    vec3 dir3 = vec3(uv_coords.x, -1.0, -uv_coords.y);");
+        fragmentShader->append("    vec3 dir4 = vec3(uv_coords.x, -uv_coords.y, 1.0);");
+        fragmentShader->append("    vec3 dir5 = vec3(-uv_coords.x, -uv_coords.y, -1.0);");
+        fragmentShader->append("    float depth0;");
+        fragmentShader->append("    float depth1;");
+        fragmentShader->append("    float depth2;");
+        fragmentShader->append("    float outDepth;");
+        fragmentShader->append("    depth0 = texture(depthCube, dir0).x;");
+        fragmentShader->append(
+                    "    depth1 = texture(depthCube, dir0 + vec3(0.0, -ofsScale, 0.0)).x;");
+        fragmentShader->append(
+                    "    depth1 += texture(depthCube, dir0 + vec3(0.0, ofsScale, 0.0)).x;");
+        fragmentShader->append(
+                    "    depth2 = texture(depthCube, dir0 + vec3(0.0, -2.0*ofsScale, 0.0)).x;");
+        fragmentShader->append(
+                    "    depth2 += texture(depthCube, dir0 + vec3(0.0, 2.0*ofsScale, 0.0)).x;");
+        fragmentShader->append(
+                    "    outDepth = 0.38774 * depth0 + 0.24477 * depth1 + 0.06136 * depth2;");
+        fragmentShader->append("    frag0 = vec4(outDepth);");
+
+        fragmentShader->append("    depth0 = texture(depthCube, dir1).x;");
+        fragmentShader->append(
+                    "    depth1 = texture(depthCube, dir1 + vec3(0.0, -ofsScale, 0.0)).x;");
+        fragmentShader->append(
+                    "    depth1 += texture(depthCube, dir1 + vec3(0.0, ofsScale, 0.0)).x;");
+        fragmentShader->append(
+                    "    depth2 = texture(depthCube, dir1 + vec3(0.0, -2.0*ofsScale, 0.0)).x;");
+        fragmentShader->append(
+                    "    depth2 += texture(depthCube, dir1 + vec3(0.0, 2.0*ofsScale, 0.0)).x;");
+        fragmentShader->append(
+                    "    outDepth = 0.38774 * depth0 + 0.24477 * depth1 + 0.06136 * depth2;");
+        fragmentShader->append("    frag1 = vec4(outDepth);");
+
+        fragmentShader->append("    depth0 = texture(depthCube, dir2).x;");
+        fragmentShader->append(
+                    "    depth1 = texture(depthCube, dir2 + vec3(0.0, 0.0, -ofsScale)).x;");
+        fragmentShader->append(
+                    "    depth1 += texture(depthCube, dir2 + vec3(0.0, 0.0, ofsScale)).x;");
+        fragmentShader->append(
+                    "    depth2 = texture(depthCube, dir2 + vec3(0.0, 0.0, -2.0*ofsScale)).x;");
+        fragmentShader->append(
+                    "    depth2 += texture(depthCube, dir2 + vec3(0.0, 0.0, 2.0*ofsScale)).x;");
+        fragmentShader->append(
+                    "    outDepth = 0.38774 * depth0 + 0.24477 * depth1 + 0.06136 * depth2;");
+        fragmentShader->append("    frag2 = vec4(outDepth);");
+
+        fragmentShader->append("    depth0 = texture(depthCube, dir3).x;");
+        fragmentShader->append(
+                    "    depth1 = texture(depthCube, dir3 + vec3(0.0, 0.0, -ofsScale)).x;");
+        fragmentShader->append(
+                    "    depth1 += texture(depthCube, dir3 + vec3(0.0, 0.0, ofsScale)).x;");
+        fragmentShader->append(
+                    "    depth2 = texture(depthCube, dir3 + vec3(0.0, 0.0, -2.0*ofsScale)).x;");
+        fragmentShader->append(
+                    "    depth2 += texture(depthCube, dir3 + vec3(0.0, 0.0, 2.0*ofsScale)).x;");
+        fragmentShader->append(
+                    "    outDepth = 0.38774 * depth0 + 0.24477 * depth1 + 0.06136 * depth2;");
+        fragmentShader->append("    frag3 = vec4(outDepth);");
+
+        fragmentShader->append("    depth0 = texture(depthCube, dir4).x;");
+        fragmentShader->append(
+                    "    depth1 = texture(depthCube, dir4 + vec3(0.0, -ofsScale, 0.0)).x;");
+        fragmentShader->append(
+                    "    depth1 += texture(depthCube, dir4 + vec3(0.0, ofsScale, 0.0)).x;");
+        fragmentShader->append(
+                    "    depth2 = texture(depthCube, dir4 + vec3(0.0, -2.0*ofsScale, 0.0)).x;");
+        fragmentShader->append(
+                    "    depth2 += texture(depthCube, dir4 + vec3(0.0, 2.0*ofsScale, 0.0)).x;");
+        fragmentShader->append(
+                    "    outDepth = 0.38774 * depth0 + 0.24477 * depth1 + 0.06136 * depth2;");
+        fragmentShader->append("    frag4 = vec4(outDepth);");
+
+        fragmentShader->append("    depth0 = texture(depthCube, dir5).x;");
+        fragmentShader->append(
+                    "    depth1 = texture(depthCube, dir5 + vec3(0.0, -ofsScale, 0.0)).x;");
+        fragmentShader->append(
+                    "    depth1 += texture(depthCube, dir5 + vec3(0.0, ofsScale, 0.0)).x;");
+        fragmentShader->append(
+                    "    depth2 = texture(depthCube, dir5 + vec3(0.0, -2.0*ofsScale, 0.0)).x;");
+        fragmentShader->append(
+                    "    depth2 += texture(depthCube, dir5 + vec3(0.0, 2.0*ofsScale, 0.0)).x;");
+        fragmentShader->append(
+                    "    outDepth = 0.38774 * depth0 + 0.24477 * depth1 + 0.06136 * depth2;");
+        fragmentShader->append("    frag5 = vec4(outDepth);");
+
+        fragmentShader->append("}");
+
+        m_cubeShadowBlurYShader = m_shaderProgramGenerator->compileGeneratedShader(QLatin1String("cubemap shadow blur Y shader"), Q3DSShaderFeatureSet());
+    }
+
+    return m_cubeShadowBlurYShader;
+}
+
+Qt3DRender::QShaderProgram *Q3DSShaderManager::getSsaoTextureShader()
+{
+    if (!m_ssaoTextureShader) {
+        m_shaderProgramGenerator->beginProgram();
+        Q3DSAbstractShaderStageGenerator *vertexShader = m_shaderProgramGenerator->getStage(Q3DSShaderGeneratorStages::Vertex);
+        Q3DSAbstractShaderStageGenerator *fragmentShader = m_shaderProgramGenerator->getStage(Q3DSShaderGeneratorStages::Fragment);
+
+        // use qt3d attribute names, use modelMatrix as well
+        vertexShader->addIncoming("vertexPosition", "vec3");
+        vertexShader->addIncoming("vertexTexCoord", "vec2");
+        vertexShader->addUniform("modelMatrix", "mat4");
+        vertexShader->addOutgoing("uv_coords", "vec2");
+        vertexShader->append("void main() {");
+        vertexShader->append("    vec4 pos = modelMatrix * vec4(vertexPosition, 1.0);");
+        vertexShader->append("    gl_Position = vec4( pos.xy, 0.5, 1.0 );");
+        vertexShader->append("    uv_coords = vertexTexCoord;");
+        vertexShader->append("}");
+
+        fragmentShader->addInclude("viewProperties.glsllib");
+        fragmentShader->addInclude("screenSpaceAO.glsllib");
+
+        (*fragmentShader) << "layout (std140) uniform cbAoShadow {\n"
+                          << "    vec4 ao_properties;\n"
+                          << "    vec4 ao_properties2;\n"
+                          << "    vec4 shadow_properties;\n"
+                          << "    vec4 aoScreenConst;\n"
+                          << "    vec4 UvToEyeConst;\n"
+                          << "};\n";
+
+        fragmentShader->addUniform("depth_sampler", "sampler2D");
+        fragmentShader->append("void main() {");
+        (*fragmentShader) << "    float aoFactor;\n";
+        (*fragmentShader) << "    vec3 screenNorm;\n";
+
+        // We're taking multiple depth samples and getting the derivatives at
+        // each of them to get a more accurate view space normal vector. When
+        // we do only one, we tend to get bizarre values at the edges
+        // surrounding objects, and this also ends up giving us weird AO
+        // values. If we had a proper screen-space normal map, that would also
+        // do the trick.
+        fragmentShader->append("    ivec2 iCoords = ivec2( gl_FragCoord.xy );");
+        fragmentShader->append("    float depth = getDepthValue( texelFetch(depth_sampler, iCoords, 0), camera_properties );");
+        fragmentShader->append("    depth = depthValueToLinearDistance( depth, camera_properties );");
+        fragmentShader->append("    depth = (depth - camera_properties.x) / (camera_properties.y - camera_properties.x);");
+        fragmentShader->append("    float depth2 = getDepthValue( texelFetch(depth_sampler, iCoords+ivec2(1), 0), camera_properties );");
+        fragmentShader->append("    depth2 = depthValueToLinearDistance( depth, camera_properties );");
+        fragmentShader->append("    float depth3 = getDepthValue( texelFetch(depth_sampler, iCoords-ivec2(1), 0), camera_properties );");
+        fragmentShader->append("    depth3 = depthValueToLinearDistance( depth, camera_properties );");
+        fragmentShader->append("    vec3 tanU = vec3(10, 0, dFdx(depth));");
+        fragmentShader->append("    vec3 tanV = vec3(0, 10, dFdy(depth));");
+        fragmentShader->append("    screenNorm = normalize(cross(tanU, tanV));");
+        fragmentShader->append("    tanU = vec3(10, 0, dFdx(depth2));");
+        fragmentShader->append("    tanV = vec3(0, 10, dFdy(depth2));");
+        fragmentShader->append("    screenNorm += normalize(cross(tanU, tanV));");
+        fragmentShader->append("    tanU = vec3(10, 0, dFdx(depth3));");
+        fragmentShader->append("    tanV = vec3(0, 10, dFdy(depth3));");
+        fragmentShader->append("    screenNorm += normalize(cross(tanU, tanV));");
+        fragmentShader->append("    screenNorm = -normalize(screenNorm);");
+
+        fragmentShader->append("    aoFactor = SSambientOcclusion( depth_sampler, screenNorm, ao_properties, ao_properties2, camera_properties, aoScreenConst, UvToEyeConst );");
+
+        fragmentShader->append("    fragOutput = vec4(aoFactor, aoFactor, aoFactor, 1.0);");
+        fragmentShader->append("}");
+
+        m_ssaoTextureShader = m_shaderProgramGenerator->compileGeneratedShader(QLatin1String("fullscreen AO pass shader"), Q3DSShaderFeatureSet());
+    }
+
+    return m_ssaoTextureShader;
+}
+
+Qt3DRender::QShaderProgram *Q3DSShaderManager::getBsdfMipPreFilterShader()
+{
+    if (!m_bsdfMipPreFilterShader) {
+        m_bsdfMipPreFilterShader = new Qt3DRender::QShaderProgram;
+        bool isOpenGLES = QOpenGLContext::openGLModuleType() == QOpenGLContext::LibGLES;
+        QByteArray code;
+
+        // NB changed to rgba32f as opposed to the half float (rgba16f) original
+
+        if (isOpenGLES) {
+            code += "#version 310 es\n"
+                    "#extension GL_ARB_compute_shader : enable\n"
+                    "precision highp float;\n"
+                    "precision highp int;\n"
+                    "precision mediump image2D;\n";
+        } else {
+            code += "#version 430\n"
+                    "#extension GL_ARB_compute_shader : enable\n";
+        }
+
+        code += "int wrapMod( in int a, in int base )\n"
+                "{\n"
+                "  return ( a >= 0 ) ? a % base : -(a % base) + base;\n"
+                "}\n";
+
+        code += "void getWrappedCoords( inout int sX, inout int sY, in int width, in int height )\n"
+                "{\n"
+                "  if (sY < 0) { sX -= width >> 1; sY = -sY; }\n"
+                "  if (sY >= height) { sX += width >> 1; sY = height - sY; }\n"
+                "  sX = wrapMod( sX, width );\n"
+                "}\n";
+
+        code += "// Set workgroup layout;\n"
+                "layout (local_size_x = 16, local_size_y = 16) in;\n\n"
+                "layout (rgba32f, binding = 1) readonly uniform image2D inputImage;\n\n"
+                "layout (rgba32f, binding = 2) writeonly uniform image2D outputImage;\n\n"
+                "void main()\n"
+                "{\n"
+                "  int prevWidth = int(gl_NumWorkGroups.x) << 1;\n"
+                "  int prevHeight = int(gl_NumWorkGroups.y) << 1;\n"
+                "  if ( gl_GlobalInvocationID.x >= gl_NumWorkGroups.x || gl_GlobalInvocationID.y >= "
+                "gl_NumWorkGroups.y )\n"
+                "    return;\n"
+                "  vec4 accumVal = vec4(0.0);\n"
+                "  for ( int sy = -2; sy <= 2; ++sy )\n"
+                "  {\n"
+                "    for ( int sx = -2; sx <= 2; ++sx )\n"
+                "    {\n"
+                "      int sampleX = sx + (int(gl_GlobalInvocationID.x) << 1);\n"
+                "      int sampleY = sy + (int(gl_GlobalInvocationID.y) << 1);\n"
+                "      getWrappedCoords(sampleX, sampleY, prevWidth, prevHeight);\n"
+                "      if ((sampleY * prevWidth + sampleX) < 0 )\n"
+                "        sampleY = prevHeight + sampleY;\n"
+                "      ivec2 pos = ivec2(sampleX, sampleY);\n"
+                "      vec4 value = imageLoad(inputImage, pos);\n"
+                "      float filterPdf = 1.0 / ( 1.0 + float(sx*sx + sy*sy)*2.0 );\n"
+                "      filterPdf /= 4.71238898;\n"
+                "      accumVal[0] += filterPdf * value.r;\n"
+                "      accumVal[1] += filterPdf * value.g;\n"
+                "      accumVal[2] += filterPdf * value.b;\n"
+                "      accumVal[3] += filterPdf * value.a;\n"
+                "    }\n"
+                "  }\n"
+                "  imageStore( outputImage, ivec2(gl_GlobalInvocationID.xy), accumVal );\n"
+                "}\n";
+
+        m_bsdfMipPreFilterShader->setComputeShaderCode(code);
+    }
+
+    return m_bsdfMipPreFilterShader;
+}
+
+Q3DSShaderManager::Q3DSShaderManager()
+    : m_materialShaderGenerator(&Q3DSDefaultMaterialShaderGenerator::createDefaultMaterialShaderGenerator())
+    , m_shaderProgramGenerator(Q3DSAbstractShaderProgramGenerator::createProgramGenerator())
+{
+}
+
+void Q3DSShaderManager::invalidate()
+{
+    // all cached resources should be dropped, Qt3D objects may be destroyed at this stage.
+
+    m_depthPrePassShader = nullptr;
+    m_orthoDepthShader = nullptr;
+    m_cubeDepthShader = nullptr;
+    m_orthoShadowBlurXShader = nullptr;
+    m_orthoShadowBlurYShader = nullptr;
+    m_cubeShadowBlurXShader = nullptr;
+    m_cubeShadowBlurYShader = nullptr;
+    m_ssaoTextureShader = nullptr;
+    m_bsdfMipPreFilterShader = nullptr;
+
+    m_shaderProgramGenerator->invalidate();
+}
+
+#if 0
+
+Qt3DRender::QShaderProgram *Q3DSShaderManager::getParaboloidDepthShader(TessModeValues::Enum tessMode)
+{
+    Q_UNUSED(tessMode);
+    return nullptr;
+}
+
+Qt3DRender::QShaderProgram *Q3DSShaderManager::getParaboloidDepthNoTessShader()
+{
+    return nullptr;
+}
+
+Qt3DRender::QShaderProgram *Q3DSShaderManager::getParaboloidDepthTessLinearShader()
+{
+    return nullptr;
+}
+
+Qt3DRender::QShaderProgram *Q3DSShaderManager::getParaboloidDepthTessPhongShader()
+{
+    return nullptr;
+}
+
+Qt3DRender::QShaderProgram *Q3DSShaderManager::getParaboloidDepthTessNPatchShader()
+{
+    return nullptr;
+}
+
+Qt3DRender::QShaderProgram *Q3DSShaderManager::getCubeDepthTessLinearShader()
+{
+    return nullptr;
+}
+
+Qt3DRender::QShaderProgram *Q3DSShaderManager::getCubeDepthTessPhongShader()
+{
+    return nullptr;
+}
+
+Qt3DRender::QShaderProgram *Q3DSShaderManager::getCubeDepthTessNPatchShader()
+{
+    return nullptr;
+}
+
+Qt3DRender::QShaderProgram *Q3DSShaderManager::getOrthographicDepthShader(TessModeValues::Enum tessMode)
+{
+    Q_UNUSED(tessMode);
+    return nullptr;
+}
+
+Qt3DRender::QShaderProgram *Q3DSShaderManager::getOrthographicDepthTessLinearShader()
+{
+    return nullptr;
+}
+
+Qt3DRender::QShaderProgram *Q3DSShaderManager::getOrthographicDepthTessPhongShader()
+{
+    return nullptr;
+}
+
+Qt3DRender::QShaderProgram *Q3DSShaderManager::getOrthographicDepthTessNPatchShader()
+{
+    return nullptr;
+}
+
+Qt3DRender::QShaderProgram *Q3DSShaderManager::getDepthTessPrepassShader(TessModeValues::Enum tessMode, bool displaced)
+{
+    Q_UNUSED(tessMode);
+    Q_UNUSED(displaced);
+    return nullptr;
+}
+
+Qt3DRender::QShaderProgram *Q3DSShaderManager::getDepthTessLinearPrepassShader(bool displaced)
+{
+    Q_UNUSED(displaced);
+    return nullptr;
+}
+
+Qt3DRender::QShaderProgram *Q3DSShaderManager::getDepthTessPhongPrepassShader()
+{
+    return nullptr;
+}
+
+Qt3DRender::QShaderProgram *Q3DSShaderManager::getDepthTessNPatchPrepassShader()
+{
+    return nullptr;
+}
+
+Qt3DRender::QShaderProgram *Q3DSShaderManager::getDefaultAoPassShader(Q3DSShaderFeatureSet featureSet)
+{
+    Q_UNUSED(featureSet);
+    return nullptr;
+}
+
+Qt3DRender::QShaderProgram *Q3DSShaderManager::getFakeCubeDepthShader(Q3DSShaderFeatureSet featureSet)
+{
+    Q_UNUSED(featureSet);
+    return nullptr;
+}
+
+#endif
+
+QT_END_NAMESPACE

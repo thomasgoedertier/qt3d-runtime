@@ -1,0 +1,15 @@
+vec3 flakeNoiseBumpTexture( in texture_coordinate_info uvw, in float scale, in float strength, in vec3 normal )
+{
+  vec3 tex = uvw.position / scale;
+  vec3 grad = miNoise( tex ).xyz;
+
+  // displace coordinate according to noise value
+  tex += 2.0f * grad;
+
+  // then use only integer coordinates, to make flakes transients harder and not wobbly
+  grad = miNoise( round( tex ) ).xyz;
+
+  vec3 n = normalize(vec3(strength * grad.x, strength * grad.y, 1.0));
+  n = n.x*uvw.tangent_u + n.y*uvw.tangent_v + n.z*normal;
+  return normalize(normal + n);
+}

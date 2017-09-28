@@ -1,0 +1,14 @@
+// TODO: real implementation
+anisotropy_return anisotropyConversion( in float roughness, in float anisotropy, in float anisotropyRotation, in vec3 tangentU, bool miaAnisotropySemantic )
+{
+  anisotropy_return aniso;
+  float angle = 2.0 * PI * anisotropyRotation;
+  float cos_angle = cos(angle);
+  float sin_angle = sin(angle);
+  aniso.tangent_u = normalize( cos_angle * tangentU + sin_angle * binormal );
+  // roughness
+  float anisoFac = 1.0 - clamp(anisotropy, 0.0, 0.999);
+  aniso.roughness_v = clamp( roughness / anisoFac, 0.0001, 1.0);
+  aniso.roughness_u = clamp( aniso.roughness_v * anisoFac, 0.0001, 1.0);
+  return( aniso );
+}

@@ -1,0 +1,13 @@
+<RCC>
+    <qresource prefix="/">
+        <file>data/carbon_fiber.material</file>
+        <file>data/powder_coat.material</file>
+        <file>data/thin_glass_frosted.material</file>
+        <file>data/bad_version.material</file>
+        <file>data/invalid.material</file>
+        <file>data/invalid_property.material</file>
+        <file>data/missing_shader.material</file>
+        <file>data/no_shaders.material</file>
+        <file>data/aluminum.material</file>
+    </qresource>
+</RCC>

@@ -1,0 +1,233 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<Effect>
+    <MetaData>
+    <Property name="SurfDist" formalName="Distance to Surface" description="Distance from camera to the paper surface" default="100"/>
+    <Property name="BlurDist" formalName="Distance to Full Blur" description="Distance from the paper surface that corresponds to fully blurred" default="100"/>
+    <Property name="MaxBlur" formalName="Max Blur Radius" description="Blur radius defined as 'full blur'" min="1" max="100" default="50"/>
+    <Property name="OverlayDif" formalName="Diffuse Texture" description="Texture overlay color for the paper surface" type="Texture" clamp="repeat" />
+    <Property name="OverlayTrn" formalName="Translucent Texture" description="Texture overlay translucency for the paper surface" type="Texture" clamp="repeat" />
+    <Property name="OverlayNrm" formalName="Normal Texture" description="Texture overlay normal for the paper surface" type="Texture" clamp="repeat" />
+    <Property name="OverlayScale" formalName="Texture Scale" description="Texture overlay scaling factor" type="Float2" default="1 1"/>
+    <Property name="OverlayRot" formalName="Texture Rotation" description="Texture overlay rotation angle" default="0" min="0" max="360"/>
+    <Property name="OverlayTrans" formalName="Translucency blocking" description="How much translucency through the overlay" default="2.0"/>
+    <Property name="LightCol" formalName="Light Color" description="Color of the backlight" type="Color" default="1 1 1"/>
+    <Property name="LightBrt" formalName="Light Brightness" description="Brightness of the backlight" default="1.0"/>
+    <Property name="LightExp" formalName="Light Exposure" descriptoin="Pre-emptive exposure operation to prevent blowout" default="1.0"/>
+
+    <Property name="DimplePos" formalName="Dimple Position" description="On-screen position of a depth 'pressure dimple'" type="Float2" default="0 0"/>
+    <Property name="DimpleDepth" formalName="Dimple Pressure" description="How deep the 'pressure dimple' goes" default="0"/>
+    <Property name="DimpleSize" formalName="Dimple Size" description="How big the pressure dimple is in onscreen pixels" default="1" min="1" max="1000"/>
+
+    <!-- Internal buffers plus a few extra options -->
+    <Property name="DepthSampler" type="Texture" filter="nearest" clamp="clamp"/>
+    <Property name="DistBuffer" type="Texture" filter="nearest" clamp="clamp"/>
+    <Property name="BlurBuffer" type="Texture" filter="nearest" clamp="clamp"/>
+    <Property name="SrcSampler" type="Texture" filter="linear" clamp="clamp"/>
+    <Property name="HalfSampler" type="Texture" filter="linear" clamp="clamp"/>
+    <Property name="BlurDebug" formalName="Debug Blur Amt" type="Boolean" default="False"/>
+    <Property name="DepthDebug" formalName="Debug Depth Map" type="Boolean" default="False"/>
+    </MetaData>
+<Shaders>
+    <Shared>
+#include "depthpass.glsllib"
+
+uniform vec2 CameraClipRange;
+    </Shared>
+    <Shader name="DOWNSAMPALPHA">
+    <FragmentShader>
+void frag()
+{
+    // Simple averaging blur, but makes sure to include the alpha channel from the blur weights
+    // Only need to do this once to actually set the alphas in the blur buffers.
+    vec4 smp0 = textureOffset(Texture0, TexCoord.xy, ivec2(-1,-1));
+    vec4 smp1 = textureOffset(Texture0, TexCoord.xy, ivec2(0,-1));
+    vec4 smp2 = textureOffset(Texture0, TexCoord.xy, ivec2(-1,0));
+    vec4 smp3 = texture(Texture0, TexCoord.xy);
+
+    smp0.w *= textureOffset(DistBuffer, TexCoord.xy, ivec2(-1,-1)).w;
+    smp1.w *= textureOffset(DistBuffer, TexCoord.xy, ivec2(0,-1)).w;
+    smp2.w *= textureOffset(DistBuffer, TexCoord.xy, ivec2(-1,0)).w;
+    smp3.w *= texture(DistBuffer, TexCoord.xy).w;
+
+    gl_FragColor = 0.25 * (smp0 + smp1 + smp2 + smp3);
+}
+    </FragmentShader>
+    </Shader>
+    <Shader name="DOWNSAMPLE">
+    <FragmentShader>
+void frag() // Simple averaging blur.
+{
+    vec4 smp0 = textureOffset(Texture0, TexCoord.xy, ivec2(-1,-1));
+    vec4 smp1 = textureOffset(Texture0, TexCoord.xy, ivec2(0,-1));
+    vec4 smp2 = textureOffset(Texture0, TexCoord.xy, ivec2(-1,0));
+    vec4 smp3 = texture(Texture0, TexCoord.xy);
+
+    gl_FragColor = 0.25 * (smp0 + smp1 + smp2 + smp3);
+}
+    </FragmentShader>
+    </Shader>
+    <Shader name="FINDBLURAMT">
+    <FragmentShader>
+void frag()
+{
+    float planeDepth = SurfDist;
+
+    vec2 dvec = gl_FragCoord.xy - vec2(DimplePos);
+    float dimple = dot(dvec, dvec) / (DimpleSize * DimpleSize);
+    planeDepth += exp2(-dimple) * DimpleDepth;
+
+    vec4 depthSample = texture(DepthSampler, TexCoord);
+    float depthVal = getDepthValue( depthSample, CameraClipRange );
+    float rawDepth = depthValueToLinearDistance( depthVal, CameraClipRange );
+
+    if (DepthDebug)
+    {
+        gl_FragColor = vec4( (rawDepth - CameraClipRange.x) / (CameraClipRange.y - CameraClipRange.x) );
+        return;
+    }
+
+    float blurAmt = smoothstep(0.0, 1.0, (rawDepth - planeDepth) / BlurDist);
+    gl_FragColor = vec4(blurAmt, blurAmt, blurAmt, 1.0 - blurAmt);
+}
+    </FragmentShader>
+    </Shader>
+    <Shader name="BLURX">
+    <FragmentShader>
+void frag()
+{
+    vec4 smp = texture(DistBuffer, TexCoord.xy);
+    float sigma = clamp(smp.x * MaxBlur * 0.25, 1.0, 25.0);
+    int smpCount = int(ceil( sigma ));
+    vec4 value = texture(BlurBuffer, TexCoord.xy);
+    float wtsum = 1.0;
+    for (int i = 1; i &lt;= smpCount; ++i)
+    {
+        // Base 2 Gaussian blur
+        float wt = float(i) / (sigma * 0.5);
+        wt = exp2( -wt*wt );
+        value += wt * textureOffset(BlurBuffer, TexCoord.xy, ivec2(-i,0));
+        value += wt * textureOffset(BlurBuffer, TexCoord.xy, ivec2(i,0));
+        wtsum += wt * 2.0;
+    }
+
+    gl_FragColor = value / wtsum;
+}
+    </FragmentShader>
+    </Shader>
+    <Shader name="BLURY">
+    <FragmentShader>
+void frag()
+{
+    vec4 smp = texture(DistBuffer, TexCoord.xy);
+
+    float sigma = clamp(smp.x * MaxBlur * 0.25, 1.0, 25.0);
+    int smpCount = int(ceil( sigma ));
+    vec4 value = texture(BlurBuffer, TexCoord.xy);
+    value.w *= smp.w;
+    float wtsum = 1.0;
+    for (int i = 1; i &lt;= smpCount; ++i)
+    {
+        // Base 2 Gaussian blur
+        float wt = float(i) / (sigma * 0.5);
+        wt = exp2( -wt*wt );
+        value += wt * textureOffset(BlurBuffer, TexCoord.xy, ivec2(0,-i));
+        value += wt * textureOffset(BlurBuffer, TexCoord.xy, ivec2(0,i));
+        wtsum += wt * 2.0;
+    }
+
+    gl_FragColor = value / wtsum;
+}
+    </FragmentShader>
+    </Shader>
+    <Shader name="COMBINE">
+    <FragmentShader>
+void frag()
+{
+    float blurFac = texture(DistBuffer, TexCoord.xy).x;
+    float lod = log2(MaxBlur * blurFac);
+    float fac0 = clamp(lod, 0.0, 1.0);
+    float fac1 = clamp(lod-1.0, 0.0, 1.0);
+
+    if (BlurDebug || DepthDebug)
+    {
+        gl_FragColor = vec4(blurFac);
+        return;
+    }
+
+    vec4 result = texture(SrcSampler, TexCoord.xy);
+    vec4 lvl1 = texture(HalfSampler, TexCoord.xy);
+    vec4 fullBlr = texture(BlurBuffer, TexCoord.xy);
+
+    // Basically this says that if the blur factor is really small (less than 2 pixels)
+    // we favor the full resolution.  If it's between 2 and 4 pixels, we favor the half-res
+    // version (which is like one mip level down)...  anything beyond that, we use the bottom
+    // level which actually has the proper local blur.
+    result = mix(mix(result, lvl1, fac0), fullBlr, fac1);
+
+    // Transform the texture (assuming rotation about the center of the texture)
+    float cosX = cos(OverlayRot * 0.01745329251);
+    float sinX = sin(OverlayRot * 0.01745329251);
+    mat3x3 texMat = mat3x3( 1.0, 0.0, -0.5, 0.0, 1.0, -0.5, 0.0, 0.0, 1.0 );
+    texMat *= mat3x3( cosX, -sinX, 0.0, sinX, cosX, 0.0, 0.0, 0.0, 1.0);
+    texMat *= mat3x3( 1.0, 0.0, 0.5, 0.0, 1.0, 0.5, 0.0, 0.0, 1.0 );
+    texMat *= mat3x3( OverlayScale.x, 0.0, 0.0, 0.0, OverlayScale.y, 0.0, 0.0, 0.0, 1.0);
+    vec3 texForm = texMat * vec3(TexCoord.xy, 1.0);
+    vec4 overSmp = texture(OverlayDif, texForm.xy);
+    float overTrn = 1.0 - texture(OverlayTrn, texForm.xy).x;
+    float nDotL = (texture(OverlayNrm, texForm.xy).z - 0.5) * 2.0;
+
+    // Want to see how much of a "difference" there is between the light
+    // color and the object color.
+    // We are basically acting as if the objects on the layer are occluders
+    // so the alpha as a result of blurring is like a transparency.
+    // The behavior is that the brighter the light is, the more of a "gap" there is
+    vec3 backlight = LightCol * LightBrt;
+
+    // Assume that the color map I'm using already tells us what N.dot.L is (for now)
+    float translucency = exp2( -overTrn * OverlayTrans );
+
+//    vec3 colorDelta = backlight - result.rgb;
+//    float deltaC = dot(colorDelta, colorDelta) * (1.0 - result.w) * LightBrt / LightExp;
+//    result.rgb -= result.rgb * smoothstep(deltaC, 1.0, result.w);
+
+//    gl_FragColor = vec4( result.rgb, 1.0 );
+//    return;
+
+    backlight *= mix(vec3(1.0), result.rgb, result.w);
+    backlight *= nDotL * translucency * overSmp.rgb;
+
+    backlight = vec3(1.0) - exp2(-6.28*backlight/LightExp);
+
+    gl_FragColor = vec4(backlight, 1.0);
+}
+    </FragmentShader>
+    </Shader>
+</Shaders>
+<Passes>
+    <Buffer name="halfBuffer" type="ubyte" format="rgba" filter="linear" wrap="clamp" size=".5" lifetime="frame"/>
+    <Buffer name="qtrBuffer" type="ubyte" format="rgba" filter="linear" wrap="clamp" size=".25" lifetime="frame"/>
+    <Buffer name="tempqtr" type="ubyte" format="rgba" filter="linear" wrap="clamp" size=".25" lifetime="frame"/>
+    <Buffer name="blurweights" type="ubyte" format="rgba" filter="linear" wrap="clamp" size="1" lifetime="frame"/>
+    <Pass shader="FINDBLURAMT" output="blurweights">
+        <DepthInput param="DepthSampler"/>
+    </Pass>
+    <Pass shader="DOWNSAMPALPHA" input="[source]" output="halfBuffer">
+        <BufferInput param="DistBuffer" value="blurweights" />
+    </Pass>
+    <Pass shader="DOWNSAMPLE" input="halfBuffer" output="qtrBuffer"/>
+    <Pass shader="BLURX" output="tempqtr">
+        <BufferInput param="BlurBuffer" value="qtrBuffer" />
+        <BufferInput param="DistBuffer" value="blurweights" />
+    </Pass>
+    <Pass shader="BLURY" output="qtrBuffer">
+        <BufferInput param="BlurBuffer" value="tempqtr" />
+        <BufferInput param="DistBuffer" value="blurweights" />
+    </Pass>
+    <Pass shader="COMBINE">
+        <BufferInput param="SrcSampler" value="[source]" />
+        <BufferInput param="HalfSampler" value="halfBuffer" />
+        <BufferInput param="BlurBuffer" value="qtrBuffer" />
+        <BufferInput param="DistBuffer" value="blurweights" />
+    </Pass>
+</Passes>
+</Effect>

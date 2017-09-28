@@ -1,0 +1,9 @@
+<Material name="no_property_name" version="1.0">
+    <MetaData >
+        <Property type="Float" default="5.000000" category="Material"/>
+    </MetaData>
+    <Shaders type="GLSL" version="330">
+        <Shader>
+        </Shader>
+    </Shaders>
+</Material>

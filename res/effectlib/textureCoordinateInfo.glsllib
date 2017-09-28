@@ -1,0 +1,24 @@
+#ifndef TEXTURE_COORDINATE_INFO_GLSLLIB
+#define TEXTURE_COORDINATE_INFO_GLSLLIB
+
+#ifdef UIC_DEFINE_API
+
+struct texture_coordinate_info
+{
+  vec3 position;
+  vec3 tangent_u;
+  vec3 tangent_v;
+};
+
+#endif
+
+texture_coordinate_info textureCoordinateInfo( in vec3 pos, in vec3 tangentU, in vec3 tangentV )
+{
+  texture_coordinate_info tci;
+  tci.position  = pos;
+  tci.tangent_u = normalize( tangentU );
+  tci.tangent_v = normalize( tangentV );
+  return( tci );
+}
+
+#endif

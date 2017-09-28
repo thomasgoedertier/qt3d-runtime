@@ -1,0 +1,61 @@
+#ifndef FILE_NORMAL_TEXTURE_GLSLLIB
+#define FILE_NORMAL_TEXTURE_GLSLLIB
+
+#ifdef UIC_DEFINE_API
+
+#include "luminance.glsllib"
+#include "monoChannel.glsllib"
+#include "textureCoordinateInfo.glsllib"
+#define wrap_clamp 0
+#define wrap_repeat 1
+#define wrap_mirrored_repeat 2
+#include "rotationTranslationScale.glsllib"
+#include "transformCoordinate.glsllib"
+
+#endif
+
+//interpreting the color values of a bitmap as a vector in tangent space
+vec3 tangentSpaceNormalTexture( in sampler2D tex, in float factor, in bool flipTangentU, in bool flipTangentV
+                              , in texture_coordinate_info uvw, in vec2 cropU, in vec2 cropV, in int wrapU, in int wrapV )
+{
+  // if we mirror repeat a tangent space texture, tangent space needs to be flipped for every other tile
+  bool flipU = flipTangentU;
+  bool flipV = flipTangentV;
+  if ( wrapU == wrap_mirrored_repeat )
+  {
+    if (    ( ( 0.0f < uvw.position.x ) && ( int( uvw.position.x ) % 2 == 1 ) )
+        ||  ( ( uvw.position.x < 0.0f ) && ( int( uvw.position.x ) % 2 == 0 ) ) )
+    {
+      flipU = !flipU;
+    }
+    if (    ( ( 0.0f < uvw.position.y ) && ( int( uvw.position.y ) % 2 == 1 ) )
+        ||  ( ( uvw.position.y < 0.0f ) && ( int( uvw.position.y ) % 2 == 0 ) ) )
+    {
+      flipV = !flipV;
+    }
+  }
+
+  vec3 tangent = 2.0f * texture( tex, uvw.position.xy ).xyz - 1.0f;
+
+  vec3 tangentU = normalize( flipU ? -uvw.tangent_u : uvw.tangent_u );
+  vec3 tangentV = normalize( flipV ? -uvw.tangent_v : uvw.tangent_v );
+  vec3 normal = normalize( cross( tangentU, tangentV ) );
+
+  return( mix( normal, normalize( tangent.x * tangentU - tangent.y * tangentV + tangent.z * normal ), factor ) );
+}
+
+#include "textureCoordinateInfo.glsllib"
+
+//Simpler version built to run from UIC image data
+//In our case, we have already generated the texture coordinate x,y position
+//TODO - figure out if we need to manipulate tangent_u, tangent_v.
+vec3 uicDefaultMaterialFileNormalTexture( in sampler2D sampler, in float factor, vec2 texCoord, vec3 tangent, vec3 binormal )
+{
+  // factor should be in [0,1] range
+  return tangentSpaceNormalTexture( sampler, clamp(factor, 0.0, 1.0), false, false
+                                  , textureCoordinateInfo( vec3( texCoord.x, texCoord.y, 0.0 ), tangent, binormal )
+                                  , vec2( 0.000000, 1.000000 ), vec2( 0.000000, 1.000000 )
+                                  , wrap_repeat, wrap_repeat);
+}
+
+#endif

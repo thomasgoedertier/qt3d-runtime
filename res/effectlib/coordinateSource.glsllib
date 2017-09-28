@@ -1,0 +1,24 @@
+texture_coordinate_info coordinateSource( in int coordinateSystem, in int textureSpace )
+{
+  texture_coordinate_info tci;
+  switch( coordinateSystem )
+  {
+    case texture_coordinate_object :
+      tci.position = varObjPos;
+      tci.tangent_u = normalize( varObjTangent );
+      tci.tangent_v = normalize( varObjBinormal );
+      break;
+    case texture_coordinate_world :
+      tci.position = varWorldPos;
+      tci.tangent_u = normalize( varTangent );
+      tci.tangent_v = normalize( varBinormal );
+      break;
+    case texture_coordinate_uvw :
+    default :
+      tci.position = varTexCoord0;
+      tci.tangent_u = normalize( varTangent );
+      tci.tangent_v = normalize( varBinormal );
+      break;
+  }
+  return( tci );
+}

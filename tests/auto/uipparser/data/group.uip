@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<UIP version="3" >
+    <Project >
+        <ProjectSettings author="" company="" presentationWidth="800" presentationHeight="480" maintainAspect="False" />
+        <Graph >
+            <Scene id="Scene" backgroundcolor="0.988235 0.0196078 0.0196078" >
+                <Layer id="Layer" >
+                    <Camera id="Camera" />
+                    <Light id="Light" />
+                    <Group id="powerup" importid="__import__root__" >
+                        <Model id="Powerup_Cylinder.003" name="Powerup_Cylinder.003" importid="Powerup_Cylinder.003" orientation="Right Handed" position="0 0 -0" rotation="9.33467e-06 -0 0" rotationorder="XYZr" scale="100 100 100" sourcepath=".\models\powerup\meshes\Powerup_Cylinder_003.mesh#1" >
+                            <Material id="Powerup_Cylinder.003_Diffuse_Default" name="Powerup_Cylinder.003_Diffuse_Default" blendmode="Normal" diffuse="0.8 0.8 0.8" emissivepower="0" importid="Powerup_Cylinder.003_Diffuse_Default" opacity="100" specularamount="0" >
+                                <Image id="Powerup_Cylinder.003_Diffuse_Default_diffusemap" />
+                                <Image id="Powerup_Cylinder.003_Diffuse_Default_emissivemap" />
+                                <Image id="Powerup_Cylinder.003_Diffuse_Default_emissivemap2" />
+                                <Image id="Powerup_Cylinder.003_Diffuse_Default_specularreflection" />
+                                <Image id="Powerup_Cylinder.003_Diffuse_Default_normalmap" />
+                            </Material>
+                        </Model>
+                    </Group>
+                </Layer>
+            </Scene>
+        </Graph>
+        <Logic >
+            <State name="Master Slide" component="#Scene" >
+                <Add ref="#Layer" />
+                <Add ref="#Camera" fov="60" orthographic="True" position="0 0 -600" scalemode="Same Size" />
+                <Add ref="#Light" />
+                <State id="Scene-Slide1" name="Slide1" playmode="PingPong" >
+                    <Add ref="#powerup" name="powerup" importfile=".\models\powerup\powerup.import" pivot="0 0 -280" position="17.2812 -0.272491 93.8408" scale="1.5 1.5 1.5" sourcepath=".\models\powerup\powerup.import" >
+                        <AnimationTrack property="rotation.x" type="EaseInOut" >0 2.40297 100 100 10 0 100 100</AnimationTrack>
+                        <AnimationTrack property="rotation.y" type="EaseInOut" >0 -75.192 100 100 10 360 100 100</AnimationTrack>
+                        <AnimationTrack property="rotation.z" type="EaseInOut" >0 -2.86131 100 100 10 0 100 100</AnimationTrack>
+                    </Add>
+                    <Add ref="#Powerup_Cylinder.003" importfile=".\models\powerup\powerup.import" position="0 -4.95911e-05 -294.751" />
+                    <Add ref="#Powerup_Cylinder.003_Diffuse_Default" diffusemap="#Powerup_Cylinder.003_Diffuse_Default_diffusemap" emissivemap="#Powerup_Cylinder.003_Diffuse_Default_emissivemap" emissivemap2="#Powerup_Cylinder.003_Diffuse_Default_emissivemap2" importfile=".\models\powerup\powerup.import" normalmap="#Powerup_Cylinder.003_Diffuse_Default_normalmap" specularreflection="#Powerup_Cylinder.003_Diffuse_Default_specularreflection" />
+                    <Add ref="#Powerup_Cylinder.003_Diffuse_Default_diffusemap" sourcepath=".\materials\DefaultMaterial_Base_Color.png" />
+                    <Add ref="#Powerup_Cylinder.003_Diffuse_Default_emissivemap" sourcepath=".\materials\DefaultMaterial_Emissive.png" />
+                    <Add ref="#Powerup_Cylinder.003_Diffuse_Default_emissivemap2" sourcepath=".\materials\DefaultMaterial_Metallic.png" />
+                    <Add ref="#Powerup_Cylinder.003_Diffuse_Default_specularreflection" mappingmode="Environmental Mapping" sourcepath=".\maps\panorama_map.hdr" />
+                    <Add ref="#Powerup_Cylinder.003_Diffuse_Default_normalmap" sourcepath=".\materials\DefaultMaterial_Normal.png" />
+                </State>
+            </State>
+        </Logic>
+    </Project>
+</UIP>

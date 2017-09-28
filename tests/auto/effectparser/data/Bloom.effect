@@ -1,0 +1,199 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<Effect>
+    <MetaData>
+        <Property name="Threshold" formalName="Threshold of the luminocity pass" description="Objects brighter than this will be part of the filter" min=".1" max=".98" default=".8" />
+        <Property name="PoissonRotation" hidden="True" default="0"/>
+        <Property name="PoissonDistance" hidden="True" default="4"/>
+        <Property name="Downsample2"     filter="linear" clamp="clamp" type="Texture" />
+        <Property name="Downsample4"     filter="linear" clamp="clamp" type="Texture" />
+        <Property name="Downsample8"     filter="linear" clamp="clamp" type="Texture" />
+        <Property name="Downsample16"     filter="linear" clamp="clamp" type="Texture" />
+        <Property name="DepthSampler" type="Texture" filter="nearest" clamp="clamp"/>
+    </MetaData>
+    <Shaders>
+        <Shared>
+#include "blur.glsllib"
+varying float range;
+        </Shared>
+                <Shader name="CLEARPASS">
+            <VertexShader>
+// Range of possible values that we care about.
+void vert ()
+{
+
+}
+            </VertexShader>
+            <FragmentShader>
+void frag() // Luminosity pass with exponential color channel decay based on the threshold above.
+{
+    gl_FragColor = vec4(0.0, 0.0, 0.0, 0.0);
+}
+            </FragmentShader>
+        </Shader>
+        <Shader name="STENCILPASS">
+            <VertexShader>
+// Range of possible values that we care about.
+void vert ()
+{
+
+}
+            </VertexShader>
+            <FragmentShader>
+void frag() // Luminosity pass with exponential color channel decay based on the threshold above.
+{
+    gl_FragColor = texture2D_0(TexCoord);
+}
+            </FragmentShader>
+        </Shader>
+        <Shader name="LUMINOSITY">
+            <VertexShader>
+// No op
+void vert ()
+{
+
+}
+            </VertexShader>
+            <FragmentShader>
+void frag() // Luminosity pass with exponential color channel decay based on the threshold above.
+{
+    vec4 color = texture2D_0(TexCoord);
+    float luminosity = dot(color.rgb, vec3(0.299, 0.587, 0.114));
+    float decay = min( 1.0, max( 0.0, (luminosity - Threshold) / range ) );
+    decay = decay * decay;
+    gl_FragColor = vec4( color.rgb * decay, color.a );
+}
+            </FragmentShader>
+        </Shader>
+        <Shader name="BLUR">
+        <VertexShader>
+
+vec2 ToRotatedPoissonTexCoord( vec3 poisson, vec2 inputTex, vec2 inc, mat2 rotation )
+{
+    vec2 rotatedPoisson = rotation * vec2( poisson.xy );
+    return vec2( inputTex.x + rotatedPoisson.x * inc.x, inputTex.y + rotatedPoisson.y * inc.y );
+}
+
+void SetupPoissonBlurCoordsRotation(float inBlurAmount, vec2 inTexInfo, float inRotationRadians )
+{
+    float incX = inBlurAmount / inTexInfo.x;
+    float incY = inBlurAmount / inTexInfo.y;
+    float rotCos = cos( inRotationRadians );
+    float rotSin = sin( inRotationRadians );
+    mat2 rotMatrix = mat2( rotCos, rotSin, -rotSin, rotCos );
+    vec2 incVec = vec2( incX, incY );
+
+    TexCoord0 = ToRotatedPoissonTexCoord( poisson0, TexCoord, incVec, rotMatrix );
+    TexCoord1 = ToRotatedPoissonTexCoord( poisson1, TexCoord, incVec, rotMatrix );
+    TexCoord2 = ToRotatedPoissonTexCoord( poisson2, TexCoord, incVec, rotMatrix );
+    TexCoord3 = ToRotatedPoissonTexCoord( poisson3, TexCoord, incVec, rotMatrix );
+    TexCoord4 = ToRotatedPoissonTexCoord( poisson4, TexCoord, incVec, rotMatrix );
+    TexCoord5 = ToRotatedPoissonTexCoord( poisson5, TexCoord, incVec, rotMatrix );
+    TexCoord6 = ToRotatedPoissonTexCoord( poisson6, TexCoord, incVec, rotMatrix );
+    TexCoord7 = ToRotatedPoissonTexCoord( poisson7, TexCoord, incVec, rotMatrix );
+}
+
+void vert ()
+{
+    SetupPoissonBlurCoordsRotation( PoissonDistance, Texture0Info.xy, PoissonRotation);
+}
+        </VertexShader>
+        <FragmentShader>
+vec4 PoissonBlur(sampler2D inSampler )
+{
+    float mult0 = (1.0 - poisson0.z);
+    float mult1 = (1.0 - poisson1.z);
+    float mult2 = (1.0 - poisson2.z);
+    float mult3 = (1.0 - poisson3.z);
+    float mult4 = (1.0 - poisson4.z);
+    float mult5 = (1.0 - poisson5.z);
+    float mult6 = (1.0 - poisson6.z);
+    float mult7 = (1.0 - poisson7.z);
+
+    float multTotal = mult0 + mult1 + mult2 + mult3 + mult4 + mult5 + mult6 + mult7;
+    float multMultiplier = ( multTotal > 0.0 ? 1.0 / multTotal : 0.0 );
+
+    vec4 outColor = GetTextureValue( inSampler, TexCoord0, 1.0 ) * (mult0 * multMultiplier);
+    outColor += GetTextureValue( inSampler, TexCoord1, 1.0 ) * (mult1 * multMultiplier);
+    outColor += GetTextureValue( inSampler, TexCoord2, 1.0 ) * (mult2 * multMultiplier);
+    outColor += GetTextureValue( inSampler, TexCoord3, 1.0 ) * (mult3 * multMultiplier);
+    outColor += GetTextureValue( inSampler, TexCoord4, 1.0 ) * (mult4 * multMultiplier);
+    outColor += GetTextureValue( inSampler, TexCoord5, 1.0 ) * (mult5 * multMultiplier);
+    outColor += GetTextureValue( inSampler, TexCoord6, 1.0 ) * (mult6 * multMultiplier);
+    outColor += GetTextureValue( inSampler, TexCoord7, 1.0 ) * (mult7 * multMultiplier);
+    return outColor;
+}
+
+void frag()
+{
+    //Passing in 1.0 means the value will not get alpha-multiplied again
+    gl_FragColor = PoissonBlur( Texture0 );
+}
+        </FragmentShader>
+        </Shader>
+        <Shader name="COMBINER">
+        <FragmentShader>
+
+void frag()
+{
+    vec4 sourceColor = texture2D_0(TexCoord);
+
+
+    vec3 summation = texture2D_Downsample2(TexCoord).xyz
+                            + texture2D_Downsample4(TexCoord).xyz
+                            + texture2D_Downsample8(TexCoord).xyz
+                            + texture2D_Downsample16(TexCoord).xyz;
+    gl_FragColor = vec4( clamp( sourceColor.x + summation.x, 0.0, sourceColor.a )
+                        , clamp( sourceColor.y + summation.y, 0.0, sourceColor.a )
+                        , clamp( sourceColor.z + summation.z, 0.0, sourceColor.a )
+                        , sourceColor.a );
+
+    /*
+
+    gl_FragColor = vec4( texture2D_Downsample2(TexCoord).xyz
+                        , sourceColor.a );
+    */
+}
+        </FragmentShader>
+        </Shader>
+    </Shaders>
+    <Passes>
+        <Buffer name="luminosity_buffer" type="ubyte" format="rgba" filter="linear" wrap="clamp" lifetime="frame"/>
+        <Buffer name="luminosity_buffer2" type="ubyte" format="rgba" filter="linear" wrap="clamp" size=".5" lifetime="frame"/>
+        <Buffer name="downsample_buffer2" type="ubyte" format="rgba" filter="linear" wrap="clamp" size=".5" lifetime="frame"/>
+        <Buffer name="downsample_buffer4" type="ubyte" format="rgba" filter="linear" wrap="clamp" size=".25" lifetime="frame"/>
+        <Buffer name="downsample_buffer8" type="ubyte" format="rgba" filter="linear" wrap="clamp" size=".125" lifetime="frame"/>
+        <Buffer name="downsample_buffer16" type="ubyte" format="rgba" filter="linear" wrap="clamp" size=".0625" lifetime="frame"/>
+        <Pass shader="CLEARPASS" input="[source]" output="luminosity_buffer">
+            <RenderState name="Stencil" value="false"/>
+        </Pass>
+        <Pass shader="STENCILPASS" input="[source]" output="luminosity_buffer">
+            <RenderState name="Stencil" value="true"/>
+        </Pass>
+        <Pass shader="LUMINOSITY" input="luminosity_buffer" output="luminosity_buffer2">
+            <RenderState name="Stencil" value="false"/>
+        </Pass>
+        <Pass shader="BLUR" input="luminosity_buffer2" output="downsample_buffer2">
+            <SetParam name="PoissonDistance" value="4"/>
+            <SetParam name="PoissonRotation" value="0"/>
+        </Pass>
+        <Pass shader="BLUR" input="luminosity_buffer2" output="downsample_buffer4">
+            <SetParam name="PoissonDistance" value="4"/>
+            <SetParam name="PoissonRotation" value="0.62831"/>
+        </Pass>
+        <Pass shader="BLUR" input="luminosity_buffer2" output="downsample_buffer8">
+            <SetParam name="PoissonDistance" value="6"/>
+            <SetParam name="PoissonRotation" value="1.25663"/>
+        </Pass>
+        <Pass shader="BLUR" input="luminosity_buffer2" output="downsample_buffer16">
+            <SetParam name="PoissonDistance" value="10"/>
+            <SetParam name="PoissonRotation" value="1.88495"/>
+        </Pass>
+        <Pass shader="COMBINER" input="[source]">
+            <BufferInput param="Downsample2" value="downsample_buffer2"/>
+            <BufferInput param="Downsample4" value="downsample_buffer4"/>
+            <BufferInput param="Downsample8" value="downsample_buffer8"/>
+            <BufferInput param="Downsample16" value="downsample_buffer16"/>
+            <RenderState name="Stencil" value="false"/>
+        </Pass>
+    </Passes>
+</Effect>

@@ -1,0 +1,4 @@
+vec4 weightedLayer( in float weight, in vec3 layercolor, in vec4 layer, in vec4 base, in float alpha )
+{
+  return vec4( mix( base.rgb, layer.rgb * layercolor, weight ), alpha );
+}

@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<UIP version="3" >
+	<Project >
+		<ProjectSettings author="" company="" presentationWidth="800" presentationHeight="480" maintainAspect="False" />
+		<Graph >
+			<Scene id="Scene" >
+				<Layer id="Layer" >
+					<Camera id="Camera" />
+					<Light id="Light" />
+					<Model id="Rectangle" >
+						<Material id="Material" >
+							<Image id="Material_diffusemap" />
+						</Material>
+					</Model>
+					<Model id="Rectangle2" >
+						<Material id="Material_001" >
+							<Image id="Material_001_diffusemap" />
+						</Material>
+					</Model>
+				</Layer>
+			</Scene>
+		</Graph>
+		<Logic >
+			<State name="Master Slide" component="#Scene" >
+				<Add ref="#Layer" />
+				<Add ref="#Camera" />
+				<Add ref="#Light" />
+				<State id="Scene-Slide1" name="Slide1" playmode="Looping" >
+					<Add ref="#Rectangle" name="Rectangle" position="-280.015 -1.5 0" scale="5 5 1" sourcepath="#Rectangle" />
+					<Add ref="#Material" diffusemap="#Material_diffusemap" />
+					<Add ref="#Material_diffusemap" mappingmode="UV Mapping" scaleu="1" scalev="1" sourcepath=".\oulu_2.jpeg" tilingmodehorz="Tiled" >
+						<AnimationTrack property="scaleu" type="EaseInOut" >0 1 100 100 4.5631 8 100 100 4.8 1 100 100</AnimationTrack>
+						<AnimationTrack property="scalev" type="EaseInOut" >4.8 1 100 100 9.8671 8 100 100 10 1 100 100</AnimationTrack>
+					</Add>
+					<Add ref="#Rectangle2" name="Rectangle2" position="280.015 -1.5 0" scale="5 5 1" sourcepath="#Rectangle" />
+					<Add ref="#Material_001" diffusemap="#Material_001_diffusemap" />
+					<Add ref="#Material_001_diffusemap" pivotu="-0.5" pivotv="-0.2" positionu="0" positionv="0.2" rotationuv="0" sourcepath=".\oulu_2.jpeg" tilingmodehorz="Mirrored" tilingmodevert="Mirrored" >
+						<AnimationTrack property="positionu" type="EaseInOut" >0 0 100 100 10 0.8 100 100</AnimationTrack>
+						<AnimationTrack property="rotationuv" type="EaseInOut" >0 0 100 100 10 45 100 100</AnimationTrack>
+					</Add>
+				</State>
+			</State>
+		</Logic>
+	</Project>
+</UIP>

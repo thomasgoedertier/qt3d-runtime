@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<UIP version="3" >
+	<Project >
+		<ProjectSettings author="" company="" presentationWidth="800" presentationHeight="480" maintainAspect="False" />
+		<Graph >
+			<Scene id="Scene" >
+				<Layer id="Layer" >
+					<Light id="Light" />
+					<Model id="Sphere" >
+						<Camera id="Camera" />
+						<Material id="Material_001" />
+					</Model>
+					<Model id="Cube2" >
+						<Material id="Material_003" />
+					</Model>
+				</Layer>
+			</Scene>
+		</Graph>
+		<Logic >
+			<State name="Master Slide" component="#Scene" >
+				<Add ref="#Layer" />
+				<Add ref="#Light" />
+				<Add ref="#Sphere" name="Sphere" position="-50 0 0" rotation="0 0 0" sourcepath="#Sphere" >
+					<AnimationTrack property="rotation.x" type="EaseInOut" >0 0 100 100 10 0 100 100</AnimationTrack>
+					<AnimationTrack property="rotation.y" type="EaseInOut" >0 0 100 100 10 20 100 100</AnimationTrack>
+					<AnimationTrack property="rotation.z" type="EaseInOut" >0 0 100 100 10 0 100 100</AnimationTrack>
+				</Add>
+				<Add ref="#Camera" rotation="0 0 0" >
+					<AnimationTrack property="rotation.x" type="EaseInOut" >0 0 100 100 10 20 100 100</AnimationTrack>
+					<AnimationTrack property="rotation.y" type="EaseInOut" >0 0 100 100 10 0 100 100</AnimationTrack>
+					<AnimationTrack property="rotation.z" type="EaseInOut" >0 0 100 100 10 0 100 100</AnimationTrack>
+				</Add>
+				<Add ref="#Material_001" />
+				<Add ref="#Cube2" name="Cube2" position="-400.471 9.82561 -3.05176e-005" rotation="0 0 0" scale="0.964185 0.967883 1" sourcepath="#Cube" />
+				<Add ref="#Material_003" />
+				<State id="Scene-Slide1" name="Slide1" playmode="Looping" />
+			</State>
+		</Logic>
+	</Project>
+</UIP>

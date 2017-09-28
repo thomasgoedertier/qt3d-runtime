@@ -1,0 +1,8 @@
+<RCC>
+    <qresource prefix="/">
+        <file>data/Bloom.effect</file>
+        <file>data/Depth Of Field Bokeh.effect</file>
+        <file>data/LightTable.effect</file>
+        <file>data/Sepia.effect</file>
+    </qresource>
+</RCC>

@@ -1,0 +1,12 @@
+vec4 directionalFactor( in vec3 normal, in vec3 viewDir, in vec3 normal_col, in vec3 grazing_col, in float exponent, in vec4 base )
+{
+    float f;
+
+    f = clamp(dot(viewDir, normal),0.0, 1.0 );
+    f = 1.0 - pow(f, 1.0/exponent);
+    vec3 directionalColor = mix( normal_col, grazing_col, f );
+
+    vec4 color = base * vec4(directionalColor, 1.0);
+
+    return color;
+}

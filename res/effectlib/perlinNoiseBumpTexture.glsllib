@@ -1,0 +1,18 @@
+vec3 perlinNoiseBumpTexture( in texture_coordinate_info uvw, in float factor, in float size, in bool applyMarble
+                           , in bool applyDent, in float noisePhase, in int noiseLevels, in bool absoluteNoise, in vec3 noiseDistortion
+                           , in float noiseThresholdHigh, in float noiseThresholdLow, in float noiseBands, in vec3 normal )
+{
+  float delta = 0.1 / noiseBands;
+  vec3 pos = uvw.position / size;
+
+  float r0 = perlinNoise( pos, noisePhase, noiseLevels, noiseDistortion, absoluteNoise
+                        , applyMarble, applyDent, noiseBands, noiseThresholdLow, noiseThresholdHigh );
+  float r1 = perlinNoise( pos + delta * uvw.tangent_u, noisePhase, noiseLevels, noiseDistortion, absoluteNoise
+                        , applyMarble, applyDent, noiseBands, noiseThresholdLow, noiseThresholdHigh );
+  float r2 = perlinNoise( pos + delta * uvw.tangent_v, noisePhase, noiseLevels, noiseDistortion, absoluteNoise
+                        , applyMarble, applyDent, noiseBands, noiseThresholdLow, noiseThresholdHigh );
+  float r3 = perlinNoise( pos + delta * normal, noisePhase, noiseLevels, noiseDistortion, absoluteNoise
+                        , applyMarble, applyDent, noiseBands, noiseThresholdLow, noiseThresholdHigh );
+
+  return( normalize( normal - factor * ( ( r1 - r0 ) * uvw.tangent_u + ( r2 - r0 ) * uvw.tangent_v + ( r3 - r0 ) * normal ) ) );
+}

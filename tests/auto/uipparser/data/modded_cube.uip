@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<UIP version="3" >
+    <Project >
+                <!-- add a fake presentationRotation attribute -->
+                <ProjectSettings author="" company="Qt" presentationWidth="800" presentationHeight="480" maintainAspect="True" presentationRotation="270" />
+        <Graph >
+                        <!-- have fixed scene attributes for testing -->
+                        <Scene id="Scene" bgcolorenable="False" backgroundcolor="0.27451 0.776471 0.52549" >
+                <Layer id="Layer" >
+                    <Camera id="Camera" />
+                    <Light id="Light" />
+                    <Model id="Cube" >
+                        <Material id="Material" />
+                    </Model>
+                </Layer>
+            </Scene>
+        </Graph>
+        <Logic >
+            <State name="Master Slide" component="#Scene" >
+                <Add ref="#Layer" />
+                <Add ref="#Camera" />
+                <Add ref="#Light" />
+                <State id="Scene-Slide1" name="Slide1" >
+                    <Add ref="#Cube" name="Cube" rotation="-52.4901 -10.7851 -20.7213" scale="2 2 2" sourcepath="#Cube" />
+                    <Add ref="#Material" />
+                </State>
+            </State>
+        </Logic>
+    </Project>
+</UIP>

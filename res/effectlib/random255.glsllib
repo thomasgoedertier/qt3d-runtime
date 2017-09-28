@@ -1,0 +1,26 @@
+// random [0..255] calculated by some simple Linear Congruential Generator (LCG)
+// Verfied, that each function is just a permutation of {0,...,255}, that is, with 0<=x<=255, each value in [0,255] is returned once
+int random255X( in int x )
+{
+  return( ( ( 8365 * ( x & 0xFF ) + 32285 ) >> 0 ) & 0xFF );
+}
+
+int random255Y( in int x )
+{
+  return( ( ( 3152 * ( x & 0xFF ) + 11819 ) >> 4 ) & 0xFF );
+}
+
+int random255Z( in int x )
+{
+  return( ( ( 119 * ( x & 0xFF ) + 18747 ) >> 0 ) & 0xFF );
+}
+
+int random255W( in int x )
+{
+  return( ( ( 26814 * ( x & 0xFF ) + 9642 ) >> 1 ) & 0xFF );
+}
+
+ivec3 random255XYZ( in ivec3 xyz )
+{
+  return( ivec3( random255X( xyz.x ), random255Y( xyz.y ), random255Z( xyz.z ) ) );
+}

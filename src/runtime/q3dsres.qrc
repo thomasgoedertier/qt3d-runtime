@@ -1,0 +1,112 @@
+<RCC>
+    <qresource prefix="/q3ds">
+        <file>shaders/compositor_core.vert</file>
+        <file>shaders/compositor_core.frag</file>
+        <file>shaders/compositor_ms_core.frag</file>
+        <file>shaders/compositor.vert</file>
+        <file>shaders/compositor.frag</file>
+        <file>shaders/compositor_ms.frag</file>
+        <file>shaders/text_core.vert</file>
+        <file>shaders/text_core.frag</file>
+        <file>shaders/text.vert</file>
+        <file>shaders/text.frag</file>
+
+        <file alias="res/DataModelMetadata/en-us/MetaData.xml">../../res/DataModelMetadata/en-us/MetaData.xml</file>
+
+        <file alias="res/effectlib/abbeNumberIOR.glsllib">../../res/effectlib/abbeNumberIOR.glsllib</file>
+        <file alias="res/effectlib/anisotropyConversion.glsllib">../../res/effectlib/anisotropyConversion.glsllib</file>
+        <file alias="res/effectlib/average.glsllib">../../res/effectlib/average.glsllib</file>
+        <file alias="res/effectlib/blendColorLayers.glsllib">../../res/effectlib/blendColorLayers.glsllib</file>
+        <file alias="res/effectlib/blur.glsllib">../../res/effectlib/blur.glsllib</file>
+        <file alias="res/effectlib/calculateRoughness.glsllib">../../res/effectlib/calculateRoughness.glsllib</file>
+        <file alias="res/effectlib/coordinateSource.glsllib">../../res/effectlib/coordinateSource.glsllib</file>
+        <file alias="res/effectlib/cube.glsllib">../../res/effectlib/cube.glsllib</file>
+        <file alias="res/effectlib/customCurveLayer.glsllib">../../res/effectlib/customCurveLayer.glsllib</file>
+        <file alias="res/effectlib/customMaterial.glsllib">../../res/effectlib/customMaterial.glsllib</file>
+        <file alias="res/effectlib/customMaterialFragBody.glsllib">../../res/effectlib/customMaterialFragBody.glsllib</file>
+        <file alias="res/effectlib/customMaterialFragBodyAO.glsllib">../../res/effectlib/customMaterialFragBodyAO.glsllib</file>
+        <file alias="res/effectlib/defaultMaterialFresnel.glsllib">../../res/effectlib/defaultMaterialFresnel.glsllib</file>
+        <file alias="res/effectlib/defaultMaterialLighting.glsllib">../../res/effectlib/defaultMaterialLighting.glsllib</file>
+        <file alias="res/effectlib/defaultMaterialPhysGlossyBSDF.glsllib">../../res/effectlib/defaultMaterialPhysGlossyBSDF.glsllib</file>
+        <file alias="res/effectlib/depthpass.glsllib">../../res/effectlib/depthpass.glsllib</file>
+        <file alias="res/effectlib/dfTint.glsllib">../../res/effectlib/dfTint.glsllib</file>
+        <file alias="res/effectlib/diffuseReflectionBSDF.glsllib">../../res/effectlib/diffuseReflectionBSDF.glsllib</file>
+        <file alias="res/effectlib/diffuseTransmissionBSDF.glsllib">../../res/effectlib/diffuseTransmissionBSDF.glsllib</file>
+        <file alias="res/effectlib/directionalFactor.glsllib">../../res/effectlib/directionalFactor.glsllib</file>
+        <file alias="res/effectlib/effect.glsllib">../../res/effectlib/effect.glsllib</file>
+        <file alias="res/effectlib/evalBakedShadowMap.glsllib">../../res/effectlib/evalBakedShadowMap.glsllib</file>
+        <file alias="res/effectlib/evalEnvironmentMap.glsllib">../../res/effectlib/evalEnvironmentMap.glsllib</file>
+        <file alias="res/effectlib/evalLightmaps.glsllib">../../res/effectlib/evalLightmaps.glsllib</file>
+        <file alias="res/effectlib/fileBumpTexture.glsllib">../../res/effectlib/fileBumpTexture.glsllib</file>
+        <file alias="res/effectlib/fileDisplacementTexture.glsllib">../../res/effectlib/fileDisplacementTexture.glsllib</file>
+        <file alias="res/effectlib/fileTexture.glsllib">../../res/effectlib/fileTexture.glsllib</file>
+        <file alias="res/effectlib/flakeNoiseBumpTexture.glsllib">../../res/effectlib/flakeNoiseBumpTexture.glsllib</file>
+        <file alias="res/effectlib/flakeNoiseTexture.glsllib">../../res/effectlib/flakeNoiseTexture.glsllib</file>
+        <file alias="res/effectlib/fresnelLayer.glsllib">../../res/effectlib/fresnelLayer.glsllib</file>
+        <file alias="res/effectlib/funcareaLightVars.glsllib">../../res/effectlib/funcareaLightVars.glsllib</file>
+        <file alias="res/effectlib/funccalculateDiffuseAreaOld.glsllib">../../res/effectlib/funccalculateDiffuseAreaOld.glsllib</file>
+        <file alias="res/effectlib/funccalculatePointLightAttenuation.glsllib">../../res/effectlib/funccalculatePointLightAttenuation.glsllib</file>
+        <file alias="res/effectlib/funccomputeMicroHit.glsllib">../../res/effectlib/funccomputeMicroHit.glsllib</file>
+        <file alias="res/effectlib/funcdiffuseReflectionBSDF.glsllib">../../res/effectlib/funcdiffuseReflectionBSDF.glsllib</file>
+        <file alias="res/effectlib/funcdiffuseReflectionWrapBSDF.glsllib">../../res/effectlib/funcdiffuseReflectionWrapBSDF.glsllib</file>
+        <file alias="res/effectlib/funcgetTransformedUVCoords.glsllib">../../res/effectlib/funcgetTransformedUVCoords.glsllib</file>
+        <file alias="res/effectlib/funcsampleAreaGlossyDefault.glsllib">../../res/effectlib/funcsampleAreaGlossyDefault.glsllib</file>
+        <file alias="res/effectlib/funcsampleLightVars.glsllib">../../res/effectlib/funcsampleLightVars.glsllib</file>
+        <file alias="res/effectlib/funcspecularBSDF.glsllib">../../res/effectlib/funcspecularBSDF.glsllib</file>
+        <file alias="res/effectlib/Fxaa3_11.glsllib">../../res/effectlib/Fxaa3_11.glsllib</file>
+        <file alias="res/effectlib/Fxaa3_8.glsllib">../../res/effectlib/Fxaa3_8.glsllib</file>
+        <file alias="res/effectlib/gradient3Recolor.glsllib">../../res/effectlib/gradient3Recolor.glsllib</file>
+        <file alias="res/effectlib/gradient3Texture.glsllib">../../res/effectlib/gradient3Texture.glsllib</file>
+        <file alias="res/effectlib/gradientGetPosition.glsllib">../../res/effectlib/gradientGetPosition.glsllib</file>
+        <file alias="res/effectlib/luminance.glsllib">../../res/effectlib/luminance.glsllib</file>
+        <file alias="res/effectlib/microfacetBSDF.glsllib">../../res/effectlib/microfacetBSDF.glsllib</file>
+        <file alias="res/effectlib/miNoise.glsllib">../../res/effectlib/miNoise.glsllib</file>
+        <file alias="res/effectlib/monoChannel.glsllib">../../res/effectlib/monoChannel.glsllib</file>
+        <file alias="res/effectlib/normalizedMix.glsllib">../../res/effectlib/normalizedMix.glsllib</file>
+        <file alias="res/effectlib/perlinNoise.glsllib">../../res/effectlib/perlinNoise.glsllib</file>
+        <file alias="res/effectlib/perlinNoiseBumpTexture.glsllib">../../res/effectlib/perlinNoiseBumpTexture.glsllib</file>
+        <file alias="res/effectlib/perlinNoiseTexture.glsllib">../../res/effectlib/perlinNoiseTexture.glsllib</file>
+        <file alias="res/effectlib/physGlossyBSDF.glsllib">../../res/effectlib/physGlossyBSDF.glsllib</file>
+        <file alias="res/effectlib/random255.glsllib">../../res/effectlib/random255.glsllib</file>
+        <file alias="res/effectlib/refraction.glsllib">../../res/effectlib/refraction.glsllib</file>
+        <file alias="res/effectlib/rotationTranslationScale.glsllib">../../res/effectlib/rotationTranslationScale.glsllib</file>
+        <file alias="res/effectlib/sampleArea.glsllib">../../res/effectlib/sampleArea.glsllib</file>
+        <file alias="res/effectlib/sampleLight.glsllib">../../res/effectlib/sampleLight.glsllib</file>
+        <file alias="res/effectlib/sampleProbe.glsllib">../../res/effectlib/sampleProbe.glsllib</file>
+        <file alias="res/effectlib/screenSpaceAO.glsllib">../../res/effectlib/screenSpaceAO.glsllib</file>
+        <file alias="res/effectlib/screenSpaceDO.glsllib">../../res/effectlib/screenSpaceDO.glsllib</file>
+        <file alias="res/effectlib/shadowMapping.glsllib">../../res/effectlib/shadowMapping.glsllib</file>
+        <file alias="res/effectlib/shadowMappingFragment.glsllib">../../res/effectlib/shadowMappingFragment.glsllib</file>
+        <file alias="res/effectlib/simpleGlossyBSDF.glsllib">../../res/effectlib/simpleGlossyBSDF.glsllib</file>
+        <file alias="res/effectlib/SMAA.glsllib">../../res/effectlib/SMAA.glsllib</file>
+        <file alias="res/effectlib/specularBSDF.glsllib">../../res/effectlib/specularBSDF.glsllib</file>
+        <file alias="res/effectlib/spotEdf.glsllib">../../res/effectlib/spotEdf.glsllib</file>
+        <file alias="res/effectlib/square.glsllib">../../res/effectlib/square.glsllib</file>
+        <file alias="res/effectlib/SSAOCustomMaterial.glsllib">../../res/effectlib/SSAOCustomMaterial.glsllib</file>
+        <file alias="res/effectlib/tangentSpaceNormalTexture.glsllib">../../res/effectlib/tangentSpaceNormalTexture.glsllib</file>
+        <file alias="res/effectlib/tessellationLinear.glsllib">../../res/effectlib/tessellationLinear.glsllib</file>
+        <file alias="res/effectlib/tessellationLinearCM.glsllib">../../res/effectlib/tessellationLinearCM.glsllib</file>
+        <file alias="res/effectlib/tessellationNPatch.glsllib">../../res/effectlib/tessellationNPatch.glsllib</file>
+        <file alias="res/effectlib/tessellationNPatchCM.glsllib">../../res/effectlib/tessellationNPatchCM.glsllib</file>
+        <file alias="res/effectlib/tessellationPath.glsllib">../../res/effectlib/tessellationPath.glsllib</file>
+        <file alias="res/effectlib/tessellationPhong.glsllib">../../res/effectlib/tessellationPhong.glsllib</file>
+        <file alias="res/effectlib/tessellationPhongCM.glsllib">../../res/effectlib/tessellationPhongCM.glsllib</file>
+        <file alias="res/effectlib/textureCoordinateInfo.glsllib">../../res/effectlib/textureCoordinateInfo.glsllib</file>
+        <file alias="res/effectlib/transformCoordinate.glsllib">../../res/effectlib/transformCoordinate.glsllib</file>
+        <file alias="res/effectlib/uicDefaultMaterialFileBumpTexture.glsllib">../../res/effectlib/uicDefaultMaterialFileBumpTexture.glsllib</file>
+        <file alias="res/effectlib/uicDefaultMaterialFileDisplacementTexture.glsllib">../../res/effectlib/uicDefaultMaterialFileDisplacementTexture.glsllib</file>
+        <file alias="res/effectlib/uicDefaultMaterialFileNormalTexture.glsllib">../../res/effectlib/uicDefaultMaterialFileNormalTexture.glsllib</file>
+        <file alias="res/effectlib/vertexFragmentBase.glsllib">../../res/effectlib/vertexFragmentBase.glsllib</file>
+        <file alias="res/effectlib/viewProperties.glsllib">../../res/effectlib/viewProperties.glsllib</file>
+        <file alias="res/effectlib/weightedLayer.glsllib">../../res/effectlib/weightedLayer.glsllib</file>
+        <file alias="res/effectlib/wireframeCM.glsllib">../../res/effectlib/wireframeCM.glsllib</file>
+
+        <file alias="res/Font/TitilliumWeb-Regular.ttf">../../res/Font/TitilliumWeb-Regular.ttf</file>
+
+        <file alias="res/primitives/Cone.mesh">../../res/primitives/Cone.mesh</file>
+        <file alias="res/primitives/Cube.mesh">../../res/primitives/Cube.mesh</file>
+        <file alias="res/primitives/Cylinder.mesh">../../res/primitives/Cylinder.mesh</file>
+        <file alias="res/primitives/Rectangle.mesh">../../res/primitives/Rectangle.mesh</file>
+        <file alias="res/primitives/Sphere.mesh">../../res/primitives/Sphere.mesh</file>
+    </qresource>
+</RCC>

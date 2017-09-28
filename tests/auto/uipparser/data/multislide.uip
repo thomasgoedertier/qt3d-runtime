@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<UIP version="3" >
+    <Project >
+        <ProjectSettings author="" company="" presentationWidth="800" presentationHeight="480" maintainAspect="False" />
+        <Graph >
+            <Scene id="Scene" >
+                <Layer id="Layer" >
+                    <Camera id="Camera" />
+                    <Light id="Light" />
+                    <Model id="Cylinder" >
+                        <Material id="Material" />
+                    </Model>
+                    <Model id="Cone" >
+                        <Material id="Material_001" />
+                    </Model>
+                    <Model id="Sphere" >
+                        <Material id="Material_002" />
+                    </Model>
+                </Layer>
+            </Scene>
+        </Graph>
+        <Logic >
+                        <!-- edited manually to include dummy values for the tests, do not change -->
+                        <State name="Master Slide" component="#Scene" playmode="PingPong" playthroughto="42" >
+                <Add ref="#Layer" />
+                <Add ref="#Camera" />
+                <Add ref="#Light" />
+                <Add ref="#Sphere" name="Sphere" position="-412.805 152.998 0" sourcepath="#Sphere" />
+                <Add ref="#Material_002" />
+                <State id="Scene-Slide1" name="Slide1" >
+                    <Set ref="#Sphere" position="-412.805 152.998 0" />
+                    <Add ref="#Cylinder" name="Cylinder" position="-7.21682 -17.3205 0" rotation="-19.0402 -20.099 6.17545" sourcepath="#Cylinder" />
+                    <Add ref="#Material" />
+                </State>
+                <State id="Scene-Slide-1" name="Slide-1" playthroughto="Previous" >
+                    <Set ref="#Sphere" position="-412.805 152.998 0" />
+                    <Add ref="#Cone" name="Cone" locked="False" position="139.388 -26.567 7.36767" rotation="-15.5 0 0" sourcepath="#Cone" >
+                                                <AnimationTrack property="position.x" type="EaseInOut" >0 139.388 100 100 4.72 -100 100 100</AnimationTrack>
+                        <AnimationTrack property="position.y" type="EaseInOut" >0 -26.567 100 100 4.72 -26.567 100 100</AnimationTrack>
+                                                <!-- test multiline case -->
+                                                <AnimationTrack property="position.z" type="EaseInOut" >0 7.36767 100 100 4.72 7.36767
+
+                                                        100 100</AnimationTrack>
+                    </Add>
+                    <Add ref="#Material_001" locked="False" />
+                </State>
+                <State id="Scene-Slide0" name="Slide0" initialplaystate="Play" playmode="Stop at end" playthroughto="Previous" >
+                    <Set ref="#Sphere" position="-12.9904 -47.6315 0" />
+                </State>
+                                <State id="Scene-Slide-666" name="Slide666" initialplaystate="Play" playmode="Stop at end" playthroughto="Previous" >
+                                        <Set ref="#Sphere" position="-12.9904 -47.6315 0" eyeball="false" />
+                                </State>
+                        </State>
+        </Logic>
+    </Project>
+</UIP>

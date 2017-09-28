@@ -1,0 +1,17 @@
+#ifndef CUSTOM_MATERIAL_GLSLLIB
+#define CUSTOM_MATERIAL_GLSLLIB 1
+
+#define SNAPPER_SAMPLER2D(samplerName, samplerNiceName, texFilter, texWrap, showUI )\
+uniform sampler2D samplerName;
+
+// some useful defines
+#ifndef PI
+#define PI          3.14159265358979f
+#define PI_HALF     ( 0.5f * PI )
+#define PI_TWO      ( 2.0f * PI )
+#define ONE_OVER_PI ( 1.0f / PI )
+#define TWO_OVER_PI ( 2.0f / PI )
+#define PI_SQUARE   ( PI * PI )
+#endif
+
+#endif // CUSTOM_MATERIAL_GLSLLIB

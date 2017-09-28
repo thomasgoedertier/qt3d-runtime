@@ -1,0 +1,13 @@
+#ifndef TRANSFORM_COORDINATE_GLSLLIB
+#define TRANSFORM_COORDINATE_GLSLLIB
+
+texture_coordinate_info transformCoordinate( in mat4 transform, in texture_coordinate_info coordinate )
+{
+  texture_coordinate_info tci;
+  tci.position =  ( transform * vec4( coordinate.position,  1.0f ) ).xyz;
+  tci.tangent_u = ( transform * vec4( coordinate.tangent_u, 0.0f ) ).xyz;
+  tci.tangent_v = ( transform * vec4( coordinate.tangent_v, 0.0f ) ).xyz;
+  return( tci );
+}
+
+#endif

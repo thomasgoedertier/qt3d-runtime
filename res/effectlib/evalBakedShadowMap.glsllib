@@ -1,0 +1,6 @@
+vec4 evalBakedShadowMap( in vec3 inCoords )
+{
+    vec4 shadowCol = (uShadowMappingEnabled) ? texture( uBakedShadowTexture, inCoords.xy ) : vec4( 1.0, 1.0, 1.0, 1.0 );
+
+    return shadowCol;
+}

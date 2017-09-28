@@ -1,0 +1,12 @@
+float spotEdf( float exponent )
+{
+  float att = 1.0;
+
+  float dist = length(viewDir);
+  vec3 spotDir = viewDir / dist;
+
+  float spot = max(0.0f, dot(spotDir, normal));
+  att = pow(spot, exponent);
+
+  return att;
+}

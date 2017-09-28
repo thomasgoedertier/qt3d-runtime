@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<UIP version="3" >
+    <Project >
+        <ProjectSettings author="" company="" presentationWidth="800" presentationHeight="480" maintainAspect="False" />
+        <BufferData >
+            <ImageBuffer sourcepath=".\QT-badge.png" hasTransparency="True" />
+        </BufferData>
+        <Graph >
+            <Scene id="Scene" >
+                <Layer id="Layer" >
+                    <Camera id="Camera" />
+                    <Light id="Light" />
+                    <Image id="Layer_lightprobe" />
+                    <Model id="Cylinder" >
+                        <Material id="Material" >
+                            <Image id="Material_diffusemap" />
+                        </Material>
+                    </Model>
+                    <Model id="Cube" >
+                        <Material id="Material_001" >
+                            <Image id="Material_001_diffusemap" />
+                        </Material>
+                    </Model>
+                </Layer>
+            </Scene>
+        </Graph>
+        <Logic >
+            <State name="Master Slide" component="#Scene" >
+                                <Add ref="#Layer" blendtype="Screen" leftunits="percent" lightprobe="#Layer_lightprobe" multisampleaa="4x" />
+                <Add ref="#Camera" />
+                <Add ref="#Light" />
+                <Add ref="#Layer_lightprobe" mappingmode="Light Probe" sourcepath=".\QT-badge.png" />
+                <State id="Scene-Slide1" name="Slide1" >
+                    <Add ref="#Cylinder" name="Cylinder" rotation="-26.599 9.08403 -19.6515" sourcepath="#Cylinder" />
+                    <Add ref="#Material" diffusemap="#Material_diffusemap" />
+                    <Add ref="#Material_diffusemap" sourcepath=".\QT-badge.png" />
+                    <Add ref="#Cube" name="Cube" position="-362.287 60.6218 0" rotation="0 0 -34" scale="-2.69355 0.733333 1" sourcepath="#Cube" />
+                    <Add ref="#Material_001" diffusemap="#Material_001_diffusemap" />
+                    <Add ref="#Material_001_diffusemap" sourcepath=".\QT-badge.png" />
+                </State>
+            </State>
+        </Logic>
+    </Project>
+</UIP>

@@ -1,0 +1,7 @@
+<Material name="missing_shader" version="1.0">
+    <MetaData >
+        <Property name="test" type="Float" default="5.000000" category="Material"/>
+    </MetaData>
+    <Shaders type="GLSL" version="330">
+    </Shaders>
+</Material>

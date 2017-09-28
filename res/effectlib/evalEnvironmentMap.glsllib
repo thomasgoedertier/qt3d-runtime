@@ -1,0 +1,25 @@
+vec3 evalEnvironmentMap( in vec3 R, float roughness )
+{
+     // convert R to spherical texture coordinates
+     vec2 tc = vec2( ( atan( R.x, -R.z ) + PI ) / ( PI_TWO ), acos( -R.y ) / PI );
+
+    vec2 envMapSize = vec2( textureSize( uEnvironmentTexture, 0 ) );
+    float envMapLevels = log2( max( envMapSize.x, envMapSize.y ) );
+
+    // simulate textureQueryLod
+    vec2 dx = dFdx( tc * envMapSize.x );
+    vec2 dy = dFdy( tc * envMapSize.y );
+
+    float px = dot( dx, dx );
+    float py = dot( dy, dy );
+
+    float maxlod = 0.5 * log2( max( px, py ) ); // log2(sqrt()) = 0.5*log2()
+    float minlod = 0.5 * log2( min( px, py ) );
+
+    //float lod = max(0.0, maxlod - min( maxlod - minlod, envMapLevels ));
+    float lod = max(0.0, min( minlod, envMapLevels ));
+
+    float roughLevel = mix( lod , envMapLevels, roughness );
+
+    return( textureLod( uEnvironmentTexture, tc, roughLevel ).rgb );
+}

@@ -1,0 +1,13 @@
+#ifndef DEFAULT_MATERIAL_PHYS_GLOSSY_BSDF_GLSLLIB
+#define DEFAULT_MATERIAL_PHYS_GLOSSY_BSDF_GLSLLIB
+#ifndef UIC_DEFINE_API
+#define UIC_DEFINE_API
+#endif
+
+#include "luminance.glsllib"
+#define scatter_reflect 0
+#define scatter_transmit 1
+#define scatter_reflect_transmit 2
+#include "physGlossyBSDF.glsllib"
+
+#endif

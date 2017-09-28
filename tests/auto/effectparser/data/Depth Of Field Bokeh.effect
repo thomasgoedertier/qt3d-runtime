@@ -1,0 +1,301 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<Effect>
+    <MetaData>
+        <Property name="FocusDistance" formalName="Focus Distance" description="Objects exactly distance +- &quot;In Focus Width&quot; from the camera will be in focus" default="600"/>
+        <Property name="FocusWidth" formalName="Depth of Field" description="Objects within this range of Focus Distance will be in focus" default="20"/>
+        <Property name="MaxBokehRadius" formalName="Max Bokeh Radius" description="Maximum radius of a Bokeh sprite" default="15"/>
+        <Property name="MaxCoCRadius" formalName="Max CoC Radius" description="Maximum radius of a CoC" default="15"/>
+        <Property name="MinBokehThreshold" formalName="Min Bokeh Threshold" description="Minimum luminance difference for Bokeh detection" default="1.0"/>
+        <Property name="MaxBokehThreshold" formalName="Max Bokeh Threshold" description="Maximum luminance difference for Bokeh detection" default="1000.0"/>
+        <Property name="MinCoCThreshold" formalName="Min CoC Threshold" description="Minimum CoC radius for Bokeh detection" default="3.0"/>
+        <Property name="DepthDebug" formalName="Debug Focus Rendering" type="Boolean" description="Allows you to see exactly how the Focus variables work.  Black objects are in focus, white are blurred" default="False"/>
+        <Property name="BokehShapeSampler" formalName="Bokeh shape" filter="linear" clamp="repeat" default=".\maps\effects\HexagonalBokeh.png" type="Texture" description="Texture to be used for the bokeh shape"/>
+        <Property name="DepthSampler" type="Texture" filter="nearest" clamp="clamp"/>
+        <Property name="SourceSampler" type="Texture" filter="linear" clamp="clamp"/>
+        <Property name="BokehDetectSampler" type="Image2D" format="rgba32f" binding="1"/>
+        <Property name="BokehColorSampler" type="Image2D" format="rgba32f" binding="2"/>
+        <Property name="BokehSampler" type="Texture" filter="nearest" clamp="clamp"/>
+        <Property name="BokehPositionSampler" type="Texture" filter="nearest" clamp="clamp"/>
+        <Property name="BokehBufferSampler" type="Texture" filter="nearest" clamp="clamp"/>
+        <Property name="MergedBufferSampler" type="Texture" filter="linear" clamp="clamp"/>
+        <Property name="BokehCounter" type="Buffer" format="uvec4" usage="storage" binding="1" align="std140"/>
+
+    </MetaData>
+    <Shaders>
+        <Shared>
+#include "blur.glsllib"
+const float BlurAmount = 4.0;
+        </Shared>
+        <Shader name="CLEAR">
+            <VertexShader>
+void vert()
+{
+
+}
+            </VertexShader>
+            <FragmentShader>
+void frag() // Simple averaging box blur.
+{
+    gl_FragColor = vec4(0.0, 0.0, 0.0, 0.0);
+}
+            </FragmentShader>
+        </Shader>
+        <Shader name="BOKEH_DETECT">
+            <VertexShader>
+
+void vert()
+{
+
+}
+
+            </VertexShader>
+            <FragmentShader>
+
+void frag() // Mix the input blur and the depth texture with the sprite
+{
+    vec4 sourceColor = textureLod(Texture0, TexCoord, 0.0);
+
+    float depthTap = getDepthValue( texture2D(DepthSampler, TexCoord), CameraClipRange );
+    float linearDepth = depthValueToLinearDistance( depthTap, CameraClipRange );
+    float FocusStart = FocusDistance - FocusWidth;
+    float FocusEnd = FocusDistance + FocusWidth;
+    float blur  = clamp( abs(linearDepth - FocusDistance) / (FocusEnd-FocusStart), 0.00, 1.0);
+    //float blur = GetDepthMultiplier( TexCoord, DepthSampler, FocusDistance, FocusWidth, FocusWidth );
+    gl_FragColor = vec4( linearDepth, blur, 0.0, 1.0);
+
+    // use a 3x3 filter to compute luminance difference
+    vec3 avgColor   = vec3(0);
+    avgColor += textureLodOffset(Texture0, TexCoord, 0.0, ivec2(1, 0)).xyz;
+    avgColor += textureLodOffset(Texture0, TexCoord, 0.0, ivec2(0, 1)).xyz;
+    avgColor += textureLodOffset(Texture0, TexCoord, 0.0, ivec2(-1, 0)).xyz;
+    avgColor += textureLodOffset(Texture0, TexCoord, 0.0, ivec2(0, -1)).xyz;
+    avgColor += textureLodOffset(Texture0, TexCoord, 0.0, ivec2(1, 1)).xyz;
+    avgColor += textureLodOffset(Texture0, TexCoord, 0.0, ivec2(1, -1)).xyz;
+    avgColor += textureLodOffset(Texture0, TexCoord, 0.0, ivec2(-1, -1)).xyz;
+    avgColor += textureLodOffset(Texture0, TexCoord, 0.0, ivec2(-1, 1)).xyz;
+    avgColor /= 8.0;
+
+    float currentLum   = dot(vec3(0.2126, 0.7152, 0.0722), sourceColor.xyz);
+    float averageLum   = dot(vec3(0.2126, 0.7152, 0.0722), avgColor);
+    //float currentLum   = dot(vec3(1.0), sourceColor.xyz);
+    //float averageLum   = dot(vec3(1.0), avgColor);
+    float lumDiff = max(currentLum - averageLum, 0.0);
+
+    float cocSize = blur * MaxCoCRadius;
+
+    if( lumDiff > MinBokehThreshold &amp;&amp; lumDiff &lt; MaxBokehThreshold &amp;&amp; cocSize > MinCoCThreshold )
+    {
+        ivec2 sourceSize, storeCoord;
+        sourceSize = ivec2(textureSize(Texture0, 0).xy);
+
+        uint add = uint(1);
+        int current = int(atomicAdd( BokehCounter_data[0].y, add));
+
+         storeCoord.y = int(floor(float(current/sourceSize.x)));
+        storeCoord.x = current - storeCoord.y*sourceSize.x;
+
+        imageStore(BokehDetectSampler, ivec2(storeCoord.xy), vec4(TexCoord.x * float(sourceSize.x), TexCoord.y * float(sourceSize.y), linearDepth, blur));
+
+        vec3 bokehColor = sourceColor.xyz / (cocSize);
+        imageStore(BokehColorSampler, ivec2(storeCoord.xy), vec4(bokehColor, 1.0));
+    }
+}
+            </FragmentShader>
+        </Shader>
+        <Shader name="BOKEH_RENDER">
+            <VertexShader>
+out vec4 varColor;
+out float varRadius;
+out float varDepth;
+
+void vert()
+{
+    ivec2 bufSize, coord;
+    bufSize      = textureSize(BokehPositionSampler,0).xy;
+    coord.y      = int(floor(float(gl_InstanceID / bufSize.x)));
+    coord.x      = gl_InstanceID - coord.y * bufSize.x;
+
+    varColor      = texelFetch(BokehSampler, coord, 0);
+    vec4 pos     = texelFetch(BokehPositionSampler, coord, 0);
+
+    varRadius     = pos.w * MaxBokehRadius;
+    varDepth     = pos.z;
+
+    // convert to NDC -1, 1 range
+    //pos.xy /= DestSize;
+    //pos.xy = pos.xy * 2.0 - 1.0;
+
+    vec4 pos1 = vec4( (attr_pos.xy + pos.xy) / DestSize.xy , 0.0, 1.0 );
+    gl_Position = pos1;
+}
+
+            </VertexShader>
+            <GeometryShader>
+#include "viewProperties.glsllib"
+
+in  float             varRadius[];
+in  float             varDepth[];
+in  vec4             varColor[];
+out vec4            geColor;
+out float            geDepth;
+out vec2              geUVPos;
+
+layout (points) in;
+layout (triangle_strip, max_vertices = 4) out;
+
+void main()
+{
+    gl_Layer     = 0;
+    geColor         = varColor[0];
+    geDepth         = varDepth[0];
+    vec2 rcpSize = 1.0 / DestSize;
+
+    //emit triangle at pos.
+    vec2 offsetx = vec2(rcpSize.x * varRadius[0], 0.0);
+    vec2 offsety = vec2(0.0, rcpSize.y * varRadius[0]);
+    vec2 offsets = vec2(-1.0, -1.0); // Screen offset
+
+    // Expand point into a quad
+    gl_Position = vec4(offsets + 2.0*(gl_in[0].gl_Position.xy - offsetx - offsety),0.0 ,1.0);
+    geUVPos    = vec2(0,0);
+    EmitVertex();
+    gl_Position = vec4(offsets + 2.0*(gl_in[0].gl_Position.xy + offsetx - offsety),0.0 ,1.0);
+    geUVPos    = vec2(1,0);
+    EmitVertex();
+    gl_Position = vec4(offsets + 2.0*(gl_in[0].gl_Position.xy - offsetx + offsety),0.0 ,1.0);
+    geUVPos    = vec2(0,1);
+    EmitVertex();
+    gl_Position = vec4(offsets + 2.0*(gl_in[0].gl_Position.xy + offsetx + offsety),0.0 ,1.0);
+    geUVPos    = vec2(1,1);
+    EmitVertex();
+
+    EndPrimitive();
+}
+            </GeometryShader>
+            <FragmentShader>
+in vec4  geColor;
+in vec2     geUVPos;
+in float geDepth;
+
+void frag()
+{
+    float alpha    = textureLod(BokehShapeSampler, geUVPos, 0.0 ).r;
+    vec2  bd    = textureLod(Texture0, gl_FragCoord.xy/vec2(textureSize(Texture0, 0)), 0.0 ).xy;
+    float blur  = bd.x;
+    float depth = bd.y;
+
+    float weight = clamp(depth - geDepth + 1.0, 0.0, 1.0);
+    weight        = clamp( weight + blur, 0.0, 1.0);
+
+    gl_FragColor = vec4( geColor.xyz * alpha * weight, alpha * weight);
+}
+    </FragmentShader>
+    </Shader>
+
+<Shader name="MERGE">
+            <VertexShader>
+
+void vert()
+{
+    // reset bokeh counter
+    BokehCounter_data[0].y = uint(0);
+}
+            </VertexShader>
+            <FragmentShader>
+
+void frag() // Mix the input blur and the depth texture with the sprite
+{
+    vec4 sourceCol = texture2D( SourceSampler, TexCoord );
+
+    ivec2 storeCoord;
+    ivec2 sourceSize = textureSize(BokehBufferSampler, 0).xy;
+    storeCoord = ivec2(float(sourceSize.x) * TexCoord.x, float(sourceSize.y) * TexCoord.y);
+    vec4 bokehCol = texelFetch( BokehBufferSampler, storeCoord, 0 );
+    gl_FragColor = vec4(  bokehCol.xyz + sourceCol.xyz, sourceCol.a );
+}
+    </FragmentShader>
+    </Shader>
+<Shader name="DOWNSAMPLE">
+            <VertexShader>
+void vert()
+{
+    SetupBoxBlurCoords(vec2(Texture0Info.xy));
+}
+            </VertexShader>
+            <FragmentShader>
+void frag() // Simple averaging box blur.
+{
+    gl_FragColor = BoxDepthBlur(DepthSampler, Texture0, Texture0Info.z, FocusDistance, FocusWidth, FocusWidth);
+}
+            </FragmentShader>
+        </Shader>
+<Shader name="BLUR">
+            <VertexShader>
+
+void vert()
+{
+    SetupPoissonBlurCoords( BlurAmount, DestSize.xy );
+}
+
+            </VertexShader>
+            <FragmentShader>
+
+void frag() // Mix the input blur and the depth texture with the sprite
+{
+    float centerMultiplier = GetDepthMultiplier( TexCoord, DepthSampler, FocusDistance, FocusWidth, FocusWidth );
+    if ( DepthDebug )
+    {
+        gl_FragColor = vec4( centerMultiplier,centerMultiplier,centerMultiplier, 1.0 );
+    }
+    else
+    {
+        vec4 blurColor = PoissonDepthBlur(Texture0, Texture0Info.z, DepthSampler, FocusDistance, FocusWidth, FocusWidth );
+        gl_FragColor = mix( texture2D(MergedBufferSampler,TexCoord), blurColor, centerMultiplier );
+    }
+}
+            </FragmentShader>
+        </Shader>
+    </Shaders>
+
+    <Passes>
+        <Buffer name="depthblur_buffer" type="fp16" format="rg" filter="nearest" wrap="clamp" size="1.0" lifetime="frame"/>
+        <Buffer name="bokeh_buffer" type="ubyte" format="rgba" filter="nearest" wrap="clamp" size="1.0" lifetime="scene"/>
+        <Buffer name="merged_buffer" type="ubyte" format="source" filter="nearest" wrap="clamp" size="1.0" lifetime="frame"/>
+        <Image name="bokeh_detect_image" type="fp16" format="rgba" filter="nearest" wrap="clamp" size="1.0" lifetime="scene" access="readwrite"/>
+        <Image name="bokeh_color_image" type="fp16" format="rgba" filter="nearest" wrap="clamp" size="1.0" lifetime="scene" access="readwrite"/>
+        <DataBuffer name="DrawIndirectBuffer" type="indirect" wrapName="BokehCounter" wrapType="storage" format="uint" size="4" lifetime="frame"/>
+        <Buffer name="downsample_buffer" type="ubyte" format="source" filter="linear" wrap="clamp" size=".5" lifetime="frame"/>
+
+        <Pass shader="CLEAR" input="[source]" output="bokeh_buffer">
+        </Pass>
+
+        <Pass shader="BOKEH_DETECT" input="[source]" output="depthblur_buffer">
+            <DepthInput param="DepthSampler"/>
+            <ImageInput value="bokeh_color_image" param="BokehColorSampler" usage="image"/>
+            <ImageInput value="bokeh_detect_image" param="BokehDetectSampler" usage="image"/>
+            <DataBufferInput param="BokehCounter" usage="storage"/>
+        </Pass>
+
+        <Pass shader="BOKEH_RENDER" input="depthblur_buffer" output="bokeh_buffer">
+            <ImageInput value="bokeh_color_image" param="BokehSampler" usage="texture" sync="true"/>
+            <ImageInput value="bokeh_detect_image" param="BokehPositionSampler" usage="texture" sync="true"/>
+            <DataBufferInput param="DrawIndirectBuffer" usage="indirect"/>
+            <Blending source="SrcAlpha" dest="One"/>
+        </Pass>
+
+        <Pass shader="MERGE" input="bokeh_buffer" output="merged_buffer">
+            <BufferInput value="[source]" param="SourceSampler" />
+            <BufferInput value="bokeh_buffer" param="BokehBufferSampler" />
+            <DataBufferInput param="BokehCounter" usage="storage"/>
+        </Pass>
+
+        <Pass shader="DOWNSAMPLE" input="merged_buffer" output="downsample_buffer">
+            <DepthInput param="DepthSampler"/>
+        </Pass>
+
+        <Pass shader="BLUR" input="downsample_buffer" output="[dest]" format="source">
+            <BufferInput value="merged_buffer" param="MergedBufferSampler" />
+            <DepthInput param="DepthSampler"/>
+        </Pass>
+    </Passes>
+</Effect>

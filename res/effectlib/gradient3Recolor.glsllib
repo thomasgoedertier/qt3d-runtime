@@ -1,0 +1,42 @@
+float gradientInterpolate( in int interpolationMode, in float value )
+{
+  switch( interpolationMode )
+  {
+    case gradient_interpolation_linear :
+      return( value );
+    case gradient_interpolation_off :
+      return( 0.0f );
+    case gradient_interpolation_ease_in :
+      return( 1.0f - pow( 1.0f - value, 2.0f/3.0f ) );
+    case gradient_interpolation_ease_out :
+      return( pow( value, 2.0f/3.0f ) );
+    case gradient_interpolation_ease_in_out :
+      return( ( value <= 0.5f )
+            ? 0.5f * pow( 2.0f * value, 2.0f/3.0f )
+            : 0.5f + 0.5f * ( 1.0f - pow( 2.0f * ( 1.0f - value ), 2.0f/3.0f ) ) );
+    default:
+      return( value );  // default is linear
+  }
+}
+
+texture_return gradient3Recolor( in float gradientPositions[3], in vec3 gradientColors[3], in int interpolationModes[3], in int monoSource, in float distortion, in float position )
+{
+  texture_return tr;
+  float pos = position + distortion;
+  if ( pos <= gradientPositions[0] )
+  {
+    tr.tint = gradientColors[0];
+  }
+  else if ( pos >= gradientPositions[2] )
+  {
+    tr.tint = gradientColors[2];
+  }
+  else
+  {
+    int index = ( position < gradientPositions[1] ) ? 0 : 1;
+    float relPos = gradientInterpolate( interpolationModes[index], ( pos - gradientPositions[index] ) / ( gradientPositions[index+1] - gradientPositions[index] ) );
+    tr.tint = mix( gradientColors[index], gradientColors[index+1], relPos );
+  }
+  tr.mono = 0.0f;
+  return( tr );
+}

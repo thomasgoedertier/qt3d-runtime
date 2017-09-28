@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<UIP version="3" >
+    <Project >
+        <ProjectSettings author="" company="" presentationWidth="800" presentationHeight="480" maintainAspect="False" />
+        <Graph >
+            <Scene id="Scene" >
+                <Layer id="Layer" >
+                    <Camera id="Camera" />
+                    <Light id="Light" />
+                    <Model id="Cube" >
+                        <Material id="Material" />
+                    </Model>
+                    <Model id="Headphones" >
+                        <Material id="Material_001" />
+                        <Material id="Material_002" />
+                        <Material id="Material_003" />
+                        <Material id="Material_004" />
+                        <Material id="Material_005" />
+                        <Material id="Material_006" />
+                    </Model>
+                </Layer>
+            </Scene>
+        </Graph>
+        <Logic >
+            <State name="Master Slide" component="#Scene" >
+                <Add ref="#Layer" />
+                <Add ref="#Camera" />
+                <Add ref="#Light" />
+                <State id="Scene-Slide1" name="Slide1" >
+                    <Add ref="#Cube" name="Cube" position="-214.653 60.0149 -105.988" rotation="-52.4901 -10.7851 -20.7213" scale="2 2 2" sourcepath="#Cube" />
+                    <Add ref="#Material" />
+                    <Add ref="#Headphones" name="Headphones" position="152.998 10.1036 0" sourcepath="Headphones.mesh#1" />
+                    <Add ref="#Material_001" />
+                    <Add ref="#Material_002" />
+                    <Add ref="#Material_003" />
+                    <Add ref="#Material_004" />
+                    <Add ref="#Material_005" />
+                    <Add ref="#Material_006" />
+                </State>
+            </State>
+        </Logic>
+    </Project>
+</UIP>

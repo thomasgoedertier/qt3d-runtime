@@ -1,0 +1,70 @@
+#ifndef SSAO_CUSTOM_MATERIAL_GLSLLIB
+#define SSAO_CUSTOM_MATERIAL_GLSLLIB
+
+#ifndef UIC_ENABLE_SSAO
+#define UIC_ENABLE_SSAO 0
+#endif
+
+#ifndef UIC_ENABLE_SSDO
+#define UIC_ENABLE_SSDO 0
+#endif
+
+#if UIC_ENABLE_SSAO || UIC_ENABLE_SSDO
+
+#include "viewProperties.glsllib"
+#if UIC_ENABLE_SSDO
+#include "screenSpaceDO.glsllib"
+
+layout (std140) uniform cbAoShadow {
+    vec4 ao_properties;
+    vec4 ao_properties2;
+    vec4 shadow_properties;
+    vec4 aoScreenConst;
+    vec4 UvToEyeConst;
+    };
+
+uniform sampler2D depth_sampler;
+#endif
+uniform sampler2D ao_sampler;
+
+#endif  // UIC_ENABLE_SSAO || UIC_ENABLE_SSDO
+
+#if UIC_ENABLE_SSAO
+
+float customMaterialAO()
+{
+#if UIC_ENABLE_SSDO
+    vec2 smpUV = (gl_FragCoord.xy) * aoScreenConst.zw;
+#else
+    ivec2 iSize = textureSize(ao_sampler, 0);
+    vec2 smpUV = (gl_FragCoord.xy) / vec2(iSize);
+#endif
+    return texture(ao_sampler, smpUV).x;
+}
+
+#else
+
+float customMaterialAO()
+{
+    return 1.0;
+}
+
+#endif
+
+#if UIC_ENABLE_SSDO
+
+float customMaterialShadow( vec3 lightDir, vec3 varWorldPos )
+{
+    return shadowOcclusion( depth_sampler, lightDir, varWorldPos, viewMatrix, viewProjectionMatrix, shadow_properties, camera_properties, aoScreenConst, UvToEyeConst );
+}
+
+#else
+
+float customMaterialShadow( vec3 lightDir, vec3 varWorldPos )
+{
+    return 1.0;
+}
+
+#endif
+
+#endif  // #ifndef SSAO_CUSTOM_MATERIAL_GLSLLIB

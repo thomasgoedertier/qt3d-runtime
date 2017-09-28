@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<UIP version="3" >
+	<Project >
+		<ProjectSettings author="" company="" presentationWidth="800" presentationHeight="480" maintainAspect="False" />
+		<BufferData >
+			<ImageBuffer sourcepath=".\opacitymap.png" hasTransparency="True" />
+		</BufferData>
+		<Graph >
+			<Scene id="Scene" >
+				<Layer id="Layer" >
+					<Camera id="Camera" />
+					<Light id="Light" />
+					<Model id="Rectangle" >
+						<Material id="Material" />
+					</Model>
+					<Model id="Sphere" >
+						<Material id="Material_001" >
+							<Image id="Material_001_opacitymap" />
+						</Material>
+					</Model>
+					<Model id="Cube" >
+						<Material id="Material_002" >
+							<Image id="Material_002_opacitymap" />
+						</Material>
+					</Model>
+				</Layer>
+			</Scene>
+		</Graph>
+		<Logic >
+			<State name="Master Slide" component="#Scene" >
+				<Add ref="#Layer" />
+				<Add ref="#Camera" />
+				<Add ref="#Light" />
+				<State id="Scene-Slide1" name="Slide1" >
+					<Add ref="#Rectangle" name="Rectangle" position="15.6206 1.91976 -21.2664" rotation="62.5 0 0" scale="6.24243 4.98461 1" sourcepath="#Rectangle" />
+					<Add ref="#Material" diffuse="1 0.870588 0.752941" />
+					<Add ref="#Sphere" name="Sphere" position="3.93619 42.917 -251.294" sourcepath="#Sphere" >
+						<AnimationTrack property="rotation.x" type="EaseInOut" >0 0 100 100 10 0 100 100</AnimationTrack>
+						<AnimationTrack property="rotation.y" type="EaseInOut" >0 0 100 100 10 -360 100 100</AnimationTrack>
+						<AnimationTrack property="rotation.z" type="EaseInOut" >0 0 100 100 10 0 100 100</AnimationTrack>
+					</Add>
+					<Add ref="#Material_001" diffuse="0 0.878431 0" opacitymap="#Material_001_opacitymap" />
+					<Add ref="#Material_001_opacitymap" sourcepath=".\opacitymap.png" />
+					<Add ref="#Cube" name="Cube" position="-259.951 176.081 -5.02271" rotation="-30.5 -34 -9.90883e-007" sourcepath="#Cube" >
+						<AnimationTrack property="rotation.x" type="EaseInOut" >0 -30.5 100 100 10 -30.5 100 100</AnimationTrack>
+						<AnimationTrack property="rotation.y" type="EaseInOut" >0 -34 100 100 10 -270 100 100</AnimationTrack>
+						<AnimationTrack property="rotation.z" type="EaseInOut" >0 -9.90883e-007 100 100 10 -180 100 100</AnimationTrack>
+					</Add>
+					<Add ref="#Material_002" diffuse="1 0.658824 0" opacitymap="#Material_002_opacitymap" />
+					<Add ref="#Material_002_opacitymap" sourcepath=".\opacitymap.png" />
+				</State>
+			</State>
+		</Logic>
+	</Project>
+</UIP>

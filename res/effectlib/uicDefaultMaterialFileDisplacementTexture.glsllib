@@ -1,0 +1,10 @@
+#ifndef UIC_DEFAULT_MATERIAL_FILE_DISPLACEMENT_TEXTURE_GLSLLIB
+#define UIC_DEFAULT_MATERIAL_FILE_DISPLACEMENT_TEXTURE_GLSLLIB
+
+#ifndef UIC_DEFINE_API
+#define UIC_DEFINE_API
+#endif
+
+#include "fileDisplacementTexture.glsllib"
+
+#endif

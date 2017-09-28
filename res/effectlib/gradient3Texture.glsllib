@@ -1,0 +1,5 @@
+texture_return gradient3Texture( in int gradientMode, in float gradientPositions[3], in vec3 gradientColors[3], in int interpolationModes[3], in texture_coordinate_info uvw, in float distortion )
+{
+  float position = gradientGetPosition( gradientMode, uvw.position.xy );
+  return( gradient3Recolor( gradientPositions, gradientColors, interpolationModes, 0, distortion, position ) );
+}

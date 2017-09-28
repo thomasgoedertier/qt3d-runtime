@@ -1,0 +1,45 @@
+// calculate the length of the hypotenuse of a right-angle triangle
+float hypot( in float x, in float y )
+{
+  // (sqrt( x * x + y * y )) might over- or underflow
+  // see http://en.wikipedia.org/wiki/Hypot for details
+  x = abs( x );
+  y = abs( y );
+  float t = min( x, y );
+  x = max( x, y );
+  t = t/x;
+  return( x * sqrt( 1.0f + ( t * t ) ) );
+}
+
+float gradientGetPosition( in int gradientMode, in vec2 xy )
+{
+  // clamp to [0,1]
+  vec2 tex = xy - floor( xy );
+
+  switch( gradientMode )
+  {
+    case gradient_linear :
+      return( tex.x );
+    case gradient_squared :
+      return( tex.x * tex.x );
+    case gradient_box :
+      // gradient is based on the distance from the center
+      return( max( abs( tex.x - 0.5f ), abs( tex.y - 0.5f ) ) );
+    case gradient_diagonal :
+      // gradient is based on the distance from the diagonal
+      return( sqrt(2.0f) * abs( tex.x - tex.y ) );
+    case gradient_90_degree :
+      // Need to check
+      return( 0.0f );
+    case gradient_symmetric_90_degree :
+       // Need to check
+      return( 0.0f );
+    case gradient_radial :
+      // Distance from center
+      return( 2.0f * hypot( tex.x - 0.5f, tex.y - 0.5f ) );
+    case gradient_360_degree :
+      // fall through need to check
+    default :
+      return( 0.0f );
+  }
+}

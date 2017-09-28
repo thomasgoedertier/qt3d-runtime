@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<UIP version="3" >
+	<Project >
+		<ProjectSettings author="" company="" presentationWidth="800" presentationHeight="480" maintainAspect="False" />
+		<Graph >
+			<Scene id="Scene" >
+				<Layer id="Layer" >
+					<Camera id="Camera" />
+					<Light id="Light" />
+					<Light id="Light2" />
+					<Model id="Cube" >
+						<Material id="Material" />
+					</Model>
+					<Light id="Light2_001" />
+					<Model id="Cube_001" >
+						<Material id="Material_001" />
+					</Model>
+				</Layer>
+			</Scene>
+		</Graph>
+		<Logic >
+			<State name="Master Slide" component="#Scene" >
+				<Add ref="#Layer" />
+				<Add ref="#Camera" />
+				<Add ref="#Light" lighttype="Point" position="500 500 -500" rotation="36.8649 -268.216 350.188" />
+				<State id="Scene-Circling cube" name="Circling cube" playmode="Play Through To..." >
+					<Set ref="#Layer" endtime="4000" />
+					<Set ref="#Camera" endtime="4000" />
+					<Set ref="#Light" endtime="4000" />
+					<Add ref="#Light2" name="Light2" endtime="4000" lighttype="Point" position="-500 -500 -500" rotation="-52.8052 -40.339 113.184" />
+					<Add ref="#Cube" name="Cube" endtime="4000" position="-399.815 10.1036 0" sourcepath="#Cube" >
+						<AnimationTrack property="position.x" type="EaseInOut" >0 -400 0 0 0.5 -200 0 0 1 0 0 0 1.5 200 0 0 2 400 0 0 2.509 200 0 0 3 0 0 0 3.502 -200
+							0 0 4 -400 100 100</AnimationTrack>
+						<AnimationTrack property="position.y" type="EaseInOut" >0 0 0 0 0.5 120 0 0 1 200 0 0 1.5 120 0 0 2 0 0 0 2.509 -120 0 0 3 -200 0 0 3.502 -120
+							0 0 4 0 100 100</AnimationTrack>
+						<AnimationTrack property="position.z" type="EaseInOut" >0 0 0 0 0.5 0 0 0 1 0 0 0 1.5 0 0 0 2 0 0 0 2.509 0 0 0 3 0 0 0 3.502 0
+							0 0 4 0 100 100</AnimationTrack>
+						<AnimationTrack property="rotation.x" type="EaseInOut" >0 0 0 0 1 0 0 0 2 0 0 0 3 0 0 0 4 0 0 0</AnimationTrack>
+						<AnimationTrack property="rotation.y" type="EaseInOut" >0 0 0 0 1 0 0 0 2 0 0 0 3 0 0 0 4 0 0 0</AnimationTrack>
+						<AnimationTrack property="rotation.z" type="EaseInOut" >0 0 0 0 1 -90 0 0 2 -180 0 0 3 -270 0 0 4 -360 0 0</AnimationTrack>
+					</Add>
+					<Add ref="#Material" diffuse="0.12549 0.301961 0.909804" >
+						<AnimationTrack property="diffuse.x" type="EaseInOut" >0 0.160784 100 100 2 1 100 100 4 0.160784 100 100</AnimationTrack>
+						<AnimationTrack property="diffuse.y" type="EaseInOut" >0 0.956863 100 100 2 0 100 100 4 0.956863 100 100</AnimationTrack>
+						<AnimationTrack property="diffuse.z" type="EaseInOut" >0 0.0745098 100 100 2 0 100 100 4 0.0745098 100 100</AnimationTrack>
+					</Add>
+				</State>
+				<State id="Scene-Scaling cube" name="Scaling cube" playmode="Play Through To..." playthroughto="Previous" >
+					<Set ref="#Layer" endtime="4000" />
+					<Set ref="#Camera" endtime="4000" />
+					<Set ref="#Light" endtime="4000" />
+					<Add ref="#Light2_001" name="Light2" endtime="4000" lighttype="Point" position="-500 -500 -500" rotation="-52.8052 -40.339 113.184" />
+					<Add ref="#Cube_001" name="Cube" endtime="4000" position="-400 0 0" sourcepath="#Cube" >
+						<AnimationTrack property="position.x" type="EaseInOut" >0 -400 100 100 2 -206.589 100 100 4 -400 100 100</AnimationTrack>
+						<AnimationTrack property="position.y" type="EaseInOut" >0 0 100 100 2 0 100 100 4 0 100 100</AnimationTrack>
+						<AnimationTrack property="position.z" type="EaseInOut" >0 0 100 100 2 0 100 100 4 0 100 100</AnimationTrack>
+						<AnimationTrack property="scale.x" type="EaseInOut" >0 1 100 100 2 2 100 100 4 1 100 100</AnimationTrack>
+						<AnimationTrack property="scale.y" type="EaseInOut" >0 1 100 100 2 2 100 100 4 1 100 100</AnimationTrack>
+						<AnimationTrack property="scale.z" type="EaseInOut" >0 1 100 100 2 2 100 100 4 1 100 100</AnimationTrack>
+					</Add>
+					<Add ref="#Material_001" diffuse="0.12549 0.301961 0.909804" >
+						<AnimationTrack property="diffuse.x" type="EaseInOut" >0 0.160784 100 100 2 1 100 100 4 0.160784 100 100</AnimationTrack>
+						<AnimationTrack property="diffuse.y" type="EaseInOut" >0 0.956863 100 100 2 0 100 100 4 0.956863 100 100</AnimationTrack>
+						<AnimationTrack property="diffuse.z" type="EaseInOut" >0 0.0745098 100 100 2 0 100 100 4 0.0745098 100 100</AnimationTrack>
+					</Add>
+				</State>
+			</State>
+		</Logic>
+	</Project>
+</UIP>

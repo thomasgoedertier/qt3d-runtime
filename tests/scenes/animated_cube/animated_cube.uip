@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<UIP version="3" >
+	<Project >
+		<ProjectSettings author="" company="" presentationWidth="800" presentationHeight="480" maintainAspect="False" />
+		<Graph >
+			<Scene id="Scene" >
+				<Layer id="Layer" >
+					<Camera id="Camera" />
+					<Light id="Light" />
+					<Model id="Cube" >
+						<Material id="Material" />
+					</Model>
+					<Model id="Cone" >
+						<Material id="Material_001" />
+					</Model>
+					<Model id="Cylinder" >
+						<Material id="Material_002" />
+					</Model>
+					<Model id="Cylinder2" >
+						<Material id="Material_003" />
+						<Model id="Cylinder_001" >
+							<Material id="Material_005" />
+						</Model>
+					</Model>
+					<Model id="Cube2" >
+						<Material id="Material_004" />
+					</Model>
+				</Layer>
+			</Scene>
+		</Graph>
+		<Logic >
+			<State name="Master Slide" component="#Scene" >
+				<Add ref="#Layer" disabledepthprepass="False" disabledepthtest="False" />
+				<Add ref="#Camera" />
+				<Add ref="#Light" />
+				<Add ref="#Cylinder2" name="Cylinder2" position="447.447 219.393 0" sourcepath="#Cylinder" >
+					<AnimationTrack property="position.x" type="EaseInOut" >0 447.447 100 100 10 444.56 100 100</AnimationTrack>
+					<AnimationTrack property="position.y" type="EaseInOut" >0 219.393 100 100 10 82.2723 100 100</AnimationTrack>
+					<AnimationTrack property="position.z" type="EaseInOut" >0 0 100 100 10 0 100 100</AnimationTrack>
+				</Add>
+				<Add ref="#Material_003" />
+				<Add ref="#Cube2" name="Cube2" position="430.126 -217.95 0" rotation="-28.6766 13.2964 -4.20615" sourcepath="#Cube" >
+                                        <AnimationTrack property="opacity" type="EaseInOut" >0 100 100 100 10 28.125 100 100</AnimationTrack>
+				</Add>
+				<Add ref="#Material_004" />
+				<State id="Scene-Slide1" name="Slide1" >
+					<Add ref="#Cube" name="Cube" pivot="50 0 0" rotation="-52.4901 -200 -20.7213" scale="2 2 2" sourcepath="#Cube" >
+						<AnimationTrack property="position.x" type="EaseInOut" >0 0 100 100 4.64 300 100 100 10 305.361 100 100</AnimationTrack>
+						<AnimationTrack property="position.y" type="EaseInOut" >0 0 100 100 4.64 0 100 100 10 -96.8999 100 100</AnimationTrack>
+						<AnimationTrack property="position.z" type="EaseInOut" >0 0 100 100 4.64 0 100 100 10 -56.6207 100 100</AnimationTrack>
+						<AnimationTrack property="rotation.x" type="EaseInOut" >0 -52.4901 100 100 6.544 -52.4901 100 100 10 -52.4901 100 100</AnimationTrack>
+						<AnimationTrack property="rotation.y" type="EaseInOut" >0 -200 100 100 6.544 -200 100 100 10 -10.7851 100 100</AnimationTrack>
+						<AnimationTrack property="rotation.z" type="EaseInOut" >0 -20.7213 100 100 6.544 -20.7213 100 100 10 -20.7213 100 100</AnimationTrack>
+					</Add>
+					<Add ref="#Material" diffuse="1 0.227451 0.141176" specularamount="50" speculartint="0.47451 0.811765 0.360784" >
+						<AnimationTrack property="diffuse.x" type="EaseInOut" >0 1 100 100 10 0.588235 100 100</AnimationTrack>
+						<AnimationTrack property="diffuse.y" type="EaseInOut" >0 0.227451 100 100 10 0.423529 100 100</AnimationTrack>
+						<AnimationTrack property="diffuse.z" type="EaseInOut" >0 0.141176 100 100 10 0.709804 100 100</AnimationTrack>
+					</Add>
+					<Add ref="#Cone" name="Cone" position="-383.938 -34.641 0" rotation="34.5816 19.4992 -75.4853" scale="1.36232 3.28358 1" sourcepath="#Cone" >
+						<AnimationTrack property="rotation.x" type="EaseInOut" >7.7 34.5816 100 100 10 34.5816 100 100</AnimationTrack>
+						<AnimationTrack property="rotation.y" type="EaseInOut" >7.7 19.4992 100 100 10 50 100 100</AnimationTrack>
+						<AnimationTrack property="rotation.z" type="EaseInOut" >7.7 -75.4853 100 100 10 -75.4853 100 100</AnimationTrack>
+						<AnimationTrack property="scale.x" type="EaseInOut" >3.026 1.36232 100 100 5.66 1.36232 100 100</AnimationTrack>
+						<AnimationTrack property="scale.y" type="EaseInOut" >3.026 3.28358 100 100 5.66 6 100 100</AnimationTrack>
+						<AnimationTrack property="scale.z" type="EaseInOut" >3.026 1 100 100 5.66 1 100 100</AnimationTrack>
+						<Action id="Cone-Action" eyeball="True" triggerObject="#Cone" event="onTap" targetObject="#Scene" handler="Next Slide" />
+					</Add>
+					<Add ref="#Material_001" />
+					<Add ref="#Cylinder" name="Cylinder" position="-435.228 -518.556 642.346" rotation="-32.3407 30.8458 -48.1472" sourcepath="#Cylinder" >
+						<AnimationTrack property="position.x" type="EaseInOut" >2.563 -435.228 100 100 10 -435.228 100 100</AnimationTrack>
+						<AnimationTrack property="position.y" type="EaseInOut" >2.563 -518.556 100 100 10 -200 100 100</AnimationTrack>
+						<AnimationTrack property="position.z" type="EaseInOut" >2.563 642.346 100 100 10 642.346 100 100</AnimationTrack>
+						<AnimationTrack property="scale.x" type="EaseInOut" >0 1 100 100 10 5 100 100</AnimationTrack>
+						<AnimationTrack property="scale.y" type="EaseInOut" >0 1 100 100 10 5 100 100</AnimationTrack>
+						<AnimationTrack property="scale.z" type="EaseInOut" >0 1 100 100 10 5 100 100</AnimationTrack>
+					</Add>
+					<Add ref="#Material_002" diffuse="0.313726 0.156863 0.776471" />
+					<Add ref="#Cylinder_001" name="Cylinder" position="82.2724 -118.357 0" scale="0.384612 0.212574 0.510153" sourcepath="#Cylinder" />
+					<Add ref="#Material_005" />
+				</State>
+				<State id="Scene-Slide-1" name="Slide-1" playthroughto="Previous" >
+					<Set ref="#Cylinder2" eyeball="False" />
+					<Set ref="#Cube2" >
+						<Action id="Cube2-Action" eyeball="True" triggerObject="#Cube2" event="onTap" targetObject="#Scene" handler="Previous Slide" />
+					</Set>
+				</State>
+			</State>
+		</Logic>
+	</Project>
+</UIP>
