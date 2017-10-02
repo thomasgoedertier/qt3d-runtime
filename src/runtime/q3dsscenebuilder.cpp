@@ -1973,8 +1973,7 @@ void Q3DSSceneBuilder::buildLayerScene(Q3DSGraphObject *obj, Q3DSLayerNode *laye
         }
     };
 
-    if (!obj->isNode() || !static_cast<Q3DSNode *>(obj)->flags().testFlag(Q3DSNode::Active)) {
-        // for non-Nodes and invisible Nodes the only thing needed here is to register the property change callback
+    if (!obj->isNode()) {
         obj->addPropertyChangeObserver(std::bind(&Q3DSSceneBuilder::handlePropertyChange, this,
                                                  std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
         return;
