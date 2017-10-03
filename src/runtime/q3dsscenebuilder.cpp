@@ -2393,12 +2393,12 @@ void Q3DSSceneBuilder::setLightProperties(Q3DSLightNode *light3DS, bool forceUpd
     if (!ls->linearAttenuationParam)
         ls->linearAttenuationParam = new Qt3DRender::QParameter;
     ls->linearAttenuationParam->setName(QLatin1String("linearAttenuation"));
-    ls->linearAttenuationParam->setValue(light3DS->linearFade());
+    ls->linearAttenuationParam->setValue(qBound(0.0f, light3DS->linearFade(), 1000.0f) * 0.0001f);
 
     if (!ls->quadraticAttenuationParam)
         ls->quadraticAttenuationParam = new Qt3DRender::QParameter;
     ls->quadraticAttenuationParam->setName(QLatin1String("quadraticAttenuation"));
-    ls->quadraticAttenuationParam->setValue(light3DS->expFade());
+    ls->quadraticAttenuationParam->setValue(qBound(0.0f, light3DS->expFade(), 1000.0f) * 0.0000001f);
 
     if (!ls->widthParam)
         ls->widthParam = new Qt3DRender::QParameter;
@@ -2860,7 +2860,7 @@ void Q3DSSceneBuilder::updateDefaultMaterial(Q3DSDefaultMaterial *m)
 
     auto materialProperties = QVector4D(m->specularAmount(),
                                         m->specularRoughness(),
-                                        m->emissivePower(),
+                                        emissivePower,
                                         0.0f);
     data->materialPropertiesParam->setValue(materialProperties);
 
