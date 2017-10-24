@@ -349,6 +349,8 @@ public:
 
     Q3DSSlide *currentSlide() const { return m_currentSlide; }
     Q3DSSlide *masterSlide() const { return m_masterSlide; }
+    void setCurrentSlide(Q3DSSlide *newSlide);
+
     void updateAnimations(Q3DSSlide *animSourceSlide, Q3DSSlide *playModeSourceSlide);
     void setAnimationsRunning(Q3DSSlide *slide, bool running);
 

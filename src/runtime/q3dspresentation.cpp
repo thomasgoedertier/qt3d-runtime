@@ -430,7 +430,7 @@ QStringList Q3DSGraphObject::gex_propertyNames() const
 
 QVariantList Q3DSGraphObject::gex_propertyValues() const
 {
-    return QVariantList() << m_id << m_startTime << m_endTime;
+    return QVariantList() << QString::fromUtf8(m_id) << m_startTime << m_endTime;
 }
 
 // The property conversion functions all follow the same pattern:
@@ -1766,6 +1766,15 @@ void Q3DSComponentNode::applyPropertyChanges(const Q3DSPropertyChangeList *chang
 {
     Q3DSNode::applyPropertyChanges(changeList);
     setProps(*changeList, 0);
+}
+
+void Q3DSComponentNode::setCurrentSlide(Q3DSSlide *slide)
+{
+    if (m_currentSlide == slide)
+        return;
+
+    qCDebug(lcUip, "Setting new current slide %s", slide->id().constData());
+
 }
 
 QStringList Q3DSComponentNode::gex_propertyNames() const

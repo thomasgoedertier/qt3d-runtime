@@ -1003,6 +1003,7 @@ public:
 
     Q3DSSlide *masterSlide() const { return m_masterSlide; }
     Q3DSSlide *currentSlide() const { return m_currentSlide; }
+    void setCurrentSlide(Q3DSSlide *slide);
 
     QStringList gex_propertyNames() const override;
     QVariantList gex_propertyValues() const override;

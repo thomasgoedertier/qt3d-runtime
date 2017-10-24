@@ -373,6 +373,15 @@ void Q3DSSceneBuilder::updateSizes(QWindow *window)
         updateSizesForLayer(layer3DS, window->size() * window->devicePixelRatio()); });
 }
 
+void Q3DSSceneBuilder::setCurrentSlide(Q3DSSlide *newSlide)
+{
+    if (m_currentSlide == newSlide)
+        return;
+
+    qCDebug(lcScene, "Setting new current slide %s", newSlide->id().constData());
+    m_currentSlide = newSlide;
+}
+
 void Q3DSSceneBuilder::prepareSceneChange()
 {
     qCDebug(lcScene, "prepareSceneChange");
