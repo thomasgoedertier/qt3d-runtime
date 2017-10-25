@@ -1300,6 +1300,7 @@ class Q3DSV_EXPORT Q3DSPresentation
 {
 public:
     Q3DSPresentation();
+    ~Q3DSPresentation();
     void reset();
 
     enum Rotation {
@@ -1367,8 +1368,8 @@ struct Q3DSPresentationData
     Q3DSPresentation::Rotation presentationRotation = Q3DSPresentation::NoRotation;
     bool maintainAspectRatio = false;
 
-    Q3DSScene *scene = nullptr; // not owned
-    Q3DSSlide *masterSlide = nullptr; // not owned
+    Q3DSScene *scene = nullptr;
+    Q3DSSlide *masterSlide = nullptr;
     QHash<QByteArray, Q3DSGraphObject *> objects; // node ptrs managed by scene, not owned
     QHash<QByteArray, Q3DSCustomMaterial> customMaterials;
     QHash<QByteArray, Q3DSEffect> effects;

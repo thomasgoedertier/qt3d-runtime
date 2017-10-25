@@ -39,10 +39,7 @@ QT_BEGIN_NAMESPACE
 class Q3DSV_EXPORT Q3DSUipParser : public Q3DSAbstractXmlParser
 {
 public:
-    ~Q3DSUipParser();
-    bool parse(const QString &filename);
-    Q3DSPresentation *presentation() { return &m_presentation; }
-    const Q3DSPresentation *presentation() const { return &m_presentation; }
+    Q3DSPresentation *parse(const QString &filename);
 
 private:
     void parseUIP();
@@ -61,13 +58,10 @@ private:
     void parseAddSet(Q3DSSlide *slide, bool isSet, bool isMaster);
     void parseAnimationKeyFrames(const QString &data, Q3DSAnimationTrack *animTrack);
 
-    void reset();
     QByteArray getId(const QStringRef &desc, bool required = true);
     void resolveReferences(Q3DSGraphObject *obj);
 
-    Q3DSPresentation m_presentation;
-    Q3DSScene *m_scene = nullptr;
-    Q3DSSlide *m_masterSlide = nullptr;
+    QScopedPointer<Q3DSPresentation> m_presentation;
 };
 
 QT_END_NAMESPACE

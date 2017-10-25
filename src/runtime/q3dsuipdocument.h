@@ -27,56 +27,28 @@
 **
 ****************************************************************************/
 
-#ifndef Q3DSTUDIOWINDOW_H
-#define Q3DSTUDIOWINDOW_H
+#ifndef Q3DSUIPDOCUMENT_H
+#define Q3DSUIPDOCUMENT_H
 
-#include <QWindow>
-#include <Qt3DCore/QAspectEngine>
-#include <Qt3DStudioRuntime2/Q3DSUipDocument>
-#include <Qt3DStudioRuntime2/q3dsscenebuilder.h>
+#include <Qt3DStudioRuntime2/q3dsruntimeglobal.h>
+#include <Qt3DStudioRuntime2/q3dspresentation.h>
 
 QT_BEGIN_NAMESPACE
 
-class Q3DSSceneBuilder;
-
-class Q3DSV_EXPORT Q3DStudioWindow : public QWindow
+class Q3DSV_EXPORT Q3DSUipDocument
 {
 public:
-    Q3DStudioWindow();
+    Q3DSUipDocument();
 
-    bool setUipSource(const QString &filename);
-    QString uipSource() const { return m_uipFileName; }
+    Q3DSPresentation *presentation() const;
 
-    enum InitFlag {
-        MSAA4x = 0x01
-    };
-    Q_DECLARE_FLAGS(InitFlags, InitFlag)
-
-    static void initStaticPreApp();
-    static void initStaticPostApp(InitFlags flags);
-
-    Q3DSUipDocument *uip() { return &m_uipDocument; }
-    Q3DSSceneBuilder *sceneBuilder() { return &m_sceneBuilder; }
-
-    void setOnDemandRendering(bool enabled);
-
-protected:
-    void exposeEvent(QExposeEvent *) override;
-    void resizeEvent(QResizeEvent *) override;
+    bool loadUip(const QString &fileName);
+    bool saveUip(const QString &fileName);
 
 private:
-    void createAspectEngine();
-
-    QString m_uipFileName;
-    Q3DSUipDocument m_uipDocument;
-    Q3DSSceneBuilder m_sceneBuilder;
-    Q3DSSceneBuilder::Scene m_q3dscene;
-
-    QScopedPointer<Qt3DCore::QAspectEngine> m_aspectEngine;
+    QScopedPointer<Q3DSPresentation> m_presentation;
 };
-
-Q_DECLARE_OPERATORS_FOR_FLAGS(Q3DStudioWindow::InitFlags)
 
 QT_END_NAMESPACE
 
-#endif // Q3DSTUDIOWINDOW_H
+#endif // Q3DSUIPDOCUMENT_H

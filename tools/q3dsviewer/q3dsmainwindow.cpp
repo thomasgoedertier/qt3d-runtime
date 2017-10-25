@@ -54,7 +54,7 @@ private:
 
 Q3DStudioSlideWindow::Q3DStudioSlideWindow(Q3DStudioWindow *view, bool component)
 {
-    Q3DSPresentation *pres = view->uip()->presentation();
+    auto pres = view->uip()->presentation();
     QGridLayout *layout = new QGridLayout;
     bool canChange = true;
     QComboBox *slideSource = nullptr, *compSource = nullptr;

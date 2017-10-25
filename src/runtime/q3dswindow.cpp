@@ -187,8 +187,8 @@ bool Q3DStudioWindow::setUipSource(const QString &filename)
     }
 
     m_uipFileName = filename;
-    if (m_uipParser.parse(m_uipFileName)) {
-        Q3DSPresentation *pres = m_uipParser.presentation();
+    if (m_uipDocument.loadUip(m_uipFileName)) {
+        auto pres = m_uipDocument.presentation();
         // Presentation is ready. Build the Qt3D scene. This will also activate the first sub-slide.
         Q3DSSceneBuilder::SceneBuilderFlags flags = 0;
         if (initFlags.testFlag(MSAA4x))

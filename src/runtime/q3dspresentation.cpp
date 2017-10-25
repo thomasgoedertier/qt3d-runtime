@@ -1843,8 +1843,16 @@ Q3DSPresentation::Q3DSPresentation()
 {
 }
 
+Q3DSPresentation::~Q3DSPresentation()
+{
+    delete d->scene;
+    delete d->masterSlide;
+}
+
 void Q3DSPresentation::reset()
 {
+    delete d->scene;
+    delete d->masterSlide;
     d.reset(new Q3DSPresentationData);
 }
 

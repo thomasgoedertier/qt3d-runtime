@@ -84,32 +84,16 @@ Q_LOGGING_CATEGORY(lcUip, "q3ds.uip")
 </UIP>
  */
 
-Q3DSUipParser::~Q3DSUipParser()
-{
-    reset();
-}
-
-void Q3DSUipParser::reset()
-{
-    m_presentation.reset();
-    if (m_scene) {
-        delete m_scene;
-        m_scene = nullptr;
-    }
-    if (m_masterSlide) {
-        delete m_masterSlide;
-        m_masterSlide = nullptr;
-    }
-}
-
-bool Q3DSUipParser::parse(const QString &filename)
+// Returns a Presentation and does not maintain ownership
+Q3DSPresentation *Q3DSUipParser::parse(const QString &filename)
 {
     if (!setSource(filename))
-        return false;
+        return nullptr;
 
-    reset();
+    // reset (not owned by Q3DSUipParser)
+    m_presentation.reset(new Q3DSPresentation());
 
-    m_presentation.setSourceFile(sourceInfo()->absoluteFilePath());
+    m_presentation->setSourceFile(sourceInfo()->absoluteFilePath());
 
     QXmlStreamReader *r = reader();
     if (r->readNextStartElement()) {
@@ -121,13 +105,14 @@ bool Q3DSUipParser::parse(const QString &filename)
 
     if (r->hasError()) {
         Q3DSUtils::showMessage(readerErrorString());
-        return false;
+        return nullptr;
     }
 
-    resolveReferences(m_presentation.scene());
+    resolveReferences(m_presentation->scene());
 
     qCDebug(lcUip, "%s loaded in %lld ms", qPrintable(filename), elapsedSinceSetSource());
-    return true;
+
+    return m_presentation.take();
 }
 
 void Q3DSUipParser::parseUIP()
@@ -181,27 +166,27 @@ void Q3DSUipParser::parseProjectSettings()
     QXmlStreamReader *r = reader();
     for (const QXmlStreamAttribute &attr : r->attributes()) {
         if (attr.name() == QStringLiteral("author")) {
-            m_presentation.setAuthor(attr.value().toString());
+            m_presentation->setAuthor(attr.value().toString());
         } else if (attr.name() == QStringLiteral("company")) {
-            m_presentation.setCompany(attr.value().toString());
+            m_presentation->setCompany(attr.value().toString());
         } else if (attr.name() == QStringLiteral("presentationWidth")) {
             int w;
             if (Q3DS::convertToInt(attr.value(), &w, "presentation width", r))
-                m_presentation.setPresentationWidth(w);
+                m_presentation->setPresentationWidth(w);
         } else if (attr.name() == QStringLiteral("presentationHeight")) {
             int h;
             if (Q3DS::convertToInt(attr.value(), &h, "presentation height", r))
-                m_presentation.setPresentationHeight(h);
+                m_presentation->setPresentationHeight(h);
         } else if (attr.name() == QStringLiteral("presentationRotation")) {
             Q3DSPresentation::Rotation v;
             if (Q3DSEnumMap::enumFromStr(attr.value(), &v))
-                m_presentation.setPresentationRotation(v);
+                m_presentation->setPresentationRotation(v);
             else
                 r->raiseError(QObject::tr("Invalid presentation rotation \"%1\"").arg(attr.value().toString()));
         } else if (attr.name() == QStringLiteral("maintainAspect")) {
             bool v;
             if (Q3DS::convertToBool(attr.value(), &v, "maintainAspect value", r))
-                m_presentation.setMaintainAspectRatio(v);
+                m_presentation->setMaintainAspectRatio(v);
         }
     }
     r->skipCurrentElement();
@@ -232,7 +217,7 @@ void Q3DSUipParser::parseCustomMaterial()
     QStringRef sourcePath = a.value(QStringLiteral("sourcepath"));
 
     const QString src = assetFileName(sourcePath.toString(), nullptr);
-    if (!m_presentation.loadCustomMaterial(id, name, src))
+    if (!m_presentation->loadCustomMaterial(id, name, src))
         r->raiseError(QObject::tr("Failed to parse custom material %1").arg(src));
 
     r->skipCurrentElement();
@@ -248,7 +233,7 @@ void Q3DSUipParser::parseEffect()
     QStringRef sourcePath = a.value(QStringLiteral("sourcepath"));
 
     const QString src = assetFileName(sourcePath.toString(), nullptr);
-    if (!m_presentation.loadEffect(id, name, src))
+    if (!m_presentation->loadEffect(id, name, src))
         r->raiseError(QObject::tr("Failed to parse effect %1").arg(src));
 
     r->skipCurrentElement();
@@ -273,7 +258,7 @@ void Q3DSUipParser::parseImageBuffer()
     const QStringRef &hasTransparency = a.value(QStringLiteral("hasTransparency"));
 
     if (!sourcePath.isEmpty() && !hasTransparency.isEmpty())
-        m_presentation.registerImageBuffer(sourcePath.toString(), hasTransparency.compare(QStringLiteral("True")) == 0);
+        m_presentation->registerImageBuffer(sourcePath.toString(), hasTransparency.compare(QStringLiteral("True")) == 0);
 
     r->skipCurrentElement();
 }
@@ -298,19 +283,18 @@ void Q3DSUipParser::parseGraph()
 void Q3DSUipParser::parseScene()
 {
     QXmlStreamReader *r = reader();
-    Q_ASSERT(!m_scene);
     QByteArray id = getId(r->name());
     if (id.isEmpty())
         return;
 
-    m_scene = new Q3DSScene;
-    m_scene->setProperties(r->attributes(), Q3DSGraphObject::PropSetDefaults);
-    m_presentation.registerObject(id, m_scene);
-    m_presentation.setScene(m_scene);
+    auto scene = new Q3DSScene;
+    scene->setProperties(r->attributes(), Q3DSGraphObject::PropSetDefaults);
+    m_presentation->registerObject(id, scene);
+    m_presentation->setScene(scene);
 
     while (r->readNextStartElement()) {
         if (r->name() == QStringLiteral("Layer"))
-            parseObjects(m_scene);
+            parseObjects(scene);
         else
             r->raiseError(QObject::tr("Scene can only have Layer children."));
     }
@@ -357,7 +341,7 @@ void Q3DSUipParser::parseObjects(Q3DSGraphObject *parent)
     }
 
     obj->setProperties(r->attributes(), Q3DSGraphObject::PropSetDefaults);
-    m_presentation.registerObject(id, obj);
+    m_presentation->registerObject(id, obj);
     parent->appendChildNode(obj);
 
     while (r->readNextStartElement())
@@ -375,7 +359,7 @@ void Q3DSUipParser::parseLogic()
                 r->raiseError(QObject::tr("Invalid ref '%1' in State").arg(compRef.toString()));
                 return;
             }
-            Q3DSGraphObject *slideTarget = m_presentation.object(compRef.mid(1).toUtf8());
+            Q3DSGraphObject *slideTarget = m_presentation->object(compRef.mid(1).toUtf8());
             if (!slideTarget) {
                 r->raiseError(QObject::tr("State references unknown object '%1'").arg(compRef.mid(1).toString()));
                 return;
@@ -383,10 +367,9 @@ void Q3DSUipParser::parseLogic()
             const QByteArray idPrefix = compRef.mid(1).toUtf8();
             if (slideTarget->type() == Q3DSGraphObject::Scene) {
                 if (++masterCount == 1) {
-                    Q_ASSERT(!m_masterSlide);
-                    m_masterSlide = parseSlide(nullptr, idPrefix);
-                    Q_ASSERT(m_masterSlide);
-                    m_presentation.setMasterSlide(m_masterSlide); // keep ownership
+                    auto masterSlide = parseSlide(nullptr, idPrefix);
+                    Q_ASSERT(masterSlide);
+                    m_presentation->setMasterSlide(masterSlide);
                 } else {
                     r->raiseError(QObject::tr("Multiple State (master slide) elements found."));
                 }
@@ -416,7 +399,7 @@ Q3DSSlide *Q3DSUipParser::parseSlide(Q3DSSlide *parent, const QByteArray &idPref
 
     Q3DSSlide *slide = new Q3DSSlide;
     slide->setProperties(r->attributes(), Q3DSGraphObject::PropSetDefaults);
-    m_presentation.registerObject(id, slide);
+    m_presentation->registerObject(id, slide);
     if (parent)
         parent->appendChildNode(slide);
 
@@ -447,7 +430,7 @@ void Q3DSUipParser::parseAddSet(Q3DSSlide *slide, bool isSet, bool isMaster)
         return;
     }
 
-    Q3DSGraphObject *obj = m_presentation.object(ref.mid(1).toUtf8());
+    Q3DSGraphObject *obj = m_presentation->object(ref.mid(1).toUtf8());
     if (!obj) {
         r->raiseError(QObject::tr("Add/Set references unknown object '%1'").arg(ref.mid(1).toString()));
         return;
@@ -589,7 +572,7 @@ void Q3DSUipParser::resolveReferences(Q3DSGraphObject *obj)
     if (!obj)
         return;
 
-    obj->resolveReferences(m_presentation, *this);
+    obj->resolveReferences(*m_presentation, *this);
 
     for (int i = 0, ie = obj->childCount(); i != ie; ++i)
         resolveReferences(obj->childAtIndex(i));

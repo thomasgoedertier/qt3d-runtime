@@ -21,7 +21,8 @@ SOURCES += \
     q3dsdefaultmaterialgenerator.cpp \
     q3dstextrenderer.cpp \
     q3dstextmaterialgenerator.cpp \
-    q3dswindow.cpp
+    q3dswindow.cpp \
+    q3dsuipdocument.cpp
 
 HEADERS += \
     q3dsuipparser.h \
@@ -43,7 +44,8 @@ HEADERS += \
     q3dstextrenderer.h \
     q3dstextmaterialgenerator.h \
     q3dsgraphicslimits.h \
-    q3dswindow.h
+    q3dswindow.h \
+    q3dsuipdocument.h
 
 RESOURCES += \
     q3dsres.qrc
