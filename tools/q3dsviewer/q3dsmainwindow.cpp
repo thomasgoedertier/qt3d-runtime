@@ -68,7 +68,7 @@ Q3DStudioSlideWindow::Q3DStudioSlideWindow(Q3DStudioWindow *view, bool component
         Q3DSGraphObject *slide = pres->masterSlide()->firstChild();
         while (slide) {
             slideSel->addItem(QString::fromUtf8(slide->id()));
-            if (view->sceneBuilder()->currentSlide() == static_cast<Q3DSSlide *>(slide))
+            if (view->sceneManager()->currentSlide() == static_cast<Q3DSSlide *>(slide))
                 slideSel->setCurrentIndex(slideSel->count() - 1);
             slide = slide->nextSibling();
         }
@@ -209,7 +209,7 @@ Q3DStudioMainWindow::Q3DStudioMainWindow(Q3DStudioWindow *view, QWidget *parent)
     pauseAnims->setCheckable(true);
     pauseAnims->setChecked(false);
     connect(pauseAnims, &QAction::toggled, [=]() {
-        Q3DSSceneBuilder *sb = view->sceneBuilder();
+        Q3DSSceneManager *sb = view->sceneManager();
         Q3DSSlide *slide = sb->currentSlide();
         if (slide) {
             sb->setAnimationsRunning(sb->masterSlide(), !pauseAnims->isChecked());
@@ -229,7 +229,7 @@ Q3DStudioMainWindow::Q3DStudioMainWindow(Q3DStudioWindow *view, QWidget *parent)
     depthTexAction->setChecked(false);
     connect(depthTexAction, &QAction::toggled, [=]() {
         Q3DSPresentation::forAllLayers(view->uip()->presentation()->scene(), [=](Q3DSLayerNode *layer3DS) {
-            view->sceneBuilder()->setDepthTextureEnabled(layer3DS, depthTexAction->isChecked());
+            view->sceneManager()->setDepthTextureEnabled(layer3DS, depthTexAction->isChecked());
         });
     });
     QAction *ssaoTexAction = debugMenu->addAction(tr("&Force SSAO texture"));
@@ -237,7 +237,7 @@ Q3DStudioMainWindow::Q3DStudioMainWindow(Q3DStudioWindow *view, QWidget *parent)
     ssaoTexAction->setChecked(false);
     connect(ssaoTexAction, &QAction::toggled, [=]() {
         Q3DSPresentation::forAllLayers(view->uip()->presentation()->scene(), [=](Q3DSLayerNode *layer3DS) {
-            view->sceneBuilder()->setSsaoTextureEnabled(layer3DS, ssaoTexAction->isChecked());
+            view->sceneManager()->setSsaoTextureEnabled(layer3DS, ssaoTexAction->isChecked());
         });
     });
 

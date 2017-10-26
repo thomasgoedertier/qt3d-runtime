@@ -16,13 +16,13 @@ SOURCES += \
     q3dseffect.cpp \
     q3dsdatamodelparser.cpp \
     q3dsgraphexplorer.cpp \
-    q3dsscenebuilder.cpp \
     q3dsanimationbuilder.cpp \
     q3dsdefaultmaterialgenerator.cpp \
     q3dstextrenderer.cpp \
     q3dstextmaterialgenerator.cpp \
     q3dswindow.cpp \
-    q3dsuipdocument.cpp
+    q3dsuipdocument.cpp \
+    q3dsscenemanager.cpp
 
 HEADERS += \
     q3dsuipparser.h \
@@ -38,14 +38,14 @@ HEADERS += \
     q3dsdatamodelparser.h \
     q3dsgraphexplorer.h \
     q3dspresentationcommon.h \
-    q3dsscenebuilder.h \
     q3dsanimationbuilder.h \
     q3dsdefaultmaterialgenerator.h \
     q3dstextrenderer.h \
     q3dstextmaterialgenerator.h \
     q3dsgraphicslimits.h \
     q3dswindow.h \
-    q3dsuipdocument.h
+    q3dsuipdocument.h \
+    q3dsscenemanager.h
 
 RESOURCES += \
     q3dsres.qrc

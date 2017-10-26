@@ -326,7 +326,7 @@ public:
     QSet<Q3DSDefaultMaterial *> referencingMaterials;
 };
 
-class Q3DSV_EXPORT Q3DSSceneBuilder
+class Q3DSV_EXPORT Q3DSSceneManager
 {
 public:
     enum SceneBuilderFlag {
@@ -340,8 +340,8 @@ public:
         Qt3DInput::QInputSettings *inputSettings = nullptr;
     };
 
-    Q3DSSceneBuilder(const Q3DSGraphicsLimits &limits);
-    ~Q3DSSceneBuilder();
+    Q3DSSceneManager(const Q3DSGraphicsLimits &limits);
+    ~Q3DSSceneManager();
 
     void prepareSceneChange();
     Scene buildScene(Q3DSPresentation *presentation, QWindow *window, SceneBuilderFlags flags);
@@ -454,19 +454,19 @@ private:
     Qt3DRender::QLayer *m_fsQuadTag = nullptr;
 };
 
-Q_DECLARE_OPERATORS_FOR_FLAGS(Q3DSSceneBuilder::SceneBuilderFlags)
-Q_DECLARE_OPERATORS_FOR_FLAGS(Q3DSSceneBuilder::SetNodePropFlags)
-Q_DECLARE_OPERATORS_FOR_FLAGS(Q3DSSceneBuilder::UpdateGlobalFlags)
+Q_DECLARE_OPERATORS_FOR_FLAGS(Q3DSSceneManager::SceneBuilderFlags)
+Q_DECLARE_OPERATORS_FOR_FLAGS(Q3DSSceneManager::SetNodePropFlags)
+Q_DECLARE_OPERATORS_FOR_FLAGS(Q3DSSceneManager::UpdateGlobalFlags)
 
 class Q3DSFrameUpdater : public QObject
 {
 public:
-    Q3DSFrameUpdater(Q3DSSceneBuilder *builder) : m_sceneBuilder(builder) { }
+    Q3DSFrameUpdater(Q3DSSceneManager *manager) : m_sceneManager(manager) { }
 
     void frameAction(float dt);
 
 private:
-    Q3DSSceneBuilder *m_sceneBuilder;
+    Q3DSSceneManager *m_sceneManager;
 };
 
 QT_END_NAMESPACE

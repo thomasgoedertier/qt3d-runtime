@@ -52,7 +52,7 @@ Qt3DRender::QMaterial *Q3DSTextMaterialGenerator::generateMaterial(const QVector
     Qt3DRender::QMaterial *material = new Qt3DRender::QMaterial;
     Qt3DRender::QEffect *effect = new Qt3DRender::QEffect;
     Qt3DRender::QTechnique *technique = new Qt3DRender::QTechnique;
-    Q3DSSceneBuilder::markAsMainTechnique(technique);
+    Q3DSSceneManager::markAsMainTechnique(technique);
 
     bool isGLES = false;
     Q3DSDefaultMaterialGenerator::addDefaultApiFilter(technique, &isGLES);

@@ -33,11 +33,11 @@
 #include <QWindow>
 #include <Qt3DCore/QAspectEngine>
 #include <Qt3DStudioRuntime2/Q3DSUipDocument>
-#include <Qt3DStudioRuntime2/q3dsscenebuilder.h>
+#include <Qt3DStudioRuntime2/q3dsscenemanager.h>
 
 QT_BEGIN_NAMESPACE
 
-class Q3DSSceneBuilder;
+class Q3DSSceneManager;
 
 class Q3DSV_EXPORT Q3DStudioWindow : public QWindow
 {
@@ -56,7 +56,7 @@ public:
     static void initStaticPostApp(InitFlags flags);
 
     Q3DSUipDocument *uip() { return &m_uipDocument; }
-    Q3DSSceneBuilder *sceneBuilder() { return &m_sceneBuilder; }
+    Q3DSSceneManager *sceneManager() { return &m_sceneManager; }
 
     void setOnDemandRendering(bool enabled);
 
@@ -69,8 +69,8 @@ private:
 
     QString m_uipFileName;
     Q3DSUipDocument m_uipDocument;
-    Q3DSSceneBuilder m_sceneBuilder;
-    Q3DSSceneBuilder::Scene m_q3dscene;
+    Q3DSSceneManager m_sceneManager;
+    Q3DSSceneManager::Scene m_q3dscene;
 
     QScopedPointer<Qt3DCore::QAspectEngine> m_aspectEngine;
 };

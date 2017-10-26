@@ -59,7 +59,7 @@ static Q3DSGraphicsLimits gfxLimits;
 static Q3DStudioWindow::InitFlags initFlags;
 
 Q3DStudioWindow::Q3DStudioWindow()
-    : m_sceneBuilder(gfxLimits) // gfxLimits was initialized from initStaticPostApp()
+    : m_sceneManager(gfxLimits) // gfxLimits was initialized from initStaticPostApp()
 {
     setSurfaceType(QSurface::OpenGLSurface);
     createAspectEngine();
@@ -180,20 +180,20 @@ void Q3DStudioWindow::createAspectEngine()
 bool Q3DStudioWindow::setUipSource(const QString &filename)
 {
     if (m_q3dscene.rootEntity) {
-        m_sceneBuilder.prepareSceneChange();
+        m_sceneManager.prepareSceneChange();
         Qt3DCore::QAspectEnginePrivate::get(m_aspectEngine.data())->exitSimulationLoop();
         createAspectEngine();
-        m_q3dscene = Q3DSSceneBuilder::Scene();
+        m_q3dscene = Q3DSSceneManager::Scene();
     }
 
     m_uipFileName = filename;
     if (m_uipDocument.loadUip(m_uipFileName)) {
         auto pres = m_uipDocument.presentation();
         // Presentation is ready. Build the Qt3D scene. This will also activate the first sub-slide.
-        Q3DSSceneBuilder::SceneBuilderFlags flags = 0;
+        Q3DSSceneManager::SceneBuilderFlags flags = 0;
         if (initFlags.testFlag(MSAA4x))
-            flags |= Q3DSSceneBuilder::LayerMSAA4x;
-        m_q3dscene = m_sceneBuilder.buildScene(pres, this, flags);
+            flags |= Q3DSSceneManager::LayerMSAA4x;
+        m_q3dscene = m_sceneManager.buildScene(pres, this, flags);
         if (m_q3dscene.rootEntity) {
             // Ready to go.
             QSize winSize(pres->presentationWidth(), pres->presentationHeight());
@@ -220,7 +220,7 @@ void Q3DStudioWindow::exposeEvent(QExposeEvent *)
 void Q3DStudioWindow::resizeEvent(QResizeEvent *)
 {
     if (m_q3dscene.rootEntity)
-        m_sceneBuilder.updateSizes(this);
+        m_sceneManager.updateSizes(this);
 }
 
 void Q3DStudioWindow::setOnDemandRendering(bool enabled)

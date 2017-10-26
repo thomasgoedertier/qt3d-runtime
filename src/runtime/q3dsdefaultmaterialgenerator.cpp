@@ -92,7 +92,7 @@ Qt3DRender::QMaterial *Q3DSDefaultMaterialGenerator::generateMaterial(Q3DSDefaul
     Qt3DRender::QMaterial *material = new Qt3DRender::QMaterial;
     Qt3DRender::QEffect *effect = new Qt3DRender::QEffect;
     Qt3DRender::QTechnique *technique = new Qt3DRender::QTechnique;
-    Q3DSSceneBuilder::markAsMainTechnique(technique);
+    Q3DSSceneManager::markAsMainTechnique(technique);
 
     Q3DSLayerAttached *layerData = static_cast<Q3DSLayerAttached *>(layer3DS->attached());
     Q_ASSERT(layerData);
@@ -109,7 +109,7 @@ Qt3DRender::QMaterial *Q3DSDefaultMaterialGenerator::generateMaterial(Q3DSDefaul
                                                                                                     lights,
                                                                                                     false,
                                                                                                     features);
-    for (Qt3DRender::QRenderPass *pass : Q3DSSceneBuilder::standardRenderPasses(shaderProgram,
+    for (Qt3DRender::QRenderPass *pass : Q3DSSceneManager::standardRenderPasses(shaderProgram,
                                                                                 layer3DS,
                                                                                 defaultMaterial->blendMode(),
                                                                                 defaultMaterial->displacementmap() != nullptr))
@@ -121,7 +121,7 @@ Qt3DRender::QMaterial *Q3DSDefaultMaterialGenerator::generateMaterial(Q3DSDefaul
     effect->addTechnique(technique);
 
     if (hasCompute()) {
-        for (Qt3DRender::QTechnique *computeTechnique : Q3DSSceneBuilder::computeTechniques())
+        for (Qt3DRender::QTechnique *computeTechnique : Q3DSSceneManager::computeTechniques())
             effect->addTechnique(computeTechnique);
     }
 

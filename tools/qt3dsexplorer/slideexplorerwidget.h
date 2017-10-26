@@ -35,7 +35,7 @@
 QT_BEGIN_NAMESPACE
 
 class Q3DSPresentation;
-class Q3DSSceneBuilder;
+class Q3DSSceneManager;
 class Q3DSComponentNode;
 class Q3DSSlide;
 class QListView;
@@ -46,8 +46,8 @@ class SlideExplorerWidget : public QWidget
 {
     Q_OBJECT
 public:
-    explicit SlideExplorerWidget(Q3DSPresentation *presentation, Q3DSSceneBuilder *sceneBuilder, QWidget *parent = nullptr);
-    explicit SlideExplorerWidget(Q3DSComponentNode *component, Q3DSSceneBuilder *sceneBuilder, QWidget *parent = nullptr);
+    explicit SlideExplorerWidget(Q3DSPresentation *presentation, Q3DSSceneManager *sceneBuilder, QWidget *parent = nullptr);
+    explicit SlideExplorerWidget(Q3DSComponentNode *component, Q3DSSceneManager *sceneBuilder, QWidget *parent = nullptr);
 
 private slots:
     void handleSelectionChanged(const QModelIndex &index);
@@ -60,7 +60,7 @@ private:
     void init();
     Q3DSComponentNode *m_component;
     Q3DSPresentation *m_presentation;
-    Q3DSSceneBuilder *m_sceneBuilder;
+    Q3DSSceneManager *m_sceneManager;
     Q3DSSlide *m_masterSlide;
     Q3DSSlide *m_currentSlide;
     QListView *m_slideListView;

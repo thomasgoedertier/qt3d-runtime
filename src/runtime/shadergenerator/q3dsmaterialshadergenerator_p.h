@@ -43,7 +43,7 @@
 
 #include "q3dsshaderprogramgenerator_p.h"
 #include <Qt3DStudioRuntime2/q3dspresentation.h>
-#include <Qt3DStudioRuntime2/q3dsscenebuilder.h>
+#include <Qt3DStudioRuntime2/q3dsscenemanager.h>
 
 QT_BEGIN_NAMESPACE
 

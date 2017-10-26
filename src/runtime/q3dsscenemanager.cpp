@@ -27,7 +27,7 @@
 **
 ****************************************************************************/
 
-#include "q3dsscenebuilder.h"
+#include "q3dsscenemanager.h"
 #include "q3dsdefaultmaterialgenerator.h"
 #include "q3dstextmaterialgenerator.h"
 #include "q3dsanimationbuilder.h"
@@ -342,7 +342,7 @@ Q_LOGGING_CATEGORY(lcScene, "q3ds.scene")
 
 */
 
-Q3DSSceneBuilder::Q3DSSceneBuilder(const Q3DSGraphicsLimits &limits)
+Q3DSSceneManager::Q3DSSceneManager(const Q3DSGraphicsLimits &limits)
     : m_gfxLimits(limits),
       m_matGen(new Q3DSDefaultMaterialGenerator),
       m_textMatGen(new Q3DSTextMaterialGenerator),
@@ -353,7 +353,7 @@ Q3DSSceneBuilder::Q3DSSceneBuilder(const Q3DSGraphicsLimits &limits)
     m_textRenderer->registerFonts({ fontDir });
 }
 
-Q3DSSceneBuilder::~Q3DSSceneBuilder()
+Q3DSSceneManager::~Q3DSSceneManager()
 {
     delete m_textRenderer;
     delete m_animBuilder;
@@ -362,7 +362,7 @@ Q3DSSceneBuilder::~Q3DSSceneBuilder()
     delete m_frameUpdater;
 }
 
-void Q3DSSceneBuilder::updateSizes(QWindow *window)
+void Q3DSSceneManager::updateSizes(QWindow *window)
 {
     if (!m_scene)
         return;
@@ -373,7 +373,7 @@ void Q3DSSceneBuilder::updateSizes(QWindow *window)
         updateSizesForLayer(layer3DS, window->size() * window->devicePixelRatio()); });
 }
 
-void Q3DSSceneBuilder::setCurrentSlide(Q3DSSlide *newSlide)
+void Q3DSSceneManager::setCurrentSlide(Q3DSSlide *newSlide)
 {
     if (m_currentSlide == newSlide)
         return;
@@ -382,7 +382,7 @@ void Q3DSSceneBuilder::setCurrentSlide(Q3DSSlide *newSlide)
     m_currentSlide = newSlide;
 }
 
-void Q3DSSceneBuilder::prepareSceneChange()
+void Q3DSSceneManager::prepareSceneChange()
 {
     qCDebug(lcScene, "prepareSceneChange");
 
@@ -394,7 +394,7 @@ void Q3DSSceneBuilder::prepareSceneChange()
     Q3DSShaderManager::instance().invalidate();
 }
 
-Q3DSSceneBuilder::Scene Q3DSSceneBuilder::buildScene(Q3DSPresentation *presentation, QWindow *window, SceneBuilderFlags flags)
+Q3DSSceneManager::Scene Q3DSSceneManager::buildScene(Q3DSPresentation *presentation, QWindow *window, SceneBuilderFlags flags)
 {
     if (!presentation->scene()) {
         qWarning("Q3DSSceneBuilder: No scene?");
@@ -460,7 +460,7 @@ Q3DSSceneBuilder::Scene Q3DSSceneBuilder::buildScene(Q3DSPresentation *presentat
         Q3DSImageAttached *data = new Q3DSImageAttached;
         data->entity = m_rootEntity; // must set an entity to to make Q3DSImage properties animatable, just use the root
         image->setAttached(data);
-        image->addPropertyChangeObserver(std::bind(&Q3DSSceneBuilder::handlePropertyChange, this,
+        image->addPropertyChangeObserver(std::bind(&Q3DSSceneManager::handlePropertyChange, this,
                                                    std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
     });
 
@@ -558,7 +558,7 @@ static Qt3DRender::QSortPolicy *transparentPassSortPolicy(Qt3DCore::QNode *paren
     return sortPolicy;
 }
 
-Qt3DRender::QFrameGraphNode *Q3DSSceneBuilder::buildLayer(Q3DSLayerNode *layer3DS,
+Qt3DRender::QFrameGraphNode *Q3DSSceneManager::buildLayer(Q3DSLayerNode *layer3DS,
                                                           Qt3DRender::QFrameGraphNode *parent,
                                                           const QSize &parentSize)
 {
@@ -712,7 +712,7 @@ Qt3DRender::QFrameGraphNode *Q3DSSceneBuilder::buildLayer(Q3DSLayerNode *layer3D
     setLayerSizeProperties(layer3DS); // mostly no-op at this stage but just in case
     setLayerProperties(layer3DS);
 
-    layer3DS->addPropertyChangeObserver(std::bind(&Q3DSSceneBuilder::handlePropertyChange, this,
+    layer3DS->addPropertyChangeObserver(std::bind(&Q3DSSceneManager::handlePropertyChange, this,
                                                   std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
 
     // Now add the scene contents.
@@ -750,7 +750,7 @@ Qt3DRender::QFrameGraphNode *Q3DSSceneBuilder::buildLayer(Q3DSLayerNode *layer3D
     return rtSelector;
 }
 
-void Q3DSSceneBuilder::reparentCamera(Q3DSLayerNode *layer3DS)
+void Q3DSSceneManager::reparentCamera(Q3DSLayerNode *layer3DS)
 {
     // Insert the active QCamera into the hierarchy. This matters when the
     // Q3DSCameraNode is a child and so the QCamera' viewMatrix is expected to
@@ -824,7 +824,7 @@ static void setBlending(Qt3DRender::QBlendEquation *blendFunc,
     }
 }
 
-QVector<Qt3DRender::QRenderPass *> Q3DSSceneBuilder::standardRenderPasses(Qt3DRender::QShaderProgram *program,
+QVector<Qt3DRender::QRenderPass *> Q3DSSceneManager::standardRenderPasses(Qt3DRender::QShaderProgram *program,
                                                                           Q3DSLayerNode *layer3DS,
                                                                           Q3DSDefaultMaterial::BlendMode blendMode,
                                                                           bool hasDisplacement)
@@ -893,7 +893,7 @@ QVector<Qt3DRender::QRenderPass *> Q3DSSceneBuilder::standardRenderPasses(Qt3DRe
     return { shadowOrthoPass, shadowCubePass, depthPass, opaquePass, transPass };
 }
 
-QVector<Qt3DRender::QTechnique *> Q3DSSceneBuilder::computeTechniques()
+QVector<Qt3DRender::QTechnique *> Q3DSSceneManager::computeTechniques()
 {
     Qt3DRender::QTechnique *bsdfPrefilter = new Qt3DRender::QTechnique;
 
@@ -911,7 +911,7 @@ QVector<Qt3DRender::QTechnique *> Q3DSSceneBuilder::computeTechniques()
     return { bsdfPrefilter };
 }
 
-void Q3DSSceneBuilder::markAsMainTechnique(Qt3DRender::QTechnique *technique)
+void Q3DSSceneManager::markAsMainTechnique(Qt3DRender::QTechnique *technique)
 {
     Qt3DRender::QFilterKey *techniqueFilterKey = new Qt3DRender::QFilterKey;
     techniqueFilterKey->setName(QLatin1String("type"));
@@ -919,19 +919,19 @@ void Q3DSSceneBuilder::markAsMainTechnique(Qt3DRender::QTechnique *technique)
     technique->addFilterKey(techniqueFilterKey);
 }
 
-QSize Q3DSSceneBuilder::calculateLayerSize(Q3DSLayerNode *layer3DS, const QSize &parentSize)
+QSize Q3DSSceneManager::calculateLayerSize(Q3DSLayerNode *layer3DS, const QSize &parentSize)
 {
     return QSize(qRound(layer3DS->widthUnits() == Q3DSLayerNode::Percent ? layer3DS->width() * 0.01f * parentSize.width() : layer3DS->width()),
                  qRound(layer3DS->heightUnits() == Q3DSLayerNode::Percent ? layer3DS->height() * 0.01f * parentSize.height() : layer3DS->height()));
 }
 
-QPointF Q3DSSceneBuilder::calculateLayerPos(Q3DSLayerNode *layer3DS, const QSize &parentSize)
+QPointF Q3DSSceneManager::calculateLayerPos(Q3DSLayerNode *layer3DS, const QSize &parentSize)
 {
     return QPointF(layer3DS->leftUnits() == Q3DSLayerNode::Percent ? layer3DS->left() * 0.01f * parentSize.width() : layer3DS->left(),
                    layer3DS->topUnits() == Q3DSLayerNode::Percent ? layer3DS->top() * 0.01f * parentSize.height() : layer3DS->top());
 }
 
-void Q3DSSceneBuilder::updateSizesForLayer(Q3DSLayerNode *layer3DS, const QSize &newParentSize)
+void Q3DSSceneManager::updateSizesForLayer(Q3DSLayerNode *layer3DS, const QSize &newParentSize)
 {
     if (newParentSize.isEmpty())
         return;
@@ -961,7 +961,7 @@ static bool isVerticalAdjust(Q3DSCameraNode *cam3DS, float presentationAspect, f
             || cam3DS->scaleMode() == Q3DSCameraNode::FitVertical;
 }
 
-void Q3DSSceneBuilder::setLayerCameraSizeProperties(Q3DSLayerNode *layer3DS)
+void Q3DSSceneManager::setLayerCameraSizeProperties(Q3DSLayerNode *layer3DS)
 {
     Q3DSLayerAttached *data = static_cast<Q3DSLayerAttached *>(layer3DS->attached());
     if (!data->cam3DS)
@@ -1007,7 +1007,7 @@ void Q3DSSceneBuilder::setLayerCameraSizeProperties(Q3DSLayerNode *layer3DS)
     }
 }
 
-void Q3DSSceneBuilder::setLayerSizeProperties(Q3DSLayerNode *layer3DS)
+void Q3DSSceneManager::setLayerSizeProperties(Q3DSLayerNode *layer3DS)
 {
     Q3DSLayerAttached *data = static_cast<Q3DSLayerAttached *>(layer3DS->attached());
     for (const Q3DSLayerAttached::SizeManagedTexture &t : data->sizeManagedTextures) {
@@ -1036,7 +1036,7 @@ static void setClearColorForClearBuffers(Qt3DRender::QClearBuffers *clearBuffers
 }
 
 // non-size-dependent properties
-void Q3DSSceneBuilder::setLayerProperties(Q3DSLayerNode *layer3DS)
+void Q3DSSceneManager::setLayerProperties(Q3DSLayerNode *layer3DS)
 {
     Q3DSLayerAttached *data = static_cast<Q3DSLayerAttached *>(layer3DS->attached());
     Q_ASSERT(data);
@@ -1047,7 +1047,7 @@ void Q3DSSceneBuilder::setLayerProperties(Q3DSLayerNode *layer3DS)
         data->compositorEntity->setEnabled(layer3DS->flags().testFlag(Q3DSNode::Active));
 }
 
-Q3DSCameraNode *Q3DSSceneBuilder::chooseLayerCamera(Q3DSLayerNode *layer3DS, Qt3DRender::QCamera **camera)
+Q3DSCameraNode *Q3DSSceneManager::chooseLayerCamera(Q3DSLayerNode *layer3DS, Qt3DRender::QCamera **camera)
 {
     Q3DSCameraNode *cam3DS = findFirstCamera(layer3DS);
     qCDebug(lcScene, "Layer %s uses camera %s", layer3DS->id().constData(), cam3DS ? cam3DS->id().constData() : "null");
@@ -1055,7 +1055,7 @@ Q3DSCameraNode *Q3DSSceneBuilder::chooseLayerCamera(Q3DSLayerNode *layer3DS, Qt3
     return cam3DS;
 }
 
-Qt3DRender::QCamera *Q3DSSceneBuilder::buildLayerCamera(Q3DSLayerNode *layer3DS, Q3DSCameraNode *camNode)
+Qt3DRender::QCamera *Q3DSSceneManager::buildLayerCamera(Q3DSLayerNode *layer3DS, Q3DSCameraNode *camNode)
 {
     Qt3DRender::QCamera *camera = new Qt3DRender::QCamera;
     // do not set aspect ratio yet
@@ -1069,7 +1069,7 @@ Qt3DRender::QCamera *Q3DSSceneBuilder::buildLayerCamera(Q3DSLayerNode *layer3DS,
         // make sure data->entity, globalTransform, etc. are usable
         setNodeProperties(camNode, camera, data->transform, NodePropUpdateAttached);
         setCameraProperties(camNode, Q3DSPropertyChangeList::ALL_CHANGE_FLAGS);
-        camNode->addPropertyChangeObserver(std::bind(&Q3DSSceneBuilder::handlePropertyChange, this,
+        camNode->addPropertyChangeObserver(std::bind(&Q3DSSceneManager::handlePropertyChange, this,
                                                      std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
     } else {
         camera->setProjectionType(Qt3DRender::QCameraLens::PerspectiveProjection);
@@ -1114,7 +1114,7 @@ static void adjustRotationLeftToRight(QMatrix4x4 *m)
     p[8 + 1] *= -1;
 }
 
-void Q3DSSceneBuilder::setCameraProperties(Q3DSCameraNode *camNode, int changeFlags)
+void Q3DSSceneManager::setCameraProperties(Q3DSCameraNode *camNode, int changeFlags)
 {
     Q3DSCameraAttached *data = static_cast<Q3DSCameraAttached *>(camNode->attached());
     Q_ASSERT(data);
@@ -1173,7 +1173,7 @@ static void prepareSizeDependentTexture(Qt3DRender::QAbstractTexture *texture,
     data->sizeManagedTextures << Q3DSLayerAttached::SizeManagedTexture(texture, callback);
 }
 
-void Q3DSSceneBuilder::setDepthTextureEnabled(Q3DSLayerNode *layer3DS, bool enabled)
+void Q3DSSceneManager::setDepthTextureEnabled(Q3DSLayerNode *layer3DS, bool enabled)
 {
     Q3DSLayerAttached *data = static_cast<Q3DSLayerAttached *>(layer3DS->attached());
     Q_ASSERT(data);
@@ -1227,7 +1227,7 @@ void Q3DSSceneBuilder::setDepthTextureEnabled(Q3DSLayerNode *layer3DS, bool enab
     }
 }
 
-void Q3DSSceneBuilder::setSsaoTextureEnabled(Q3DSLayerNode *layer3DS, bool enabled)
+void Q3DSSceneManager::setSsaoTextureEnabled(Q3DSLayerNode *layer3DS, bool enabled)
 {
     Q3DSLayerAttached *data = static_cast<Q3DSLayerAttached *>(layer3DS->attached());
     Q_ASSERT(data);
@@ -1248,7 +1248,7 @@ void Q3DSSceneBuilder::setSsaoTextureEnabled(Q3DSLayerNode *layer3DS, bool enabl
             // it's not just the texture that needs dynamic resizing, but values
             // derived from the size have to be recalculated as well, hence the callback.
             prepareSizeDependentTexture(ssaoTex, layer3DS,
-                                        std::bind(&Q3DSSceneBuilder::updateAoParameters, this, std::placeholders::_1));
+                                        std::bind(&Q3DSSceneManager::updateAoParameters, this, std::placeholders::_1));
             data->ssaoTextureData.ssaoTexture = ssaoTex;
 
             Qt3DRender::QRenderTarget *rt = new Qt3DRender::QRenderTarget;
@@ -1300,7 +1300,7 @@ void Q3DSSceneBuilder::setSsaoTextureEnabled(Q3DSLayerNode *layer3DS, bool enabl
     }
 }
 
-void Q3DSSceneBuilder::updateAoParameters(Q3DSLayerNode *layer3DS)
+void Q3DSSceneManager::updateAoParameters(Q3DSLayerNode *layer3DS)
 {
     Q3DSLayerAttached *data = static_cast<Q3DSLayerAttached *>(layer3DS->attached());
     Q_ASSERT(data);
@@ -1346,7 +1346,7 @@ void Q3DSSceneBuilder::updateAoParameters(Q3DSLayerNode *layer3DS)
     data->ssaoTextureData.aoDataBuf->setData(buf);
 }
 
-void Q3DSSceneBuilder::updateSsaoStatus(Q3DSLayerNode *layer3DS)
+void Q3DSSceneManager::updateSsaoStatus(Q3DSLayerNode *layer3DS)
 {
     Q3DSLayerAttached *data = static_cast<Q3DSLayerAttached *>(layer3DS->attached());
     Q_ASSERT(data);
@@ -1363,7 +1363,7 @@ void Q3DSSceneBuilder::updateSsaoStatus(Q3DSLayerNode *layer3DS)
     setSsaoTextureEnabled(layer3DS, needsSsao);
 }
 
-void Q3DSSceneBuilder::updateShadowMapStatus(Q3DSLayerNode *layer3DS)
+void Q3DSSceneManager::updateShadowMapStatus(Q3DSLayerNode *layer3DS)
 {
     Q3DSLayerAttached *layerData = static_cast<Q3DSLayerAttached *>(layer3DS->attached());
     Q_ASSERT(layerData);
@@ -1812,7 +1812,7 @@ static void setBlending(Qt3DRender::QBlendEquation *blendFunc,
     }
 }
 
-Qt3DRender::QFrameGraphNode *Q3DSSceneBuilder::buildCompositor(Qt3DRender::QFrameGraphNode *parent,
+Qt3DRender::QFrameGraphNode *Q3DSSceneManager::buildCompositor(Qt3DRender::QFrameGraphNode *parent,
                                                                Qt3DCore::QEntity *parentEntity)
 {
     Qt3DRender::QCamera *camera = new Qt3DRender::QCamera;
@@ -1922,7 +1922,7 @@ Qt3DRender::QFrameGraphNode *Q3DSSceneBuilder::buildCompositor(Qt3DRender::QFram
     return layerFilter;
 }
 
-void Q3DSSceneBuilder::buildFsQuad(Qt3DCore::QEntity *parentEntity,
+void Q3DSSceneManager::buildFsQuad(Qt3DCore::QEntity *parentEntity,
                                    const QStringList &passNames,
                                    const QVector<Qt3DRender::QShaderProgram *> &passProgs,
                                    Qt3DRender::QLayer *tag)
@@ -1969,7 +1969,7 @@ void Q3DSSceneBuilder::buildFsQuad(Qt3DCore::QEntity *parentEntity,
     fsQuadEntity->addComponent(material);
 }
 
-void Q3DSSceneBuilder::buildLayerScene(Q3DSGraphObject *obj, Q3DSLayerNode *layer3DS, Qt3DCore::QEntity *parent)
+void Q3DSSceneManager::buildLayerScene(Q3DSGraphObject *obj, Q3DSLayerNode *layer3DS, Qt3DCore::QEntity *parent)
 {
     if (!obj)
         return;
@@ -1983,7 +1983,7 @@ void Q3DSSceneBuilder::buildLayerScene(Q3DSGraphObject *obj, Q3DSLayerNode *laye
     };
 
     if (!obj->isNode()) {
-        obj->addPropertyChangeObserver(std::bind(&Q3DSSceneBuilder::handlePropertyChange, this,
+        obj->addPropertyChangeObserver(std::bind(&Q3DSSceneManager::handlePropertyChange, this,
                                                  std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
         return;
     }
@@ -2037,7 +2037,7 @@ void Q3DSSceneBuilder::buildLayerScene(Q3DSGraphObject *obj, Q3DSLayerNode *laye
     }
 }
 
-Qt3DCore::QTransform *Q3DSSceneBuilder::initEntityForNode(Qt3DCore::QEntity *entity, Q3DSNode *node, Q3DSLayerNode *layer3DS)
+Qt3DCore::QTransform *Q3DSSceneManager::initEntityForNode(Qt3DCore::QEntity *entity, Q3DSNode *node, Q3DSLayerNode *layer3DS)
 {
     Qt3DCore::QTransform *transform = new Qt3DCore::QTransform;
     setNodeProperties(node, entity, transform, NodePropUpdateAttached);
@@ -2095,7 +2095,7 @@ QMatrix4x4 generateRotationMatrix(const QVector3D &nodeRotation, Q3DSNode::Rotat
 }
 }
 
-void Q3DSSceneBuilder::setNodeProperties(Q3DSNode *node, Qt3DCore::QEntity *entity,
+void Q3DSSceneManager::setNodeProperties(Q3DSNode *node, Qt3DCore::QEntity *entity,
                                          Qt3DCore::QTransform *transform, SetNodePropFlags flags)
 {
     Q3DSNodeAttached *data = static_cast<Q3DSNodeAttached *>(node->attached());
@@ -2145,7 +2145,7 @@ void Q3DSSceneBuilder::setNodeProperties(Q3DSNode *node, Qt3DCore::QEntity *enti
     updateGlobals(node, ugflags);
 }
 
-void Q3DSSceneBuilder::updateGlobals(Q3DSNode *node, UpdateGlobalFlags flags)
+void Q3DSSceneManager::updateGlobals(Q3DSNode *node, UpdateGlobalFlags flags)
 {
     Q3DSNodeAttached *data = static_cast<Q3DSNodeAttached *>(node->attached());
     if (!data)
@@ -2197,7 +2197,7 @@ void Q3DSSceneBuilder::updateGlobals(Q3DSNode *node, UpdateGlobalFlags flags)
     }
 }
 
-Qt3DCore::QEntity *Q3DSSceneBuilder::buildGroup(Q3DSGroupNode *group3DS, Q3DSLayerNode *layer3DS, Qt3DCore::QEntity *parent)
+Qt3DCore::QEntity *Q3DSSceneManager::buildGroup(Q3DSGroupNode *group3DS, Q3DSLayerNode *layer3DS, Qt3DCore::QEntity *parent)
 {
     Q3DSGroupAttached *data = new Q3DSGroupAttached;
     group3DS->setAttached(data);
@@ -2206,12 +2206,12 @@ Qt3DCore::QEntity *Q3DSSceneBuilder::buildGroup(Q3DSGroupNode *group3DS, Q3DSLay
     group->setObjectName(QObject::tr("group %1").arg(QString::fromUtf8(group3DS->id())));
     initEntityForNode(group, group3DS, layer3DS);
 
-    group3DS->addPropertyChangeObserver(std::bind(&Q3DSSceneBuilder::handlePropertyChange, this,
+    group3DS->addPropertyChangeObserver(std::bind(&Q3DSSceneManager::handlePropertyChange, this,
                                                   std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
     return group;
 }
 
-Qt3DCore::QEntity *Q3DSSceneBuilder::buildComponent(Q3DSComponentNode *comp3DS, Q3DSLayerNode *layer3DS, Qt3DCore::QEntity *parent)
+Qt3DCore::QEntity *Q3DSSceneManager::buildComponent(Q3DSComponentNode *comp3DS, Q3DSLayerNode *layer3DS, Qt3DCore::QEntity *parent)
 {
     Q3DSComponentAttached *data = new Q3DSComponentAttached;
     comp3DS->setAttached(data);
@@ -2220,7 +2220,7 @@ Qt3DCore::QEntity *Q3DSSceneBuilder::buildComponent(Q3DSComponentNode *comp3DS, 
     comp->setObjectName(QObject::tr("component %1").arg(QString::fromUtf8(comp3DS->id())));
     initEntityForNode(comp, comp3DS, layer3DS);
 
-    comp3DS->addPropertyChangeObserver(std::bind(&Q3DSSceneBuilder::handlePropertyChange, this,
+    comp3DS->addPropertyChangeObserver(std::bind(&Q3DSSceneManager::handlePropertyChange, this,
                                                  std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
     return comp;
 }
@@ -2244,7 +2244,7 @@ void Q3DSTextImage::paint(QPainter *painter)
     m_textRenderer->renderText(painter, m_text3DS);
 }
 
-Qt3DCore::QEntity *Q3DSSceneBuilder::buildText(Q3DSTextNode *text3DS, Q3DSLayerNode *layer3DS, Qt3DCore::QEntity *parent)
+Qt3DCore::QEntity *Q3DSSceneManager::buildText(Q3DSTextNode *text3DS, Q3DSLayerNode *layer3DS, Qt3DCore::QEntity *parent)
 {
     Q3DSTextAttached *data = new Q3DSTextAttached;
     text3DS->setAttached(data);
@@ -2253,7 +2253,7 @@ Qt3DCore::QEntity *Q3DSSceneBuilder::buildText(Q3DSTextNode *text3DS, Q3DSLayerN
     entity->setObjectName(QObject::tr("text %1").arg(QString::fromUtf8(text3DS->id())));
     initEntityForNode(entity, text3DS, layer3DS);
 
-    text3DS->addPropertyChangeObserver(std::bind(&Q3DSSceneBuilder::handlePropertyChange, this,
+    text3DS->addPropertyChangeObserver(std::bind(&Q3DSSceneManager::handlePropertyChange, this,
                                                  std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
 
     QSize sz = m_textRenderer->textImageSize(text3DS);
@@ -2289,7 +2289,7 @@ Qt3DCore::QEntity *Q3DSSceneBuilder::buildText(Q3DSTextNode *text3DS, Q3DSLayerN
     return entity;
 }
 
-void Q3DSSceneBuilder::updateText(Q3DSTextNode *text3DS, bool needsNewImage)
+void Q3DSSceneManager::updateText(Q3DSTextNode *text3DS, bool needsNewImage)
 {
     Q3DSTextAttached *data = static_cast<Q3DSTextAttached *>(text3DS->attached());
     Q_ASSERT(data);
@@ -2303,7 +2303,7 @@ void Q3DSSceneBuilder::updateText(Q3DSTextNode *text3DS, bool needsNewImage)
         data->textureImage->update();
 }
 
-Qt3DCore::QEntity *Q3DSSceneBuilder::buildLight(Q3DSLightNode *light3DS, Q3DSLayerNode *layer3DS, Qt3DCore::QEntity *parent)
+Qt3DCore::QEntity *Q3DSSceneManager::buildLight(Q3DSLightNode *light3DS, Q3DSLayerNode *layer3DS, Qt3DCore::QEntity *parent)
 {
     Q3DSLightAttached *data = new Q3DSLightAttached;
     light3DS->setAttached(data);
@@ -2314,7 +2314,7 @@ Qt3DCore::QEntity *Q3DSSceneBuilder::buildLight(Q3DSLightNode *light3DS, Q3DSLay
 
     setLightProperties(light3DS, true);
 
-    light3DS->addPropertyChangeObserver(std::bind(&Q3DSSceneBuilder::handlePropertyChange, this,
+    light3DS->addPropertyChangeObserver(std::bind(&Q3DSSceneManager::handlePropertyChange, this,
                                                   std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
     return entity;
 }
@@ -2324,7 +2324,7 @@ static inline QColor mulColor(const QColor &c, float f)
     return QColor::fromRgbF(c.redF() * f, c.greenF() * f, c.blueF() * f);
 }
 
-void Q3DSSceneBuilder::setLightProperties(Q3DSLightNode *light3DS, bool forceUpdate)
+void Q3DSSceneManager::setLightProperties(Q3DSLightNode *light3DS, bool forceUpdate)
 {
     // only parameter setup, the uniform buffer is handled separately elsewhere
 
@@ -2442,7 +2442,7 @@ void Q3DSSceneBuilder::setLightProperties(Q3DSLightNode *light3DS, bool forceUpd
     // ### scoped lights not supported yet
 }
 
-Qt3DCore::QEntity *Q3DSSceneBuilder::buildModel(Q3DSModelNode *model3DS, Q3DSLayerNode *layer3DS, Qt3DCore::QEntity *parent)
+Qt3DCore::QEntity *Q3DSSceneManager::buildModel(Q3DSModelNode *model3DS, Q3DSLayerNode *layer3DS, Qt3DCore::QEntity *parent)
 {
     Q3DSModelAttached *data = new Q3DSModelAttached;
     model3DS->setAttached(data);
@@ -2493,12 +2493,12 @@ Qt3DCore::QEntity *Q3DSSceneBuilder::buildModel(Q3DSModelNode *model3DS, Q3DSLay
     // update submesh entities wrt opaque vs transparent
     retagSubMeshes(model3DS);
 
-    model3DS->addPropertyChangeObserver(std::bind(&Q3DSSceneBuilder::handlePropertyChange, this,
+    model3DS->addPropertyChangeObserver(std::bind(&Q3DSSceneManager::handlePropertyChange, this,
                                                   std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
     return entity;
 }
 
-void Q3DSSceneBuilder::buildModelMaterial(Q3DSModelNode *model3DS)
+void Q3DSSceneManager::buildModelMaterial(Q3DSModelNode *model3DS)
 {
     // Scene building phase 2: all lights are known -> generate actual Qt3D materials
 
@@ -2595,7 +2595,7 @@ void Q3DSSceneBuilder::buildModelMaterial(Q3DSModelNode *model3DS)
     }
 }
 
-void Q3DSSceneBuilder::retagSubMeshes(Q3DSModelNode *model3DS)
+void Q3DSSceneManager::retagSubMeshes(Q3DSModelNode *model3DS)
 {
     Q3DSModelAttached *data = static_cast<Q3DSModelAttached *>(model3DS->attached());
     Q3DSLayerAttached *layerData = static_cast<Q3DSLayerAttached *>(data->layer3DS->attached());
@@ -2689,7 +2689,7 @@ static void updateTextureParameters(Q3DSTextureParameters &textureParameters, Q3
     textureParameters.rotations->setValue(rotations);
 }
 
-QVector<Qt3DRender::QParameter *> Q3DSSceneBuilder::prepareDefaultMaterial(Q3DSDefaultMaterial *m, Q3DSModelNode *model3DS)
+QVector<Qt3DRender::QParameter *> Q3DSSceneManager::prepareDefaultMaterial(Q3DSDefaultMaterial *m, Q3DSModelNode *model3DS)
 {
     QVector<Qt3DRender::QParameter *> params;
 
@@ -2833,7 +2833,7 @@ QVector<Qt3DRender::QParameter *> Q3DSSceneBuilder::prepareDefaultMaterial(Q3DSD
     return params;
 }
 
-void Q3DSSceneBuilder::updateDefaultMaterial(Q3DSDefaultMaterial *m)
+void Q3DSSceneManager::updateDefaultMaterial(Q3DSDefaultMaterial *m)
 {
     Q3DSDefaultMaterialAttached *data = static_cast<Q3DSDefaultMaterialAttached *>(m->attached());
     Q_ASSERT(data && data->diffuseParam);
@@ -2910,7 +2910,7 @@ void Q3DSSceneBuilder::updateDefaultMaterial(Q3DSDefaultMaterial *m)
         updateTextureParameters(data->translucencyMapParams, m->translucencyMap());
 }
 
-void Q3DSSceneBuilder::gatherLights(Q3DSGraphObject *root,
+void Q3DSSceneManager::gatherLights(Q3DSGraphObject *root,
                                     QVector<Q3DSLightSource> *allLights,
                                     QVector<Q3DSLightSource> *nonAreaLights,
                                     QVector<Q3DSLightSource> *areaLights,
@@ -2939,7 +2939,7 @@ void Q3DSSceneBuilder::gatherLights(Q3DSGraphObject *root,
     }
 }
 
-void Q3DSSceneBuilder::updateLightsBuffer(const QVector<Q3DSLightSource> &lights, Qt3DRender::QBuffer *uniformBuffer)
+void Q3DSSceneManager::updateLightsBuffer(const QVector<Q3DSLightSource> &lights, Qt3DRender::QBuffer *uniformBuffer)
 {
     if (!uniformBuffer) // no models in the layer -> no buffers -> handle gracefully
         return; // can also get here when no custom material-specific buffers exist for a given layer because it only uses default material, this is normal
@@ -2998,7 +2998,7 @@ void Q3DSSceneBuilder::updateLightsBuffer(const QVector<Q3DSLightSource> &lights
     uniformBuffer->setData(lightBufferData);
 }
 
-void Q3DSSceneBuilder::updateModel(Q3DSModelNode *model3DS)
+void Q3DSSceneManager::updateModel(Q3DSModelNode *model3DS)
 {
     Q3DSModelAttached *data = static_cast<Q3DSModelAttached *>(model3DS->attached());
     Q_ASSERT(data);
@@ -3027,7 +3027,7 @@ void Q3DSSceneBuilder::updateModel(Q3DSModelNode *model3DS)
 }
 
 // when entering a slide, or when animating a property
-void Q3DSSceneBuilder::handlePropertyChange(Q3DSGraphObject *obj, const QSet<QString> &keys, int changeFlags)
+void Q3DSSceneManager::handlePropertyChange(Q3DSGraphObject *obj, const QSet<QString> &keys, int changeFlags)
 {
     Q_UNUSED(keys);
     if (!obj->attached()) // Qt3D stuff not yet built for this object -> nothing to do
@@ -3136,7 +3136,7 @@ void Q3DSSceneBuilder::handlePropertyChange(Q3DSGraphObject *obj, const QSet<QSt
     // Note the lack of call to updateNode(). That happens in a QFrameAction once per frame.
 }
 
-void Q3DSSceneBuilder::updateSubTree(Q3DSGraphObject *obj)
+void Q3DSSceneManager::updateSubTree(Q3DSGraphObject *obj)
 {
     m_layersWithDirtyLights.clear();
 
@@ -3163,12 +3163,12 @@ void Q3DSSceneBuilder::updateSubTree(Q3DSGraphObject *obj)
     }
 }
 
-void Q3DSSceneBuilder::prepareNextFrame()
+void Q3DSSceneManager::prepareNextFrame()
 {
     updateSubTree(m_scene);
 }
 
-void Q3DSSceneBuilder::updateSubTreeRecursive(Q3DSGraphObject *obj)
+void Q3DSSceneManager::updateSubTreeRecursive(Q3DSGraphObject *obj)
 {
     if (obj->isNode()) {
         Q3DSNode *node = static_cast<Q3DSNode *>(obj);
@@ -3277,7 +3277,7 @@ void Q3DSSceneBuilder::updateSubTreeRecursive(Q3DSGraphObject *obj)
     }
 }
 
-void Q3DSSceneBuilder::updateNodeFromChangeFlags(Q3DSNode *node, Qt3DCore::QTransform *transform, int changeFlags)
+void Q3DSSceneManager::updateNodeFromChangeFlags(Q3DSNode *node, Qt3DCore::QTransform *transform, int changeFlags)
 {
     const Q3DSPropertyChangeList::Flags cf = Q3DSPropertyChangeList::Flags(changeFlags);
     if (cf.testFlag(Q3DSPropertyChangeList::NodeTransformChanges)
@@ -3308,7 +3308,7 @@ void Q3DSSceneBuilder::updateNodeFromChangeFlags(Q3DSNode *node, Qt3DCore::QTran
     }
 }
 
-void Q3DSSceneBuilder::setNodeVisibility(Q3DSNode *node, bool visible)
+void Q3DSSceneManager::setNodeVisibility(Q3DSNode *node, bool visible)
 {
     Q3DSNodeAttached *data = static_cast<Q3DSNodeAttached *>(node->attached());
     Q_ASSERT(data);
@@ -3346,7 +3346,7 @@ void Q3DSSceneBuilder::setNodeVisibility(Q3DSNode *node, bool visible)
 // is based on the Active flag (eyeball property) whereas the visibility
 // defined by the object belonging to the current (or master) slide comes on
 // top. The two get combined here.
-bool Q3DSSceneBuilder::scheduleNodeVisibilityUpdate(Q3DSGraphObject *obj, Q3DSComponentNode *component)
+bool Q3DSSceneManager::scheduleNodeVisibilityUpdate(Q3DSGraphObject *obj, Q3DSComponentNode *component)
 {
     if (obj->isNode() && obj->type() != Q3DSGraphObject::Camera) {
         Q3DSNode *node = static_cast<Q3DSNode *>(obj);
@@ -3367,14 +3367,14 @@ bool Q3DSSceneBuilder::scheduleNodeVisibilityUpdate(Q3DSGraphObject *obj, Q3DSCo
     return false;
 }
 
-void Q3DSSceneBuilder::updateAnimations(Q3DSSlide *animSourceSlide, Q3DSSlide *playModeSourceSlide)
+void Q3DSSceneManager::updateAnimations(Q3DSSlide *animSourceSlide, Q3DSSlide *playModeSourceSlide)
 {
     // Called when entering a slide. Go through the slide's animations and add
     // Animator components for the affected entities (after removing existing ones).
     m_animBuilder->updateAnimations(animSourceSlide, playModeSourceSlide);
 }
 
-void Q3DSSceneBuilder::setAnimationsRunning(Q3DSSlide *slide, bool running)
+void Q3DSSceneManager::setAnimationsRunning(Q3DSSlide *slide, bool running)
 {
     Q3DSSlideAttached *data = static_cast<Q3DSSlideAttached *>(slide->attached());
     for (Qt3DAnimation::QClipAnimator *animator : data->animators)
@@ -3390,10 +3390,10 @@ void Q3DSFrameUpdater::frameAction(float dt)
         ++frameCounter;
     }
     // Set and notify the value changes queued by animations.
-    m_sceneBuilder->animationBuilder()->applyChanges();
+    m_sceneManager->animationBuilder()->applyChanges();
     // Recursively check dirty flags and update inherited values, execute
     // pending visibility changes, update light cbuffers, etc.
-    m_sceneBuilder->prepareNextFrame();
+    m_sceneManager->prepareNextFrame();
 }
 
 QT_END_NAMESPACE

@@ -30,7 +30,7 @@
 #ifndef Q3DSTEXTMATERIALGENERATOR_H
 #define Q3DSTEXTMATERIALGENERATOR_H
 
-#include <Qt3DStudioRuntime2/q3dsscenebuilder.h>
+#include <Qt3DStudioRuntime2/q3dsscenemanager.h>
 
 QT_BEGIN_NAMESPACE
 

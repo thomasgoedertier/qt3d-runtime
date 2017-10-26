@@ -29,7 +29,7 @@
 
 #include "slideexplorerwidget.h"
 #include <Qt3DStudioRuntime2/q3dspresentation.h>
-#include <Qt3DStudioRuntime2/q3dsscenebuilder.h>
+#include <Qt3DStudioRuntime2/q3dsscenemanager.h>
 #include <QVBoxLayout>
 #include <QListView>
 #include <QPushButton>
@@ -120,23 +120,23 @@ private:
     Q3DSSlide *m_masterSlide;
 };
 
-SlideExplorerWidget::SlideExplorerWidget(Q3DSPresentation *presentation, Q3DSSceneBuilder *sceneBuilder, QWidget *parent)
+SlideExplorerWidget::SlideExplorerWidget(Q3DSPresentation *presentation, Q3DSSceneManager *sceneManager, QWidget *parent)
     : QWidget(parent)
     , m_component(nullptr)
     , m_presentation(presentation)
-    , m_sceneBuilder(sceneBuilder)
+    , m_sceneManager(sceneManager)
 {
     m_masterSlide = m_presentation->masterSlide();
-    m_currentSlide = m_sceneBuilder->currentSlide();
+    m_currentSlide = m_sceneManager->currentSlide();
     init();
     handleCurrentSlideChanged(m_currentSlide);
 }
 
-SlideExplorerWidget::SlideExplorerWidget(Q3DSComponentNode *component, Q3DSSceneBuilder *sceneBuilder, QWidget *parent)
+SlideExplorerWidget::SlideExplorerWidget(Q3DSComponentNode *component, Q3DSSceneManager *sceneManager, QWidget *parent)
     : QWidget(parent)
     , m_component(component)
     , m_presentation(nullptr)
-    , m_sceneBuilder(sceneBuilder)
+    , m_sceneManager(sceneManager)
 {
     m_masterSlide = m_component->masterSlide();
     m_currentSlide = m_component->currentSlide();
@@ -161,7 +161,7 @@ void SlideExplorerWidget::handleCurrentSlideChanged(Q3DSSlide *slide)
     m_slideSeekSlider->setValue(slide->startTime());
     m_slideSeekSlider->setMaximum(slide->endTime());
     if (m_presentation) {
-        m_sceneBuilder->setCurrentSlide(slide);
+        m_sceneManager->setCurrentSlide(slide);
     } else if (m_component) {
         m_component->setCurrentSlide(slide);
     }
@@ -195,7 +195,7 @@ void SlideExplorerWidget::playCurrentSlide()
         m_playSlideButton->setText("stop");
     }
     m_isSlidePlaying = !m_isSlidePlaying;
-    m_sceneBuilder->setAnimationsRunning(m_currentSlide, m_isSlidePlaying);
+    m_sceneManager->setAnimationsRunning(m_currentSlide, m_isSlidePlaying);
 }
 
 void SlideExplorerWidget::seekInCurrentSlide(int value)

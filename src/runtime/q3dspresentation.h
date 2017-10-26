@@ -52,7 +52,7 @@ class Q3DSUipParser;
 class Q3DSPresentation;
 struct Q3DSPresentationData;
 class Q3DSLayerNode;
-class Q3DSSceneBuilder;
+class Q3DSSceneManager;
 class QXmlStreamAttributes;
 
 namespace Qt3DCore {
@@ -256,7 +256,7 @@ private:
     Q3DSGraphObjectAttached *m_attached = nullptr;
 
     friend class Q3DSPresentation;
-    friend class Q3DSSceneBuilder;
+    friend class Q3DSSceneManager;
     friend class Q3DSAnimationBuilder;
 };
 
@@ -1017,7 +1017,7 @@ private:
     Q3DSSlide *m_currentSlide = nullptr;
 
     friend class Q3DSUipParser;
-    friend class Q3DSSceneBuilder;
+    friend class Q3DSSceneManager;
 };
 
 class Q3DSV_EXPORT Q3DSTextNode : public Q3DSNode

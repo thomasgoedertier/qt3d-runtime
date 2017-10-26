@@ -95,7 +95,7 @@ Q3DSExplorerMainWindow::Q3DSExplorerMainWindow(Q3DStudioWindow *view, QWidget *p
 
     // Add Dock Widgets
     auto slideDockWidget = new QDockWidget("Presentation Slide Explorer", this);
-    m_slideExplorer = new SlideExplorerWidget(m_view->uip()->presentation(), m_view->sceneBuilder(), slideDockWidget);
+    m_slideExplorer = new SlideExplorerWidget(m_view->uip()->presentation(), m_view->sceneManager(), slideDockWidget);
     slideDockWidget->setWidget(m_slideExplorer);
     this->addDockWidget(Qt::LeftDockWidgetArea, slideDockWidget);
 
