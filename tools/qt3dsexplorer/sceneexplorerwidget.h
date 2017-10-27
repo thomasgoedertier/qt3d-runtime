@@ -43,23 +43,20 @@ class SceneExplorerWidget : public QWidget
 {
     Q_OBJECT
 public:
-    explicit SceneExplorerWidget(Q3DSPresentation *presentation, QWidget *parent = nullptr);
+    explicit SceneExplorerWidget(QWidget *parent = nullptr);
 
-
-signals:
-
-public slots:
+    void setPresentation(Q3DSPresentation *presentation);
 
 private slots:
     void handleSelectionChanged(const QModelIndex &current, const QModelIndex &);
 private:
     void init();
-    Q3DSPresentation *m_presentation;
-    QTreeView *m_sceneTreeView;
-    QtTreePropertyBrowser *m_propertyBrowser;
-    QtVariantPropertyManager *m_variantManager;
-    QtVariantEditorFactory *m_variantFactory;
-    SceneTreeModel *m_sceneModel;
+    Q3DSPresentation *m_presentation = nullptr;
+    QTreeView *m_sceneTreeView = nullptr;
+    QtTreePropertyBrowser *m_propertyBrowser = nullptr;
+    QtVariantPropertyManager *m_variantManager = nullptr;
+    QtVariantEditorFactory *m_variantFactory = nullptr;
+    SceneTreeModel *m_sceneModel = nullptr;
 };
 
 QT_END_NAMESPACE

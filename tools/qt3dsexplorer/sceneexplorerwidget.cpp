@@ -41,7 +41,8 @@ QT_BEGIN_NAMESPACE
 class SceneTreeModel : public QAbstractItemModel
 {
 public:
-    SceneTreeModel(Q3DSGraphObject *root);
+    SceneTreeModel();
+    void setSceneRoot(Q3DSGraphObject *root);
 
     int columnCount(const QModelIndex &parent = QModelIndex()) const override;
     int rowCount(const QModelIndex &parent = QModelIndex()) const override;
@@ -54,12 +55,22 @@ public:
     QVariant data(const QModelIndex &index, int role) const override;
 
 private:
-    Q3DSGraphObject *m_root;
+    Q3DSGraphObject *m_root = nullptr;
 };
 
-SceneTreeModel::SceneTreeModel(Q3DSGraphObject *root)
-    : m_root(root)
+SceneTreeModel::SceneTreeModel()
 {
+}
+
+void SceneTreeModel::setSceneRoot(Q3DSGraphObject *root)
+{
+    if (m_root == root)
+        return;
+
+    //Update model
+    beginResetModel();
+    m_root = root;
+    endResetModel();
 }
 
 int SceneTreeModel::columnCount(const QModelIndex &) const
@@ -84,7 +95,6 @@ QVariant SceneTreeModel::headerData(int section, Qt::Orientation orientation, in
         switch (section) {
         case 0:
             return QLatin1String("Object");
-            break;
         default:
             break;
         }
@@ -95,6 +105,9 @@ QVariant SceneTreeModel::headerData(int section, Qt::Orientation orientation, in
 
 QModelIndex SceneTreeModel::index(int row, int column, const QModelIndex &parent) const
 {
+    if (!m_root)
+        return QModelIndex();
+
     if (!hasIndex(row, column, parent))
         return QModelIndex();
 
@@ -151,12 +164,18 @@ QVariant SceneTreeModel::data(const QModelIndex &index, int role) const
     return s;
 }
 
-SceneExplorerWidget::SceneExplorerWidget(Q3DSPresentation *presentation, QWidget *parent)
+SceneExplorerWidget::SceneExplorerWidget(QWidget *parent)
     : QWidget(parent)
-    , m_presentation(presentation)
 {
-    m_sceneModel = new SceneTreeModel(m_presentation->scene());
+    m_sceneModel = new SceneTreeModel();
     init();
+    m_sceneTreeView->expandAll();
+}
+
+void SceneExplorerWidget::setPresentation(Q3DSPresentation *presentation)
+{
+    m_presentation = presentation;
+    m_sceneModel->setSceneRoot(m_presentation->scene());
     m_sceneTreeView->expandAll();
 }
 

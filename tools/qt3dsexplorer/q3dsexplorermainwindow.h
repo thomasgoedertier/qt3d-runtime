@@ -37,6 +37,7 @@ QT_BEGIN_NAMESPACE
 class Q3DStudioWindow;
 class SlideExplorerWidget;
 class SceneExplorerWidget;
+class Q3DSPresentation;
 
 class Q3DSExplorerMainWindow : public QMainWindow
 {
@@ -44,6 +45,8 @@ class Q3DSExplorerMainWindow : public QMainWindow
 public:
     explicit Q3DSExplorerMainWindow(Q3DStudioWindow *view, QWidget *parent = 0);
     ~Q3DSExplorerMainWindow();
+
+    void updatePresentation();
 
 private:
     Q3DStudioWindow *m_view;

@@ -52,15 +52,30 @@ Q3DSExplorerMainWindow::Q3DSExplorerMainWindow(Q3DStudioWindow *view, QWidget *p
     QWidget *wrapper = QWidget::createWindowContainer(view);
     setCentralWidget(wrapper);
 
+    // Add Dock Widgets
+    auto slideDockWidget = new QDockWidget("Presentation Slide Explorer", this);
+    m_slideExplorer = new SlideExplorerWidget(m_view->sceneManager(), slideDockWidget);
+    slideDockWidget->setWidget(m_slideExplorer);
+    this->addDockWidget(Qt::LeftDockWidgetArea, slideDockWidget);
+
+    auto sceneExplorerDockWidget = new QDockWidget("Scene Explorer", this);
+    m_sceneExplorer = new SceneExplorerWidget(this);
+    sceneExplorerDockWidget->setWidget(m_sceneExplorer);
+    this->addDockWidget(Qt::RightDockWidgetArea, sceneExplorerDockWidget);
+
+
     QMenu *fileMenu = menuBar()->addMenu(tr("&File"));
     fileMenu->addAction(tr("&Open..."), this, [=] {
         QString fn = QFileDialog::getOpenFileName(this, tr("Open"), QString(),
                                                   tr("UIP Files (*.uip);;All Files (*)"));
-        if (!fn.isEmpty())
+        if (!fn.isEmpty()) {
             view->setUipSource(fn);
+            updatePresentation();
+        }
     }, QKeySequence::Open);
     fileMenu->addAction(tr("&Reload"), this, [=] {
         view->setUipSource(view->uipSource());
+        updatePresentation();
     }, QKeySequence::Refresh);
     fileMenu->addAction(tr("E&xit"), this, &QWidget::close);
 
@@ -92,23 +107,21 @@ Q3DSExplorerMainWindow::Q3DSExplorerMainWindow(Q3DStudioWindow *view, QWidget *p
     });
     helpMenu->addAction(tr("About &Qt"), qApp, &QApplication::aboutQt);
 
-
-    // Add Dock Widgets
-    auto slideDockWidget = new QDockWidget("Presentation Slide Explorer", this);
-    m_slideExplorer = new SlideExplorerWidget(m_view->uip()->presentation(), m_view->sceneManager(), slideDockWidget);
-    slideDockWidget->setWidget(m_slideExplorer);
-    this->addDockWidget(Qt::LeftDockWidgetArea, slideDockWidget);
-
-    auto sceneExplorerDockWidget = new QDockWidget("Scene Explorer", this);
-    m_sceneExplorer = new SceneExplorerWidget(m_view->uip()->presentation(), this);
-    sceneExplorerDockWidget->setWidget(m_sceneExplorer);
-    this->addDockWidget(Qt::RightDockWidgetArea, sceneExplorerDockWidget);
-
     // The view already has a desired size at this point, take it into account.
     // This won't be fully correct, use View->Force design size to get the real thing.
     resize(designSize + QSize(slideDockWidget->width() + sceneExplorerDockWidget->width(), menuBar()->height()));
+    updatePresentation();
 }
 
 Q3DSExplorerMainWindow::~Q3DSExplorerMainWindow()
 {
+}
+
+void Q3DSExplorerMainWindow::updatePresentation()
+{
+    auto pres = m_view->uip()->presentation();
+    if (pres) {
+        m_sceneExplorer->setPresentation(pres);
+        m_slideExplorer->setPresentation(pres);
+    }
 }

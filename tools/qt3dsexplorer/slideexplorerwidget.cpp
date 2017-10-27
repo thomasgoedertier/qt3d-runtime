@@ -41,14 +41,18 @@ QT_BEGIN_NAMESPACE
 class SlideListModel : public QAbstractListModel
 {
 public:
-    SlideListModel(Q3DSSlide *masterSlide)
-        : m_masterSlide(masterSlide)
+    void setMasterSlide(Q3DSSlide *slide)
     {
-
+        beginResetModel();
+        m_masterSlide = slide;
+        endResetModel();
     }
+
     int rowCount(const QModelIndex &parent) const override
     {
         Q_UNUSED(parent)
+        if (!m_masterSlide)
+            return 0;
         return m_masterSlide->childCount();
     }
 
@@ -68,6 +72,9 @@ public:
 
     QModelIndex index(int row, int column, const QModelIndex &parent) const override
     {
+        if (!m_masterSlide)
+            return QModelIndex();
+
         if (!hasIndex(row, column, parent))
             return QModelIndex();
 
@@ -79,6 +86,9 @@ public:
 
     QModelIndex getSlideIndex(Q3DSSlide *slide)
     {
+        if (!m_masterSlide)
+            return QModelIndex();
+
         for (int i = 0; i < m_masterSlide->childCount(); ++i) {
             auto checkSlide = m_masterSlide->childAtIndex(i);
             if ( checkSlide == slide)
@@ -89,6 +99,9 @@ public:
     }
 
     Q3DSSlide* getNextSlide(Q3DSSlide *slide) {
+        if (!m_masterSlide)
+            return nullptr;
+
         for (int i = 0; i < m_masterSlide->childCount(); ++i) {
             auto checkSlide = m_masterSlide->childAtIndex(i);
             if ( checkSlide == slide) {
@@ -103,6 +116,9 @@ public:
     }
 
     Q3DSSlide* getPrevSlide(Q3DSSlide *slide) {
+        if (!m_masterSlide)
+            return nullptr;
+
         for (int i = 0; i < m_masterSlide->childCount(); ++i) {
             auto checkSlide = m_masterSlide->childAtIndex(i);
             if ( checkSlide == slide) {
@@ -117,30 +133,33 @@ public:
     }
 
 private:
-    Q3DSSlide *m_masterSlide;
+    Q3DSSlide *m_masterSlide = nullptr;
 };
 
-SlideExplorerWidget::SlideExplorerWidget(Q3DSPresentation *presentation, Q3DSSceneManager *sceneManager, QWidget *parent)
+SlideExplorerWidget::SlideExplorerWidget(Q3DSSceneManager *sceneManager, QWidget *parent)
     : QWidget(parent)
-    , m_component(nullptr)
-    , m_presentation(presentation)
     , m_sceneManager(sceneManager)
 {
+    init();
+}
+
+void SlideExplorerWidget::setPresentation(Q3DSPresentation *pres)
+{
+    m_presentation = pres;
+    m_component = nullptr;
     m_masterSlide = m_presentation->masterSlide();
     m_currentSlide = m_sceneManager->currentSlide();
-    init();
+    m_slideModel->setMasterSlide(m_masterSlide);
     handleCurrentSlideChanged(m_currentSlide);
 }
 
-SlideExplorerWidget::SlideExplorerWidget(Q3DSComponentNode *component, Q3DSSceneManager *sceneManager, QWidget *parent)
-    : QWidget(parent)
-    , m_component(component)
-    , m_presentation(nullptr)
-    , m_sceneManager(sceneManager)
+void SlideExplorerWidget::setComponent(Q3DSComponentNode *component)
 {
+    m_presentation = nullptr;
+    m_component = component;
     m_masterSlide = m_component->masterSlide();
     m_currentSlide = m_component->currentSlide();
-    init();
+    m_slideModel->setMasterSlide(m_masterSlide);
     handleCurrentSlideChanged(m_currentSlide);
 }
 
@@ -205,7 +224,7 @@ void SlideExplorerWidget::seekInCurrentSlide(int value)
 
 void SlideExplorerWidget::init()
 {
-    m_slideModel = new SlideListModel(m_masterSlide);
+    m_slideModel = new SlideListModel();
 
     auto mainLayout = new QVBoxLayout(this);
     setLayout(mainLayout);
