@@ -257,7 +257,7 @@ private:
 
     friend class Q3DSPresentation;
     friend class Q3DSSceneManager;
-    friend class Q3DSAnimationBuilder;
+    friend class Q3DSAnimationManager;
 };
 
 Q_DECLARE_OPERATORS_FOR_FLAGS(Q3DSGraphObject::PropSetFlags)

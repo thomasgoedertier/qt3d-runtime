@@ -36,7 +36,7 @@
 
 QT_BEGIN_NAMESPACE
 
-class Q3DSAnimationBuilder;
+class Q3DSAnimationManager;
 class Q3DSFrameUpdater;
 class Q3DSTextRenderer;
 class Q3DSDefaultMaterialGenerator;
@@ -355,7 +355,7 @@ public:
     void setAnimationsRunning(Q3DSSlide *slide, bool running);
 
     void prepareNextFrame();
-    Q3DSAnimationBuilder *animationBuilder() { return m_animBuilder; }
+    Q3DSAnimationManager *animationBuilder() { return m_animationManager; }
 
     enum SetNodePropFlag {
         NodePropUpdateGlobalsRecursively = 0x01,
@@ -446,7 +446,7 @@ private:
     Q3DSFrameUpdater *m_frameUpdater = nullptr;
     Q3DSDefaultMaterialGenerator *m_matGen;
     Q3DSTextMaterialGenerator *m_textMatGen;
-    Q3DSAnimationBuilder *m_animBuilder;
+    Q3DSAnimationManager *m_animationManager;
     Q3DSTextRenderer *m_textRenderer;
     QSet<Q3DSLayerNode *> m_layersWithDirtyLights;
     QSet<Q3DSNode *> m_pendingNodeShow;

@@ -35,7 +35,7 @@
 
 QT_BEGIN_NAMESPACE
 
-class Q3DSAnimationBuilder
+class Q3DSAnimationManager
 {
 public:
     void updateAnimations(Q3DSSlide *animSourceSlide, Q3DSSlide *playModeSourceSlide);
@@ -56,7 +56,7 @@ public:
     struct AnimationValueChange {
         QVariant value;
         QString name;
-        Q3DSAnimationBuilder::SetterFunc setter;
+        Q3DSAnimationManager::SetterFunc setter;
     };
 
     void queueAnimChange(Q3DSGraphObject *target, const AnimationValueChange &change);
@@ -85,10 +85,10 @@ private:
     friend class Q3DSAnimationCallback;
 };
 
-inline bool operator==(const Q3DSAnimationBuilder::Animatable &a, const Q3DSAnimationBuilder::Animatable &b) { return a.name == b.name; }
-inline bool operator!=(const Q3DSAnimationBuilder::Animatable &a, const Q3DSAnimationBuilder::Animatable &b) { return !(a == b); }
-inline uint qHash(const Q3DSAnimationBuilder::Animatable &a, uint seed = 0) { return qHash(a.name, seed); }
-QDebug operator<<(QDebug dbg, const Q3DSAnimationBuilder::Animatable &a);
+inline bool operator==(const Q3DSAnimationManager::Animatable &a, const Q3DSAnimationManager::Animatable &b) { return a.name == b.name; }
+inline bool operator!=(const Q3DSAnimationManager::Animatable &a, const Q3DSAnimationManager::Animatable &b) { return !(a == b); }
+inline uint qHash(const Q3DSAnimationManager::Animatable &a, uint seed = 0) { return qHash(a.name, seed); }
+QDebug operator<<(QDebug dbg, const Q3DSAnimationManager::Animatable &a);
 
 QT_END_NAMESPACE
 

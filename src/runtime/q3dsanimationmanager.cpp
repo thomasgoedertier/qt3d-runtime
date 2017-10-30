@@ -27,7 +27,7 @@
 **
 ****************************************************************************/
 
-#include "q3dsanimationbuilder.h"
+#include "q3dsanimationmanager.h"
 #include "q3dsdatamodelparser.h"
 #include "q3dsscenemanager.h"
 
@@ -48,8 +48,8 @@ static struct AnimatableExtraMeta {
     QString type3DS;
     QString name3DS;
     int componentCount;
-    Q3DSAnimationBuilder::SetterFunc setter;
-    Q3DSAnimationBuilder::GetterFunc getter;
+    Q3DSAnimationManager::SetterFunc setter;
+    Q3DSAnimationManager::GetterFunc getter;
 } extraMeta[] = {
     { QLatin1String("Node"), QLatin1String("position"), 3, &Q3DSNode::setPosition, &Q3DSNode::getPosition },
     { QLatin1String("Node"), QLatin1String("rotation"), 3, &Q3DSNode::setRotation, &Q3DSNode::getRotation },
@@ -126,7 +126,7 @@ static struct AnimatableExtraMeta {
 };
 
 template<class T>
-void initAnimator(T *data, Q3DSSlide *slide, Q3DSAnimationBuilder *builder)
+void initAnimator(T *data, Q3DSSlide *slide, Q3DSAnimationManager *manager)
 {
     Q_ASSERT(data->entity);
 
@@ -137,16 +137,16 @@ void initAnimator(T *data, Q3DSSlide *slide, Q3DSAnimationBuilder *builder)
         // in time for the next frame.
         if (!data->animationRollbacks.isEmpty()) {
             for (const auto &rd : qAsConst(data->animationRollbacks)) {
-                Q3DSAnimationBuilder::AnimationValueChange change;
+                Q3DSAnimationManager::AnimationValueChange change;
                 change.value = rd.value;
                 change.name = rd.name;
                 change.setter = rd.setter;
-                builder->queueAnimChange(rd.obj, change);
+                manager->queueAnimChange(rd.obj, change);
             }
             // Set the values right away, do not wait until the next frame.
             // This is important since updateAnimations() may query some of the
             // now-restored values from the object.
-            builder->applyChanges();
+            manager->applyChanges();
         }
 
         data->entity->removeComponent(data->animator);
@@ -182,7 +182,7 @@ void finalizeAnimator(T *data, Qt3DAnimation::QAnimationClip *clip, Q3DSSlide *s
     data->entity->addComponent(data->animator);
 }
 
-void Q3DSAnimationBuilder::gatherAnimatableMeta(const QString &type, AnimatableTab *dst)
+void Q3DSAnimationManager::gatherAnimatableMeta(const QString &type, AnimatableTab *dst)
 {
     Q3DSDataModelParser *dataModelParser = Q3DSDataModelParser::instance();
     const QVector<Q3DSDataModelParser::Property> *propMeta = dataModelParser->propertiesForType(type);
@@ -222,15 +222,15 @@ void Q3DSAnimationBuilder::gatherAnimatableMeta(const QString &type, AnimatableT
 class Q3DSAnimationCallback : public Qt3DAnimation::QAnimationCallback
 {
 public:
-    Q3DSAnimationCallback(Q3DSGraphObject *target, Q3DSAnimationBuilder::Animatable *animMeta, Q3DSAnimationBuilder *builder)
-        : m_target(target), m_animMeta(animMeta), m_builder(builder) { }
+    Q3DSAnimationCallback(Q3DSGraphObject *target, Q3DSAnimationManager::Animatable *animMeta, Q3DSAnimationManager *manager)
+        : m_target(target), m_animMeta(animMeta), m_animationManager(manager) { }
 
     void valueChanged(const QVariant &value) override;
 
 private:
     Q3DSGraphObject *m_target;
-    Q3DSAnimationBuilder::Animatable *m_animMeta;
-    Q3DSAnimationBuilder *m_builder;
+    Q3DSAnimationManager::Animatable *m_animMeta;
+    Q3DSAnimationManager *m_animationManager;
 };
 
 void Q3DSAnimationCallback::valueChanged(const QVariant &value)
@@ -239,11 +239,11 @@ void Q3DSAnimationCallback::valueChanged(const QVariant &value)
     // Instead, queue up (and compress), and defer to applyChanges() which is
     // invoked once per frame.
 
-    Q3DSAnimationBuilder::AnimationValueChange change;
+    Q3DSAnimationManager::AnimationValueChange change;
     change.value = value;
     change.name = m_animMeta->name;
     change.setter = m_animMeta->setter;
-    m_builder->queueAnimChange(m_target, change);
+    m_animationManager->queueAnimChange(m_target, change);
 }
 
 static int componentSuffixToIndex(const QString &s)
@@ -258,7 +258,7 @@ static int componentSuffixToIndex(const QString &s)
     return -1;
 }
 
-template<class AttT, class T> void Q3DSAnimationBuilder::updateAnimationHelper(const QHash<T *, QVector<const Q3DSAnimationTrack *> > &targets,
+template<class AttT, class T> void Q3DSAnimationManager::updateAnimationHelper(const QHash<T *, QVector<const Q3DSAnimationTrack *> > &targets,
                                                                                AnimatableTab *animatables,
                                                                                Q3DSSlide *animSourceSlide,
                                                                                Q3DSSlide *playModeSourceSlide)
@@ -403,7 +403,7 @@ template<class AttT, class T> void Q3DSAnimationBuilder::updateAnimationHelper(c
 
 // Pass in two slides since animSourceSlide may be the master whereas the play
 // mode must always be taken from the active sub-slide.
-void Q3DSAnimationBuilder::updateAnimations(Q3DSSlide *animSourceSlide, Q3DSSlide *playModeSourceSlide)
+void Q3DSAnimationManager::updateAnimations(Q3DSSlide *animSourceSlide, Q3DSSlide *playModeSourceSlide)
 {
     const QVector<Q3DSAnimationTrack> *anims = animSourceSlide->animations();
     if (anims->isEmpty())
@@ -539,14 +539,14 @@ void Q3DSAnimationBuilder::updateAnimations(Q3DSSlide *animSourceSlide, Q3DSSlid
     updateAnimationHelper<Q3DSLayerAttached>(layerAnims, &m_layerAnimatables, animSourceSlide, playModeSourceSlide);
 }
 
-QDebug operator<<(QDebug dbg, const Q3DSAnimationBuilder::Animatable &a)
+QDebug operator<<(QDebug dbg, const Q3DSAnimationManager::Animatable &a)
 {
     QDebugStateSaver saver(dbg);
     dbg.nospace() << "Animatable(" << a.name << ' ' << a.type << ' ' << a.componentCount << " )";
     return dbg;
 }
 
-void Q3DSAnimationBuilder::applyChanges()
+void Q3DSAnimationManager::applyChanges()
 {
     // Expected to be called once per frame (or in special cases, like when
     // initializing animations for an object with previously animated values).
@@ -571,12 +571,12 @@ void Q3DSAnimationBuilder::applyChanges()
     m_animChanges.clear();
 }
 
-void Q3DSAnimationBuilder::clearPendingChanges()
+void Q3DSAnimationManager::clearPendingChanges()
 {
     m_animChanges.clear();
 }
 
-void Q3DSAnimationBuilder::queueAnimChange(Q3DSGraphObject *target, const AnimationValueChange &change)
+void Q3DSAnimationManager::queueAnimChange(Q3DSGraphObject *target, const AnimationValueChange &change)
 {
     m_animChanges.insert(target, change);
 }

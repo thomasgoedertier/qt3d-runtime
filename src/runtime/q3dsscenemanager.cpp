@@ -30,7 +30,7 @@
 #include "q3dsscenemanager.h"
 #include "q3dsdefaultmaterialgenerator.h"
 #include "q3dstextmaterialgenerator.h"
-#include "q3dsanimationbuilder.h"
+#include "q3dsanimationmanager.h"
 #include "q3dstextrenderer.h"
 #include "q3dsutils.h"
 #include "shadergenerator/q3dsshadermanager_p.h"
@@ -346,7 +346,7 @@ Q3DSSceneManager::Q3DSSceneManager(const Q3DSGraphicsLimits &limits)
     : m_gfxLimits(limits),
       m_matGen(new Q3DSDefaultMaterialGenerator),
       m_textMatGen(new Q3DSTextMaterialGenerator),
-      m_animBuilder(new Q3DSAnimationBuilder),
+      m_animationManager(new Q3DSAnimationManager),
       m_textRenderer(new Q3DSTextRenderer)
 {
     const QString fontDir = Q3DSUtils::resourcePrefix() + QLatin1String("res/Font");
@@ -356,7 +356,7 @@ Q3DSSceneManager::Q3DSSceneManager(const Q3DSGraphicsLimits &limits)
 Q3DSSceneManager::~Q3DSSceneManager()
 {
     delete m_textRenderer;
-    delete m_animBuilder;
+    delete m_animationManager;
     delete m_textMatGen;
     delete m_matGen;
     delete m_frameUpdater;
@@ -389,7 +389,7 @@ void Q3DSSceneManager::prepareSceneChange()
     delete m_frameUpdater;
     m_frameUpdater = nullptr;
 
-    m_animBuilder->clearPendingChanges();
+    m_animationManager->clearPendingChanges();
 
     Q3DSShaderManager::instance().invalidate();
 }
@@ -3371,7 +3371,7 @@ void Q3DSSceneManager::updateAnimations(Q3DSSlide *animSourceSlide, Q3DSSlide *p
 {
     // Called when entering a slide. Go through the slide's animations and add
     // Animator components for the affected entities (after removing existing ones).
-    m_animBuilder->updateAnimations(animSourceSlide, playModeSourceSlide);
+    m_animationManager->updateAnimations(animSourceSlide, playModeSourceSlide);
 }
 
 void Q3DSSceneManager::setAnimationsRunning(Q3DSSlide *slide, bool running)
