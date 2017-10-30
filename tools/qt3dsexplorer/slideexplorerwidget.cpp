@@ -215,6 +215,7 @@ void SlideExplorerWidget::playCurrentSlide()
     }
     m_isSlidePlaying = !m_isSlidePlaying;
     m_sceneManager->setAnimationsRunning(m_currentSlide, m_isSlidePlaying);
+    m_sceneManager->setAnimationsRunning(m_masterSlide, m_isSlidePlaying);
 }
 
 void SlideExplorerWidget::seekInCurrentSlide(int value)

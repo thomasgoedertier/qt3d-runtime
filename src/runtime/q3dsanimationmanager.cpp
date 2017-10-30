@@ -130,6 +130,8 @@ void initAnimator(T *data, Q3DSSlide *slide, Q3DSAnimationManager *manager)
 {
     Q_ASSERT(data->entity);
 
+    auto slideAttached = static_cast<Q3DSSlideAttached *>(slide->attached());
+
     if (data->animator) {
         // Properties that were animated before have to be reset to their
         // original value, otherwise things will flicker when switching between
@@ -150,6 +152,7 @@ void initAnimator(T *data, Q3DSSlide *slide, Q3DSAnimationManager *manager)
         }
 
         data->entity->removeComponent(data->animator);
+        slideAttached->animators.removeOne(data->animator);
         delete data->animator;
         data->animator = nullptr;
     }
@@ -159,7 +162,7 @@ void initAnimator(T *data, Q3DSSlide *slide, Q3DSAnimationManager *manager)
     data->animationRollbacks.clear();
 
     data->animator = new Qt3DAnimation::QClipAnimator;
-    static_cast<Q3DSSlideAttached *>(slide->attached())->animators.append(data->animator);
+    slideAttached->animators.append(data->animator);
 }
 
 template<class T>

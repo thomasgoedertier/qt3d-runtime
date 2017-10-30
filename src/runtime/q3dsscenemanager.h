@@ -432,6 +432,7 @@ private:
     void updateSubTreeRecursive(Q3DSGraphObject *obj);
     void updateSubTree(Q3DSGraphObject *obj);
 
+    void updateSlideObjectVisibilities(Q3DSSlide *slide);
     void setNodeVisibility(Q3DSNode *node, bool visible);
     bool scheduleNodeVisibilityUpdate(Q3DSGraphObject *obj, Q3DSComponentNode *component = nullptr);
 

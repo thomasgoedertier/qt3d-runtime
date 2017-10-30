@@ -379,7 +379,17 @@ void Q3DSSceneManager::setCurrentSlide(Q3DSSlide *newSlide)
         return;
 
     qCDebug(lcScene, "Setting new current slide %s", newSlide->id().constData());
+    auto prevSlide = m_currentSlide;
     m_currentSlide = newSlide;
+
+    if (!m_currentSlide->attached())
+        m_currentSlide->setAttached(new Q3DSSlideAttached);
+
+    updateSlideObjectVisibilities(prevSlide);
+    updateSlideObjectVisibilities(m_currentSlide);
+
+    updateAnimations(m_masterSlide, m_currentSlide);
+    updateAnimations(m_currentSlide, m_currentSlide);
 }
 
 void Q3DSSceneManager::prepareSceneChange()
@@ -495,21 +505,7 @@ Q3DSSceneManager::Scene Q3DSSceneManager::buildScene(Q3DSPresentation *presentat
     // Set visibility of objects in the scene and start animations.
     Q3DSPresentation::forAllObjectsOfType(m_masterSlide, Q3DSGraphObject::Slide,
                                           [this](Q3DSGraphObject *s) {
-        for (Q3DSGraphObject *obj : *static_cast<Q3DSSlide *>(s)->objects()) {
-            const bool visible = scheduleNodeVisibilityUpdate(obj);
-            if (obj->type() == Q3DSGraphObject::Component) {
-                // objects on the Component's current (or master) slide
-                Q3DSComponentNode *comp = static_cast<Q3DSComponentNode *>(obj);
-                for (Q3DSGraphObject *cobj : *comp->masterSlide()->objects())
-                    scheduleNodeVisibilityUpdate(cobj, comp);
-                for (Q3DSGraphObject *cobj : *comp->currentSlide()->objects())
-                    scheduleNodeVisibilityUpdate(cobj, comp);
-                if (visible) { // if Component is not on the current slide, then don't care for now
-                    updateAnimations(comp->masterSlide(), comp->currentSlide());
-                    updateAnimations(comp->currentSlide(), comp->currentSlide());
-                }
-            }
-        }
+        updateSlideObjectVisibilities(static_cast<Q3DSSlide *>(s));
     });
     updateAnimations(m_masterSlide, m_currentSlide);
     updateAnimations(m_currentSlide, m_currentSlide);
@@ -3304,6 +3300,25 @@ void Q3DSSceneManager::updateNodeFromChangeFlags(Q3DSNode *node, Qt3DCore::QTran
 
             const bool active = node->flags().testFlag(Q3DSNode::Active);
             setNodeVisibility(node, active);
+        }
+    }
+}
+
+void Q3DSSceneManager::updateSlideObjectVisibilities(Q3DSSlide *slide)
+{
+    for (Q3DSGraphObject *obj : *slide->objects()) {
+        const bool visible = scheduleNodeVisibilityUpdate(obj);
+        if (obj->type() == Q3DSGraphObject::Component) {
+            // objects on the Component's current (or master) slide
+            Q3DSComponentNode *comp = static_cast<Q3DSComponentNode *>(obj);
+            for (Q3DSGraphObject *cobj : *comp->masterSlide()->objects())
+                scheduleNodeVisibilityUpdate(cobj, comp);
+            for (Q3DSGraphObject *cobj : *comp->currentSlide()->objects())
+                scheduleNodeVisibilityUpdate(cobj, comp);
+            if (visible) { // if Component is not on the current slide, then don't care for now
+                updateAnimations(comp->masterSlide(), comp->currentSlide());
+                updateAnimations(comp->currentSlide(), comp->currentSlide());
+            }
         }
     }
 }
