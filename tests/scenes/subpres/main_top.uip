@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<UIP version="3" >
+	<Project >
+		<ProjectSettings author="" company="" presentationWidth="800" presentationHeight="480" maintainAspect="False" >
+			<CustomColors count="16" >#ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff</CustomColors>
+		</ProjectSettings>
+		<Graph >
+			<Scene id="Scene" >
+				<Layer id="Layer" >
+					<Camera id="Camera" />
+					<Model id="Cylinder" >
+						<Material id="Material" />
+					</Model>
+					<Light id="Light" />
+				</Layer>
+				<Layer id="sp" >
+					<Camera id="Camera_001" />
+					<Light id="Light_001" />
+				</Layer>
+			</Scene>
+		</Graph>
+		<Logic >
+			<State name="Master Slide" component="#Scene" >
+				<Add ref="#Layer" background="Transparent" backgroundcolor="0.0392157 0.45098 0.564706" />
+				<Add ref="#Camera" />
+				<State id="Scene-Slide1" name="Slide1" >
+					<Add ref="#Cylinder" name="Cylinder" position="344.967 -170.318 0" rotation="-26.2701 -25.7819 13.1225" sourcepath="#Cylinder" />
+					<Add ref="#Material" />
+					<Add ref="#Light" name="Light" position="303.109 95.2628 0" />
+					<Add ref="#sp" name="sp" blendtype="Normal" sourcepath="subpres1" />
+					<Add ref="#Camera_001" />
+					<Add ref="#Light_001" />
+				</State>
+			</State>
+		</Logic>
+	</Project>
+</UIP>
