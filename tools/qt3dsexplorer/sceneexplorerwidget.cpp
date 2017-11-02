@@ -197,6 +197,12 @@ void SceneExplorerWidget::handleSelectionChanged(const QModelIndex &current, con
         }
     }
     m_propertyBrowser->addProperty(topLevelItem);
+
+    // If selection is a Component
+    if (obj->type() == Q3DSGraphObject::Component) {
+        Q3DSComponentNode *component = static_cast<Q3DSComponentNode *>(obj);
+        emit componentSelected(component);
+    }
 }
 
 void SceneExplorerWidget::init()

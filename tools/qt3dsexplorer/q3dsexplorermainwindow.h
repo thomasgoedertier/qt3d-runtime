@@ -38,6 +38,7 @@ class Q3DStudioWindow;
 class SlideExplorerWidget;
 class SceneExplorerWidget;
 class Q3DSPresentation;
+class Q3DSComponentNode;
 
 class Q3DSExplorerMainWindow : public QMainWindow
 {
@@ -50,9 +51,13 @@ public:
 
     static QString fileFilter();
 
+private Q_SLOTS:
+    void handleComponentSelected(Q3DSComponentNode *component);
+
 private:
     Q3DStudioWindow *m_view;
     SlideExplorerWidget *m_slideExplorer;
+    SlideExplorerWidget *m_componentSlideExplorer;
     SceneExplorerWidget *m_sceneExplorer;
 };
 

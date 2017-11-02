@@ -58,7 +58,7 @@ Q3DSExplorerMainWindow::Q3DSExplorerMainWindow(Q3DStudioWindow *view, QWidget *p
     setCentralWidget(wrapper);
 
     // Add Dock Widgets
-    auto slideDockWidget = new QDockWidget("Presentation Slide Explorer", this);
+    auto slideDockWidget = new QDockWidget("Presentation", this);
     m_slideExplorer = new SlideExplorerWidget(m_view->sceneManager(), slideDockWidget);
     slideDockWidget->setWidget(m_slideExplorer);
     this->addDockWidget(Qt::LeftDockWidgetArea, slideDockWidget);
@@ -68,6 +68,13 @@ Q3DSExplorerMainWindow::Q3DSExplorerMainWindow(Q3DStudioWindow *view, QWidget *p
     sceneExplorerDockWidget->setWidget(m_sceneExplorer);
     this->addDockWidget(Qt::RightDockWidgetArea, sceneExplorerDockWidget);
 
+    auto componentSlideDockWidget = new QDockWidget("Component", this);
+    m_componentSlideExplorer = new SlideExplorerWidget(m_view->sceneManager(), componentSlideDockWidget);
+    componentSlideDockWidget->setWidget(m_componentSlideExplorer);
+    addDockWidget(Qt::LeftDockWidgetArea, componentSlideDockWidget);
+    m_componentSlideExplorer->setEnabled(false);
+
+    tabifyDockWidget(componentSlideDockWidget, slideDockWidget);
 
     QMenu *fileMenu = menuBar()->addMenu(tr("&File"));
     fileMenu->addAction(tr("&Open..."), this, [=] {
@@ -115,6 +122,8 @@ Q3DSExplorerMainWindow::Q3DSExplorerMainWindow(Q3DStudioWindow *view, QWidget *p
     // This won't be fully correct, use View->Force design size to get the real thing.
     resize(designSize + QSize(slideDockWidget->width() + sceneExplorerDockWidget->width(), menuBar()->height()));
     updatePresentation();
+
+    connect(m_sceneExplorer, &SceneExplorerWidget::componentSelected, this, &Q3DSExplorerMainWindow::handleComponentSelected);
 }
 
 Q3DSExplorerMainWindow::~Q3DSExplorerMainWindow()
@@ -127,5 +136,18 @@ void Q3DSExplorerMainWindow::updatePresentation()
     if (pres) {
         m_sceneExplorer->setPresentation(pres);
         m_slideExplorer->setPresentation(pres);
+        handleComponentSelected(nullptr);
     }
+}
+
+void Q3DSExplorerMainWindow::handleComponentSelected(Q3DSComponentNode *component)
+{
+    if (!component) {
+        m_componentSlideExplorer->setEnabled(false);
+        m_componentSlideExplorer->setComponent(nullptr);
+        return;
+    }
+
+    m_componentSlideExplorer->setEnabled(true);
+    m_componentSlideExplorer->setComponent(component);
 }

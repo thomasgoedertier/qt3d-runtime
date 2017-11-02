@@ -39,6 +39,7 @@ class QtTreePropertyBrowser;
 class QtVariantPropertyManager;
 class QtVariantEditorFactory;
 class SceneTreeModel;
+class Q3DSComponentNode;
 class SceneExplorerWidget : public QWidget
 {
     Q_OBJECT
@@ -49,6 +50,8 @@ public:
 
 private slots:
     void handleSelectionChanged(const QModelIndex &current, const QModelIndex &);
+signals:
+    void componentSelected(Q3DSComponentNode *component);
 private:
     void init();
     Q3DSPresentation *m_presentation = nullptr;

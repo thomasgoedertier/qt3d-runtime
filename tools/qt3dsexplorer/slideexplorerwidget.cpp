@@ -147,6 +147,13 @@ void SlideExplorerWidget::setPresentation(Q3DSPresentation *pres)
 {
     m_presentation = pres;
     m_component = nullptr;
+    if (!pres) {
+        m_masterSlide = nullptr;
+        m_currentSlide = nullptr;
+        m_slideModel->setMasterSlide(nullptr);
+        return;
+    }
+
     m_masterSlide = m_presentation->masterSlide();
     m_currentSlide = m_sceneManager->currentSlide();
     m_slideModel->setMasterSlide(m_masterSlide);
@@ -157,6 +164,13 @@ void SlideExplorerWidget::setComponent(Q3DSComponentNode *component)
 {
     m_presentation = nullptr;
     m_component = component;
+    if (!component) {
+        m_masterSlide = nullptr;
+        m_currentSlide = nullptr;
+        m_slideModel->setMasterSlide(nullptr);
+        return;
+    }
+
     m_masterSlide = m_component->masterSlide();
     m_currentSlide = m_component->currentSlide();
     m_slideModel->setMasterSlide(m_masterSlide);
