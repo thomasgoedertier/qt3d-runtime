@@ -1350,13 +1350,16 @@ void Q3DSSceneManager::updateAoParameters(Q3DSLayerNode *layer3DS)
     data->ssaoTextureData.aoDataBuf->setData(buf);
 }
 
-void Q3DSSceneManager::updateSsaoStatus(Q3DSLayerNode *layer3DS)
+void Q3DSSceneManager::updateSsaoStatus(Q3DSLayerNode *layer3DS, bool *aoDidChange)
 {
     Q3DSLayerAttached *data = static_cast<Q3DSLayerAttached *>(layer3DS->attached());
     Q_ASSERT(data);
 
     const bool needsSsao = layer3DS->aoStrength() > 0.0f;
     const bool hasSsao = data->ssaoTextureData.enabled;
+
+    if (aoDidChange)
+        *aoDidChange = needsSsao != hasSsao;
 
     if (needsSsao == hasSsao) {
         if (hasSsao)
@@ -2609,8 +2612,8 @@ void Q3DSSceneManager::buildModelMaterial(Q3DSModelNode *model3DS)
 
 void Q3DSSceneManager::rebuildModelMaterial(Q3DSModelNode *model3DS)
 {
-    // After the initial scene building phase 2 materials will sometimes need
-    // to be recreated due to certain property changes (shadow casters, SSAO).
+    // After the initial phase 2 of scene building, materials will sometimes
+    // need to be recreated due to certain property changes (shadow casters, SSAO).
 
     Q3DSModelAttached *modelData = static_cast<Q3DSModelAttached *>(model3DS->attached());
     if (!modelData)
@@ -3076,8 +3079,15 @@ void Q3DSSceneManager::handlePropertyChange(Q3DSGraphObject *obj, const QSet<QSt
         setLayerCameraSizeProperties(layer3DS);
         setLayerSizeProperties(layer3DS);
         setLayerProperties(layer3DS);
-        if (cf.testFlag(Q3DSPropertyChangeList::AoOrShadowChanges))
-            updateSsaoStatus(layer3DS); // ### futile when aoStrength was 0 before since materials won't get upgraded to SSAO-enabled ones...
+        if (cf.testFlag(Q3DSPropertyChangeList::AoOrShadowChanges)) {
+            bool aoDidChange = false;
+            updateSsaoStatus(layer3DS, &aoDidChange);
+            if (aoDidChange) {
+                Q3DSPresentation::forAllModels(layer3DS->firstChild(),
+                                               [this](Q3DSModelNode *model3DS) { rebuildModelMaterial(model3DS); },
+                                               true); // include hidden ones too
+            }
+        }
     }
         break;
     case Q3DSGraphObject::Camera:

@@ -376,8 +376,8 @@ public:
     static QVector<Qt3DRender::QTechnique *> computeTechniques(Q3DSLayerNode *layer3DS);
     static void markAsMainTechnique(Qt3DRender::QTechnique *technique);
 
+    // for testing from the viewer - to be moved private later
     void setDepthTextureEnabled(Q3DSLayerNode *layer3DS, bool enabled);
-    void setSsaoTextureEnabled(Q3DSLayerNode *layer3DS, bool enabled);
     void rebuildModelMaterial(Q3DSModelNode *model3DS);
 
 private:
@@ -390,8 +390,9 @@ private:
     void setLayerProperties(Q3DSLayerNode *layer3DS);
     void buildLayerScene(Q3DSGraphObject *obj, Q3DSLayerNode *layer3DS, Qt3DCore::QEntity *parent);
     void reparentCamera(Q3DSLayerNode *layer3DS);
+    void setSsaoTextureEnabled(Q3DSLayerNode *layer3DS, bool enabled);
     void updateAoParameters(Q3DSLayerNode *layer3DS);
-    void updateSsaoStatus(Q3DSLayerNode *layer3DS);
+    void updateSsaoStatus(Q3DSLayerNode *layer3DS, bool *aoDidChange = nullptr);
     void updateShadowMapStatus(Q3DSLayerNode *layer3DS);
 
     Q3DSCameraNode *chooseLayerCamera(Q3DSLayerNode *layer3DS, Qt3DRender::QCamera **camera);

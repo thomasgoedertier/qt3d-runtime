@@ -216,6 +216,8 @@ public:
     virtual void applyPropertyChanges(const Q3DSPropertyChangeList *);
     virtual void resolveReferences(Q3DSPresentation &, Q3DSUipParser &) { }
 
+    void notifyPropertyChanges(const Q3DSPropertyChangeList *changeList);
+
     QByteArray id() const { return m_id; }
     bool isNode() const { return m_type >= Q3DSGraphObject::_FirstNodeType; }
 
@@ -243,8 +245,6 @@ private:
     Q_DISABLE_COPY(Q3DSGraphObject)
     template<typename V> void setProps(const V &attrs, PropSetFlags flags);
 
-    void notifyPropertyChanges(const Q3DSPropertyChangeList *changeList);
-
     Type m_type = AnyObject;
     Q3DSGraphObject *m_parent = nullptr;
     Q3DSGraphObject *m_firstChild = nullptr;
@@ -256,8 +256,6 @@ private:
     Q3DSGraphObjectAttached *m_attached = nullptr;
 
     friend class Q3DSPresentation;
-    friend class Q3DSSceneManager;
-    friend class Q3DSAnimationManager;
 };
 
 Q_DECLARE_OPERATORS_FOR_FLAGS(Q3DSGraphObject::PropSetFlags)
