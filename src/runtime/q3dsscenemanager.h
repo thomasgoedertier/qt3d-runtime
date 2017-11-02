@@ -206,6 +206,7 @@ public:
     } ssaoTextureData;
 
     struct PerLightShadowMapData {
+        bool active = false;
         Q3DSLightNode *lightNode = nullptr;
         Qt3DRender::QAbstractTexture *shadowMapTextureTemp = nullptr;
         Qt3DRender::QAbstractTexture *shadowMapTexture = nullptr;
@@ -393,7 +394,7 @@ private:
     void setSsaoTextureEnabled(Q3DSLayerNode *layer3DS, bool enabled);
     void updateAoParameters(Q3DSLayerNode *layer3DS);
     void updateSsaoStatus(Q3DSLayerNode *layer3DS, bool *aoDidChange = nullptr);
-    void updateShadowMapStatus(Q3DSLayerNode *layer3DS);
+    void updateShadowMapStatus(Q3DSLayerNode *layer3DS, bool *smDidChange = nullptr);
 
     Q3DSCameraNode *chooseLayerCamera(Q3DSLayerNode *layer3DS, Qt3DRender::QCamera **camera);
     Qt3DRender::QCamera *buildLayerCamera(Q3DSLayerNode *layer3DS, Q3DSCameraNode *camNode);

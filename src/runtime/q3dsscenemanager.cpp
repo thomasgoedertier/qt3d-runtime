@@ -1370,16 +1370,21 @@ void Q3DSSceneManager::updateSsaoStatus(Q3DSLayerNode *layer3DS, bool *aoDidChan
     setSsaoTextureEnabled(layer3DS, needsSsao);
 }
 
-void Q3DSSceneManager::updateShadowMapStatus(Q3DSLayerNode *layer3DS)
+void Q3DSSceneManager::updateShadowMapStatus(Q3DSLayerNode *layer3DS, bool *smDidChange)
 {
     Q3DSLayerAttached *layerData = static_cast<Q3DSLayerAttached *>(layer3DS->attached());
     Q_ASSERT(layerData);
+    const int oldShadowCasterCount = layerData->shadowMapData.shadowCasters.count();
     int lightIdx = 0;
 
+    for (Q3DSLayerAttached::PerLightShadowMapData &d : layerData->shadowMapData.shadowCasters)
+        d.active = false;
+
+    // Go through the list of visible (eyeball==true) lights and pick the ones with castshadow==true.
     for (Q3DSLightNode *light3DS : qAsConst(layerData->lightNodes)) {
+        Q_ASSERT(light3DS->flags().testFlag(Q3DSNode::Active));
         const QString lightIndexStr = QString::number(lightIdx++);
 
-        // assume castShadow cannot dynamically change
         if (light3DS->castShadow()) {
             auto it = std::find_if(layerData->shadowMapData.shadowCasters.begin(), layerData->shadowMapData.shadowCasters.end(),
                                    [light3DS](const Q3DSLayerAttached::PerLightShadowMapData &d) { return d.lightNode == light3DS; });
@@ -1391,6 +1396,7 @@ void Q3DSSceneManager::updateShadowMapStatus(Q3DSLayerNode *layer3DS)
                 d = &layerData->shadowMapData.shadowCasters.last();
                 d->lightNode = light3DS;
             }
+            d->active = true;
 
             const qint32 size = 1 << light3DS->shadowMapRes();
 
@@ -1766,7 +1772,20 @@ void Q3DSSceneManager::updateShadowMapStatus(Q3DSLayerNode *layer3DS)
         }
     }
 
-    if (!layerData->shadowMapData.shadowCasters.isEmpty())
+    // Drop shadow map data for lights that are not casting anymore either due
+    // to a castshadow or eyeball property change.
+    for (int i = 0; i < layerData->shadowMapData.shadowCasters.count(); ++i) {
+        if (!layerData->shadowMapData.shadowCasters[i].active) {
+            layerData->shadowMapData.shadowCasters.remove(i--);
+            // ### QT3DS-364 may need some Qt 3D object cleanup as well
+        }
+    }
+
+    const int newShadowCasterCount = layerData->shadowMapData.shadowCasters.count();
+    if (smDidChange)
+        *smDidChange = newShadowCasterCount != oldShadowCasterCount;
+
+    if (newShadowCasterCount > 0)
         qCDebug(lcScene, "Layer %s has %d shadow casting lights", layer3DS->id().constData(), layerData->shadowMapData.shadowCasters.count());
 }
 
@@ -3190,7 +3209,13 @@ void Q3DSSceneManager::updateSubTree(Q3DSGraphObject *obj)
         updateLightsBuffer(layerData->allLights, layerData->allLightsConstantBuffer);
         updateLightsBuffer(layerData->nonAreaLights, layerData->nonAreaLightsConstantBuffer);
         updateLightsBuffer(layerData->areaLights, layerData->areaLightsConstantBuffer);
-        updateShadowMapStatus(layer3DS); // ### futile when there were no casters before since materials won't get upgraded to SSM-enabled ones...
+        bool smDidChange = false;
+        updateShadowMapStatus(layer3DS, &smDidChange);
+        if (smDidChange) {
+            Q3DSPresentation::forAllModels(layer3DS->firstChild(),
+                                           [this](Q3DSModelNode *model3DS) { rebuildModelMaterial(model3DS); },
+                                           true); // include hidden ones too
+        }
     }
 
     if (!m_pendingNodeHide.isEmpty()) {

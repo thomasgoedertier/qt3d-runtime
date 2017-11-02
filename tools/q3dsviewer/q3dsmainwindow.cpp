@@ -250,6 +250,19 @@ Q3DStudioMainWindow::Q3DStudioMainWindow(Q3DStudioWindow *view, QWidget *parent)
             view->sceneManager()->rebuildModelMaterial(model3DS);
         });
     });
+    QAction *toggleShadowAction = debugMenu->addAction(tr("&Toggle shadow casting for point lights"));
+    connect(toggleShadowAction, &QAction::triggered, [=]() {
+        Q3DSPresentation::forAllObjectsOfType(view->uip()->presentation()->scene(), Q3DSGraphObject::Light, [=](Q3DSGraphObject *obj) {
+            Q3DSLightNode *light3DS = static_cast<Q3DSLightNode *>(obj);
+            if (light3DS->flags().testFlag(Q3DSNode::Active) && light3DS->lightType() == Q3DSLightNode::Point) {
+                Q3DSPropertyChangeList changeList;
+                const QString value = light3DS->castShadow() ? QLatin1String("false") : QLatin1String("true");
+                changeList.append(Q3DSPropertyChange(QLatin1String("castshadow"), value));
+                light3DS->applyPropertyChanges(&changeList);
+                light3DS->notifyPropertyChanges(&changeList);
+            }
+        });
+    });
 
     QMenu *helpMenu = menuBar()->addMenu(tr("&Help"));
     helpMenu->addAction(tr("&About"), this, [this]() {
