@@ -32,7 +32,10 @@
 
 #include <Qt3DStudioRuntime2/q3dspresentation.h>
 #include <Qt3DStudioRuntime2/q3dsgraphicslimits.h>
+
 #include <QtCore/qdebug.h>
+#include <QWindow>
+#include <QStack>
 
 QT_BEGIN_NAMESPACE
 
@@ -360,6 +363,7 @@ public:
     Q3DSSlide *currentSlide() const { return m_currentSlide; }
     Q3DSSlide *masterSlide() const { return m_masterSlide; }
     void setCurrentSlide(Q3DSSlide *newSlide);
+    void setComponentCurrentSlide(Q3DSComponentNode *component, Q3DSSlide *newSlide);
 
     void setAnimationsRunning(Q3DSSlide *slide, bool running);
     Q3DSAnimationManager *animationManager() { return m_animationManager; }
@@ -444,7 +448,9 @@ private:
     void updateSubTree(Q3DSGraphObject *obj);
     void prepareNextFrame();
 
-    void updateSlideObjectVisibilities(Q3DSSlide *slide);
+    bool isComponentVisible(Q3DSComponentNode *component);
+    void handleSlideChange(Q3DSSlide *prevSlide, Q3DSSlide *currentSlide, Q3DSSlide *masterSlide, Q3DSComponentNode *component = nullptr);
+    void updateSlideObjectVisibilities(Q3DSSlide *slide, Q3DSComponentNode *component = nullptr);
     void setNodeVisibility(Q3DSNode *node, bool visible);
     bool scheduleNodeVisibilityUpdate(Q3DSGraphObject *obj, Q3DSComponentNode *component = nullptr);
 
@@ -467,6 +473,7 @@ private:
     QSet<Q3DSNode *> m_pendingNodeShow;
     QSet<Q3DSNode *> m_pendingNodeHide;
     Qt3DRender::QLayer *m_fsQuadTag = nullptr;
+    QStack<Q3DSComponentNode *> m_componentNodeStack;
 
     friend class Q3DSFrameUpdater;
 };

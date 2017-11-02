@@ -196,7 +196,7 @@ void SlideExplorerWidget::handleCurrentSlideChanged(Q3DSSlide *slide)
     if (m_presentation) {
         m_sceneManager->setCurrentSlide(slide);
     } else if (m_component) {
-        m_component->setCurrentSlide(slide);
+        m_sceneManager->setComponentCurrentSlide(m_component, slide);
     }
     m_isSlidePlaying = true;
     m_playSlideButton->setText("stop");

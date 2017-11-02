@@ -37,6 +37,7 @@
 
 #include <QDir>
 #include <QLoggingCategory>
+#include <QStack>
 #include <qmath.h>
 
 #include <Qt3DCore/QEntity>
@@ -401,28 +402,19 @@ void Q3DSSceneManager::setCurrentSlide(Q3DSSlide *newSlide)
     auto prevSlide = m_currentSlide;
     m_currentSlide = newSlide;
 
-    if (!m_currentSlide->attached())
-        m_currentSlide->setAttached(new Q3DSSlideAttached);
+    handleSlideChange(prevSlide, m_currentSlide, m_masterSlide);
+}
 
-    // Reset properties like eyeball to the master slide's value.
-    auto slideData = static_cast<Q3DSSlideAttached *>(prevSlide->attached());
-    for (Q3DSNode *node : qAsConst(slideData->needsMasterRollback)) {
-        const Q3DSPropertyChangeList *changeList = node->masterRollbackList();
-        if (changeList) {
-            qCDebug(lcScene, "Rolling back %d changes to master for %s", changeList->count(), node->id().constData());
-            node->applyPropertyChanges(changeList);
-            node->notifyPropertyChanges(changeList);
-        }
-    }
-    slideData->needsMasterRollback.clear();
+void Q3DSSceneManager::setComponentCurrentSlide(Q3DSComponentNode *component, Q3DSSlide *newSlide)
+{
+    if (!component || component->currentSlide() == newSlide)
+        return;
 
-    m_presentation->applySlidePropertyChanges(m_currentSlide);
+    qCDebug(lcScene, "Setting new current slide %s for component %s", newSlide->id().constData(), component->id().constData());
+    auto prevSlide = component->currentSlide();
+    component->setCurrentSlide(newSlide);
 
-    updateSlideObjectVisibilities(prevSlide);
-    updateSlideObjectVisibilities(m_currentSlide);
-
-    updateAnimations(m_masterSlide, m_currentSlide);
-    updateAnimations(m_currentSlide, m_currentSlide);
+    handleSlideChange(prevSlide, component->currentSlide(), component->masterSlide(), component);
 }
 
 QDebug operator<<(QDebug dbg, const Q3DSSceneManager::SceneBuilderParams &p)
@@ -799,6 +791,8 @@ Qt3DRender::QFrameGraphNode *Q3DSSceneManager::buildLayer(Q3DSLayerNode *layer3D
     // Now add the scene contents.
     Q3DSGraphObject *obj = layer3DS->firstChild();
     Qt3DCore::QEntity *layerSceneRootEntity = nullptr;
+    m_componentNodeStack.clear();
+    m_componentNodeStack.push(nullptr);
     while (obj) {
         if (!layerSceneRootEntity) {
             layerSceneRootEntity = new Qt3DCore::QEntity(rtSelector);
@@ -2124,6 +2118,7 @@ void Q3DSSceneManager::buildLayerScene(Q3DSGraphObject *obj, Q3DSLayerNode *laye
     case Q3DSGraphObject::Component:
     {
         Q3DSComponentNode *comp = static_cast<Q3DSComponentNode *>(obj);
+        m_componentNodeStack.push(comp);
         newEntity = buildComponent(comp, layer3DS, parent);
         // enter the first slide of the Component
         if (!comp->currentSlide() && comp->masterSlide()) {
@@ -2140,12 +2135,16 @@ void Q3DSSceneManager::buildLayerScene(Q3DSGraphObject *obj, Q3DSLayerNode *laye
         }
         // build the Component subtree
         addChildren(obj, newEntity);
+        m_componentNodeStack.pop();
     }
         break;
 
     default: // ignore Camera here
         break;
     }
+    auto nodeData = static_cast<Q3DSNodeAttached*>(obj->attached());
+    if (nodeData)
+        nodeData->component = m_componentNodeStack.top();
 }
 
 Qt3DCore::QTransform *Q3DSSceneManager::initEntityForNode(Qt3DCore::QEntity *entity, Q3DSNode *node, Q3DSLayerNode *layer3DS)
@@ -3313,6 +3312,68 @@ void Q3DSSceneManager::updateSubTree(Q3DSGraphObject *obj)
     }
 }
 
+static Q3DSComponentNode *findNextComponentParent(Q3DSComponentNode *component)
+{
+    auto target = component->parent();
+    while (target) {
+        Q3DSGraphObject *parent = component->parent();
+        if (parent->type() == Q3DSGraphObject::Component)
+            return static_cast<Q3DSComponentNode *>(parent);
+        target = target->parent();
+    }
+    return nullptr;
+}
+
+bool Q3DSSceneManager::isComponentVisible(Q3DSComponentNode *component)
+{
+    bool visible = true;
+    if (component) {
+        auto targetComponent = component;
+        do {
+            auto parentComponent = findNextComponentParent(targetComponent);
+            Q3DSSlide *parentMaster = parentComponent ? parentComponent->masterSlide () : m_masterSlide;
+            Q3DSSlide *parentCurrentSlide = parentComponent ? parentComponent->currentSlide() : m_currentSlide;
+            if (!parentMaster->objects()->contains(targetComponent) && !parentCurrentSlide->objects()->contains(targetComponent)) {
+                visible = false;
+                break;
+            }
+            targetComponent = parentComponent;
+        } while (targetComponent);
+    }
+
+    return visible;
+}
+
+void Q3DSSceneManager::handleSlideChange(Q3DSSlide *prevSlide, Q3DSSlide *currentSlide, Q3DSSlide *masterSlide, Q3DSComponentNode *component)
+{
+    if (!currentSlide->attached())
+        currentSlide->setAttached(new Q3DSSlideAttached);
+
+    // Reset properties like eyeball to the master slide's value.
+    auto slideData = static_cast<Q3DSSlideAttached *>(prevSlide->attached());
+    for (Q3DSNode *node : qAsConst(slideData->needsMasterRollback)) {
+        const Q3DSPropertyChangeList *changeList = node->masterRollbackList();
+        if (changeList) {
+            qCDebug(lcScene, "Rolling back %d changes to master for %s", changeList->count(), node->id().constData());
+            node->applyPropertyChanges(changeList);
+            if (isComponentVisible(component)) {
+                node->notifyPropertyChanges(changeList);
+                updateSubTreeRecursive(node);
+            }
+        }
+    }
+    slideData->needsMasterRollback.clear();
+
+
+    m_presentation->applySlidePropertyChanges(currentSlide);
+
+    updateSlideObjectVisibilities(prevSlide, component);
+    updateSlideObjectVisibilities(currentSlide, component);
+
+    updateAnimations(masterSlide, currentSlide);
+    updateAnimations(currentSlide, currentSlide);
+}
+
 void Q3DSSceneManager::prepareNextFrame()
 {
     updateSubTree(m_scene);
@@ -3441,8 +3502,11 @@ void Q3DSSceneManager::updateNodeFromChangeFlags(Q3DSNode *node, Qt3DCore::QTran
         // a subslide. These must be tracked so that obj->masterRollbackList()
         // can be applied since otherwise there's nothing ensuring the
         // visibility is reset when moving to another slide afterwards.
-        if (m_currentSlide && m_masterSlide->objects()->contains(node)) {
-            Q3DSSlideAttached *data = static_cast<Q3DSSlideAttached *>(m_currentSlide->attached());
+        auto nodeData = static_cast<Q3DSNodeAttached*>(node->attached());
+        auto currentSlide = nodeData->component ? nodeData->component->currentSlide() : m_currentSlide;
+        auto masterSlide = nodeData->component ? nodeData->component->masterSlide() : m_masterSlide;
+        if (currentSlide && masterSlide->objects()->contains(node)) {
+            Q3DSSlideAttached *data = static_cast<Q3DSSlideAttached *>(currentSlide->attached());
             Q_ASSERT(data);
             data->needsMasterRollback.insert(node);
         }
@@ -3468,13 +3532,19 @@ void Q3DSSceneManager::updateNodeFromChangeFlags(Q3DSNode *node, Qt3DCore::QTran
     }
 }
 
-void Q3DSSceneManager::updateSlideObjectVisibilities(Q3DSSlide *slide)
+void Q3DSSceneManager::updateSlideObjectVisibilities(Q3DSSlide *slide, Q3DSComponentNode *component)
 {
     for (Q3DSGraphObject *obj : *slide->objects()) {
-        const bool visible = scheduleNodeVisibilityUpdate(obj);
+        const bool visible = scheduleNodeVisibilityUpdate(obj, component);
         if (obj->type() == Q3DSGraphObject::Component) {
             // objects on the Component's current (or master) slide
             Q3DSComponentNode *comp = static_cast<Q3DSComponentNode *>(obj);
+            // Recursively update any component slides
+            Q3DSGraphObject *n = comp->masterSlide()->firstChild();
+            while (n) {
+                updateSlideObjectVisibilities(static_cast<Q3DSSlide *>(n), comp);
+                n = n->nextSibling();
+            }
             for (Q3DSGraphObject *cobj : *comp->masterSlide()->objects())
                 scheduleNodeVisibilityUpdate(cobj, comp);
             for (Q3DSGraphObject *cobj : *comp->currentSlide()->objects())
@@ -3532,11 +3602,13 @@ bool Q3DSSceneManager::scheduleNodeVisibilityUpdate(Q3DSGraphObject *obj, Q3DSCo
         Q3DSNodeAttached *ndata = static_cast<Q3DSNodeAttached *>(node->attached());
         if (ndata) {
             bool visible = ndata->globalVisibility;
+            // Check that object exists current slide scope (master + current)
             Q3DSSlide *master = component ? component->masterSlide () : m_masterSlide;
             Q3DSSlide *currentSlide = component ? component->currentSlide() : m_currentSlide;
             if (!master->objects()->contains(node) && !currentSlide->objects()->contains(node))
                 visible = false;
-            if (component && !m_masterSlide->objects()->contains(component) && !m_currentSlide->objects()->contains(component))
+            // Check if component is visible in parent slide hierarchy
+            if (!isComponentVisible(component))
                 visible = false;
             QSet<Q3DSNode *> *targetSet = visible ? &m_pendingNodeShow : &m_pendingNodeHide;
             targetSet->insert(node);

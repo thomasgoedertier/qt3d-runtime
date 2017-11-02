@@ -473,6 +473,7 @@ private:
     bool m_scannedForTransparency = false;
 };
 
+class Q3DSComponentNode;
 class Q3DSV_EXPORT Q3DSNodeAttached : public Q3DSGraphObjectAttached
 {
 public:
@@ -482,6 +483,7 @@ public:
     float globalOpacity = 1;
     bool globalVisibility = true;
     Q3DSLayerNode *layer3DS = nullptr;
+    Q3DSComponentNode *component = nullptr;
 };
 
 class Q3DSV_EXPORT Q3DSNode : public Q3DSGraphObject
