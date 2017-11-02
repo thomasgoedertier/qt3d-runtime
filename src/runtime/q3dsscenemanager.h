@@ -314,6 +314,7 @@ class Q3DSSlideAttached : public Q3DSGraphObjectAttached
 {
 public:
     QVector<Qt3DAnimation::QClipAnimator *> animators;
+    QSet<Q3DSNode *> needsMasterRollback;
 };
 
 class Q3DSImageAttached : public Q3DSGraphObjectAttached

@@ -404,6 +404,20 @@ void Q3DSSceneManager::setCurrentSlide(Q3DSSlide *newSlide)
     if (!m_currentSlide->attached())
         m_currentSlide->setAttached(new Q3DSSlideAttached);
 
+    // Reset properties like eyeball to the master slide's value.
+    auto slideData = static_cast<Q3DSSlideAttached *>(prevSlide->attached());
+    for (Q3DSNode *node : qAsConst(slideData->needsMasterRollback)) {
+        const Q3DSPropertyChangeList *changeList = node->masterRollbackList();
+        if (changeList) {
+            qCDebug(lcScene, "Rolling back %d changes to master for %s", changeList->count(), node->id().constData());
+            node->applyPropertyChanges(changeList);
+            node->notifyPropertyChanges(changeList);
+        }
+    }
+    slideData->needsMasterRollback.clear();
+
+    m_presentation->applySlidePropertyChanges(m_currentSlide);
+
     updateSlideObjectVisibilities(prevSlide);
     updateSlideObjectVisibilities(m_currentSlide);
 
@@ -3423,6 +3437,16 @@ void Q3DSSceneManager::updateNodeFromChangeFlags(Q3DSNode *node, Qt3DCore::QTran
     }
 
     if (cf.testFlag(Q3DSPropertyChangeList::EyeballChanges)) {
+        // Special case: objects on master slide that get an eyeball change in
+        // a subslide. These must be tracked so that obj->masterRollbackList()
+        // can be applied since otherwise there's nothing ensuring the
+        // visibility is reset when moving to another slide afterwards.
+        if (m_currentSlide && m_masterSlide->objects()->contains(node)) {
+            Q3DSSlideAttached *data = static_cast<Q3DSSlideAttached *>(m_currentSlide->attached());
+            Q_ASSERT(data);
+            data->needsMasterRollback.insert(node);
+        }
+
         if (node->type() == Q3DSGraphObject::Light) {
             Q3DSLightAttached *lightData = static_cast<Q3DSLightAttached *>(node->attached());
             Q3DSLayerAttached *layerData = static_cast<Q3DSLayerAttached *>(lightData->layer3DS->attached());

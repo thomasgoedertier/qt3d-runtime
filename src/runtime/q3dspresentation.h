@@ -527,6 +527,7 @@ public:
     qint32 skeletonId() const { return m_skeletonId; }
     RotationOrder rotationOrder() const { return m_rotationOrder; }
     Orientation orientation() const { return m_orientation; }
+    const Q3DSPropertyChangeList *masterRollbackList() const { return m_masterRollbackList.data(); }
 
     QStringList gex_propertyNames() const override;
     QVariantList gex_propertyValues() const override;
@@ -553,6 +554,7 @@ protected:
     qint32 m_skeletonId = -1;
     RotationOrder m_rotationOrder = YXZ;
     Orientation m_orientation = LeftHanded;
+    QScopedPointer<Q3DSPropertyChangeList> m_masterRollbackList;
 
 private:
     Q_DISABLE_COPY(Q3DSNode)
