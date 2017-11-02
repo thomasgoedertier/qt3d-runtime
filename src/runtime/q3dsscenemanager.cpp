@@ -483,13 +483,13 @@ Q3DSSceneManager::Scene Q3DSSceneManager::buildScene(Q3DSPresentation *presentat
     // Fullscreen quad for bluring the shadow map/cubemap
     Q3DSShaderManager &sm(Q3DSShaderManager::instance());
     QStringList fsQuadPassNames { QLatin1String("shadowOrthoBlurX"), QLatin1String("shadowOrthoBlurY") };
-    QVector<Qt3DRender::QShaderProgram *> fsQuadPassProgs { sm.getOrthoShadowBlurXShader(), sm.getOrthoShadowBlurYShader() };
+    QVector<Qt3DRender::QShaderProgram *> fsQuadPassProgs { sm.getOrthoShadowBlurXShader(m_rootEntity), sm.getOrthoShadowBlurYShader(m_rootEntity) };
     if (m_gfxLimits.maxDrawBuffers >= 6) { // ###
         fsQuadPassNames << QLatin1String("shadowCubeBlurX") << QLatin1String("shadowCubeBlurY");
-        fsQuadPassProgs << sm.getCubeShadowBlurXShader(m_gfxLimits) << sm.getCubeShadowBlurYShader(m_gfxLimits);
+        fsQuadPassProgs << sm.getCubeShadowBlurXShader(m_rootEntity, m_gfxLimits) << sm.getCubeShadowBlurYShader(m_rootEntity, m_gfxLimits);
     }
     fsQuadPassNames << QLatin1String("ssao");
-    fsQuadPassProgs << sm.getSsaoTextureShader();
+    fsQuadPassProgs << sm.getSsaoTextureShader(m_rootEntity);
     buildFsQuad(m_rootEntity, fsQuadPassNames, fsQuadPassProgs, m_fsQuadTag);
 
     // Ready to go (except that the sizes calculated from window->size() are likely bogus, those will get updated in updateSizes())
@@ -880,16 +880,22 @@ QVector<Qt3DRender::QRenderPass *> Q3DSSceneManager::standardRenderPasses(Qt3DRe
     transPass->addRenderState(blendFunc);
     transPass->addRenderState(blendArgs);
 
-    shadowOrthoPass->setShaderProgram(Q3DSShaderManager::instance().getOrthographicDepthNoTessShader());
-    shadowCubePass->setShaderProgram(Q3DSShaderManager::instance().getCubeDepthNoTessShader());
-    depthPass->setShaderProgram(Q3DSShaderManager::instance().getDepthPrepassShader(hasDisplacement));
+    // Make sure the shared shader programs are not parented to the renderpass
+    // and thus the material. (the material can be rebuilt later on, cannot let
+    // its destroy tear down shared resources)
+    Q3DSLayerAttached *layerData = static_cast<Q3DSLayerAttached *>(layer3DS->attached());
+    Q_ASSERT(layerData && layerData->entity);
+
+    shadowOrthoPass->setShaderProgram(Q3DSShaderManager::instance().getOrthographicDepthNoTessShader(layerData->entity));
+    shadowCubePass->setShaderProgram(Q3DSShaderManager::instance().getCubeDepthNoTessShader(layerData->entity));
+    depthPass->setShaderProgram(Q3DSShaderManager::instance().getDepthPrepassShader(layerData->entity, hasDisplacement));
     opaquePass->setShaderProgram(program);
     transPass->setShaderProgram(program);
 
     return { shadowOrthoPass, shadowCubePass, depthPass, opaquePass, transPass };
 }
 
-QVector<Qt3DRender::QTechnique *> Q3DSSceneManager::computeTechniques()
+QVector<Qt3DRender::QTechnique *> Q3DSSceneManager::computeTechniques(Q3DSLayerNode *layer3DS)
 {
     Qt3DRender::QTechnique *bsdfPrefilter = new Qt3DRender::QTechnique;
 
@@ -901,7 +907,9 @@ QVector<Qt3DRender::QTechnique *> Q3DSSceneManager::computeTechniques()
     Q3DSDefaultMaterialGenerator::addDefaultApiFilter(bsdfPrefilter);
 
     Qt3DRender::QRenderPass *bsdfComputePass = new Qt3DRender::QRenderPass;
-    bsdfComputePass->setShaderProgram(Q3DSShaderManager::instance().getBsdfMipPreFilterShader());
+    Q3DSLayerAttached *layerData = static_cast<Q3DSLayerAttached *>(layer3DS->attached());
+    Q_ASSERT(layerData && layerData->entity);
+    bsdfComputePass->setShaderProgram(Q3DSShaderManager::instance().getBsdfMipPreFilterShader(layerData->entity));
     bsdfPrefilter->addRenderPass(bsdfComputePass);
 
     return { bsdfPrefilter };
@@ -2491,6 +2499,7 @@ Qt3DCore::QEntity *Q3DSSceneManager::buildModel(Q3DSModelNode *model3DS, Q3DSLay
 
     model3DS->addPropertyChangeObserver(std::bind(&Q3DSSceneManager::handlePropertyChange, this,
                                                   std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
+
     return entity;
 }
 
@@ -2558,6 +2567,13 @@ void Q3DSSceneManager::buildModelMaterial(Q3DSModelNode *model3DS)
                 if (layerData->ssaoTextureData.enabled && layerData->ssaoTextureData.ssaoTextureSampler)
                     params.append(layerData->ssaoTextureData.ssaoTextureSampler);
 
+                // Do not let the QMaterial own the (potentially not yet
+                // parented) QParameters. Parent them to some other QNode. This
+                // is important here due to rebuildModelMaterial() where
+                // sm.materialComponent may get destroyed afterwards.
+                for (Qt3DRender::QParameter *param : params)
+                    param->setParent(sm.entity);
+
                 sm.materialComponent = m_matGen->generateMaterial(defaultMaterial, params, layerData->lightNodes, modelData->layer3DS);
                 sm.entity->addComponent(sm.materialComponent);
             } else if (sm.resolvedMaterial->type() == Q3DSGraphObject::CustomMaterial) {
@@ -2589,6 +2605,26 @@ void Q3DSSceneManager::buildModelMaterial(Q3DSModelNode *model3DS)
             }
         }
     }
+}
+
+void Q3DSSceneManager::rebuildModelMaterial(Q3DSModelNode *model3DS)
+{
+    // After the initial scene building phase 2 materials will sometimes need
+    // to be recreated due to certain property changes (shadow casters, SSAO).
+
+    Q3DSModelAttached *modelData = static_cast<Q3DSModelAttached *>(model3DS->attached());
+    if (!modelData)
+        return;
+
+    for (Q3DSModelAttached::SubMesh &sm : modelData->subMeshes) {
+        if (sm.resolvedMaterial && sm.materialComponent) {
+            qCDebug(lcScene, "Rebuilding material for %s (entity %p)", model3DS->id().constData(), sm.entity);
+            delete sm.materialComponent;
+            sm.materialComponent = nullptr;
+        }
+    }
+
+    buildModelMaterial(model3DS);
 }
 
 void Q3DSSceneManager::retagSubMeshes(Q3DSModelNode *model3DS)

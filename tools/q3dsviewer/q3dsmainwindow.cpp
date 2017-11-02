@@ -232,12 +232,18 @@ Q3DStudioMainWindow::Q3DStudioMainWindow(Q3DStudioWindow *view, QWidget *parent)
             view->sceneManager()->setDepthTextureEnabled(layer3DS, depthTexAction->isChecked());
         });
     });
-    QAction *ssaoTexAction = debugMenu->addAction(tr("&Force SSAO texture"));
+    QAction *ssaoTexAction = debugMenu->addAction(tr("Force SS&AO texture"));
     ssaoTexAction->setCheckable(true);
     ssaoTexAction->setChecked(false);
     connect(ssaoTexAction, &QAction::toggled, [=]() {
         Q3DSPresentation::forAllLayers(view->uip()->presentation()->scene(), [=](Q3DSLayerNode *layer3DS) {
             view->sceneManager()->setSsaoTextureEnabled(layer3DS, ssaoTexAction->isChecked());
+        });
+    });
+    QAction *rebuildMatAction = debugMenu->addAction(tr("&Rebuild model materials"));
+    connect(rebuildMatAction, &QAction::triggered, [=]() {
+        Q3DSPresentation::forAllModels(view->uip()->presentation()->scene(), [=](Q3DSModelNode *model3DS) {
+            view->sceneManager()->rebuildModelMaterial(model3DS);
         });
     });
 

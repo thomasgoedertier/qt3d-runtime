@@ -27,6 +27,7 @@
 **
 ****************************************************************************/
 
+#include <Qt3DCore/QEntity>
 #include <Qt3DRender/QMaterial>
 #include <Qt3DRender/QEffect>
 #include <Qt3DRender/QTechnique>
@@ -109,6 +110,11 @@ Qt3DRender::QMaterial *Q3DSDefaultMaterialGenerator::generateMaterial(Q3DSDefaul
                                                                                                     lights,
                                                                                                     false,
                                                                                                     features);
+
+    // The returned program may be a cached instance, ensure it is not parented
+    // to the QMaterial by parenting it to something else now.
+    shaderProgram->setParent(layerData->entity);
+
     for (Qt3DRender::QRenderPass *pass : Q3DSSceneManager::standardRenderPasses(shaderProgram,
                                                                                 layer3DS,
                                                                                 defaultMaterial->blendMode(),
@@ -121,7 +127,7 @@ Qt3DRender::QMaterial *Q3DSDefaultMaterialGenerator::generateMaterial(Q3DSDefaul
     effect->addTechnique(technique);
 
     if (hasCompute()) {
-        for (Qt3DRender::QTechnique *computeTechnique : Q3DSSceneManager::computeTechniques())
+        for (Qt3DRender::QTechnique *computeTechnique : Q3DSSceneManager::computeTechniques(layer3DS))
             effect->addTechnique(computeTechnique);
     }
 

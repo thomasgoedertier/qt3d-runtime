@@ -54,7 +54,7 @@ Qt3DRender::QShaderProgram *Q3DSShaderManager::generateShaderProgram(Q3DSDefault
     return m_materialShaderGenerator->generateShader(material, pipeline, featureSet, lights, hasTransparency);
 }
 
-Qt3DRender::QShaderProgram *Q3DSShaderManager::getCubeDepthNoTessShader()
+Qt3DRender::QShaderProgram *Q3DSShaderManager::getCubeDepthNoTessShader(Qt3DCore::QNode *parent)
 {
     if (!m_cubeDepthShader) {
         m_shaderProgramGenerator->beginProgram();
@@ -81,12 +81,13 @@ Qt3DRender::QShaderProgram *Q3DSShaderManager::getCubeDepthNoTessShader()
         fragmentShader->append("}");
 
         m_cubeDepthShader = m_shaderProgramGenerator->compileGeneratedShader(QLatin1String("cubemap face depth shader"), Q3DSShaderFeatureSet());
+        m_cubeDepthShader->setParent(parent);
     }
 
     return m_cubeDepthShader;
 }
 
-Qt3DRender::QShaderProgram *Q3DSShaderManager::getOrthographicDepthNoTessShader()
+Qt3DRender::QShaderProgram *Q3DSShaderManager::getOrthographicDepthNoTessShader(Qt3DCore::QNode *parent)
 {
     if (!m_orthoDepthShader) {
         m_shaderProgramGenerator->beginProgram();
@@ -107,12 +108,13 @@ Qt3DRender::QShaderProgram *Q3DSShaderManager::getOrthographicDepthNoTessShader(
         fragmentShader->append("}");
 
         m_orthoDepthShader = m_shaderProgramGenerator->compileGeneratedShader(QLatin1String("orthographic depth shader"), Q3DSShaderFeatureSet());
+        m_orthoDepthShader->setParent(parent);
     }
 
     return m_orthoDepthShader;
 }
 
-Qt3DRender::QShaderProgram *Q3DSShaderManager::getDepthPrepassShader(bool displaced)
+Qt3DRender::QShaderProgram *Q3DSShaderManager::getDepthPrepassShader(Qt3DCore::QNode *parent, bool displaced)
 {
     if (!m_depthPrePassShader) {
         m_shaderProgramGenerator->beginProgram();
@@ -152,12 +154,13 @@ Qt3DRender::QShaderProgram *Q3DSShaderManager::getDepthPrepassShader(bool displa
         fragmentShader->append("}");
 
         m_depthPrePassShader = m_shaderProgramGenerator->compileGeneratedShader(displaced ? QLatin1String("depth prepass displaced") : QLatin1String("depth prepass"), Q3DSShaderFeatureSet());
+        m_depthPrePassShader->setParent(parent);
     }
 
     return m_depthPrePassShader;
 }
 
-Qt3DRender::QShaderProgram *Q3DSShaderManager::getOrthoShadowBlurXShader()
+Qt3DRender::QShaderProgram *Q3DSShaderManager::getOrthoShadowBlurXShader(Qt3DCore::QNode *parent)
 {
     if (!m_orthoShadowBlurXShader) {
         m_shaderProgramGenerator->beginProgram();
@@ -193,12 +196,13 @@ Qt3DRender::QShaderProgram *Q3DSShaderManager::getOrthoShadowBlurXShader()
         fragmentShader->append("}");
 
         m_orthoShadowBlurXShader = m_shaderProgramGenerator->compileGeneratedShader(QLatin1String("shadow map blur X shader"), Q3DSShaderFeatureSet());
+        m_orthoShadowBlurXShader->setParent(parent);
     }
 
     return m_orthoShadowBlurXShader;
 }
 
-Qt3DRender::QShaderProgram *Q3DSShaderManager::getOrthoShadowBlurYShader()
+Qt3DRender::QShaderProgram *Q3DSShaderManager::getOrthoShadowBlurYShader(Qt3DCore::QNode *parent)
 {
     if (!m_orthoShadowBlurYShader) {
         m_shaderProgramGenerator->beginProgram();
@@ -234,12 +238,13 @@ Qt3DRender::QShaderProgram *Q3DSShaderManager::getOrthoShadowBlurYShader()
         fragmentShader->append("}");
 
         m_orthoShadowBlurYShader = m_shaderProgramGenerator->compileGeneratedShader(QLatin1String("shadow map blur Y shader"), Q3DSShaderFeatureSet());
+        m_orthoShadowBlurYShader->setParent(parent);
     }
 
     return m_orthoShadowBlurYShader;
 }
 
-Qt3DRender::QShaderProgram *Q3DSShaderManager::getCubeShadowBlurXShader(const Q3DSGraphicsLimits &)
+Qt3DRender::QShaderProgram *Q3DSShaderManager::getCubeShadowBlurXShader(Qt3DCore::QNode *parent, const Q3DSGraphicsLimits &)
 {
     if (!m_cubeShadowBlurXShader) {
         m_shaderProgramGenerator->beginProgram();
@@ -361,12 +366,13 @@ Qt3DRender::QShaderProgram *Q3DSShaderManager::getCubeShadowBlurXShader(const Q3
         fragmentShader->append("}");
 
         m_cubeShadowBlurXShader = m_shaderProgramGenerator->compileGeneratedShader(QLatin1String("cubemap shadow blur X shader"), Q3DSShaderFeatureSet());
+        m_cubeShadowBlurXShader->setParent(parent);
     }
 
     return m_cubeShadowBlurXShader;
 }
 
-Qt3DRender::QShaderProgram *Q3DSShaderManager::getCubeShadowBlurYShader(const Q3DSGraphicsLimits &)
+Qt3DRender::QShaderProgram *Q3DSShaderManager::getCubeShadowBlurYShader(Qt3DCore::QNode *parent, const Q3DSGraphicsLimits &)
 {
     if (!m_cubeShadowBlurYShader) {
         m_shaderProgramGenerator->beginProgram();
@@ -488,12 +494,13 @@ Qt3DRender::QShaderProgram *Q3DSShaderManager::getCubeShadowBlurYShader(const Q3
         fragmentShader->append("}");
 
         m_cubeShadowBlurYShader = m_shaderProgramGenerator->compileGeneratedShader(QLatin1String("cubemap shadow blur Y shader"), Q3DSShaderFeatureSet());
+        m_cubeShadowBlurYShader->setParent(parent);
     }
 
     return m_cubeShadowBlurYShader;
 }
 
-Qt3DRender::QShaderProgram *Q3DSShaderManager::getSsaoTextureShader()
+Qt3DRender::QShaderProgram *Q3DSShaderManager::getSsaoTextureShader(Qt3DCore::QNode *parent)
 {
     if (!m_ssaoTextureShader) {
         m_shaderProgramGenerator->beginProgram();
@@ -558,12 +565,13 @@ Qt3DRender::QShaderProgram *Q3DSShaderManager::getSsaoTextureShader()
         fragmentShader->append("}");
 
         m_ssaoTextureShader = m_shaderProgramGenerator->compileGeneratedShader(QLatin1String("fullscreen AO pass shader"), Q3DSShaderFeatureSet());
+        m_ssaoTextureShader->setParent(parent);
     }
 
     return m_ssaoTextureShader;
 }
 
-Qt3DRender::QShaderProgram *Q3DSShaderManager::getBsdfMipPreFilterShader()
+Qt3DRender::QShaderProgram *Q3DSShaderManager::getBsdfMipPreFilterShader(Qt3DCore::QNode *parent)
 {
     if (!m_bsdfMipPreFilterShader) {
         m_bsdfMipPreFilterShader = new Qt3DRender::QShaderProgram;
@@ -630,6 +638,7 @@ Qt3DRender::QShaderProgram *Q3DSShaderManager::getBsdfMipPreFilterShader()
                 "}\n";
 
         m_bsdfMipPreFilterShader->setComputeShaderCode(code);
+        m_bsdfMipPreFilterShader->setParent(parent);
     }
 
     return m_bsdfMipPreFilterShader;

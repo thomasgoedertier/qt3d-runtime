@@ -65,21 +65,21 @@ public:
                                                       bool hasTransparency,
                                                       const Q3DSShaderFeatureSet &featureSet);
 
-    Qt3DRender::QShaderProgram* getCubeDepthNoTessShader();
+    Qt3DRender::QShaderProgram* getCubeDepthNoTessShader(Qt3DCore::QNode *parent);
 
-    Qt3DRender::QShaderProgram* getOrthographicDepthNoTessShader();
+    Qt3DRender::QShaderProgram* getOrthographicDepthNoTessShader(Qt3DCore::QNode *parent);
 
-    Qt3DRender::QShaderProgram* getDepthPrepassShader(bool displaced);
+    Qt3DRender::QShaderProgram* getDepthPrepassShader(Qt3DCore::QNode *parent, bool displaced);
 
-    Qt3DRender::QShaderProgram *getOrthoShadowBlurXShader();
-    Qt3DRender::QShaderProgram *getOrthoShadowBlurYShader();
+    Qt3DRender::QShaderProgram *getOrthoShadowBlurXShader(Qt3DCore::QNode *parent);
+    Qt3DRender::QShaderProgram *getOrthoShadowBlurYShader(Qt3DCore::QNode *parent);
 
-    Qt3DRender::QShaderProgram *getCubeShadowBlurXShader(const Q3DSGraphicsLimits &limits);
-    Qt3DRender::QShaderProgram *getCubeShadowBlurYShader(const Q3DSGraphicsLimits &limits);
+    Qt3DRender::QShaderProgram *getCubeShadowBlurXShader(Qt3DCore::QNode *parent, const Q3DSGraphicsLimits &limits);
+    Qt3DRender::QShaderProgram *getCubeShadowBlurYShader(Qt3DCore::QNode *parent, const Q3DSGraphicsLimits &limits);
 
-    Qt3DRender::QShaderProgram *getSsaoTextureShader();
+    Qt3DRender::QShaderProgram *getSsaoTextureShader(Qt3DCore::QNode *parent);
 
-    Qt3DRender::QShaderProgram *getBsdfMipPreFilterShader();
+    Qt3DRender::QShaderProgram *getBsdfMipPreFilterShader(Qt3DCore::QNode *parent);
 
 #if 0
     Qt3DRender::QShaderProgram* getParaboloidDepthShader(TessModeValues::Enum tessMode);

@@ -373,11 +373,12 @@ public:
                                                                    Q3DSLayerNode *layer3DS,
                                                                    Q3DSDefaultMaterial::BlendMode blendMode = Q3DSDefaultMaterial::Normal,
                                                                    bool hasDisplacement = false);
-    static QVector<Qt3DRender::QTechnique *> computeTechniques();
+    static QVector<Qt3DRender::QTechnique *> computeTechniques(Q3DSLayerNode *layer3DS);
     static void markAsMainTechnique(Qt3DRender::QTechnique *technique);
 
     void setDepthTextureEnabled(Q3DSLayerNode *layer3DS, bool enabled);
     void setSsaoTextureEnabled(Q3DSLayerNode *layer3DS, bool enabled);
+    void rebuildModelMaterial(Q3DSModelNode *model3DS);
 
 private:
     Qt3DRender::QFrameGraphNode *buildLayer(Q3DSLayerNode *layer3DS, Qt3DRender::QFrameGraphNode *parent, const QSize &parentSize);
