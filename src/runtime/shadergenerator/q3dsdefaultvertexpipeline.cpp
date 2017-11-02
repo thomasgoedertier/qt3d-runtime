@@ -557,10 +557,13 @@ struct ShaderGenerator : public Q3DSDefaultMaterialShaderGenerator
         bool enableShadowMaps = false;
 
         for (qint32 idx = 0; idx < featureSet().size(); ++idx) {
-            QString name(featureSet()[idx].m_name);
-            enableSSAO = (name == QStringLiteral("UIC_ENABLE_SSAO") && featureSet()[idx].m_enabled);
-            enableSSDO = (name == QStringLiteral("UIC_ENABLE_SSDO") && featureSet()[idx].m_enabled);
-            enableShadowMaps = (name == QStringLiteral("UIC_ENABLE_SSM") && featureSet()[idx].m_enabled);
+            const QString name(featureSet()[idx].m_name);
+            if (name == QStringLiteral("UIC_ENABLE_SSAO"))
+                enableSSAO = featureSet()[idx].m_enabled;
+            else if (name == QStringLiteral("UIC_ENABLE_SSDO"))
+                enableSSDO = featureSet()[idx].m_enabled;
+            else if (name == QStringLiteral("UIC_ENABLE_SSM"))
+                enableShadowMaps = featureSet()[idx].m_enabled;
         }
 
         bool includeSSAOSSDOVars = enableSSAO || enableSSDO || enableShadowMaps || bumpImage != nullptr || normalImage != nullptr;
