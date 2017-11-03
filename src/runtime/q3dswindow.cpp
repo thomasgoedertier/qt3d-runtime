@@ -42,6 +42,8 @@
 #include <Qt3DAnimation/QAnimationAspect>
 #include <Qt3DLogic/QLogicAspect>
 
+#include <Qt3DInput/QInputSettings>
+
 #include <Qt3DCore/private/qaspectengine_p.h>
 
 #ifndef GL_MAX_DRAW_BUFFERS
@@ -180,7 +182,8 @@ void Q3DStudioWindow::createAspectEngine()
 bool Q3DStudioWindow::setUipSource(const QString &filename)
 {
     if (m_q3dscene.rootEntity) {
-        m_sceneManager.prepareSceneChange();
+        m_sceneManager.prepareEngineReset();
+        Q3DSSceneManager::prepareEngineResetGlobal();
         Qt3DCore::QAspectEnginePrivate::get(m_aspectEngine.data())->exitSimulationLoop();
         createAspectEngine();
         m_q3dscene = Q3DSSceneManager::Scene();
@@ -190,11 +193,19 @@ bool Q3DStudioWindow::setUipSource(const QString &filename)
     if (m_uipDocument.loadUip(m_uipFileName)) {
         auto pres = m_uipDocument.presentation();
         // Presentation is ready. Build the Qt3D scene. This will also activate the first sub-slide.
-        Q3DSSceneManager::SceneBuilderFlags flags = 0;
+        Q3DSSceneManager::SceneBuilderParams params;
+        params.flags = 0;
         if (initFlags.testFlag(MSAA4x))
-            flags |= Q3DSSceneManager::LayerMSAA4x;
-        m_q3dscene = m_sceneManager.buildScene(pres, this, flags);
+            params.flags |= Q3DSSceneManager::LayerMSAA4x;
+        params.outputSize = size();
+        params.outputDpr = devicePixelRatio();
+        params.window = this;
+        m_q3dscene = m_sceneManager.buildScene(pres, params);
         if (m_q3dscene.rootEntity) {
+            // Input
+            Qt3DInput::QInputSettings *inputSettings = new Qt3DInput::QInputSettings;
+            inputSettings->setEventSource(this);
+            m_q3dscene.rootEntity->addComponent(inputSettings);
             // Ready to go.
             QSize winSize(pres->presentationWidth(), pres->presentationHeight());
             if (winSize.isEmpty())
@@ -220,7 +231,7 @@ void Q3DStudioWindow::exposeEvent(QExposeEvent *)
 void Q3DStudioWindow::resizeEvent(QResizeEvent *)
 {
     if (m_q3dscene.rootEntity)
-        m_sceneManager.updateSizes(this);
+        m_sceneManager.updateSizes(size(), devicePixelRatio());
 }
 
 void Q3DStudioWindow::setOnDemandRendering(bool enabled)

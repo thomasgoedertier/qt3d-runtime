@@ -32,7 +32,7 @@
 
 #include <Qt3DStudioRuntime2/q3dspresentation.h>
 #include <Qt3DStudioRuntime2/q3dsgraphicslimits.h>
-#include <QWindow>
+#include <QtCore/qdebug.h>
 
 QT_BEGIN_NAMESPACE
 
@@ -65,10 +65,6 @@ class QPaintedTextureImage;
 class QLayerFilter;
 class QRenderTargetSelector;
 class QTechnique;
-}
-
-namespace Qt3DInput {
-class QInputSettings;
 }
 
 namespace Qt3DExtras {
@@ -335,27 +331,34 @@ public:
     };
     Q_DECLARE_FLAGS(SceneBuilderFlags, SceneBuilderFlag)
 
+    struct SceneBuilderParams {
+        SceneBuilderFlags flags;
+        QSize outputSize;
+        qreal outputDpr = 1;
+        QObject *window = nullptr; // null for subpresentations that go into a texture
+        Qt3DRender::QFrameGraphNode *frameGraphRoot = nullptr; // when !window
+    };
+
     struct Scene {
         Qt3DCore::QEntity *rootEntity = nullptr;
-        Qt3DRender::QRenderSettings *renderSettings = nullptr;
-        Qt3DInput::QInputSettings *inputSettings = nullptr;
+        Qt3DRender::QFrameGraphNode *frameGraphRoot = nullptr;
+        Qt3DRender::QRenderSettings *renderSettings = nullptr; // when params.window!=0
     };
 
     Q3DSSceneManager(const Q3DSGraphicsLimits &limits);
     ~Q3DSSceneManager();
 
-    void prepareSceneChange();
-    Scene buildScene(Q3DSPresentation *presentation, QWindow *window, SceneBuilderFlags flags);
-    void updateSizes(QWindow *window);
+    Scene buildScene(Q3DSPresentation *presentation, const SceneBuilderParams &params);
+    void updateSizes(const QSize &size, qreal dpr);
+
+    void prepareEngineReset();
+    static void prepareEngineResetGlobal();
 
     Q3DSSlide *currentSlide() const { return m_currentSlide; }
     Q3DSSlide *masterSlide() const { return m_masterSlide; }
     void setCurrentSlide(Q3DSSlide *newSlide);
 
-    void updateAnimations(Q3DSSlide *animSourceSlide, Q3DSSlide *playModeSourceSlide);
     void setAnimationsRunning(Q3DSSlide *slide, bool running);
-
-    void prepareNextFrame();
     Q3DSAnimationManager *animationBuilder() { return m_animationManager; }
 
     enum SetNodePropFlag {
@@ -434,10 +437,13 @@ private:
     void updateNodeFromChangeFlags(Q3DSNode *node, Qt3DCore::QTransform *transform, int changeFlags);
     void updateSubTreeRecursive(Q3DSGraphObject *obj);
     void updateSubTree(Q3DSGraphObject *obj);
+    void prepareNextFrame();
 
     void updateSlideObjectVisibilities(Q3DSSlide *slide);
     void setNodeVisibility(Q3DSNode *node, bool visible);
     bool scheduleNodeVisibilityUpdate(Q3DSGraphObject *obj, Q3DSComponentNode *component = nullptr);
+
+    void updateAnimations(Q3DSSlide *animSourceSlide, Q3DSSlide *playModeSourceSlide);
 
     Q3DSGraphicsLimits m_gfxLimits;
     SceneBuilderFlags m_flags = SceneBuilderFlags();
@@ -456,6 +462,8 @@ private:
     QSet<Q3DSNode *> m_pendingNodeShow;
     QSet<Q3DSNode *> m_pendingNodeHide;
     Qt3DRender::QLayer *m_fsQuadTag = nullptr;
+
+    friend class Q3DSFrameUpdater;
 };
 
 Q_DECLARE_OPERATORS_FOR_FLAGS(Q3DSSceneManager::SceneBuilderFlags)
@@ -472,6 +480,8 @@ public:
 private:
     Q3DSSceneManager *m_sceneManager;
 };
+
+Q3DSV_EXPORT QDebug operator<<(QDebug dbg, const Q3DSSceneManager::SceneBuilderParams &p);
 
 QT_END_NAMESPACE
 

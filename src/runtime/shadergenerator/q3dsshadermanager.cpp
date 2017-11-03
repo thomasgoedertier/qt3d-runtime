@@ -652,8 +652,6 @@ Q3DSShaderManager::Q3DSShaderManager()
 
 void Q3DSShaderManager::invalidate()
 {
-    // all cached resources should be dropped, Qt3D objects may be destroyed at this stage.
-
     m_depthPrePassShader = nullptr;
     m_orthoDepthShader = nullptr;
     m_cubeDepthShader = nullptr;

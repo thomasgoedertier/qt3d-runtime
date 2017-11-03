@@ -79,8 +79,6 @@
 
 #include <Qt3DExtras/QPlaneMesh>
 
-#include <Qt3DInput/QInputSettings>
-
 #include <Qt3DLogic/QFrameAction>
 
 QT_BEGIN_NAMESPACE
@@ -90,11 +88,17 @@ Q_LOGGING_CATEGORY(lcScene, "q3ds.scene")
 /*
     Approx. scene structure:
 
-    // m_rootEntity
+    // m_rootEntity when params.window!=0
     Entity {
         components: [
             RenderSettings {
-                activeFrameGraph: RenderSurfaceSelector { // frameGraphRoot
+                activeFrameGraph: RenderSurfaceSelector { // frameGraphRoot when params.window!=0
+
+                    RenderTargetSelector { // frameGraphRoot when !params.window
+                        ... // Subpresentation framegraphs, same structure as below (1..N layer + compositor).
+                            // Due to only having LayerFilter (or NoDraw) leaves with (3DS-)layer or SceneManager specific
+                            // QLayer tags, selection of the right entities for a subpresentation works automatically.
+                    }
 
                     // Layer #1 framegraph
                     RenderTargetSelector { Viewport { CameraSelector {
@@ -253,7 +257,7 @@ Q_LOGGING_CATEGORY(lcScene, "q3ds.scene")
                     }
                 }
             },
-            InputSettings { }
+            ... // InputSettings etc. these are not handled by SceneManager
         ]
 
         // compositorEntity
@@ -267,7 +271,15 @@ Q_LOGGING_CATEGORY(lcScene, "q3ds.scene")
               shadowCubeBlurX, shadowCubeBlurY
               ssao
         }
+
+        Entity { // m_rootEntity for a SceneManager with !params.window
+           ... // subpresentation compositor and fs quad entities like above
+        }
+        ...
     }
+
+    Entities for one (3DS) layer live under a per-layer root entity parented to
+    the RenderTargetSelector corresponding to that layer.
 
     Generic materials are expected to provide a technique with a number of render passes.
     Specialized materials may drop some of the passes (e.g. text only provides transparent).
@@ -362,15 +374,15 @@ Q3DSSceneManager::~Q3DSSceneManager()
     delete m_frameUpdater;
 }
 
-void Q3DSSceneManager::updateSizes(QWindow *window)
+void Q3DSSceneManager::updateSizes(const QSize &size, qreal dpr)
 {
     if (!m_scene)
         return;
 
-    qCDebug(lcScene) << "Window size" << window->size() << "DPR" << window->devicePixelRatio();
+    qCDebug(lcScene) << "Size" << size << "DPR" << dpr;
 
-    Q3DSPresentation::forAllLayers(m_scene, [=](Q3DSLayerNode *layer3DS) {
-        updateSizesForLayer(layer3DS, window->size() * window->devicePixelRatio()); });
+    Q3DSPresentation::forAllLayers(m_scene,
+                                   [=](Q3DSLayerNode *layer3DS) { updateSizesForLayer(layer3DS, size * dpr); });
 }
 
 void Q3DSSceneManager::setCurrentSlide(Q3DSSlide *newSlide)
@@ -392,32 +404,64 @@ void Q3DSSceneManager::setCurrentSlide(Q3DSSlide *newSlide)
     updateAnimations(m_currentSlide, m_currentSlide);
 }
 
-void Q3DSSceneManager::prepareSceneChange()
+QDebug operator<<(QDebug dbg, const Q3DSSceneManager::SceneBuilderParams &p)
 {
-    qCDebug(lcScene, "prepareSceneChange");
+    QDebugStateSaver saver(dbg);
+    dbg << "SceneBuilderParams(" << p.flags << p.outputSize << p.outputDpr << p.window << ")";
+    return dbg;
+}
+
+void Q3DSSceneManager::prepareEngineReset()
+{
+    qCDebug(lcScene, "prepareEngineReset on scenemanager %p", this);
 
     delete m_frameUpdater;
     m_frameUpdater = nullptr;
 
     m_animationManager->clearPendingChanges();
+}
+
+void Q3DSSceneManager::prepareEngineResetGlobal()
+{
+    qCDebug(lcScene, "prepareEngineResetGlobal");
 
     Q3DSShaderManager::instance().invalidate();
 }
 
-Q3DSSceneManager::Scene Q3DSSceneManager::buildScene(Q3DSPresentation *presentation, QWindow *window, SceneBuilderFlags flags)
+/*!
+    Builds and "runs" a Qt 3D scene. To be called once per SceneManager instance.
+
+    Ownership of the generated Qt 3D objects is managed primarily via parenting
+    to somewhere under the returned rootEntity. SceneManager and the Attached
+    objects in the 3DS scenegraph have thus no real ownership of the Qt 3D
+    scene but they keep plenty of references to the Qt 3D objects. Scenes (as
+    in Qt 3D (sub)scenes built from 3DS presentations) cannot be destroyed
+    individually: it is only the entire Qt 3D "scene" (i.e. aspect engine) that
+    can go away, including the (sub)scenes for all 3DS presentations, e.g. upon
+    (re)opening the same or another uip/uia in a viewer. This gives a certain
+    degree of freedom when parenting Qt 3D objects since reuse in another
+    presentation's corresponding subtree (e.g. typical for cached shader
+    programs) is allowed without any special considerations.
+
+    When params.window is null, params.frameGraphRoot must be valid (e.g. a
+    RenderTargetSelector). Here out.frameGraphRoot is the same as
+    params.frameGraphRoot, and it is up to the caller to ensure out.rootEntity
+    gets parented somewhere (typically to out.rootEntity from a previous buildScene call).
+  */
+Q3DSSceneManager::Scene Q3DSSceneManager::buildScene(Q3DSPresentation *presentation, const SceneBuilderParams &params)
 {
     if (!presentation->scene()) {
         qWarning("Q3DSSceneBuilder: No scene?");
         return Scene();
     }
 
-    qCDebug(lcScene, "Building scene for %s (window %p, flags 0x%x)", qPrintable(presentation->sourceFile()), window, int(flags));
+    qCDebug(lcScene) << "Building scene for" << presentation->sourceFile() << params; // NB params.outputSize==(0,0) is acceptable
 
     const QString projectFontDir = QFileInfo(presentation->sourceFile()).canonicalPath() + QLatin1Char('/') + QLatin1String("fonts");
     if (QDir(projectFontDir).exists())
         m_textRenderer->registerFonts({ projectFontDir });
 
-    m_flags = flags;
+    m_flags = params.flags;
     // Layer MSAA is only available through multisample textures (GLES 3.1+ or GL 3.2+) at the moment. (QTBUG-63382)
     // Drop the flag is this is not supported.
     if (m_flags.testFlag(LayerMSAA4x) && !m_gfxLimits.multisampleTextureSupported)
@@ -458,10 +502,18 @@ Q3DSSceneManager::Scene Q3DSSceneManager::buildScene(Q3DSPresentation *presentat
     QObject::connect(nodeUpdater, &Qt3DLogic::QFrameAction::triggered, m_frameUpdater, &Q3DSFrameUpdater::frameAction);
     m_rootEntity->addComponent(nodeUpdater);
 
-    Qt3DRender::QRenderSettings *frameGraphComponent = new Qt3DRender::QRenderSettings(m_rootEntity);
-    Qt3DRender::QRenderSurfaceSelector *frameGraphRoot = new Qt3DRender::QRenderSurfaceSelector;
+    Qt3DRender::QRenderSettings *frameGraphComponent;
+    Qt3DRender::QFrameGraphNode *frameGraphRoot;
+    if (params.window) {
+        frameGraphComponent = new Qt3DRender::QRenderSettings(m_rootEntity);
+        frameGraphRoot = new Qt3DRender::QRenderSurfaceSelector;
+    } else {
+        frameGraphComponent = nullptr;
+        frameGraphRoot = params.frameGraphRoot;
+        Q_ASSERT(frameGraphRoot);
+    }
 
-    const QSize winPixelSize = window->size() * window->devicePixelRatio();
+    const QSize outputPixelSize = params.outputSize * params.outputDpr;
 
     m_fsQuadTag = new Qt3DRender::QLayer;
 
@@ -475,9 +527,9 @@ Q3DSSceneManager::Scene Q3DSSceneManager::buildScene(Q3DSPresentation *presentat
     });
 
     // Build the (offscreen) Qt3D scene
-    Q3DSPresentation::forAllLayers(m_scene, [=](Q3DSLayerNode *layer3DS) { buildLayer(layer3DS, frameGraphRoot, winPixelSize); });
+    Q3DSPresentation::forAllLayers(m_scene, [=](Q3DSLayerNode *layer3DS) { buildLayer(layer3DS, frameGraphRoot, outputPixelSize); });
 
-    // Onscreen compositor
+    // Onscreen (or not) compositor (still offscreen when this is a subpresentation)
     buildCompositor(frameGraphRoot, m_rootEntity);
 
     // Fullscreen quad for bluring the shadow map/cubemap
@@ -492,15 +544,19 @@ Q3DSSceneManager::Scene Q3DSSceneManager::buildScene(Q3DSPresentation *presentat
     fsQuadPassProgs << sm.getSsaoTextureShader(m_rootEntity);
     buildFsQuad(m_rootEntity, fsQuadPassNames, fsQuadPassProgs, m_fsQuadTag);
 
-    // Ready to go (except that the sizes calculated from window->size() are likely bogus, those will get updated in updateSizes())
-    frameGraphRoot->setSurface(window);
-    frameGraphComponent->setActiveFrameGraph(frameGraphRoot);
-    m_rootEntity->addComponent(frameGraphComponent);
+    Scene sc;
+    sc.rootEntity = m_rootEntity;
+    sc.frameGraphRoot = frameGraphRoot;
 
-    // Input
-    Qt3DInput::QInputSettings *inputSettings = new Qt3DInput::QInputSettings;
-    inputSettings->setEventSource(window);
-    m_rootEntity->addComponent(inputSettings);
+    if (params.window) {
+        // Ready to go (except that the sizes calculated from params.outputSize are
+        // likely bogus when it is derived from QWindow::size() during app startup;
+        // will get updated in updateSizes()).
+        static_cast<Qt3DRender::QRenderSurfaceSelector *>(frameGraphRoot)->setSurface(params.window);
+        frameGraphComponent->setActiveFrameGraph(frameGraphRoot);
+        m_rootEntity->addComponent(frameGraphComponent);
+        sc.renderSettings = frameGraphComponent;
+    }
 
     // Set visibility of objects in the scene and start animations.
     Q3DSPresentation::forAllObjectsOfType(m_masterSlide, Q3DSGraphObject::Slide,
@@ -510,10 +566,6 @@ Q3DSSceneManager::Scene Q3DSSceneManager::buildScene(Q3DSPresentation *presentat
     updateAnimations(m_masterSlide, m_currentSlide);
     updateAnimations(m_currentSlide, m_currentSlide);
 
-    Scene sc;
-    sc.rootEntity = m_rootEntity;
-    sc.renderSettings = frameGraphComponent;
-    sc.inputSettings = inputSettings;
     return sc;
 }
 
