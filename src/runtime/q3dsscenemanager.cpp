@@ -3531,7 +3531,7 @@ void Q3DSFrameUpdater::frameAction(float dt)
         ++frameCounter;
     }
     // Set and notify the value changes queued by animations.
-    m_sceneManager->animationBuilder()->applyChanges();
+    m_sceneManager->animationManager()->applyChanges();
     // Recursively check dirty flags and update inherited values, execute
     // pending visibility changes, update light cbuffers, etc.
     m_sceneManager->prepareNextFrame();

@@ -59,7 +59,7 @@ public:
         Q3DSAnimationManager::SetterFunc setter;
     };
 
-    void queueAnimChange(Q3DSGraphObject *target, const AnimationValueChange &change);
+    void queueChange(Q3DSGraphObject *target, const AnimationValueChange &change);
 
 private:
     typedef QHash<QString, Animatable> AnimatableTab;
@@ -80,7 +80,7 @@ private:
     AnimatableTab m_imageAnimatables;
     AnimatableTab m_layerAnimatables;
 
-    QMultiHash<Q3DSGraphObject *, AnimationValueChange> m_animChanges;
+    QMultiHash<Q3DSGraphObject *, AnimationValueChange> m_changes;
 
     friend class Q3DSAnimationCallback;
 };

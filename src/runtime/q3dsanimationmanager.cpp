@@ -143,7 +143,7 @@ void initAnimator(T *data, Q3DSSlide *slide, Q3DSAnimationManager *manager)
                 change.value = rd.value;
                 change.name = rd.name;
                 change.setter = rd.setter;
-                manager->queueAnimChange(rd.obj, change);
+                manager->queueChange(rd.obj, change);
             }
             // Set the values right away, do not wait until the next frame.
             // This is important since updateAnimations() may query some of the
@@ -246,7 +246,7 @@ void Q3DSAnimationCallback::valueChanged(const QVariant &value)
     change.value = value;
     change.name = m_animMeta->name;
     change.setter = m_animMeta->setter;
-    m_animationManager->queueAnimChange(m_target, change);
+    m_animationManager->queueChange(m_target, change);
 }
 
 static int componentSuffixToIndex(const QString &s)
@@ -557,11 +557,11 @@ void Q3DSAnimationManager::applyChanges()
     // so that there is still only one notifyPropertyChanges() call per object.
 
     static const bool animDebug = qEnvironmentVariableIntValue("Q3DS_DEBUG") >= 3;
-    const QList<Q3DSGraphObject *> keys = m_animChanges.uniqueKeys();
+    const QList<Q3DSGraphObject *> keys = m_changes.uniqueKeys();
     for (Q3DSGraphObject *target : keys) {
-        auto it = m_animChanges.find(target);
+        auto it = m_changes.find(target);
         Q3DSPropertyChangeList changeList;
-        while (it != m_animChanges.cend() && it.key() == target) {
+        while (it != m_changes.cend() && it.key() == target) {
             if (Q_UNLIKELY(animDebug))
                 qDebug() << "animate:" << target->id() << it->name << it->value;
             it->setter(target, it->value);
@@ -571,17 +571,17 @@ void Q3DSAnimationManager::applyChanges()
         if (!changeList.isEmpty())
             target->notifyPropertyChanges(&changeList);
     }
-    m_animChanges.clear();
+    m_changes.clear();
 }
 
 void Q3DSAnimationManager::clearPendingChanges()
 {
-    m_animChanges.clear();
+    m_changes.clear();
 }
 
-void Q3DSAnimationManager::queueAnimChange(Q3DSGraphObject *target, const AnimationValueChange &change)
+void Q3DSAnimationManager::queueChange(Q3DSGraphObject *target, const AnimationValueChange &change)
 {
-    m_animChanges.insert(target, change);
+    m_changes.insert(target, change);
 }
 
 QT_END_NAMESPACE
