@@ -1338,6 +1338,8 @@ public:
     void applySlidePropertyChanges(Q3DSSlide *slide) const;
 
 private:
+    Q_DISABLE_COPY(Q3DSPresentation)
+
     void setSourceFile(const QString &s);
     void setAuthor(const QString &s);
     void setCompany(const QString &s);

@@ -88,16 +88,23 @@ Q_LOGGING_CATEGORY(lcScene, "q3ds.scene")
 /*
     Approx. scene structure:
 
-    // m_rootEntity when params.window!=0
+    // m_rootEntity when params.window
     Entity {
         components: [
             RenderSettings {
-                activeFrameGraph: RenderSurfaceSelector { // frameGraphRoot when params.window!=0
+                activeFrameGraph: RenderSurfaceSelector { // frameGraphRoot when params.window
 
-                    RenderTargetSelector { // frameGraphRoot when !params.window
-                        ... // Subpresentation framegraphs, same structure as below (1..N layer + compositor).
+                    FrameGraphNode { // subPresFrameGraphRoot
+                        NoDraw { }
+                        // [rest may be missing when there are no subpresentations]
+                        // Subpresentation #1 framegraph, same structure as below (1..N layer + compositor).
+                        RenderTargetSelector { // frameGraphRoot when !params.window
                             // Due to only having LayerFilter (or NoDraw) leaves with (3DS-)layer or SceneManager specific
                             // QLayer tags, selection of the right entities for a subpresentation works automatically.
+                        }
+                        // Subpresentation #2 framegraph
+                        RenderTargetSelector { ... }
+                        ...
                     }
 
                     // Layer #1 framegraph
@@ -504,12 +511,18 @@ Q3DSSceneManager::Scene Q3DSSceneManager::buildScene(Q3DSPresentation *presentat
 
     Qt3DRender::QRenderSettings *frameGraphComponent;
     Qt3DRender::QFrameGraphNode *frameGraphRoot;
+    Qt3DRender::QFrameGraphNode *subPresFrameGraphRoot;
     if (params.window) {
         frameGraphComponent = new Qt3DRender::QRenderSettings(m_rootEntity);
         frameGraphRoot = new Qt3DRender::QRenderSurfaceSelector;
+        // a node under which subpresentation framegraphs can be added
+        subPresFrameGraphRoot = new Qt3DRender::QFrameGraphNode(frameGraphRoot);
+        // but do nothing there when there are no subpresentations
+        new Qt3DRender::QNoDraw(subPresFrameGraphRoot);
     } else {
         frameGraphComponent = nullptr;
         frameGraphRoot = params.frameGraphRoot;
+        subPresFrameGraphRoot = nullptr;
         Q_ASSERT(frameGraphRoot);
     }
 
@@ -547,6 +560,7 @@ Q3DSSceneManager::Scene Q3DSSceneManager::buildScene(Q3DSPresentation *presentat
     Scene sc;
     sc.rootEntity = m_rootEntity;
     sc.frameGraphRoot = frameGraphRoot;
+    sc.subPresFrameGraphRoot = subPresFrameGraphRoot;
 
     if (params.window) {
         // Ready to go (except that the sizes calculated from params.outputSize are

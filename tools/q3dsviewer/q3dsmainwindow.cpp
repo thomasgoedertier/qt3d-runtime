@@ -51,6 +51,12 @@ Q3DStudioMainWindow::Q3DStudioMainWindow(Q3DStudioWindow *view, QWidget *parent)
         if (!fn.isEmpty())
             view->setUipSource(fn);
     }, QKeySequence::Open);
+    fileMenu->addAction(tr("&Add subpresentation..."), this, [=] {
+        QString fn = QFileDialog::getOpenFileName(this, tr("Open"), QString(),
+                                                  tr("UIP Files (*.uip);;All Files (*)"));
+        if (!fn.isEmpty())
+            view->addSubPresentation(fn);
+    });
     fileMenu->addAction(tr("&Reload"), this, [=] {
         view->setUipSource(view->uipSource());
     }, QKeySequence::Refresh);

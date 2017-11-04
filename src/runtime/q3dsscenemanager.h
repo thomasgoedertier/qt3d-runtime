@@ -327,7 +327,8 @@ class Q3DSV_EXPORT Q3DSSceneManager
 {
 public:
     enum SceneBuilderFlag {
-        LayerMSAA4x = 0x01
+        LayerMSAA4x = 0x01,
+        SubPresentation = 0x02
     };
     Q_DECLARE_FLAGS(SceneBuilderFlags, SceneBuilderFlag)
 
@@ -342,7 +343,8 @@ public:
     struct Scene {
         Qt3DCore::QEntity *rootEntity = nullptr;
         Qt3DRender::QFrameGraphNode *frameGraphRoot = nullptr;
-        Qt3DRender::QRenderSettings *renderSettings = nullptr; // when params.window!=0
+        Qt3DRender::QFrameGraphNode *subPresFrameGraphRoot = nullptr; // when params.window
+        Qt3DRender::QRenderSettings *renderSettings = nullptr; // when params.window
     };
 
     Q3DSSceneManager(const Q3DSGraphicsLimits &limits);
@@ -385,6 +387,8 @@ public:
     void rebuildModelMaterial(Q3DSModelNode *model3DS);
 
 private:
+    Q_DISABLE_COPY(Q3DSSceneManager)
+
     Qt3DRender::QFrameGraphNode *buildLayer(Q3DSLayerNode *layer3DS, Qt3DRender::QFrameGraphNode *parent, const QSize &parentSize);
     QSize calculateLayerSize(Q3DSLayerNode *layer3DS, const QSize &parentSize);
     QPointF calculateLayerPos(Q3DSLayerNode *layer3DS, const QSize &parentSize);

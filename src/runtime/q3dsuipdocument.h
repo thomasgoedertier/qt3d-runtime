@@ -46,6 +46,7 @@ public:
     bool saveUip(const QString &fileName);
 
 private:
+    Q_DISABLE_COPY(Q3DSUipDocument)
     QScopedPointer<Q3DSPresentation> m_presentation;
 };
 

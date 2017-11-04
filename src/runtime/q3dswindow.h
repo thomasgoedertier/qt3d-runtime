@@ -37,15 +37,16 @@
 
 QT_BEGIN_NAMESPACE
 
-class Q3DSSceneManager;
-
 class Q3DSV_EXPORT Q3DStudioWindow : public QWindow
 {
 public:
     Q3DStudioWindow();
+    ~Q3DStudioWindow();
 
     bool setUipSource(const QString &filename);
-    QString uipSource() const { return m_uipFileName; }
+    QString uipSource() const { return !m_presentations.isEmpty() ? m_presentations[0].uipFileName : QString(); }
+
+    bool addSubPresentation(const QString &filename);
 
     enum InitFlag {
         MSAA4x = 0x01
@@ -55,8 +56,8 @@ public:
     static void initStaticPreApp();
     static void initStaticPostApp(InitFlags flags);
 
-    Q3DSUipDocument *uip() { return &m_uipDocument; }
-    Q3DSSceneManager *sceneManager() { return &m_sceneManager; }
+    Q3DSUipDocument *uip() { return !m_presentations.isEmpty() ? m_presentations[0].uipDocument : nullptr; }
+    Q3DSSceneManager *sceneManager() { return !m_presentations.isEmpty() ? m_presentations[0].sceneManager : nullptr; }
 
     void setOnDemandRendering(bool enabled);
 
@@ -67,10 +68,19 @@ protected:
 private:
     void createAspectEngine();
 
-    QString m_uipFileName;
-    Q3DSUipDocument m_uipDocument;
-    Q3DSSceneManager m_sceneManager;
-    Q3DSSceneManager::Scene m_q3dscene;
+    struct SubPresentation {
+        Qt3DRender::QTexture2D *tex = nullptr;
+    };
+
+    struct Presentation {
+        QString uipFileName;
+        Q3DSUipDocument *uipDocument = nullptr;
+        Q3DSSceneManager *sceneManager = nullptr;
+        Q3DSSceneManager::Scene q3dscene;
+        SubPresentation subPres;
+    };
+
+    QVector<Presentation> m_presentations;
 
     QScopedPointer<Qt3DCore::QAspectEngine> m_aspectEngine;
 };
