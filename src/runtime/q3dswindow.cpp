@@ -190,7 +190,7 @@ void Q3DStudioWindow::createAspectEngine()
     m_aspectEngine->registerAspect(new Qt3DLogic::QLogicAspect);
 }
 
-bool Q3DStudioWindow::setUipSource(const QString &filename)
+bool Q3DStudioWindow::setSource(const QString &uipFileName)
 {
     if (!m_presentations.isEmpty()) {
         for (Presentation &pres : m_presentations)
@@ -208,7 +208,7 @@ bool Q3DStudioWindow::setUipSource(const QString &filename)
     }
 
     Presentation pres;
-    pres.uipFileName = filename;
+    pres.uipFileName = uipFileName;
 
     // Parse.
     QScopedPointer<Q3DSUipDocument> uipDocument(new Q3DSUipDocument);
@@ -255,6 +255,11 @@ bool Q3DStudioWindow::setUipSource(const QString &filename)
         m_aspectEngine->setRootEntity(Qt3DCore::QEntityPtr(pres.q3dscene.rootEntity));
 
     return true;
+}
+
+QString Q3DStudioWindow::source() const
+{
+    return !m_presentations.isEmpty() ? m_presentations[0].uipFileName : QString();
 }
 
 bool Q3DStudioWindow::addSubPresentation(const QString &filename)
@@ -324,6 +329,26 @@ bool Q3DStudioWindow::addSubPresentation(const QString &filename)
 
     m_presentations.append(pres);
     return true;
+}
+
+int Q3DStudioWindow::presentationCount() const
+{
+    return m_presentations.count();
+}
+
+QString Q3DStudioWindow::uipFileName(int index) const
+{
+    return (index >= 0 && index < m_presentations.count()) ? m_presentations[index].uipFileName : QString();
+}
+
+Q3DSUipDocument *Q3DStudioWindow::uipDocument(int index) const
+{
+    return (index >= 0 && index < m_presentations.count()) ? m_presentations[index].uipDocument : nullptr;
+}
+
+Q3DSSceneManager *Q3DStudioWindow::sceneManager(int index) const
+{
+    return (index >= 0 && index < m_presentations.count()) ? m_presentations[index].sceneManager : nullptr;
 }
 
 void Q3DStudioWindow::exposeEvent(QExposeEvent *)

@@ -71,7 +71,7 @@ int main(int argc, char *argv[])
 
     QScopedPointer<Q3DStudioWindow> view;
     view.reset(new Q3DStudioWindow);
-    if (!view->setUipSource(fn.first()))
+    if (!view->setSource(fn.first()))
         return 0;
 
     QScopedPointer<Q3DStudioMainWindow> mw;

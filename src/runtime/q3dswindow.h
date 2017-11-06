@@ -43,11 +43,6 @@ public:
     Q3DStudioWindow();
     ~Q3DStudioWindow();
 
-    bool setUipSource(const QString &filename);
-    QString uipSource() const { return !m_presentations.isEmpty() ? m_presentations[0].uipFileName : QString(); }
-
-    bool addSubPresentation(const QString &filename);
-
     enum InitFlag {
         MSAA4x = 0x01
     };
@@ -56,9 +51,16 @@ public:
     static void initStaticPreApp();
     static void initStaticPostApp(InitFlags flags);
 
-    Q3DSUipDocument *uip() { return !m_presentations.isEmpty() ? m_presentations[0].uipDocument : nullptr; }
-    Q3DSSceneManager *sceneManager() { return !m_presentations.isEmpty() ? m_presentations[0].sceneManager : nullptr; }
+    bool setSource(const QString &uipFileName);
+    QString source() const;
 
+    int presentationCount() const;
+    QString uipFileName(int index = 0) const;
+    Q3DSUipDocument *uipDocument(int index = 0) const;
+    Q3DSSceneManager *sceneManager(int index = 0) const;
+
+    // for testing purposes
+    bool addSubPresentation(const QString &filename);
     void setOnDemandRendering(bool enabled);
 
 protected:

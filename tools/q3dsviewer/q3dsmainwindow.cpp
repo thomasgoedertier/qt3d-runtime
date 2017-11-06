@@ -49,7 +49,7 @@ Q3DStudioMainWindow::Q3DStudioMainWindow(Q3DStudioWindow *view, QWidget *parent)
         QString fn = QFileDialog::getOpenFileName(this, tr("Open"), QString(),
                                                   tr("UIP Files (*.uip);;All Files (*)"));
         if (!fn.isEmpty())
-            view->setUipSource(fn);
+            view->setSource(fn);
     }, QKeySequence::Open);
     fileMenu->addAction(tr("&Add subpresentation..."), this, [=] {
         QString fn = QFileDialog::getOpenFileName(this, tr("Open"), QString(),
@@ -58,7 +58,7 @@ Q3DStudioMainWindow::Q3DStudioMainWindow(Q3DStudioWindow *view, QWidget *parent)
             view->addSubPresentation(fn);
     });
     fileMenu->addAction(tr("&Reload"), this, [=] {
-        view->setUipSource(view->uipSource());
+        view->setSource(view->source());
     }, QKeySequence::Refresh);
     fileMenu->addAction(tr("E&xit"), this, &QWidget::close);
 
@@ -98,16 +98,16 @@ Q3DStudioMainWindow::Q3DStudioMainWindow(Q3DStudioWindow *view, QWidget *parent)
 
     QMenu *debugMenu = menuBar()->addMenu(tr("&Debug"));
     debugMenu->addAction(tr("&Object graph..."), [=]() {
-        Q3DSUtils::showObjectGraph(view->uip()->presentation()->scene());
+        Q3DSUtils::showObjectGraph(view->uipDocument()->presentation()->scene());
     });
     debugMenu->addAction(tr("&Scene slide graph..."), [=]() {
-        Q3DSUtils::showObjectGraph(view->uip()->presentation()->masterSlide());
+        Q3DSUtils::showObjectGraph(view->uipDocument()->presentation()->masterSlide());
     });
     QAction *depthTexAction = debugMenu->addAction(tr("&Force depth texture"));
     depthTexAction->setCheckable(true);
     depthTexAction->setChecked(false);
     connect(depthTexAction, &QAction::toggled, [=]() {
-        Q3DSPresentation::forAllLayers(view->uip()->presentation()->scene(), [=](Q3DSLayerNode *layer3DS) {
+        Q3DSPresentation::forAllLayers(view->uipDocument()->presentation()->scene(), [=](Q3DSLayerNode *layer3DS) {
             view->sceneManager()->setDepthTextureEnabled(layer3DS, depthTexAction->isChecked());
         });
     });
@@ -115,7 +115,7 @@ Q3DStudioMainWindow::Q3DStudioMainWindow(Q3DStudioWindow *view, QWidget *parent)
     ssaoAction->setCheckable(true);
     ssaoAction->setChecked(false);
     connect(ssaoAction, &QAction::toggled, [=]() {
-        Q3DSPresentation::forAllLayers(view->uip()->presentation()->scene(), [=](Q3DSLayerNode *layer3DS) {
+        Q3DSPresentation::forAllLayers(view->uipDocument()->presentation()->scene(), [=](Q3DSLayerNode *layer3DS) {
             Q3DSPropertyChangeList changeList;
             const QString value = ssaoAction->isChecked() ? QLatin1String("50") : QLatin1String("0");
             changeList.append(Q3DSPropertyChange(QLatin1String("aostrength"), value));
@@ -125,13 +125,13 @@ Q3DStudioMainWindow::Q3DStudioMainWindow(Q3DStudioWindow *view, QWidget *parent)
     });
     QAction *rebuildMatAction = debugMenu->addAction(tr("&Rebuild model materials"));
     connect(rebuildMatAction, &QAction::triggered, [=]() {
-        Q3DSPresentation::forAllModels(view->uip()->presentation()->scene(), [=](Q3DSModelNode *model3DS) {
+        Q3DSPresentation::forAllModels(view->uipDocument()->presentation()->scene(), [=](Q3DSModelNode *model3DS) {
             view->sceneManager()->rebuildModelMaterial(model3DS);
         });
     });
     QAction *toggleShadowAction = debugMenu->addAction(tr("&Toggle shadow casting for point lights"));
     connect(toggleShadowAction, &QAction::triggered, [=]() {
-        Q3DSPresentation::forAllObjectsOfType(view->uip()->presentation()->scene(), Q3DSGraphObject::Light, [=](Q3DSGraphObject *obj) {
+        Q3DSPresentation::forAllObjectsOfType(view->uipDocument()->presentation()->scene(), Q3DSGraphObject::Light, [=](Q3DSGraphObject *obj) {
             Q3DSLightNode *light3DS = static_cast<Q3DSLightNode *>(obj);
             if (light3DS->flags().testFlag(Q3DSNode::Active) && light3DS->lightType() == Q3DSLightNode::Point) {
                 Q3DSPropertyChangeList changeList;

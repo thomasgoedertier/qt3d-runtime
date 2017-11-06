@@ -69,12 +69,12 @@ Q3DSExplorerMainWindow::Q3DSExplorerMainWindow(Q3DStudioWindow *view, QWidget *p
         QString fn = QFileDialog::getOpenFileName(this, tr("Open"), QString(),
                                                   tr("UIP Files (*.uip);;All Files (*)"));
         if (!fn.isEmpty()) {
-            view->setUipSource(fn);
+            view->setSource(fn);
             updatePresentation();
         }
     }, QKeySequence::Open);
     fileMenu->addAction(tr("&Reload"), this, [=] {
-        view->setUipSource(view->uipSource());
+        view->setSource(view->source());
         updatePresentation();
     }, QKeySequence::Refresh);
     fileMenu->addAction(tr("E&xit"), this, &QWidget::close);
@@ -119,7 +119,7 @@ Q3DSExplorerMainWindow::~Q3DSExplorerMainWindow()
 
 void Q3DSExplorerMainWindow::updatePresentation()
 {
-    auto pres = m_view->uip()->presentation();
+    auto pres = m_view->uipDocument()->presentation();
     if (pres) {
         m_sceneExplorer->setPresentation(pres);
         m_slideExplorer->setPresentation(pres);
