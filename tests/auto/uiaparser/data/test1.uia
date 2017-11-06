@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<application>
+	<assets initial="main">
+		<presentation id="main" src="main.uip"/>
+		<presentation id="subpres1" src="subpres1.uip"/>
+                <presentation id="subpres2" src="subpres2.uip"/>
+                <presentation-qml id="quick" args="quick-preview.qml" />
+	</assets>
+	<statemachine ref="#logic">
+		<visual-states>
+			<state ref="Initial">
+				<enter>
+					<goto-slide element="main:Scene" rel="next"/>
+				</enter>
+			</state>
+		</visual-states>
+	</statemachine>
+</application>

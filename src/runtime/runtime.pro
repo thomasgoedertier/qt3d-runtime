@@ -22,7 +22,8 @@ SOURCES += \
     q3dswindow.cpp \
     q3dsuipdocument.cpp \
     q3dsscenemanager.cpp \
-    q3dsanimationmanager.cpp
+    q3dsanimationmanager.cpp \
+    q3dsuiaparser.cpp
 
 HEADERS += \
     q3dsuipparser.h \
@@ -45,7 +46,8 @@ HEADERS += \
     q3dswindow.h \
     q3dsuipdocument.h \
     q3dsscenemanager.h \
-    q3dsanimationmanager.h
+    q3dsanimationmanager.h \
+    q3dsuiaparser.h
 
 RESOURCES += \
     q3dsres.qrc
