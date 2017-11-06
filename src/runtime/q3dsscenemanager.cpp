@@ -705,7 +705,12 @@ Qt3DRender::QFrameGraphNode *Q3DSSceneManager::buildLayer(Q3DSLayerNode *layer3D
 
     layer3DS->setAttached(data);
 
-    setLayerSizeProperties(layer3DS); // mostly no-op at this stage but just in case
+    // may not have a valid size yet (but subpresentations f.ex. have their final size already here)
+    if (!data->layerSize.isEmpty()) {
+        setLayerCameraSizeProperties(layer3DS);
+        setLayerSizeProperties(layer3DS);
+    }
+
     setLayerProperties(layer3DS);
 
     layer3DS->addPropertyChangeObserver(std::bind(&Q3DSSceneManager::handlePropertyChange, this,
@@ -3095,8 +3100,6 @@ void Q3DSSceneManager::handlePropertyChange(Q3DSGraphObject *obj, const QSet<QSt
         Q3DSLayerNode *layer3DS = static_cast<Q3DSLayerNode *>(obj);
         Q3DSLayerAttached *data = static_cast<Q3DSLayerAttached *>(layer3DS->attached());
         updateSizesForLayer(layer3DS, data->parentSize);
-        setLayerCameraSizeProperties(layer3DS);
-        setLayerSizeProperties(layer3DS);
         setLayerProperties(layer3DS);
         if (cf.testFlag(Q3DSPropertyChangeList::AoOrShadowChanges)) {
             bool aoDidChange = false;
