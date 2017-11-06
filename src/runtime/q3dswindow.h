@@ -68,17 +68,12 @@ protected:
     void resizeEvent(QResizeEvent *) override;
 
 private:
-    struct SubPresentation {
-        Qt3DRender::QTexture2D *tex = nullptr;
-    };
-
     struct Presentation {
-        QString subPresentationId;
         QString uipFileName;
         Q3DSUipDocument *uipDocument = nullptr;
         Q3DSSceneManager *sceneManager = nullptr;
         Q3DSSceneManager::Scene q3dscene;
-        SubPresentation subPres;
+        Q3DSSubPresentation subPres;
     };
 
     void createAspectEngine();

@@ -164,6 +164,7 @@ public:
         SizeChangeCallback sizeChangeCallback = nullptr;
     };
     QVector<SizeManagedTexture> sizeManagedTextures;
+    Qt3DRender::QParameter *compositorSourceParam = nullptr;
     std::function<void()> updateCompositorCalculations = nullptr;
     QSize layerSize;
     QSize parentSize;
@@ -327,6 +328,12 @@ public:
     QSet<Q3DSDefaultMaterial *> referencingMaterials;
 };
 
+struct Q3DSSubPresentation
+{
+    QString id;
+    Qt3DRender::QTexture2D *tex = nullptr;
+};
+
 class Q3DSV_EXPORT Q3DSSceneManager
 {
 public:
@@ -355,6 +362,7 @@ public:
     ~Q3DSSceneManager();
 
     Scene buildScene(Q3DSPresentation *presentation, const SceneBuilderParams &params);
+    void finalizeMainScene(const QVector<Q3DSSubPresentation> &subPresentations);
     void updateSizes(const QSize &size, qreal dpr);
 
     void prepareEngineReset();
@@ -394,7 +402,8 @@ public:
 private:
     Q_DISABLE_COPY(Q3DSSceneManager)
 
-    Qt3DRender::QFrameGraphNode *buildLayer(Q3DSLayerNode *layer3DS, Qt3DRender::QFrameGraphNode *parent, const QSize &parentSize);
+    void buildLayer(Q3DSLayerNode *layer3DS, Qt3DRender::QFrameGraphNode *parent, const QSize &parentSize);
+    void buildSubPresentationLayer(Q3DSLayerNode *layer3DS, const QSize &parentSize);
     QSize calculateLayerSize(Q3DSLayerNode *layer3DS, const QSize &parentSize);
     QPointF calculateLayerPos(Q3DSLayerNode *layer3DS, const QSize &parentSize);
     void updateSizesForLayer(Q3DSLayerNode *layer3DS, const QSize &newParentSize);
@@ -456,6 +465,8 @@ private:
 
     void updateAnimations(Q3DSSlide *animSourceSlide, Q3DSSlide *playModeSourceSlide);
 
+    Qt3DRender::QTexture2D *dummyTexture();
+
     Q3DSGraphicsLimits m_gfxLimits;
     SceneBuilderFlags m_flags = SceneBuilderFlags();
     Q3DSPresentation *m_presentation;
@@ -474,6 +485,8 @@ private:
     QSet<Q3DSNode *> m_pendingNodeHide;
     Qt3DRender::QLayer *m_fsQuadTag = nullptr;
     QStack<Q3DSComponentNode *> m_componentNodeStack;
+    QSet<Q3DSLayerNode *> m_subPresLayers;
+    Qt3DRender::QTexture2D *m_dummyTex = nullptr;
 
     friend class Q3DSFrameUpdater;
 };

@@ -487,6 +487,7 @@ Q3DSSceneManager::Scene Q3DSSceneManager::buildScene(Q3DSPresentation *presentat
     m_currentSlide = nullptr;
     m_pendingNodeShow.clear();
     m_pendingNodeHide.clear();
+    m_subPresLayers.clear();
 
     // Enter the first slide. (apply property changes from master+first)
     if (!m_masterSlide) {
@@ -519,6 +520,7 @@ Q3DSSceneManager::Scene Q3DSSceneManager::buildScene(Q3DSPresentation *presentat
     Qt3DRender::QFrameGraphNode *frameGraphRoot;
     Qt3DRender::QFrameGraphNode *subPresFrameGraphRoot;
     if (params.window) {
+        Q_ASSERT(!m_flags.testFlag(SubPresentation));
         frameGraphComponent = new Qt3DRender::QRenderSettings(m_rootEntity);
         frameGraphRoot = new Qt3DRender::QRenderSurfaceSelector;
         // a node under which subpresentation framegraphs can be added
@@ -526,6 +528,7 @@ Q3DSSceneManager::Scene Q3DSSceneManager::buildScene(Q3DSPresentation *presentat
         // but do nothing there when there are no subpresentations
         new Qt3DRender::QNoDraw(subPresFrameGraphRoot);
     } else {
+        Q_ASSERT(m_flags.testFlag(SubPresentation));
         frameGraphComponent = nullptr;
         frameGraphRoot = params.frameGraphRoot;
         subPresFrameGraphRoot = nullptr;
@@ -546,7 +549,12 @@ Q3DSSceneManager::Scene Q3DSSceneManager::buildScene(Q3DSPresentation *presentat
     });
 
     // Build the (offscreen) Qt3D scene
-    Q3DSPresentation::forAllLayers(m_scene, [=](Q3DSLayerNode *layer3DS) { buildLayer(layer3DS, frameGraphRoot, outputPixelSize); });
+    Q3DSPresentation::forAllLayers(m_scene, [=](Q3DSLayerNode *layer3DS) {
+        if (layer3DS->sourcePath().isEmpty())
+            buildLayer(layer3DS, frameGraphRoot, outputPixelSize);
+        else
+            buildSubPresentationLayer(layer3DS, outputPixelSize);
+    });
 
     // Onscreen (or not) compositor (still offscreen when this is a subpresentation)
     buildCompositor(frameGraphRoot, m_rootEntity);
@@ -589,6 +597,29 @@ Q3DSSceneManager::Scene Q3DSSceneManager::buildScene(Q3DSPresentation *presentat
     return sc;
 }
 
+/*!
+    To be called on the scenemanager corresponding to the main presentation
+    once after all subpresentation buildScene() calls have succeeded. This is
+    where the association of textures and subpresentation layers happens. That
+    cannot be done in the first buildScene since the textures for
+    subpresentations (and the corresponding framegraph subtrees) are not yet
+    generated at that stage.
+ */
+void Q3DSSceneManager::finalizeMainScene(const QVector<Q3DSSubPresentation> &subPresentations)
+{
+    for (Q3DSLayerNode *layer3DS : m_subPresLayers) {
+        const QString subPresId = layer3DS->sourcePath();
+        Q_ASSERT(!subPresId.isEmpty());
+        auto it = std::find_if(subPresentations.cbegin(), subPresentations.cend(),
+                               [subPresId](const Q3DSSubPresentation &sp) { return sp.id == subPresId; });
+        if (it != subPresentations.cend()) {
+            qCDebug(lcScene, "Directing subpresentation %s to layer %s", qPrintable(it->id), layer3DS->id().constData());
+            Q3DSLayerAttached *layerData = static_cast<Q3DSLayerAttached *>(layer3DS->attached());
+            layerData->compositorSourceParam->setValue(QVariant::fromValue(it->tex));
+        }
+    }
+}
+
 // layers use the first Active (eyeball on) camera for rendering
 static Q3DSCameraNode *findFirstCamera(Q3DSLayerNode *layer3DS)
 {
@@ -626,9 +657,9 @@ static Qt3DRender::QSortPolicy *transparentPassSortPolicy(Qt3DCore::QNode *paren
     return sortPolicy;
 }
 
-Qt3DRender::QFrameGraphNode *Q3DSSceneManager::buildLayer(Q3DSLayerNode *layer3DS,
-                                                          Qt3DRender::QFrameGraphNode *parent,
-                                                          const QSize &parentSize)
+void Q3DSSceneManager::buildLayer(Q3DSLayerNode *layer3DS,
+                                  Qt3DRender::QFrameGraphNode *parent,
+                                  const QSize &parentSize)
 {
     Qt3DRender::QRenderTargetSelector *rtSelector = new Qt3DRender::QRenderTargetSelector(parent);
     Qt3DRender::QRenderTarget *rt = new Qt3DRender::QRenderTarget;
@@ -760,6 +791,7 @@ Qt3DRender::QFrameGraphNode *Q3DSSceneManager::buildLayer(Q3DSLayerNode *layer3D
     data->cam3DS = cam3DS;
     data->cameraSelector = cameraSelector;
     data->clearBuffers = clearBuffers;
+    data->compositorSourceParam = new Qt3DRender::QParameter(QLatin1String("tex"), colorTex);
     data->layerSize = calculateLayerSize(layer3DS, parentSize);
     data->parentSize = parentSize;
     data->opaqueTag = opaqueTag;
@@ -821,8 +853,37 @@ Qt3DRender::QFrameGraphNode *Q3DSSceneManager::buildLayer(Q3DSLayerNode *layer3D
 
     // Make sure the QCamera we will use is parented correctly.
     reparentCamera(layer3DS);
+}
 
-    return rtSelector;
+Qt3DRender::QTexture2D *Q3DSSceneManager::dummyTexture()
+{
+    if (!m_dummyTex) {
+        m_dummyTex = new Qt3DRender::QTexture2D(m_rootEntity);
+        m_dummyTex->setFormat(Qt3DRender::QAbstractTexture::RGBA8_UNorm);
+        m_dummyTex->setWidth(64);
+        m_dummyTex->setHeight(64);
+    }
+    return m_dummyTex;
+}
+
+void Q3DSSceneManager::buildSubPresentationLayer(Q3DSLayerNode *layer3DS, const QSize &parentSize)
+{
+    m_subPresLayers.insert(layer3DS);
+
+    Q3DSLayerAttached *data = new Q3DSLayerAttached;
+    data->entity = m_rootEntity; // must set an entity to to make Q3DSLayerNode properties animatable, just use the root
+    data->layer3DS = layer3DS;
+    data->layerSize = calculateLayerSize(layer3DS, parentSize);
+    data->parentSize = parentSize;
+
+    // camera and stuff stays null, no such thing for subpresentation layers
+
+    // leave compositorSourceParam dummy for now, we don't know the actual texture yet
+    data->compositorSourceParam = new Qt3DRender::QParameter(QLatin1String("tex"), dummyTexture());
+
+    layer3DS->setAttached(data);
+
+    setLayerProperties(layer3DS);
 }
 
 void Q3DSSceneManager::reparentCamera(Q3DSLayerNode *layer3DS)
@@ -1124,7 +1185,8 @@ void Q3DSSceneManager::setLayerProperties(Q3DSLayerNode *layer3DS)
     Q3DSLayerAttached *data = static_cast<Q3DSLayerAttached *>(layer3DS->attached());
     Q_ASSERT(data);
 
-    setClearColorForClearBuffers(data->clearBuffers, layer3DS);
+    if (data->clearBuffers) // not available for subpresentation layers
+        setClearColorForClearBuffers(data->clearBuffers, layer3DS);
 
     if (data->compositorEntity) // may not exist if this is still buildLayer()
         data->compositorEntity->setEnabled(layer3DS->flags().testFlag(Q3DSNode::Active));
@@ -1942,9 +2004,18 @@ Qt3DRender::QFrameGraphNode *Q3DSSceneManager::buildCompositor(Qt3DRender::QFram
     cameraSelector->setCamera(camera);
 
     Qt3DRender::QClearBuffers *clearBuffers = new Qt3DRender::QClearBuffers(cameraSelector);
-    if (m_scene->useClearColor()) {
+
+    if (m_scene->useClearColor() || m_flags.testFlag(SubPresentation)) {
         clearBuffers->setBuffers(Qt3DRender::QClearBuffers::ColorDepthStencilBuffer);
-        clearBuffers->setClearColor(m_scene->clearColor());
+        float alpha = m_flags.testFlag(SubPresentation) ? 0.0f : 1.0f;
+        QColor clearColor;
+        if (m_scene->useClearColor()) {
+            const QColor c = m_scene->clearColor();
+            clearColor = QColor::fromRgbF(c.redF(), c.greenF(), c.blueF(), alpha);
+        } else {
+            clearColor = QColor::fromRgbF(0.0f, 0.0f, 0.0f, alpha);
+        }
+        clearBuffers->setClearColor(clearColor);
     } else {
         clearBuffers->setBuffers(Qt3DRender::QClearBuffers::DepthStencilBuffer);
     }
@@ -1979,7 +2050,7 @@ Qt3DRender::QFrameGraphNode *Q3DSSceneManager::buildCompositor(Qt3DRender::QFram
         };
 
         Qt3DRender::QMaterial *material = new Qt3DRender::QMaterial;
-        material->addParameter(new Qt3DRender::QParameter(QLatin1String("tex"), data->sizeManagedTextures.first().texture)); // color
+        material->addParameter(data->compositorSourceParam);
 
         Qt3DRender::QEffect *effect = new Qt3DRender::QEffect;
         Qt3DRender::QTechnique *technique = new Qt3DRender::QTechnique;
@@ -3565,6 +3636,9 @@ void Q3DSSceneManager::setNodeVisibility(Q3DSNode *node, bool visible)
         return;
 
     Q3DSLayerAttached *layerData = static_cast<Q3DSLayerAttached *>(data->layer3DS->attached());
+    if (!layerData->opaqueTag || !layerData->transparentTag) // bail out for subpresentation layers
+        return;
+
     if (!visible) {
         data->entity->removeComponent(layerData->opaqueTag);
         data->entity->removeComponent(layerData->transparentTag);

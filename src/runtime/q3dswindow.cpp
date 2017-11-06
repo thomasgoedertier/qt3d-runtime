@@ -258,7 +258,7 @@ bool Q3DStudioWindow::setSource(const QString &uipOrUiaFileName)
             if (p.type != Q3DSUiaParser::Uia::Presentation::Uip)
                 continue;
             Presentation pres;
-            pres.subPresentationId = p.id;
+            pres.subPres.id = p.id;
             // assume the .uip name in the .uia is relative to the .uia's location
             pres.uipFileName = sourcePrefix + p.source;
             if (p.id == uiaDoc.initialPresentationId) // initial (main) presentation must be m_presentations[0]
@@ -277,6 +277,13 @@ bool Q3DStudioWindow::setSource(const QString &uipOrUiaFileName)
 
     for (int i = 1; i < m_presentations.count(); ++i)
         loadSubPresentation(&m_presentations[i]);
+
+    QVector<Q3DSSubPresentation> subPresentations;
+    for (const Presentation &pres : m_presentations) {
+        if (!pres.subPres.id.isEmpty() && pres.subPres.tex)
+            subPresentations.append(pres.subPres);
+    }
+    m_presentations[0].sceneManager->finalizeMainScene(subPresentations);
 
     return true;
 }
@@ -399,7 +406,7 @@ int Q3DStudioWindow::presentationCount() const
 int Q3DStudioWindow::indexOfSubPresentation(const QString &id) const
 {
     for (int i = 0; i < m_presentations.count(); ++i) {
-        if (m_presentations[i].subPresentationId == id)
+        if (m_presentations[i].subPres.id == id)
             return i;
     }
     return -1;
