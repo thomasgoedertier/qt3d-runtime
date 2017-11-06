@@ -42,9 +42,7 @@ class Q3DStudioMainWindow : public QMainWindow
 public:
     explicit Q3DStudioMainWindow(Q3DStudioWindow *view, QWidget *parent = 0);
 
-signals:
-
-public slots:
+    static QString fileFilter();
 };
 
 QT_END_NAMESPACE

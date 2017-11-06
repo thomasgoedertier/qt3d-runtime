@@ -40,7 +40,7 @@ int main(int argc, char *argv[])
     Q3DStudioWindow::initStaticPreApp();
     QCommandLineParser cmdLineParser;
     cmdLineParser.addHelpOption();
-    cmdLineParser.addPositionalArgument(QLatin1String("filename"), QObject::tr("UIP file to open"));
+    cmdLineParser.addPositionalArgument(QLatin1String("filename"), QObject::tr("UIP or UIA file to open"));
     QCommandLineOption msaaOption({ "m", "multisample" }, QObject::tr("Enable 4x MSAA"));
     cmdLineParser.addOption(msaaOption);
     cmdLineParser.process(app);
@@ -52,8 +52,8 @@ int main(int argc, char *argv[])
 
     QStringList fn = cmdLineParser.positionalArguments();
     if (fn.isEmpty()) {
-        QString fileName = QFileDialog::getOpenFileName(nullptr, QObject::tr("Open UIP file"),
-                                                        QString(), QObject::tr("UIP Files (*.uip)"));
+        QString fileName = QFileDialog::getOpenFileName(nullptr, QObject::tr("Open"),
+                                                        QString(), Q3DSExplorerMainWindow::fileFilter());
         if (!fileName.isEmpty())
             fn.append(fileName);
     }

@@ -45,6 +45,11 @@
 #include "slideexplorerwidget.h"
 #include "sceneexplorerwidget.h"
 
+QString Q3DSExplorerMainWindow::fileFilter()
+{
+    return tr("All Supported Formats (*.uia *.uip);;Studio UI Presentation (*.uip);;Application File (*.uia);;All Files (*)");
+}
+
 Q3DSExplorerMainWindow::Q3DSExplorerMainWindow(Q3DStudioWindow *view, QWidget *parent)
     : QMainWindow(parent)
     , m_view(view)
@@ -66,8 +71,7 @@ Q3DSExplorerMainWindow::Q3DSExplorerMainWindow(Q3DStudioWindow *view, QWidget *p
 
     QMenu *fileMenu = menuBar()->addMenu(tr("&File"));
     fileMenu->addAction(tr("&Open..."), this, [=] {
-        QString fn = QFileDialog::getOpenFileName(this, tr("Open"), QString(),
-                                                  tr("UIP Files (*.uip);;All Files (*)"));
+        QString fn = QFileDialog::getOpenFileName(this, tr("Open"), QString(), fileFilter());
         if (!fn.isEmpty()) {
             view->setSource(fn);
             updatePresentation();

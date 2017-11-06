@@ -51,16 +51,16 @@ public:
     static void initStaticPreApp();
     static void initStaticPostApp(InitFlags flags);
 
-    bool setSource(const QString &uipFileName);
+    bool setSource(const QString &uipOrUiaFileName);
     QString source() const;
 
     int presentationCount() const;
+    int indexOfSubPresentation(const QString &id) const;
     QString uipFileName(int index = 0) const;
     Q3DSUipDocument *uipDocument(int index = 0) const;
     Q3DSSceneManager *sceneManager(int index = 0) const;
 
     // for testing purposes
-    bool addSubPresentation(const QString &filename);
     void setOnDemandRendering(bool enabled);
 
 protected:
@@ -68,13 +68,12 @@ protected:
     void resizeEvent(QResizeEvent *) override;
 
 private:
-    void createAspectEngine();
-
     struct SubPresentation {
         Qt3DRender::QTexture2D *tex = nullptr;
     };
 
     struct Presentation {
+        QString subPresentationId;
         QString uipFileName;
         Q3DSUipDocument *uipDocument = nullptr;
         Q3DSSceneManager *sceneManager = nullptr;
@@ -82,6 +81,11 @@ private:
         SubPresentation subPres;
     };
 
+    void createAspectEngine();
+    bool loadPresentation(Presentation *pres);
+    bool loadSubPresentation(Presentation *pres);
+
+    QString m_source; // uip or uia file
     QVector<Presentation> m_presentations;
 
     QScopedPointer<Qt3DCore::QAspectEngine> m_aspectEngine;

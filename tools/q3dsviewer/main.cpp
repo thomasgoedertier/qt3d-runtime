@@ -41,7 +41,7 @@ int main(int argc, char *argv[])
 
     QCommandLineParser cmdLineParser;
     cmdLineParser.addHelpOption();
-    cmdLineParser.addPositionalArgument(QLatin1String("filename"), QObject::tr("UIP file to open"));
+    cmdLineParser.addPositionalArgument(QLatin1String("filename"), QObject::tr("UIP or UIA file to open"));
     QCommandLineOption noMainWindowOption({ "w", "no-main-window" }, QObject::tr("Skips the QWidget-based main window (use this for eglfs)."));
     cmdLineParser.addOption(noMainWindowOption);
     QCommandLineOption msaaOption({ "m", "multisample" }, QObject::tr("Enable 4x MSAA"));
@@ -58,8 +58,8 @@ int main(int argc, char *argv[])
     if (noWindow) {
         Q3DSUtils::setDialogsEnabled(false);
     } else if (fn.isEmpty()) {
-        QString fileName = QFileDialog::getOpenFileName(nullptr, QObject::tr("Open UIP file"),
-                                                        QString(), QObject::tr("UIP Files (*.uip)"));
+        QString fileName = QFileDialog::getOpenFileName(nullptr, QObject::tr("Open"), QString(),
+                                                        Q3DStudioMainWindow::fileFilter());
         if (!fileName.isEmpty())
             fn.append(fileName);
     }

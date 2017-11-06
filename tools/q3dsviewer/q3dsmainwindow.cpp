@@ -38,6 +38,11 @@
 
 QT_BEGIN_NAMESPACE
 
+QString Q3DStudioMainWindow::fileFilter()
+{
+    return tr("All Supported Formats (*.uia *.uip);;Studio UI Presentation (*.uip);;Application File (*.uia);;All Files (*)");
+}
+
 Q3DStudioMainWindow::Q3DStudioMainWindow(Q3DStudioWindow *view, QWidget *parent)
     : QMainWindow(parent)
 {
@@ -46,17 +51,10 @@ Q3DStudioMainWindow::Q3DStudioMainWindow(Q3DStudioWindow *view, QWidget *parent)
 
     QMenu *fileMenu = menuBar()->addMenu(tr("&File"));
     fileMenu->addAction(tr("&Open..."), this, [=] {
-        QString fn = QFileDialog::getOpenFileName(this, tr("Open"), QString(),
-                                                  tr("UIP Files (*.uip);;All Files (*)"));
+        QString fn = QFileDialog::getOpenFileName(this, tr("Open"), QString(), fileFilter());
         if (!fn.isEmpty())
             view->setSource(fn);
     }, QKeySequence::Open);
-    fileMenu->addAction(tr("&Add subpresentation..."), this, [=] {
-        QString fn = QFileDialog::getOpenFileName(this, tr("Open"), QString(),
-                                                  tr("UIP Files (*.uip);;All Files (*)"));
-        if (!fn.isEmpty())
-            view->addSubPresentation(fn);
-    });
     fileMenu->addAction(tr("&Reload"), this, [=] {
         view->setSource(view->source());
     }, QKeySequence::Refresh);

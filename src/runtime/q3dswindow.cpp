@@ -28,8 +28,10 @@
 ****************************************************************************/
 
 #include "q3dswindow.h"
+#include <Qt3DStudioRuntime2/q3dsuiaparser.h>
 #include <Qt3DStudioRuntime2/q3dsutils.h>
 
+#include <QLoggingCategory>
 #include <QOpenGLContext>
 #include <QOpenGLFunctions>
 #include <QOffscreenSurface>
@@ -60,6 +62,8 @@ static void initResources()
 }
 
 QT_BEGIN_NAMESPACE
+
+Q_DECLARE_LOGGING_CATEGORY(lcUip)
 
 static Q3DSGraphicsLimits gfxLimits;
 static Q3DStudioWindow::InitFlags initFlags;
@@ -190,11 +194,20 @@ void Q3DStudioWindow::createAspectEngine()
     m_aspectEngine->registerAspect(new Qt3DLogic::QLogicAspect);
 }
 
-bool Q3DStudioWindow::setSource(const QString &uipFileName)
+QString Q3DStudioWindow::source() const
 {
+    return m_source;
+}
+
+bool Q3DStudioWindow::setSource(const QString &uipOrUiaFileName)
+{
+    // no check for m_source being the same - must reload no matter what
+
     if (!m_presentations.isEmpty()) {
-        for (Presentation &pres : m_presentations)
-            pres.sceneManager->prepareEngineReset();
+        for (Presentation &pres : m_presentations) {
+            if (pres.sceneManager)
+                pres.sceneManager->prepareEngineReset();
+        }
 
         Q3DSSceneManager::prepareEngineResetGlobal();
         Qt3DCore::QAspectEnginePrivate::get(m_aspectEngine.data())->exitSimulationLoop();
@@ -207,16 +220,75 @@ bool Q3DStudioWindow::setSource(const QString &uipFileName)
         m_presentations.clear();
     }
 
-    Presentation pres;
-    pres.uipFileName = uipFileName;
+    m_source = uipOrUiaFileName;
 
-    // Parse.
-    QScopedPointer<Q3DSUipDocument> uipDocument(new Q3DSUipDocument);
-    if (!uipDocument->loadUip(pres.uipFileName)) {
-        Q3DSUtils::showMessage(QObject::tr("Failed to build Qt3D scene"));
+    // There are two cases:
+    //   m_source is a .uip file:
+    //     - check if there is a .uia with the same complete-basename
+    //     - if there isn't, go with m_source as the sole .uip
+    //     - if there is, parse the .uia instead and use the initial .uip as the main presentation. Add all others as subpresentations.
+    //  m_source is a .uia file:
+    //     - like the .uia path above
+
+    QFileInfo fi(m_source);
+    const QString sourcePrefix = fi.canonicalPath() + QLatin1Char('/');
+    QString uia;
+    if (fi.suffix() == QStringLiteral("uia")) {
+        uia = m_source;
+    } else {
+        const QString maybeUia = sourcePrefix + fi.completeBaseName() + QLatin1String(".uia");
+        if (QFile::exists(maybeUia)) {
+            qCDebug(lcUip, "Switching to .uia file %s", qPrintable(maybeUia));
+            uia = maybeUia;
+        }
+    }
+    if (uia.isEmpty()) {
+        Presentation pres;
+        pres.uipFileName = m_source;
+        m_presentations.append(pres);
+    } else {
+        Q3DSUiaParser uiaParser;
+        Q3DSUiaParser::Uia uiaDoc = uiaParser.parse(uia);
+        if (!uiaDoc.isValid()) {
+            Q3DSUtils::showMessage(QObject::tr("Failed to parse application file"));
+            return false;
+        }
+        for (const Q3DSUiaParser::Uia::Presentation &p : uiaDoc.presentations) {
+            if (p.type != Q3DSUiaParser::Uia::Presentation::Uip)
+                continue;
+            Presentation pres;
+            pres.subPresentationId = p.id;
+            // assume the .uip name in the .uia is relative to the .uia's location
+            pres.uipFileName = sourcePrefix + p.source;
+            if (p.id == uiaDoc.initialPresentationId) // initial (main) presentation must be m_presentations[0]
+                m_presentations.prepend(pres);
+            else
+                m_presentations.append(pres);
+        }
+        if (m_presentations.isEmpty())
+            return false;
+    }
+
+    if (!loadPresentation(&m_presentations[0])) {
+        m_presentations.clear();
         return false;
     }
-    pres.uipDocument = uipDocument.take();
+
+    for (int i = 1; i < m_presentations.count(); ++i)
+        loadSubPresentation(&m_presentations[i]);
+
+    return true;
+}
+
+bool Q3DStudioWindow::loadPresentation(Presentation *pres)
+{
+    // Parse.
+    QScopedPointer<Q3DSUipDocument> uipDocument(new Q3DSUipDocument);
+    if (!uipDocument->loadUip(pres->uipFileName)) {
+        Q3DSUtils::showMessage(QObject::tr("Failed to parse main presentation"));
+        return false;
+    }
+    pres->uipDocument = uipDocument.take();
 
     // Presentation is ready. Build the Qt3D scene. This will also activate the first sub-slide.
     Q3DSSceneManager::SceneBuilderParams params;
@@ -229,22 +301,20 @@ bool Q3DStudioWindow::setSource(const QString &uipFileName)
     params.window = this;
 
     QScopedPointer<Q3DSSceneManager> sceneManager(new Q3DSSceneManager(gfxLimits));
-    pres.q3dscene = sceneManager->buildScene(pres.uipDocument->presentation(), params);
-    if (!pres.q3dscene.rootEntity) {
+    pres->q3dscene = sceneManager->buildScene(pres->uipDocument->presentation(), params);
+    if (!pres->q3dscene.rootEntity) {
         Q3DSUtils::showMessage(QObject::tr("Failed to build Qt3D scene"));
         return false;
     }
-    pres.sceneManager = sceneManager.take();
-
-    m_presentations.append(pres);
+    pres->sceneManager = sceneManager.take();
 
     // Input.
     Qt3DInput::QInputSettings *inputSettings = new Qt3DInput::QInputSettings;
     inputSettings->setEventSource(this);
-    pres.q3dscene.rootEntity->addComponent(inputSettings);
+    pres->q3dscene.rootEntity->addComponent(inputSettings);
 
     // Try sizing the window to the presentation.
-    Q3DSPresentation *pres3DS = pres.uipDocument->presentation();
+    Q3DSPresentation *pres3DS = pres->uipDocument->presentation();
     QSize winSize(pres3DS->presentationWidth(), pres3DS->presentationHeight());
     if (winSize.isEmpty())
         winSize = QSize(800, 480);
@@ -252,30 +322,20 @@ bool Q3DStudioWindow::setSource(const QString &uipFileName)
 
     // Set new root entity if the window was already up and running.
     if (isExposed())
-        m_aspectEngine->setRootEntity(Qt3DCore::QEntityPtr(pres.q3dscene.rootEntity));
+        m_aspectEngine->setRootEntity(Qt3DCore::QEntityPtr(pres->q3dscene.rootEntity));
 
     return true;
 }
 
-QString Q3DStudioWindow::source() const
+bool Q3DStudioWindow::loadSubPresentation(Presentation *pres)
 {
-    return !m_presentations.isEmpty() ? m_presentations[0].uipFileName : QString();
-}
-
-bool Q3DStudioWindow::addSubPresentation(const QString &filename)
-{
-    Q_ASSERT(!m_presentations.isEmpty());
-
-    Presentation pres;
-    pres.uipFileName = filename;
-
     // Parse.
     QScopedPointer<Q3DSUipDocument> uipDocument(new Q3DSUipDocument);
-    if (!uipDocument->loadUip(pres.uipFileName)) {
-        Q3DSUtils::showMessage(QObject::tr("Failed to build Qt3D scene"));
+    if (!uipDocument->loadUip(pres->uipFileName)) {
+        Q3DSUtils::showMessage(QObject::tr("Failed to parse subpresentation"));
         return false;
     }
-    pres.uipDocument = uipDocument.take();
+    pres->uipDocument = uipDocument.take();
 
     Qt3DRender::QFrameGraphNode *fgParent = m_presentations[0].q3dscene.subPresFrameGraphRoot;
     Qt3DCore::QNode *entityParent = m_presentations[0].q3dscene.rootEntity;
@@ -283,7 +343,7 @@ bool Q3DStudioWindow::addSubPresentation(const QString &filename)
     Q3DSSceneManager::SceneBuilderParams params;
     params.flags = Q3DSSceneManager::SubPresentation;
 
-    Q3DSPresentation *pres3DS = pres.uipDocument->presentation();
+    Q3DSPresentation *pres3DS = pres->uipDocument->presentation();
     params.outputSize = QSize(pres3DS->presentationWidth(), pres3DS->presentationHeight());
     params.outputDpr = 1;
 
@@ -293,13 +353,13 @@ bool Q3DStudioWindow::addSubPresentation(const QString &filename)
 
     color->setAttachmentPoint(Qt3DRender::QRenderTargetOutput::Color0);
     // no MSAA for subpresentations
-    pres.subPres.tex = new Qt3DRender::QTexture2D;
-    pres.subPres.tex->setFormat(Qt3DRender::QAbstractTexture::RGBA8_UNorm);
-    pres.subPres.tex->setWidth(pres3DS->presentationWidth());
-    pres.subPres.tex->setHeight(pres3DS->presentationHeight());
-    pres.subPres.tex->setMinificationFilter(Qt3DRender::QAbstractTexture::Linear);
-    pres.subPres.tex->setMagnificationFilter(Qt3DRender::QAbstractTexture::Linear);
-    color->setTexture(pres.subPres.tex);
+    pres->subPres.tex = new Qt3DRender::QTexture2D;
+    pres->subPres.tex->setFormat(Qt3DRender::QAbstractTexture::RGBA8_UNorm);
+    pres->subPres.tex->setWidth(pres3DS->presentationWidth());
+    pres->subPres.tex->setHeight(pres3DS->presentationHeight());
+    pres->subPres.tex->setMinificationFilter(Qt3DRender::QAbstractTexture::Linear);
+    pres->subPres.tex->setMagnificationFilter(Qt3DRender::QAbstractTexture::Linear);
+    color->setTexture(pres->subPres.tex);
 
     Qt3DRender::QRenderTargetOutput *ds = new Qt3DRender::QRenderTargetOutput;
     ds->setAttachmentPoint(Qt3DRender::QRenderTargetOutput::DepthStencil);
@@ -318,22 +378,30 @@ bool Q3DStudioWindow::addSubPresentation(const QString &filename)
     params.frameGraphRoot = rtSel;
 
     QScopedPointer<Q3DSSceneManager> sceneManager(new Q3DSSceneManager(gfxLimits));
-    pres.q3dscene = sceneManager->buildScene(pres.uipDocument->presentation(), params);
-    if (!pres.q3dscene.rootEntity) {
-        Q3DSUtils::showMessage(QObject::tr("Failed to build Qt3D scene"));
+    pres->q3dscene = sceneManager->buildScene(pres->uipDocument->presentation(), params);
+    if (!pres->q3dscene.rootEntity) {
+        Q3DSUtils::showMessage(QObject::tr("Failed to build Qt3D scene for subpresentation"));
         return false;
     }
-    pres.sceneManager = sceneManager.take();
+    pres->sceneManager = sceneManager.take();
 
-    pres.q3dscene.rootEntity->setParent(entityParent);
+    pres->q3dscene.rootEntity->setParent(entityParent);
 
-    m_presentations.append(pres);
     return true;
 }
 
 int Q3DStudioWindow::presentationCount() const
 {
     return m_presentations.count();
+}
+
+int Q3DStudioWindow::indexOfSubPresentation(const QString &id) const
+{
+    for (int i = 0; i < m_presentations.count(); ++i) {
+        if (m_presentations[i].subPresentationId == id)
+            return i;
+    }
+    return -1;
 }
 
 QString Q3DStudioWindow::uipFileName(int index) const

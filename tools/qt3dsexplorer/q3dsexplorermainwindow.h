@@ -48,6 +48,8 @@ public:
 
     void updatePresentation();
 
+    static QString fileFilter();
+
 private:
     Q3DStudioWindow *m_view;
     SlideExplorerWidget *m_slideExplorer;
