@@ -979,6 +979,8 @@ namespace  {
 
     bool scanForTransparency(const QString &imageSource)
     {
+        if (imageSource.isEmpty()) // empty (e.g. because subpresentation) -> assume transparency
+            return true;
         QImage textureImage(imageSource);
         // If the texture fails to load with QImage, assume it has transparency
         if (textureImage.isNull())

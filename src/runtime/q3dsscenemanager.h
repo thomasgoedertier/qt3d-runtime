@@ -282,6 +282,7 @@ struct Q3DSTextureParameters
 
     Qt3DRender::QTexture2D *texture = nullptr;
     Qt3DRender::QTextureImage *textureImage = nullptr;
+    QString subPresId;
 };
 
 class Q3DSDefaultMaterialAttached : public Q3DSGraphObjectAttached
@@ -437,7 +438,10 @@ private:
     Qt3DCore::QEntity *buildModel(Q3DSModelNode *model3DS, Q3DSLayerNode *layer3DS, Qt3DCore::QEntity *parent);
     void buildModelMaterial(Q3DSModelNode *model3DS);
     void retagSubMeshes(Q3DSModelNode *model3DS);
+    void prepareTextureParameters(Q3DSTextureParameters &textureParameters, const QString &name);
     QVector<Qt3DRender::QParameter *> prepareDefaultMaterial(Q3DSDefaultMaterial *m, Q3DSModelNode *model3DS);
+    void setImageTextureFromSubPresentation(Qt3DRender::QParameter *sampler, Q3DSImage *image);
+    void updateTextureParameters(Q3DSTextureParameters &textureParameters, Q3DSImage *image);
     void updateDefaultMaterial(Q3DSDefaultMaterial *m);
     void gatherLights(Q3DSGraphObject *root, QVector<Q3DSLightSource> *allLights, QVector<Q3DSLightSource> *nonAreaLights,
                       QVector<Q3DSLightSource> *areaLights, QVector<Q3DSLightNode *> *lightNodes);
@@ -486,6 +490,8 @@ private:
     Qt3DRender::QLayer *m_fsQuadTag = nullptr;
     QStack<Q3DSComponentNode *> m_componentNodeStack;
     QSet<Q3DSLayerNode *> m_subPresLayers;
+    QVector<QPair<Qt3DRender::QParameter *, Q3DSImage *> > m_subPresImages;
+    QVector<Q3DSSubPresentation> m_subPresentations;
     Qt3DRender::QTexture2D *m_dummyTex = nullptr;
 
     friend class Q3DSFrameUpdater;

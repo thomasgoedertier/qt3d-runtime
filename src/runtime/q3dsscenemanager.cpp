@@ -488,6 +488,8 @@ Q3DSSceneManager::Scene Q3DSSceneManager::buildScene(Q3DSPresentation *presentat
     m_pendingNodeShow.clear();
     m_pendingNodeHide.clear();
     m_subPresLayers.clear();
+    m_subPresImages.clear();
+    m_subPresentations.clear();
 
     // Enter the first slide. (apply property changes from master+first)
     if (!m_masterSlide) {
@@ -607,6 +609,8 @@ Q3DSSceneManager::Scene Q3DSSceneManager::buildScene(Q3DSPresentation *presentat
  */
 void Q3DSSceneManager::finalizeMainScene(const QVector<Q3DSSubPresentation> &subPresentations)
 {
+    m_subPresentations = subPresentations;
+
     for (Q3DSLayerNode *layer3DS : m_subPresLayers) {
         const QString subPresId = layer3DS->sourcePath();
         Q_ASSERT(!subPresId.isEmpty());
@@ -616,8 +620,14 @@ void Q3DSSceneManager::finalizeMainScene(const QVector<Q3DSSubPresentation> &sub
             qCDebug(lcScene, "Directing subpresentation %s to layer %s", qPrintable(it->id), layer3DS->id().constData());
             Q3DSLayerAttached *layerData = static_cast<Q3DSLayerAttached *>(layer3DS->attached());
             layerData->compositorSourceParam->setValue(QVariant::fromValue(it->tex));
+        } else {
+            qCDebug(lcScene, "Subpresentation %s for layer %s not found",
+                    qPrintable(subPresId), layer3DS->id().constData());
         }
     }
+
+    for (auto p : m_subPresImages)
+        setImageTextureFromSubPresentation(p.first, p.second);
 }
 
 // layers use the first Active (eyeball on) camera for rendering
@@ -2007,12 +2017,13 @@ Qt3DRender::QFrameGraphNode *Q3DSSceneManager::buildCompositor(Qt3DRender::QFram
 
     if (m_scene->useClearColor() || m_flags.testFlag(SubPresentation)) {
         clearBuffers->setBuffers(Qt3DRender::QClearBuffers::ColorDepthStencilBuffer);
-        float alpha = m_flags.testFlag(SubPresentation) ? 0.0f : 1.0f;
         QColor clearColor;
         if (m_scene->useClearColor()) {
-            const QColor c = m_scene->clearColor();
-            clearColor = QColor::fromRgbF(c.redF(), c.greenF(), c.blueF(), alpha);
+            // Alpha is 1 here even for subpresentations. Otherwise there would
+            // be no way to get the background visible when used as a texture later on.
+            clearColor = m_scene->clearColor();
         } else {
+            float alpha = m_flags.testFlag(SubPresentation) ? 0.0f : 1.0f;
             clearColor = QColor::fromRgbF(0.0f, 0.0f, 0.0f, alpha);
         }
         clearBuffers->setClearColor(clearColor);
@@ -2838,7 +2849,7 @@ void Q3DSSceneManager::retagSubMeshes(Q3DSModelNode *model3DS)
     }
 }
 
-static void prepareTextureParameters(Q3DSTextureParameters &textureParameters, const QString &name)
+void Q3DSSceneManager::prepareTextureParameters(Q3DSTextureParameters &textureParameters, const QString &name)
 {
     textureParameters.sampler = new Qt3DRender::QParameter;
     textureParameters.sampler->setName(name + QLatin1String("_sampler"));
@@ -2849,14 +2860,30 @@ static void prepareTextureParameters(Q3DSTextureParameters &textureParameters, c
     textureParameters.rotations = new Qt3DRender::QParameter;
     textureParameters.rotations->setName(name + QLatin1String("_rotations"));
 
-    textureParameters.texture = new Qt3DRender::QTexture2D;
+    textureParameters.texture = new Qt3DRender::QTexture2D(m_rootEntity);
     textureParameters.textureImage = new Qt3DRender::QTextureImage;
     textureParameters.texture->addTextureImage(textureParameters.textureImage);
 }
 
-static void updateTextureParameters(Q3DSTextureParameters &textureParameters, Q3DSImage *image)
+void Q3DSSceneManager::updateTextureParameters(Q3DSTextureParameters &textureParameters, Q3DSImage *image)
 {
-    textureParameters.textureImage->setSource(QUrl::fromLocalFile(image->sourcePath()));
+    if (!image->subPresentation().isEmpty()) {
+        if (textureParameters.subPresId != image->subPresentation()) {
+            textureParameters.subPresId = image->subPresentation();
+            // won't yet have the subpresentations if this is still during the building of the main one
+            if (m_subPresentations.isEmpty()) {
+                textureParameters.sampler->setValue(QVariant::fromValue(m_dummyTex));
+                m_subPresImages.append(qMakePair(textureParameters.sampler, image));
+            } else {
+                setImageTextureFromSubPresentation(textureParameters.sampler, image);
+            }
+        }
+    } else if (!image->sourcePath().isEmpty()) {
+        textureParameters.textureImage->setSource(QUrl::fromLocalFile(image->sourcePath()));
+        textureParameters.sampler->setValue(QVariant::fromValue(textureParameters.texture));
+    } else {
+        textureParameters.sampler->setValue(QVariant::fromValue(m_dummyTex));
+    }
 
     Qt3DRender::QTextureWrapMode wrapMode;
     switch (image->horizontalTiling()) {
@@ -2882,11 +2909,12 @@ static void updateTextureParameters(Q3DSTextureParameters &textureParameters, Q3
         break;
     }
 
-    textureParameters.texture->setGenerateMipMaps(true);
-    textureParameters.texture->setMagnificationFilter(Qt3DRender::QAbstractTexture::Linear);
-    textureParameters.texture->setMinificationFilter(Qt3DRender::QAbstractTexture::LinearMipMapLinear);
-    textureParameters.texture->setWrapMode(wrapMode);
-    textureParameters.sampler->setValue(QVariant::fromValue(textureParameters.texture));
+    Qt3DRender::QAbstractTexture *texture = textureParameters.sampler->value().value<Qt3DRender::QAbstractTexture *>();
+    Q_ASSERT(texture);
+    texture->setGenerateMipMaps(true);
+    texture->setMagnificationFilter(Qt3DRender::QAbstractTexture::Linear);
+    texture->setMinificationFilter(Qt3DRender::QAbstractTexture::LinearMipMapLinear);
+    texture->setWrapMode(wrapMode);
 
     const QMatrix4x4 &textureTransform = image->textureTransform();
     const float *m = textureTransform.constData();
@@ -2896,6 +2924,21 @@ static void updateTextureParameters(Q3DSTextureParameters &textureParameters, Q3
 
     QVector4D rotations(m[0], m[4], m[1], m[5]);
     textureParameters.rotations->setValue(rotations);
+}
+
+void Q3DSSceneManager::setImageTextureFromSubPresentation(Qt3DRender::QParameter *sampler, Q3DSImage *image)
+{
+    auto it = std::find_if(m_subPresentations.cbegin(), m_subPresentations.cend(),
+                           [image](const Q3DSSubPresentation &sp) { return sp.id == image->subPresentation(); });
+    if (it != m_subPresentations.cend()) {
+        qCDebug(lcScene, "Directing subpresentation %s to image %s",
+                qPrintable(image->subPresentation()), image->id().constData());
+        sampler->setValue(QVariant::fromValue(it->tex));
+    } else {
+        qCDebug(lcScene, "Subpresentation %s for image %s not found",
+                qPrintable(image->subPresentation()), image->id().constData());
+        sampler->setValue(QVariant::fromValue(m_dummyTex));
+    }
 }
 
 QVector<Qt3DRender::QParameter *> Q3DSSceneManager::prepareDefaultMaterial(Q3DSDefaultMaterial *m, Q3DSModelNode *model3DS)
@@ -2963,9 +3006,6 @@ QVector<Qt3DRender::QParameter *> Q3DSSceneManager::prepareDefaultMaterial(Q3DSD
         data->displaceAmountParam->setName(QLatin1String("displaceAmount"));
     }
     params.append(data->displaceAmountParam);
-
-    // ### the texture maps are not dynamic right now, meaning not having one
-    // and then assigning one in a slide change will not work as expected.
 
     if (m->diffuseMap()) {
         prepareTextureParameters(data->diffuseMapParams, QLatin1String("diffuseMap"));

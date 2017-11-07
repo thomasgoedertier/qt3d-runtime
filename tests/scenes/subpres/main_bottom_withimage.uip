@@ -18,6 +18,11 @@
 						</Material>
 					</Model>
 					<Light id="Light" />
+					<Model id="Rect" >
+						<Material id="Material_001" >
+							<Image id="Material_001_diffusemap" />
+						</Material>
+					</Model>
 				</Layer>
 			</Scene>
 		</Graph>
@@ -25,14 +30,21 @@
 			<State name="Master Slide" component="#Scene" >
 				<Add ref="#Layer" background="SolidColor" backgroundcolor="0.513726 0.564706 0.490196" />
 				<Add ref="#Camera" />
-				<State id="Scene-Slide1" name="Slide1" >
+				<State id="Scene-Slide1" name="Slide1" playmode="Looping" >
 					<Add ref="#sp" name="sp" sourcepath="subpres1" />
 					<Add ref="#Camera_001" />
 					<Add ref="#Light_001" />
-					<Add ref="#Cylinder" name="Cylinder" position="344.967 -170.318 0" rotation="-26.2701 -25.7819 13.1225" sourcepath="#Cylinder" />
+					<Add ref="#Cylinder" name="Cylinder" position="344.967 -170.318 0" rotation="-26.2701 -25.7819 13.1225" sourcepath="#Cylinder" >
+						<AnimationTrack property="rotation.x" type="EaseInOut" >0 -26.2701 100 100 10 -26.27 100 100</AnimationTrack>
+						<AnimationTrack property="rotation.y" type="EaseInOut" >0 -25.7819 100 100 10 200 100 100</AnimationTrack>
+						<AnimationTrack property="rotation.z" type="EaseInOut" >0 13.1225 100 100 10 13.123 100 100</AnimationTrack>
+					</Add>
 					<Add ref="#Material" diffusemap="#Material_diffusemap" shaderlighting="Pixel" />
 					<Add ref="#Material_diffusemap" subpresentation="subpres2" />
 					<Add ref="#Light" name="Light" position="303.109 95.2628 0" />
+					<Add ref="#Rect" name="Rect" position="-467.654 -262.694 0" scale="1.79 1.31 1" sourcepath="#Rectangle" />
+					<Add ref="#Material_001" diffusemap="#Material_001_diffusemap" />
+					<Add ref="#Material_001_diffusemap" sourcepath="qt.png" subpresentation="subpres2" />
 				</State>
 			</State>
 		</Logic>

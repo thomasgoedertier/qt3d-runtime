@@ -261,6 +261,7 @@ bool Q3DStudioWindow::setSource(const QString &uipOrUiaFileName)
             pres.subPres.id = p.id;
             // assume the .uip name in the .uia is relative to the .uia's location
             pres.uipFileName = sourcePrefix + p.source;
+            qCDebug(lcUip, "Registered subpresentation %s as %s", qPrintable(pres.uipFileName), qPrintable(p.id));
             if (p.id == uiaDoc.initialPresentationId) // initial (main) presentation must be m_presentations[0]
                 m_presentations.prepend(pres);
             else
@@ -361,7 +362,7 @@ bool Q3DStudioWindow::loadSubPresentation(Presentation *pres)
 
     color->setAttachmentPoint(Qt3DRender::QRenderTargetOutput::Color0);
     // no MSAA for subpresentations
-    pres->subPres.tex = new Qt3DRender::QTexture2D;
+    pres->subPres.tex = new Qt3DRender::QTexture2D(entityParent);
     pres->subPres.tex->setFormat(Qt3DRender::QAbstractTexture::RGBA8_UNorm);
     pres->subPres.tex->setWidth(pres3DS->presentationWidth());
     pres->subPres.tex->setHeight(pres3DS->presentationHeight());
