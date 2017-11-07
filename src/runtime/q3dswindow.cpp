@@ -43,6 +43,7 @@
 #include <Qt3DInput/QInputAspect>
 #include <Qt3DAnimation/QAnimationAspect>
 #include <Qt3DLogic/QLogicAspect>
+#include <Qt3DLogic/QFrameAction>
 
 #include <Qt3DRender/QRenderTargetSelector>
 #include <Qt3DRender/QRenderTargetOutput>
@@ -328,6 +329,9 @@ bool Q3DStudioWindow::loadPresentation(Presentation *pres)
     if (winSize.isEmpty())
         winSize = QSize(800, 480);
     resize(winSize);
+
+    // Expose update signal
+    connect(pres->q3dscene.frameAction, &Qt3DLogic::QFrameAction::triggered, this, &Q3DStudioWindow::sceneUpdated);
 
     // Set new root entity if the window was already up and running.
     if (isExposed())

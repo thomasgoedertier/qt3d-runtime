@@ -5,4 +5,5 @@ SUBDIRS += \
     uiaparser \
     meshloader \
     materialparser \
-    effectparser
+    effectparser \
+    slides

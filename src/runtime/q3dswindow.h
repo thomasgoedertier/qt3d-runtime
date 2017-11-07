@@ -39,6 +39,7 @@ QT_BEGIN_NAMESPACE
 
 class Q3DSV_EXPORT Q3DStudioWindow : public QWindow
 {
+    Q_OBJECT
 public:
     Q3DStudioWindow();
     ~Q3DStudioWindow();
@@ -62,6 +63,9 @@ public:
 
     // for testing purposes
     void setOnDemandRendering(bool enabled);
+
+Q_SIGNALS:
+    void sceneUpdated();
 
 protected:
     void exposeEvent(QExposeEvent *) override;

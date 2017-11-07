@@ -403,6 +403,7 @@ void Q3DSSceneManager::setCurrentSlide(Q3DSSlide *newSlide)
     m_currentSlide = newSlide;
 
     handleSlideChange(prevSlide, m_currentSlide, m_masterSlide);
+    updateSubTree(m_scene);
 }
 
 void Q3DSSceneManager::setComponentCurrentSlide(Q3DSComponentNode *component, Q3DSSlide *newSlide)
@@ -415,6 +416,7 @@ void Q3DSSceneManager::setComponentCurrentSlide(Q3DSComponentNode *component, Q3
     component->setCurrentSlide(newSlide);
 
     handleSlideChange(prevSlide, component->currentSlide(), component->masterSlide(), component);
+    updateSubTree(m_scene);
 }
 
 QDebug operator<<(QDebug dbg, const Q3DSSceneManager::SceneBuilderParams &p)
@@ -577,6 +579,7 @@ Q3DSSceneManager::Scene Q3DSSceneManager::buildScene(Q3DSPresentation *presentat
     sc.rootEntity = m_rootEntity;
     sc.frameGraphRoot = frameGraphRoot;
     sc.subPresFrameGraphRoot = subPresFrameGraphRoot;
+    sc.frameAction = nodeUpdater;
 
     if (params.window) {
         // Ready to go (except that the sizes calculated from params.outputSize are

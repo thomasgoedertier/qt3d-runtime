@@ -50,6 +50,10 @@ class QEntity;
 class QTransform;
 }
 
+namespace Qt3DLogic {
+class QFrameAction;
+}
+
 namespace Qt3DRender {
 class QFrameGraphNode;
 class QRenderSettings;
@@ -357,6 +361,7 @@ public:
         Qt3DRender::QFrameGraphNode *frameGraphRoot = nullptr;
         Qt3DRender::QFrameGraphNode *subPresFrameGraphRoot = nullptr; // when params.window
         Qt3DRender::QRenderSettings *renderSettings = nullptr; // when params.window
+        Qt3DLogic::QFrameAction *frameAction = nullptr;
     };
 
     Q3DSSceneManager(const Q3DSGraphicsLimits &limits);
