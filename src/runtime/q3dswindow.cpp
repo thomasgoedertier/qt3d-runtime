@@ -46,6 +46,7 @@
 
 #include <Qt3DRender/QRenderTargetSelector>
 #include <Qt3DRender/QRenderTargetOutput>
+#include <Qt3DRender/QRenderTarget>
 #include <Qt3DRender/QTexture>
 
 #include <Qt3DInput/QInputSettings>
