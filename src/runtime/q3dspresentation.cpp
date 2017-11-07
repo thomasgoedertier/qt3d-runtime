@@ -36,6 +36,7 @@
 #include <QLoggingCategory>
 #include <functional>
 #include <QtMath>
+#include <QImage>
 
 QT_BEGIN_NAMESPACE
 
