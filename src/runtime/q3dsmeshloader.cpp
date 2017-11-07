@@ -610,7 +610,7 @@ MeshList loadMeshData(const QByteArray &meshData, quint32 flags, bool useQt3DAtt
         return nullptr;
 
     // Vertex Buffer
-    auto vertexBuffer = new Qt3DRender::QBuffer(Qt3DRender::QBuffer::VertexBuffer);
+    auto vertexBuffer = new Qt3DRender::QBuffer;
     vertexBuffer->setData(QByteArray((char *)mesh->m_VertexBuffer.m_Data.begin(dataStart), mesh->m_VertexBuffer.m_Data.size()));
     vertexBuffer->setUsage(Qt3DRender::QBuffer::StaticDraw);
 
@@ -695,7 +695,7 @@ MeshList loadMeshData(const QByteArray &meshData, quint32 flags, bool useQt3DAtt
         }
     }
     // Index Buffer
-    auto indexBuffer = new Qt3DRender::QBuffer(Qt3DRender::QBuffer::IndexBuffer);
+    auto indexBuffer = new Qt3DRender::QBuffer;
     indexBuffer->setData(QByteArray((char *)mesh->m_IndexBuffer.m_Data.begin(dataStart), mesh->m_IndexBuffer.m_Data.size()));
     indexBuffer->setUsage(Qt3DRender::QBuffer::StaticDraw);
 
