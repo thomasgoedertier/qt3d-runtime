@@ -2901,7 +2901,7 @@ void Q3DSSceneManager::updateTextureParameters(Q3DSTextureParameters &texturePar
             textureParameters.subPresId = image->subPresentation();
             // won't yet have the subpresentations if this is still during the building of the main one
             if (m_subPresentations.isEmpty()) {
-                textureParameters.sampler->setValue(QVariant::fromValue(m_dummyTex));
+                textureParameters.sampler->setValue(QVariant::fromValue(dummyTexture()));
                 m_subPresImages.append(qMakePair(textureParameters.sampler, image));
             } else {
                 setImageTextureFromSubPresentation(textureParameters.sampler, image);
@@ -2911,7 +2911,7 @@ void Q3DSSceneManager::updateTextureParameters(Q3DSTextureParameters &texturePar
         textureParameters.textureImage->setSource(QUrl::fromLocalFile(image->sourcePath()));
         textureParameters.sampler->setValue(QVariant::fromValue(textureParameters.texture));
     } else {
-        textureParameters.sampler->setValue(QVariant::fromValue(m_dummyTex));
+        textureParameters.sampler->setValue(QVariant::fromValue(dummyTexture()));
     }
 
     Qt3DRender::QTextureWrapMode wrapMode;
@@ -2966,7 +2966,7 @@ void Q3DSSceneManager::setImageTextureFromSubPresentation(Qt3DRender::QParameter
     } else {
         qCDebug(lcScene, "Subpresentation %s for image %s not found",
                 qPrintable(image->subPresentation()), image->id().constData());
-        sampler->setValue(QVariant::fromValue(m_dummyTex));
+        sampler->setValue(QVariant::fromValue(dummyTexture()));
     }
 }
 
