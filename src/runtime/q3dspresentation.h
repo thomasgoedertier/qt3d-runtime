@@ -873,6 +873,7 @@ public:
     qint32 shadowMapRes() const { return m_shadowMapRes; }
     float shadowBias() const { return m_shadowBias; }
     float shadowMapFar() const { return m_shadowMapFar; }
+    float shadowMapFov() const { return m_shadowMapFov; }
 
     QStringList gex_propertyNames() const override;
     QVariantList gex_propertyValues() const override;
@@ -889,6 +890,7 @@ public:
     static void setShadowFilter(Q3DSGraphObject *obj, const QVariant &v) { static_cast<Q3DSLightNode *>(obj)->m_shadowFilter = v.toFloat(); }
     static void setShadowBias(Q3DSGraphObject *obj, const QVariant &v) { static_cast<Q3DSLightNode *>(obj)->m_shadowBias = v.toFloat(); }
     static void setShadowMapFar(Q3DSGraphObject *obj, const QVariant &v) { static_cast<Q3DSLightNode *>(obj)->m_shadowMapFar = v.toFloat(); }
+    static void setShadowMapFov(Q3DSGraphObject *obj, const QVariant &v) { static_cast<Q3DSLightNode *>(obj)->m_shadowMapFov = v.toFloat(); }
 
     static QVariant getDiffuse(Q3DSGraphObject *obj) { return static_cast<Q3DSLightNode *>(obj)->m_lightDiffuse; }
     static QVariant getSpecular(Q3DSGraphObject *obj) { return static_cast<Q3DSLightNode *>(obj)->m_lightSpecular; }
@@ -902,6 +904,7 @@ public:
     static QVariant getShadowFilter(Q3DSGraphObject *obj) { return static_cast<Q3DSLightNode *>(obj)->m_shadowFilter; }
     static QVariant getShadowBias(Q3DSGraphObject *obj) { return static_cast<Q3DSLightNode *>(obj)->m_shadowBias; }
     static QVariant getShadowMapFar(Q3DSGraphObject *obj) { return static_cast<Q3DSLightNode *>(obj)->m_shadowMapFar; }
+    static QVariant getShadowMapFov(Q3DSGraphObject *obj) { return static_cast<Q3DSLightNode *>(obj)->m_shadowMapFov; }
 
 private:
     Q_DISABLE_COPY(Q3DSLightNode)
@@ -925,6 +928,7 @@ private:
     qint32 m_shadowMapRes;
     float m_shadowBias;
     float m_shadowMapFar;
+    float m_shadowMapFov;
 };
 
 class Q3DSV_EXPORT Q3DSModelNode : public Q3DSNode

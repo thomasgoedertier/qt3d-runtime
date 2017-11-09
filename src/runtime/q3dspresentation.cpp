@@ -1621,6 +1621,7 @@ void Q3DSLightNode::setProps(const V &attrs, PropSetFlags flags)
     parseProperty(attrs, flags, typeName, QStringLiteral("shdwmapres"), &m_shadowMapRes);
     parseProperty(attrs, flags, typeName, QStringLiteral("shdwbias"), &m_shadowBias);
     parseProperty(attrs, flags, typeName, QStringLiteral("shdwmapfar"), &m_shadowMapFar);
+    parseProperty(attrs, flags, typeName, QStringLiteral("shdwmapfov"), &m_shadowMapFov);
 }
 
 void Q3DSLightNode::setProperties(const QXmlStreamAttributes &attrs, PropSetFlags flags)
@@ -1647,7 +1648,8 @@ QStringList Q3DSLightNode::gex_propertyNames() const
     s << QLatin1String("name") << QLatin1String("scope") << QLatin1String("lightType") << QLatin1String("lightDiffuse")
       << QLatin1String("lightSpecular") << QLatin1String("lightAmbient") << QLatin1String("brightness") << QLatin1String("linearFade")
       << QLatin1String("expFade") << QLatin1String("areaWidth") << QLatin1String("areaHeight") << QLatin1String("castShadow")
-      << QLatin1String("shadowFactor") << QLatin1String("shadowFilter") << QLatin1String("shadowMapRes") << QLatin1String("shadowBias") << QLatin1String("shadowMapFar");
+      << QLatin1String("shadowFactor") << QLatin1String("shadowFilter") << QLatin1String("shadowMapRes") << QLatin1String("shadowBias")
+      << QLatin1String("shadowMapFar") << QLatin1String("shadowMapFov");
     return s;
 }
 
@@ -1656,7 +1658,7 @@ QVariantList Q3DSLightNode::gex_propertyValues() const
     QVariantList s = Q3DSNode::gex_propertyValues();
     s << m_name << m_scope_unresolved << m_lightType << m_lightDiffuse << m_lightSpecular << m_lightAmbient
       << m_brightness << m_linearFade << m_expFade << m_areaWidth << m_areaHeight << m_castShadow
-      << m_shadowFactor << m_shadowFilter << m_shadowMapRes << m_shadowBias << m_shadowMapFar;
+      << m_shadowFactor << m_shadowFilter << m_shadowMapRes << m_shadowBias << m_shadowMapFar << m_shadowMapFov;
     return s;
 }
 

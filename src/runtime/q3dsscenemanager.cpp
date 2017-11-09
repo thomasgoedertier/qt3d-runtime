@@ -1704,7 +1704,7 @@ void Q3DSSceneManager::updateShadowMapStatus(Q3DSLayerNode *layer3DS, bool *smDi
                         Qt3DRender::QCamera *shadowCam = new Qt3DRender::QCamera;
 
                         shadowCam->setProjectionType(Qt3DRender::QCameraLens::PerspectiveProjection);
-                        shadowCam->setFieldOfView(90);
+                        shadowCam->setFieldOfView(light3DS->shadowMapFov());
                         shadowCam->setNearPlane(1.0f);
                         shadowCam->setFarPlane(qMax(2.0f, light3DS->shadowMapFar()));
 
@@ -1819,7 +1819,7 @@ void Q3DSSceneManager::updateShadowMapStatus(Q3DSLayerNode *layer3DS, bool *smDi
                     Qt3DRender::QCamera *shadowCam = new Qt3DRender::QCamera;
 
                     shadowCam->setProjectionType(Qt3DRender::QCameraLens::OrthographicProjection);
-                    shadowCam->setFieldOfView(90);
+                    shadowCam->setFieldOfView(light3DS->shadowMapFov());
                     shadowCam->setAspectRatio(1);
 
                     // Pick a shadow camera position based on the real camera.
@@ -1859,7 +1859,7 @@ void Q3DSSceneManager::updateShadowMapStatus(Q3DSLayerNode *layer3DS, bool *smDi
                     lightPos += lightDir * dd;
 
                     const QVector3D camDir = sceneCamData->globalTransform.column(3).toVector3D().normalized();
-                    float o1 = dd * 2.0f * qTan(0.5f * qDegreesToRadians(60.0f)); // ?! ported as-is, SCamera's default is 60...
+                    float o1 = dd * 2.0f * qTan(0.5f * qDegreesToRadians(light3DS->shadowMapFov()));
                     float o2 = light3DS->shadowMapFar() - 1.0f;
                     float o = qFabs(QVector3D::dotProduct(lightDir, camDir));
                     o = (1.0f - o) * o2 + o * o1;

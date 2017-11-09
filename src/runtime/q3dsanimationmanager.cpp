@@ -86,6 +86,7 @@ static struct AnimatableExtraMeta {
     { QLatin1String("Light"), QLatin1String("shdwfilter"), 1, &Q3DSLightNode::setShadowFilter, &Q3DSLightNode::getShadowFilter },
     { QLatin1String("Light"), QLatin1String("shdwbias"), 1, &Q3DSLightNode::setShadowBias, &Q3DSLightNode::getShadowBias },
     { QLatin1String("Light"), QLatin1String("shdwmapfar"), 1, &Q3DSLightNode::setShadowMapFar, &Q3DSLightNode::getShadowMapFar },
+    { QLatin1String("Light"), QLatin1String("shdwmapfov"), 1, &Q3DSLightNode::setShadowMapFov, &Q3DSLightNode::getShadowMapFov },
 
     { QLatin1String("Model"), QLatin1String("edgetess"), 1, &Q3DSModelNode::setEdgeTess, &Q3DSModelNode::getEdgeTess },
     { QLatin1String("Model"), QLatin1String("innertess"), 1, &Q3DSModelNode::setInnerTess, &Q3DSModelNode::getInnerTess },

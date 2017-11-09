@@ -241,21 +241,12 @@
                         <ShowIfEqual property="lighttype" value="Area"/>
                 </Property>
                 <Property name="castshadow" formalName="Cast Shadows?" description="Enable shadow casting for this light" type="Boolean" default="False"/>
-                <Property name="shdwfactor" formalName="Shadow Darkness" description="Factor used to darken shadows" default="10.0" min="1.0" max="100.0">
-                        <ShowIfEqual property="castshadow" value="True"/>
-                </Property>
-                <Property name="shdwfilter" formalName="Shadow Softness" description="Width of the blur filter on the shadow map" min="1" max="100" default="35">
-                        <ShowIfEqual property="castshadow" value="True"/>
-                </Property>
-                <Property name="shdwmapres" formalName="Shadow Resolution" description="Resolution of shadow map (powers of two)" type="Long" default="9" min="7" max="11" list="256:512:1024:2048">
-                        <ShowIfEqual property="castshadow" value="True"/>
-                </Property>
-                <Property name="shdwbias" formalName="Shadow Depth Bias" description="Slight offset to avoid self-shadowing artifacts" default="0" min="-1.0" max="1.0">
-                        <ShowIfEqual property="castshadow" value="True"/>
-                </Property>
-                <Property name="shdwmapfar" formalName="Shadow Far Clip" description="Affects the maximum distance for the shadow depth map" default="5000">
-                        <ShowIfEqual property="castshadow" value="True"/>
-                </Property>
+                <Property name="shdwfactor" formalName="Shadow Darkness" description="Factor used to darken shadows" default="10.0" min="1.0" max="100.0" />
+                <Property name="shdwfilter" formalName="Shadow Softness" description="Width of the blur filter on the shadow map" min="1" max="100" default="35" />
+                <Property name="shdwmapres" formalName="Shadow Resolution" description="Resolution of shadow map (powers of two)" type="Long" default="9" min="7" max="11" list="256:512:1024:2048" />
+                <Property name="shdwbias" formalName="Shadow Depth Bias" description="Slight offset to avoid self-shadowing artifacts" default="0" min="-1.0" max="1.0" />
+                <Property name="shdwmapfar" formalName="Shadow Far Clip" description="Affects the maximum distance for the shadow depth map" default="5000" />
+                <Property name="shdwmapfov" formalName="Shadow Field of View" description="Affects the field of view of the shadow camera" default="90" min="1" max="179" />
         </Light>
         <Lightmaps>
                 <Property name="name" formalName="Name" type="String" default="Lightmaps" hidden="True" category="Lighting" />
