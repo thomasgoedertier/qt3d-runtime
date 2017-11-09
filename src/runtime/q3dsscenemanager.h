@@ -39,6 +39,7 @@
 
 QT_BEGIN_NAMESPACE
 
+class Q3DSSceneManager;
 class Q3DSAnimationManager;
 class Q3DSFrameUpdater;
 class Q3DSTextRenderer;
@@ -170,6 +171,7 @@ public:
     QVector<SizeManagedTexture> sizeManagedTextures;
     Qt3DRender::QParameter *compositorSourceParam = nullptr;
     std::function<void()> updateCompositorCalculations = nullptr;
+    std::function<void()> updateSubPresentationSize = nullptr;
     QSize layerSize;
     QSize parentSize;
     QPointF layerPos;
@@ -336,7 +338,9 @@ public:
 struct Q3DSSubPresentation
 {
     QString id;
-    Qt3DRender::QTexture2D *tex = nullptr;
+    Q3DSSceneManager *sceneManager = nullptr;
+    Qt3DRender::QAbstractTexture *colorTex = nullptr;
+    Qt3DRender::QAbstractTexture *dsTex = nullptr;
 };
 
 class Q3DSV_EXPORT Q3DSSceneManager

@@ -622,7 +622,8 @@ void Q3DSSceneManager::finalizeMainScene(const QVector<Q3DSSubPresentation> &sub
         if (it != subPresentations.cend()) {
             qCDebug(lcScene, "Directing subpresentation %s to layer %s", qPrintable(it->id), layer3DS->id().constData());
             Q3DSLayerAttached *layerData = static_cast<Q3DSLayerAttached *>(layer3DS->attached());
-            layerData->compositorSourceParam->setValue(QVariant::fromValue(it->tex));
+            layerData->compositorSourceParam->setValue(QVariant::fromValue(it->colorTex));
+            layerData->updateSubPresentationSize();
         } else {
             qCDebug(lcScene, "Subpresentation %s for layer %s not found",
                     qPrintable(subPresId), layer3DS->id().constData());
@@ -822,7 +823,7 @@ void Q3DSSceneManager::buildLayer(Q3DSLayerNode *layer3DS,
 
     layer3DS->setAttached(data);
 
-    // may not have a valid size yet (but subpresentations f.ex. have their final size already here)
+    // may not have a valid size yet
     if (!data->layerSize.isEmpty()) {
         setLayerCameraSizeProperties(layer3DS);
         setLayerSizeProperties(layer3DS);
@@ -893,6 +894,29 @@ void Q3DSSceneManager::buildSubPresentationLayer(Q3DSLayerNode *layer3DS, const 
 
     // leave compositorSourceParam dummy for now, we don't know the actual texture yet
     data->compositorSourceParam = new Qt3DRender::QParameter(QLatin1String("tex"), dummyTexture());
+
+    // subpresentations associated with layers follow the size of the layer
+    data->updateSubPresentationSize = [this, layer3DS, data]() {
+        const QSize sz = data->layerSize;
+        if (sz.isEmpty())
+            return;
+        auto it = std::find_if(m_subPresentations.cbegin(), m_subPresentations.cend(),
+                               [this, layer3DS](const Q3DSSubPresentation &sp) { return sp.id == layer3DS->sourcePath(); });
+        if (it != m_subPresentations.cend()) {
+            qCDebug(lcScene, "Resizing subpresentation %s for layer %s to %dx%d",
+                    qPrintable(layer3DS->sourcePath()), layer3DS->id().constData(), sz.width(), sz.height());
+            // Resize the offscreen subpresentation buffers
+            it->colorTex->setWidth(sz.width());
+            it->colorTex->setHeight(sz.height());
+            it->dsTex->setWidth(sz.width());
+            it->dsTex->setHeight(sz.height());
+            // and communicate the new size to the subpresentation's renderer
+            // (viewport, camera, etc. need to adapt), just like a window would
+            // do to an onscreen presentation's scenemanager upon receiving a
+            // resizeEvent().
+            it->sceneManager->updateSizes(sz, 1);
+        }
+    };
 
     layer3DS->setAttached(data);
 
@@ -1175,6 +1199,8 @@ void Q3DSSceneManager::setLayerSizeProperties(Q3DSLayerNode *layer3DS)
     }
     if (data->updateCompositorCalculations)
         data->updateCompositorCalculations();
+    if (data->updateSubPresentationSize)
+        data->updateSubPresentationSize();
 }
 
 static void setClearColorForClearBuffers(Qt3DRender::QClearBuffers *clearBuffers, Q3DSLayerNode *layer3DS)
@@ -2936,7 +2962,7 @@ void Q3DSSceneManager::setImageTextureFromSubPresentation(Qt3DRender::QParameter
     if (it != m_subPresentations.cend()) {
         qCDebug(lcScene, "Directing subpresentation %s to image %s",
                 qPrintable(image->subPresentation()), image->id().constData());
-        sampler->setValue(QVariant::fromValue(it->tex));
+        sampler->setValue(QVariant::fromValue(it->colorTex));
     } else {
         qCDebug(lcScene, "Subpresentation %s for image %s not found",
                 qPrintable(image->subPresentation()), image->id().constData());

@@ -282,7 +282,7 @@ bool Q3DStudioWindow::setSource(const QString &uipOrUiaFileName)
 
     QVector<Q3DSSubPresentation> subPresentations;
     for (const Presentation &pres : m_presentations) {
-        if (!pres.subPres.id.isEmpty() && pres.subPres.tex)
+        if (!pres.subPres.id.isEmpty() && pres.subPres.colorTex)
             subPresentations.append(pres.subPres);
     }
     m_presentations[0].sceneManager->finalizeMainScene(subPresentations);
@@ -366,23 +366,23 @@ bool Q3DStudioWindow::loadSubPresentation(Presentation *pres)
 
     color->setAttachmentPoint(Qt3DRender::QRenderTargetOutput::Color0);
     // no MSAA for subpresentations
-    pres->subPres.tex = new Qt3DRender::QTexture2D(entityParent);
-    pres->subPres.tex->setFormat(Qt3DRender::QAbstractTexture::RGBA8_UNorm);
-    pres->subPres.tex->setWidth(pres3DS->presentationWidth());
-    pres->subPres.tex->setHeight(pres3DS->presentationHeight());
-    pres->subPres.tex->setMinificationFilter(Qt3DRender::QAbstractTexture::Linear);
-    pres->subPres.tex->setMagnificationFilter(Qt3DRender::QAbstractTexture::Linear);
-    color->setTexture(pres->subPres.tex);
+    pres->subPres.colorTex = new Qt3DRender::QTexture2D(entityParent);
+    pres->subPres.colorTex->setFormat(Qt3DRender::QAbstractTexture::RGBA8_UNorm);
+    pres->subPres.colorTex->setWidth(pres3DS->presentationWidth());
+    pres->subPres.colorTex->setHeight(pres3DS->presentationHeight());
+    pres->subPres.colorTex->setMinificationFilter(Qt3DRender::QAbstractTexture::Linear);
+    pres->subPres.colorTex->setMagnificationFilter(Qt3DRender::QAbstractTexture::Linear);
+    color->setTexture(pres->subPres.colorTex);
 
     Qt3DRender::QRenderTargetOutput *ds = new Qt3DRender::QRenderTargetOutput;
     ds->setAttachmentPoint(Qt3DRender::QRenderTargetOutput::DepthStencil);
-    Qt3DRender::QAbstractTexture *dsTexOrRb = new Qt3DRender::QTexture2D;
-    dsTexOrRb->setFormat(Qt3DRender::QAbstractTexture::D24S8);
-    dsTexOrRb->setWidth(pres3DS->presentationWidth());
-    dsTexOrRb->setHeight(pres3DS->presentationHeight());
-    dsTexOrRb->setMinificationFilter(Qt3DRender::QAbstractTexture::Linear);
-    dsTexOrRb->setMagnificationFilter(Qt3DRender::QAbstractTexture::Linear);
-    ds->setTexture(dsTexOrRb);
+    pres->subPres.dsTex = new Qt3DRender::QTexture2D(entityParent);
+    pres->subPres.dsTex->setFormat(Qt3DRender::QAbstractTexture::D24S8);
+    pres->subPres.dsTex->setWidth(pres3DS->presentationWidth());
+    pres->subPres.dsTex->setHeight(pres3DS->presentationHeight());
+    pres->subPres.dsTex->setMinificationFilter(Qt3DRender::QAbstractTexture::Linear);
+    pres->subPres.dsTex->setMagnificationFilter(Qt3DRender::QAbstractTexture::Linear);
+    ds->setTexture(pres->subPres.dsTex);
 
     rt->addOutput(color);
     rt->addOutput(ds);
@@ -397,6 +397,7 @@ bool Q3DStudioWindow::loadSubPresentation(Presentation *pres)
         return false;
     }
     pres->sceneManager = sceneManager.take();
+    pres->subPres.sceneManager = pres->sceneManager;
 
     pres->q3dscene.rootEntity->setParent(entityParent);
 
