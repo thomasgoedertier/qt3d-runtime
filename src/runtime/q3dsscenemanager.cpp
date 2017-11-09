@@ -479,8 +479,10 @@ Q3DSSceneManager::Scene Q3DSSceneManager::buildScene(Q3DSPresentation *presentat
     m_flags = params.flags;
     // Layer MSAA is only available through multisample textures (GLES 3.1+ or GL 3.2+) at the moment. (QTBUG-63382)
     // Drop the flag is this is not supported.
-    if (m_flags.testFlag(LayerMSAA4x) && !m_gfxLimits.multisampleTextureSupported)
-        m_flags.setFlag(LayerMSAA4x, false);
+    if (m_flags.testFlag(Force4xMSAA) && !m_gfxLimits.multisampleTextureSupported) {
+        qCDebug(lcScene, "4x MSAA requested but not supported; ignoring request");
+        m_flags.setFlag(Force4xMSAA, false);
+    }
 
     m_presentation = presentation;
     m_presentationSize = QSize(m_presentation->presentationWidth(), m_presentation->presentationHeight());
@@ -681,7 +683,8 @@ void Q3DSSceneManager::buildLayer(Q3DSLayerNode *layer3DS,
     Qt3DRender::QRenderTargetOutput *color = new Qt3DRender::QRenderTargetOutput;
     color->setAttachmentPoint(Qt3DRender::QRenderTargetOutput::Color0);
     Qt3DRender::QAbstractTexture *colorTex;
-    if (m_flags.testFlag(LayerMSAA4x)) {
+    if (m_flags.testFlag(Force4xMSAA)) {
+        qCDebug(lcScene, "Layer %s uses multisample texture", layer3DS->id().constData());
         colorTex = new Qt3DRender::QTexture2DMultisample;
         colorTex->setSamples(4);
     } else {
@@ -709,7 +712,7 @@ void Q3DSSceneManager::buildLayer(Q3DSLayerNode *layer3DS,
     Qt3DRender::QRenderTargetOutput *ds = new Qt3DRender::QRenderTargetOutput;
     ds->setAttachmentPoint(Qt3DRender::QRenderTargetOutput::DepthStencil);
     Qt3DRender::QAbstractTexture *dsTexOrRb;
-    if (m_flags.testFlag(LayerMSAA4x)) {
+    if (m_flags.testFlag(Force4xMSAA)) {
         dsTexOrRb = new Qt3DRender::QTexture2DMultisample;
         dsTexOrRb->setSamples(4);
     } else {
@@ -2120,7 +2123,7 @@ Qt3DRender::QFrameGraphNode *Q3DSSceneManager::buildCompositor(Qt3DRender::QFram
         }
         shaderProgram->setVertexShaderCode(Qt3DRender::QShaderProgram::loadSource(QUrl(QLatin1String("qrc:/q3ds/shaders/compositor") + vertSuffix)));
         QString fragSrc = QLatin1String("qrc:/q3ds/shaders/compositor") + fragSuffix;
-        if (m_flags.testFlag(LayerMSAA4x))
+        if (m_flags.testFlag(Force4xMSAA))
             fragSrc = QLatin1String("qrc:/q3ds/shaders/compositor_ms") + fragSuffix;
         shaderProgram->setFragmentShaderCode(Qt3DRender::QShaderProgram::loadSource(QUrl(fragSrc)));
         renderPass->setShaderProgram(shaderProgram);

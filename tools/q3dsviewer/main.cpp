@@ -44,13 +44,13 @@ int main(int argc, char *argv[])
     cmdLineParser.addPositionalArgument(QLatin1String("filename"), QObject::tr("UIP or UIA file to open"));
     QCommandLineOption noMainWindowOption({ "w", "no-main-window" }, QObject::tr("Skips the QWidget-based main window (use this for eglfs)."));
     cmdLineParser.addOption(noMainWindowOption);
-    QCommandLineOption msaaOption({ "m", "multisample" }, QObject::tr("Enable 4x MSAA"));
+    QCommandLineOption msaaOption({ "m", "multisample" }, QObject::tr("Force 4x MSAA"));
     cmdLineParser.addOption(msaaOption);
     cmdLineParser.process(app);
 
     Q3DStudioWindow::InitFlags initFlags = 0;
     if (cmdLineParser.isSet(msaaOption))
-        initFlags |= Q3DStudioWindow::MSAA4x;
+        initFlags |= Q3DStudioWindow::Force4xMSAA;
     Q3DStudioWindow::initStaticPostApp(initFlags);
 
     QStringList fn = cmdLineParser.positionalArguments();

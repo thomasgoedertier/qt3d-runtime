@@ -45,7 +45,7 @@ public:
     ~Q3DStudioWindow();
 
     enum InitFlag {
-        MSAA4x = 0x01
+        Force4xMSAA = 0x01
     };
     Q_DECLARE_FLAGS(InitFlags, InitFlag)
 

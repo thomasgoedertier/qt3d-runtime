@@ -182,7 +182,7 @@ void Q3DStudioWindow::initStaticPostApp(InitFlags flags)
     }
     fmt.setDepthBufferSize(24);
     fmt.setStencilBufferSize(8);
-    if (flags.testFlag(Q3DStudioWindow::MSAA4x))
+    if (flags.testFlag(Q3DStudioWindow::Force4xMSAA))
         fmt.setSamples(4);
     QSurfaceFormat::setDefaultFormat(fmt);
 }
@@ -303,8 +303,8 @@ bool Q3DStudioWindow::loadPresentation(Presentation *pres)
     // Presentation is ready. Build the Qt3D scene. This will also activate the first sub-slide.
     Q3DSSceneManager::SceneBuilderParams params;
     params.flags = 0;
-    if (initFlags.testFlag(MSAA4x))
-        params.flags |= Q3DSSceneManager::LayerMSAA4x;
+    if (initFlags.testFlag(Force4xMSAA))
+        params.flags |= Q3DSSceneManager::Force4xMSAA;
 
     params.outputSize = size();
     params.outputDpr = devicePixelRatio();

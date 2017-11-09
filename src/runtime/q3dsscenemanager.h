@@ -347,7 +347,7 @@ class Q3DSV_EXPORT Q3DSSceneManager
 {
 public:
     enum SceneBuilderFlag {
-        LayerMSAA4x = 0x01,
+        Force4xMSAA = 0x01,
         SubPresentation = 0x02
     };
     Q_DECLARE_FLAGS(SceneBuilderFlags, SceneBuilderFlag)
