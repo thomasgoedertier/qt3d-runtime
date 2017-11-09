@@ -674,6 +674,12 @@ void Q3DSSceneManager::buildLayer(Q3DSLayerNode *layer3DS,
     Qt3DRender::QRenderTargetSelector *rtSelector = new Qt3DRender::QRenderTargetSelector(parent);
     Qt3DRender::QRenderTarget *rt = new Qt3DRender::QRenderTarget;
 
+    int ssaaScaleFactor = 1;
+    if (layer3DS->multisampleAA() == Q3DSLayerNode::SSAA) {
+        ssaaScaleFactor = 2;
+        qCDebug(lcScene, "Layer %s uses %dx SSAA", layer3DS->id().constData(), ssaaScaleFactor);
+    }
+
     int msaaSampleCount = 0;
     switch (layer3DS->multisampleAA()) {
     case Q3DSLayerNode::MSAA2x:
@@ -706,8 +712,8 @@ void Q3DSSceneManager::buildLayer(Q3DSLayerNode *layer3DS,
         colorTex = new Qt3DRender::QTexture2D;
     }
     colorTex->setFormat(Qt3DRender::QAbstractTexture::RGBA8_UNorm);
-    colorTex->setWidth(parentSize.width());
-    colorTex->setHeight(parentSize.height());
+    colorTex->setWidth(parentSize.width() * ssaaScaleFactor);
+    colorTex->setHeight(parentSize.height() * ssaaScaleFactor);
     colorTex->setMinificationFilter(Qt3DRender::QAbstractTexture::Linear);
     colorTex->setMagnificationFilter(Qt3DRender::QAbstractTexture::Linear);
     color->setTexture(colorTex);
@@ -734,8 +740,8 @@ void Q3DSSceneManager::buildLayer(Q3DSLayerNode *layer3DS,
         dsTexOrRb = new Qt3DRender::QTexture2D;
     }
     dsTexOrRb->setFormat(Qt3DRender::QAbstractTexture::D24S8);
-    dsTexOrRb->setWidth(parentSize.width());
-    dsTexOrRb->setHeight(parentSize.height());
+    dsTexOrRb->setWidth(parentSize.width() * ssaaScaleFactor);
+    dsTexOrRb->setHeight(parentSize.height() * ssaaScaleFactor);
     dsTexOrRb->setMinificationFilter(Qt3DRender::QAbstractTexture::Linear);
     dsTexOrRb->setMagnificationFilter(Qt3DRender::QAbstractTexture::Linear);
     ds->setTexture(dsTexOrRb);
@@ -827,6 +833,7 @@ void Q3DSSceneManager::buildLayer(Q3DSLayerNode *layer3DS,
     data->layerSize = calculateLayerSize(layer3DS, parentSize);
     data->parentSize = parentSize;
     data->msaaSampleCount = msaaSampleCount;
+    data->ssaaScaleFactor = ssaaScaleFactor;
     data->opaqueTag = opaqueTag;
     data->transparentTag = transparentTag;
     data->cameraPropertiesParam = new Qt3DRender::QParameter(QLatin1String("camera_properties"), QVector2D(10, 5000));
@@ -925,10 +932,10 @@ void Q3DSSceneManager::buildSubPresentationLayer(Q3DSLayerNode *layer3DS, const 
             qCDebug(lcScene, "Resizing subpresentation %s for layer %s to %dx%d",
                     qPrintable(layer3DS->sourcePath()), layer3DS->id().constData(), sz.width(), sz.height());
             // Resize the offscreen subpresentation buffers
-            it->colorTex->setWidth(sz.width());
-            it->colorTex->setHeight(sz.height());
-            it->dsTex->setWidth(sz.width());
-            it->dsTex->setHeight(sz.height());
+            it->colorTex->setWidth(sz.width() * data->ssaaScaleFactor);
+            it->colorTex->setHeight(sz.height() * data->ssaaScaleFactor);
+            it->dsTex->setWidth(sz.width() * data->ssaaScaleFactor);
+            it->dsTex->setHeight(sz.height() * data->ssaaScaleFactor);
             // and communicate the new size to the subpresentation's renderer
             // (viewport, camera, etc. need to adapt), just like a window would
             // do to an onscreen presentation's scenemanager upon receiving a
@@ -1211,8 +1218,8 @@ void Q3DSSceneManager::setLayerSizeProperties(Q3DSLayerNode *layer3DS)
 {
     Q3DSLayerAttached *data = static_cast<Q3DSLayerAttached *>(layer3DS->attached());
     for (const Q3DSLayerAttached::SizeManagedTexture &t : data->sizeManagedTextures) {
-        t.texture->setWidth(data->layerSize.width());
-        t.texture->setHeight(data->layerSize.height());
+        t.texture->setWidth(data->layerSize.width() * data->ssaaScaleFactor);
+        t.texture->setHeight(data->layerSize.height() * data->ssaaScaleFactor);
         if (t.sizeChangeCallback)
             t.sizeChangeCallback(layer3DS);
     }
@@ -1369,8 +1376,8 @@ static void prepareSizeDependentTexture(Qt3DRender::QAbstractTexture *texture,
 
     const QSize layerSize = data->parentSize;
     // may not be available yet, use a temporary size then
-    texture->setWidth(layerSize.width() > 0 ? layerSize.width() : 32);
-    texture->setHeight(layerSize.height() > 0 ? layerSize.height() : 32);
+    texture->setWidth(layerSize.width() > 0 ? layerSize.width() * data->ssaaScaleFactor : 32);
+    texture->setHeight(layerSize.height() > 0 ? layerSize.height() * data->ssaaScaleFactor : 32);
 
     // the layer will resize the texture automatically
     data->sizeManagedTextures << Q3DSLayerAttached::SizeManagedTexture(texture, callback);
