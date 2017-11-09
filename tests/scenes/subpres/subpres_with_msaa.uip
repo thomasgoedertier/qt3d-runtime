@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<UIP version="3" >
+	<Project >
+		<ProjectSettings author="" company="" presentationWidth="800" presentationHeight="480" maintainAspect="False" >
+			<CustomColors count="16" >#ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff</CustomColors>
+		</ProjectSettings>
+		<Graph >
+			<Scene id="Scene" bgcolorenable="False" >
+				<Layer id="Layer" >
+					<Camera id="Camera" />
+					<Light id="Light2" />
+					<Light id="Light" />
+					<Model id="Cube" >
+						<Material id="Material" />
+					</Model>
+				</Layer>
+			</Scene>
+		</Graph>
+		<Logic >
+			<State name="Master Slide" component="#Scene" >
+				<Add ref="#Layer" background="Transparent" backgroundcolor="0.564706 0.552941 0.188235" multisampleaa="4x" />
+				<Add ref="#Camera" />
+				<Add ref="#Light" lightdiffuse="0.294118 0.847059 1" lighttype="Point" position="70.7254 -165.988 0" />
+				<State id="Scene-Slide1" name="Slide1" >
+					<Add ref="#Light2" name="Light2" lighttype="Point" position="-95.2628 112.583 0" />
+					<Add ref="#Cube" name="Cube" rotation="-24.6559 -25.5901 1.48205" sourcepath="#Cube" >
+						<AnimationTrack property="rotation.x" type="EaseInOut" >0 -24.6559 100 100 10 -24.656 100 100</AnimationTrack>
+						<AnimationTrack property="rotation.y" type="EaseInOut" >0 -25.5901 100 100 10 225 100 100</AnimationTrack>
+						<AnimationTrack property="rotation.z" type="EaseInOut" >0 1.48205 100 100 10 1.482 100 100</AnimationTrack>
+					</Add>
+					<Add ref="#Material" />
+				</State>
+			</State>
+		</Logic>
+	</Project>
+</UIP>

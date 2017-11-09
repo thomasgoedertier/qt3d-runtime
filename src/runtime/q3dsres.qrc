@@ -2,10 +2,12 @@
     <qresource prefix="/q3ds">
         <file>shaders/compositor_core.vert</file>
         <file>shaders/compositor_core.frag</file>
-        <file>shaders/compositor_ms_core.frag</file>
         <file>shaders/compositor.vert</file>
         <file>shaders/compositor.frag</file>
-        <file>shaders/compositor_ms.frag</file>
+        <file>shaders/compositor_ms2.frag</file>
+        <file>shaders/compositor_ms2_core.frag</file>
+        <file>shaders/compositor_ms4.frag</file>
+        <file>shaders/compositor_ms4_core.frag</file>
         <file>shaders/text_core.vert</file>
         <file>shaders/text_core.frag</file>
         <file>shaders/text.vert</file>

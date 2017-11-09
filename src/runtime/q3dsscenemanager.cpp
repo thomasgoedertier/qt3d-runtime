@@ -477,12 +477,6 @@ Q3DSSceneManager::Scene Q3DSSceneManager::buildScene(Q3DSPresentation *presentat
         m_textRenderer->registerFonts({ projectFontDir });
 
     m_flags = params.flags;
-    // Layer MSAA is only available through multisample textures (GLES 3.1+ or GL 3.2+) at the moment. (QTBUG-63382)
-    // Drop the flag is this is not supported.
-    if (m_flags.testFlag(Force4xMSAA) && !m_gfxLimits.multisampleTextureSupported) {
-        qCDebug(lcScene, "4x MSAA requested but not supported; ignoring request");
-        m_flags.setFlag(Force4xMSAA, false);
-    }
 
     m_presentation = presentation;
     m_presentationSize = QSize(m_presentation->presentationWidth(), m_presentation->presentationHeight());
@@ -680,13 +674,34 @@ void Q3DSSceneManager::buildLayer(Q3DSLayerNode *layer3DS,
     Qt3DRender::QRenderTargetSelector *rtSelector = new Qt3DRender::QRenderTargetSelector(parent);
     Qt3DRender::QRenderTarget *rt = new Qt3DRender::QRenderTarget;
 
+    int msaaSampleCount = 0;
+    switch (layer3DS->multisampleAA()) {
+    case Q3DSLayerNode::MSAA2x:
+        msaaSampleCount = 2;
+        break;
+    case Q3DSLayerNode::MSAA4x:
+        msaaSampleCount = 4;
+        break;
+    default:
+        break;
+    }
+    if (m_flags.testFlag(Force4xMSAA))
+        msaaSampleCount = 4;
+
+    // Layer MSAA is only available through multisample textures (GLES 3.1+ or GL 3.2+) at the moment. (QTBUG-63382)
+    // Revert to no-MSAA when this is not supported.
+    if (msaaSampleCount > 1 && !m_gfxLimits.multisampleTextureSupported) {
+        qCDebug(lcScene, "Layer MSAA requested but not supported; ignoring request");
+        msaaSampleCount = 0;
+    }
+
     Qt3DRender::QRenderTargetOutput *color = new Qt3DRender::QRenderTargetOutput;
     color->setAttachmentPoint(Qt3DRender::QRenderTargetOutput::Color0);
     Qt3DRender::QAbstractTexture *colorTex;
-    if (m_flags.testFlag(Force4xMSAA)) {
+    if (msaaSampleCount > 1) {
         qCDebug(lcScene, "Layer %s uses multisample texture", layer3DS->id().constData());
         colorTex = new Qt3DRender::QTexture2DMultisample;
-        colorTex->setSamples(4);
+        colorTex->setSamples(msaaSampleCount);
     } else {
         colorTex = new Qt3DRender::QTexture2D;
     }
@@ -712,9 +727,9 @@ void Q3DSSceneManager::buildLayer(Q3DSLayerNode *layer3DS,
     Qt3DRender::QRenderTargetOutput *ds = new Qt3DRender::QRenderTargetOutput;
     ds->setAttachmentPoint(Qt3DRender::QRenderTargetOutput::DepthStencil);
     Qt3DRender::QAbstractTexture *dsTexOrRb;
-    if (m_flags.testFlag(Force4xMSAA)) {
+    if (msaaSampleCount > 1) {
         dsTexOrRb = new Qt3DRender::QTexture2DMultisample;
-        dsTexOrRb->setSamples(4);
+        dsTexOrRb->setSamples(msaaSampleCount);
     } else {
         dsTexOrRb = new Qt3DRender::QTexture2D;
     }
@@ -811,6 +826,7 @@ void Q3DSSceneManager::buildLayer(Q3DSLayerNode *layer3DS,
     data->compositorSourceParam = new Qt3DRender::QParameter(QLatin1String("tex"), colorTex);
     data->layerSize = calculateLayerSize(layer3DS, parentSize);
     data->parentSize = parentSize;
+    data->msaaSampleCount = msaaSampleCount;
     data->opaqueTag = opaqueTag;
     data->transparentTag = transparentTag;
     data->cameraPropertiesParam = new Qt3DRender::QParameter(QLatin1String("camera_properties"), QVector2D(10, 5000));
@@ -2123,8 +2139,8 @@ Qt3DRender::QFrameGraphNode *Q3DSSceneManager::buildCompositor(Qt3DRender::QFram
         }
         shaderProgram->setVertexShaderCode(Qt3DRender::QShaderProgram::loadSource(QUrl(QLatin1String("qrc:/q3ds/shaders/compositor") + vertSuffix)));
         QString fragSrc = QLatin1String("qrc:/q3ds/shaders/compositor") + fragSuffix;
-        if (m_flags.testFlag(Force4xMSAA))
-            fragSrc = QLatin1String("qrc:/q3ds/shaders/compositor_ms") + fragSuffix;
+        if (data->msaaSampleCount > 1)
+            fragSrc = QLatin1String("qrc:/q3ds/shaders/compositor_ms") + QString::number(data->msaaSampleCount) + fragSuffix;
         shaderProgram->setFragmentShaderCode(Qt3DRender::QShaderProgram::loadSource(QUrl(fragSrc)));
         renderPass->setShaderProgram(shaderProgram);
 

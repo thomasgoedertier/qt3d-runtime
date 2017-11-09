@@ -182,8 +182,7 @@ void Q3DStudioWindow::initStaticPostApp(InitFlags flags)
     }
     fmt.setDepthBufferSize(24);
     fmt.setStencilBufferSize(8);
-    if (flags.testFlag(Q3DStudioWindow::Force4xMSAA))
-        fmt.setSamples(4);
+    // Ignore MSAA here as that is a per-layer setting.
     QSurfaceFormat::setDefaultFormat(fmt);
 }
 
@@ -365,7 +364,6 @@ bool Q3DStudioWindow::loadSubPresentation(Presentation *pres)
     Qt3DRender::QRenderTargetOutput *color = new Qt3DRender::QRenderTargetOutput;
 
     color->setAttachmentPoint(Qt3DRender::QRenderTargetOutput::Color0);
-    // no MSAA for subpresentations
     pres->subPres.colorTex = new Qt3DRender::QTexture2D(entityParent);
     pres->subPres.colorTex->setFormat(Qt3DRender::QAbstractTexture::RGBA8_UNorm);
     pres->subPres.colorTex->setWidth(pres3DS->presentationWidth());

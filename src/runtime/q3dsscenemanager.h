@@ -175,6 +175,7 @@ public:
     QSize layerSize;
     QSize parentSize;
     QPointF layerPos;
+    int msaaSampleCount = 0;
     QVector<Q3DSLightSource> allLights;
     QVector<Q3DSLightSource> nonAreaLights;
     QVector<Q3DSLightSource> areaLights;
