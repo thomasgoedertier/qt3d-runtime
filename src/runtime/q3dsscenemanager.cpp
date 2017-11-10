@@ -179,45 +179,47 @@ Q_LOGGING_CATEGORY(lcScene, "q3ds.scene")
                             FrameGraphNode {
                                 NoDraw { } // so that we do not issue drawcalls when there are no shadow casting lights in the scene
                                 // [the creation of the rest is deferred and is *repeated for each shadow casting light* hence the need for a dummy FrameGraphNode as our sub-root ]
-                                for each cubemap face (if cubemap is used):
-                                    RenderTargetSelector {
-                                        ... // per-light shadow map texture (2d or cubemap) of R16 as color, throwaway depth-stencil; select the current face when cubemap
-                                        Viewport {
-                                            ClearBuffers {
-                                                NoDraw { }
-                                            }
-                                            RenderPassFilter {
-                                                matchAny: [ FilterKey { name: "pass"; value: "shadowCube" } ] // or "shadowOrtho" depending on the light type
-                                                LayerFilter {
-                                                    layers: [ layer1Opaque ]
+                                FrameGraphNode { // per-light sub-tree root
+                                    for each cubemap face (if cubemap is used):
+                                        RenderTargetSelector {
+                                            ... // per-light shadow map texture (2d or cubemap) of R16 as color, throwaway depth-stencil; select the current face when cubemap
+                                            Viewport {
+                                                ClearBuffers {
+                                                    NoDraw { }
                                                 }
-                                            }
-                                            RenderPassFilter {
-                                                matchAny: [ FilterKey { name: "pass"; value: "shadowCube" } ] // or "shadowOrtho" depending on the light type
-                                                SortPolicy {
-                                                    sortTypes: [ SortPolicy.BackToFront ]
+                                                RenderPassFilter {
+                                                    matchAny: [ FilterKey { name: "pass"; value: "shadowCube" } ] // or "shadowOrtho" depending on the light type
                                                     LayerFilter {
-                                                        layers: [ layer1Transparent ] or empty list when depth texture is not needed
+                                                        layers: [ layer1Opaque ]
+                                                    }
+                                                }
+                                                RenderPassFilter {
+                                                    matchAny: [ FilterKey { name: "pass"; value: "shadowCube" } ] // or "shadowOrtho" depending on the light type
+                                                    SortPolicy {
+                                                        sortTypes: [ SortPolicy.BackToFront ]
+                                                        LayerFilter {
+                                                            layers: [ layer1Transparent ] or empty list when depth texture is not needed
+                                                        }
                                                     }
                                                 }
                                             }
                                         }
-                                    }
-                                // cubemap blur X
-                                RenderTargetSelector {
-                                    ... // input is 6 cubemap faces attached to color0-5, output is another cubemap
-                                    RenderPassFilter {
-                                        matchAny: [ FilterKey { name: "pass"; value: "shadowCubeBlurX" } ]
-                                        LayerFilter {
-                                            layers: [ fsQuad ]
+                                    // cubemap blur X
+                                    RenderTargetSelector {
+                                        ... // input is 6 cubemap faces attached to color0-5, output is another cubemap
+                                        RenderPassFilter {
+                                            matchAny: [ FilterKey { name: "pass"; value: "shadowCubeBlurX" } ]
+                                            LayerFilter {
+                                                layers: [ fsQuad ]
+                                            }
                                         }
                                     }
+                                    // repeat for cubemap blur Y
+                                    RenderTargetSelector {
+                                        ...
+                                    }
+                                    ... // repeat for orthographic blur, concept is the same, input/output is a 2d texture, passes are shadowOrthoBlurX and Y
                                 }
-                                // repeat for cubemap blur Y
-                                RenderTargetSelector {
-                                    ...
-                                }
-                                ... // repeat for orthographic blur, concept is the same, input/output is a 2d texture, passes are shadowOrthoBlurX and Y
                             }
 
                             // 2. main clear
@@ -1578,6 +1580,9 @@ void Q3DSSceneManager::updateSsaoStatus(Q3DSLayerNode *layer3DS, bool *aoDidChan
 
 void Q3DSSceneManager::updateShadowMapStatus(Q3DSLayerNode *layer3DS, bool *smDidChange)
 {
+    // shadow properties are animatable and high frequency qCDebug should be avoided
+    static const bool shadowDebug = qEnvironmentVariableIntValue("Q3DS_DEBUG") >= 2;
+
     Q3DSLayerAttached *layerData = static_cast<Q3DSLayerAttached *>(layer3DS->attached());
     Q_ASSERT(layerData);
     const int oldShadowCasterCount = layerData->shadowMapData.shadowCasters.count();
@@ -1619,7 +1624,11 @@ void Q3DSSceneManager::updateShadowMapStatus(Q3DSLayerNode *layer3DS, bool *smDi
             if (!d->shadowMapTexture) {
                 Q_ASSERT(d->lightNode == light3DS);
                 const bool isCube = light3DS->lightType() != Q3DSLightNode::Directional;
-                Qt3DCore::QNode *texParent = layerData->shadowMapData.shadowRoot;
+
+                // Framegraph sub-tree root
+                d->subTreeRoot = new Qt3DRender::QFrameGraphNode(layerData->shadowMapData.shadowRoot);
+
+                Qt3DCore::QNode *texParent = d->subTreeRoot;
                 if (isCube) {
                     d->shadowMapTexture = new Qt3DRender::QTextureCubeMap(texParent);
                     d->shadowMapTextureTemp = new Qt3DRender::QTextureCubeMap(texParent);
@@ -1636,7 +1645,8 @@ void Q3DSSceneManager::updateShadowMapStatus(Q3DSLayerNode *layer3DS, bool *smDi
                 d->shadowMapTexture->setMagnificationFilter(Qt3DRender::QAbstractTexture::Linear);
                 d->shadowMapTextureTemp->setMagnificationFilter(Qt3DRender::QAbstractTexture::Linear);
 
-                qCDebug(lcScene, "Shadow cube map size is %d", size);
+                if (shadowDebug)
+                    qCDebug(lcScene, "Shadow cube map size is %d", size);
                 // do not add to layerData->sizeManagedTextures since the shadow map size is fixed
                 d->shadowMapTexture->setSize(size, size, 1);
                 d->shadowMapTextureTemp->setSize(size, size, 1);
@@ -1681,7 +1691,7 @@ void Q3DSSceneManager::updateShadowMapStatus(Q3DSLayerNode *layer3DS, bool *smDi
 
                     // Passes to fill up the 6 faces of the cubemap texture
                     for (int faceIdx = 0; faceIdx < 6; ++faceIdx) {
-                        Qt3DRender::QRenderTargetSelector *shadowRtSelector = new Qt3DRender::QRenderTargetSelector(layerData->shadowMapData.shadowRoot);
+                        Qt3DRender::QRenderTargetSelector *shadowRtSelector = new Qt3DRender::QRenderTargetSelector(d->subTreeRoot);
                         Qt3DRender::QRenderTarget *shadowRt = new Qt3DRender::QRenderTarget;
                         Qt3DRender::QRenderTargetOutput *shadowRtOutput = new Qt3DRender::QRenderTargetOutput;
                         shadowRtOutput->setAttachmentPoint(Qt3DRender::QRenderTargetOutput::Color0);
@@ -1747,7 +1757,7 @@ void Q3DSSceneManager::updateShadowMapStatus(Q3DSLayerNode *layer3DS, bool *smDi
                     // Draws a fullscreen quad into the 6 faces of the cubemap texture (COLOR0..5), with the other texture as input.
                     auto genCubeBlurPassFg = [=](Qt3DRender::QAbstractTexture *inTex, Qt3DRender::QAbstractTexture *outTex, const QString &passName)
                     {
-                        Qt3DRender::QRenderTargetSelector *rtSelector = new Qt3DRender::QRenderTargetSelector(layerData->shadowMapData.shadowRoot);
+                        Qt3DRender::QRenderTargetSelector *rtSelector = new Qt3DRender::QRenderTargetSelector(d->subTreeRoot);
                         Qt3DRender::QRenderTarget *rt = new Qt3DRender::QRenderTarget;
                         for (int faceIdx = 0; faceIdx < 6; ++faceIdx) {
                             Qt3DRender::QRenderTargetOutput *rtOutput = new Qt3DRender::QRenderTargetOutput;
@@ -1798,7 +1808,7 @@ void Q3DSSceneManager::updateShadowMapStatus(Q3DSLayerNode *layer3DS, bool *smDi
 
                     QVector3D lightDir = lightData->globalTransform.column(2).toVector3D().normalized();
 
-                    Qt3DRender::QRenderTargetSelector *shadowRtSelector = new Qt3DRender::QRenderTargetSelector(layerData->shadowMapData.shadowRoot);
+                    Qt3DRender::QRenderTargetSelector *shadowRtSelector = new Qt3DRender::QRenderTargetSelector(d->subTreeRoot);
                     Qt3DRender::QRenderTarget *shadowRt = new Qt3DRender::QRenderTarget;
                     Qt3DRender::QRenderTargetOutput *shadowRtOutput = new Qt3DRender::QRenderTargetOutput;
                     shadowRtOutput->setAttachmentPoint(Qt3DRender::QRenderTargetOutput::Color0);
@@ -1921,7 +1931,7 @@ void Q3DSSceneManager::updateShadowMapStatus(Q3DSLayerNode *layer3DS, bool *smDi
                     // 2 blur passes
                     auto genOrthoBlurPassFg = [=](Qt3DRender::QAbstractTexture *inTex, Qt3DRender::QAbstractTexture *outTex, const QString &passName)
                     {
-                        Qt3DRender::QRenderTargetSelector *rtSelector = new Qt3DRender::QRenderTargetSelector(layerData->shadowMapData.shadowRoot);
+                        Qt3DRender::QRenderTargetSelector *rtSelector = new Qt3DRender::QRenderTargetSelector(d->subTreeRoot);
                         Qt3DRender::QRenderTarget *rt = new Qt3DRender::QRenderTarget;
                         Qt3DRender::QRenderTargetOutput *rtOutput = new Qt3DRender::QRenderTargetOutput;
                         rtOutput->setAttachmentPoint(Qt3DRender::QRenderTargetOutput::Color0);
@@ -1981,9 +1991,10 @@ void Q3DSSceneManager::updateShadowMapStatus(Q3DSLayerNode *layer3DS, bool *smDi
     // Drop shadow map data for lights that are not casting anymore either due
     // to a castshadow or eyeball property change.
     for (int i = 0; i < layerData->shadowMapData.shadowCasters.count(); ++i) {
-        if (!layerData->shadowMapData.shadowCasters[i].active) {
+        auto &sc = layerData->shadowMapData.shadowCasters[i];
+        if (!sc.active) {
+            delete sc.subTreeRoot; // bye bye framegraph and shadow map textures
             layerData->shadowMapData.shadowCasters.remove(i--);
-            // ### QT3DS-364 may need some Qt 3D object cleanup as well
         }
     }
 
@@ -1991,7 +2002,7 @@ void Q3DSSceneManager::updateShadowMapStatus(Q3DSLayerNode *layer3DS, bool *smDi
     if (smDidChange)
         *smDidChange = newShadowCasterCount != oldShadowCasterCount;
 
-    if (newShadowCasterCount > 0)
+    if (shadowDebug && newShadowCasterCount > 0)
         qCDebug(lcScene, "Layer %s has %d shadow casting lights", layer3DS->id().constData(), layerData->shadowMapData.shadowCasters.count());
 }
 

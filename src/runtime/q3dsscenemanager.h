@@ -216,6 +216,7 @@ public:
     struct PerLightShadowMapData {
         bool active = false;
         Q3DSLightNode *lightNode = nullptr;
+        Qt3DRender::QFrameGraphNode *subTreeRoot = nullptr;
         Qt3DRender::QAbstractTexture *shadowMapTextureTemp = nullptr;
         Qt3DRender::QAbstractTexture *shadowMapTexture = nullptr;
         Qt3DRender::QParameter *cameraPositionParam = nullptr;
