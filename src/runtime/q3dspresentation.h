@@ -917,18 +917,18 @@ private:
     QColor m_lightDiffuse;
     QColor m_lightSpecular;
     QColor m_lightAmbient;
-    float m_brightness;
-    float m_linearFade;
-    float m_expFade;
-    float m_areaWidth;
-    float m_areaHeight;
-    bool m_castShadow;
-    float m_shadowFactor;
-    float m_shadowFilter;
-    qint32 m_shadowMapRes;
-    float m_shadowBias;
-    float m_shadowMapFar;
-    float m_shadowMapFov;
+    float m_brightness = 100;
+    float m_linearFade = 0;
+    float m_expFade = 0;
+    float m_areaWidth = 100;
+    float m_areaHeight = 100;
+    bool m_castShadow = false;
+    float m_shadowFactor = 10;
+    float m_shadowFilter = 35;
+    qint32 m_shadowMapRes = 9;
+    float m_shadowBias = 0;
+    float m_shadowMapFar = 5000;
+    float m_shadowMapFov = 90;
 };
 
 class Q3DSV_EXPORT Q3DSModelNode : public Q3DSNode

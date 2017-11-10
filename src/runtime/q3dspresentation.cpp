@@ -128,6 +128,9 @@ bool convertToPropertyType(const QStringRef &value, Q3DS::PropertyType *type, co
     } else if (value == QStringLiteral("PathBuffer")) {
         ok = true;
         *type = Q3DS::String;
+    } else if (value == QStringLiteral("ShadowMapResolution")) {
+        ok = true;
+        *type = Q3DS::Long;
     } else {
         *type = Q3DS::Unknown;
         if (reader)
