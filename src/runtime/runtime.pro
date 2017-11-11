@@ -23,7 +23,8 @@ SOURCES += \
     q3dsuipdocument.cpp \
     q3dsscenemanager.cpp \
     q3dsanimationmanager.cpp \
-    q3dsuiaparser.cpp
+    q3dsuiaparser.cpp \
+    q3dsprofiler.cpp
 
 HEADERS += \
     q3dsuipparser.h \
@@ -47,11 +48,15 @@ HEADERS += \
     q3dsuipdocument.h \
     q3dsscenemanager.h \
     q3dsanimationmanager.h \
-    q3dsuiaparser.h
+    q3dsuiaparser.h \
+    q3dsprofiler_p.h
 
 RESOURCES += \
     q3dsres.qrc
 
+mingw: LIBS += -lpsapi
+
 include(shadergenerator/shadergenerator.pri)
+include(profileui/profileui.pri)
 
 load(qt_module)

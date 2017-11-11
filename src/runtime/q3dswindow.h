@@ -31,6 +31,7 @@
 #define Q3DSTUDIOWINDOW_H
 
 #include <QWindow>
+#include <QElapsedTimer>
 #include <Qt3DCore/QAspectEngine>
 #include <Qt3DStudioRuntime2/Q3DSUipDocument>
 #include <Qt3DStudioRuntime2/q3dsscenemanager.h>
@@ -70,6 +71,8 @@ Q_SIGNALS:
 protected:
     void exposeEvent(QExposeEvent *) override;
     void resizeEvent(QResizeEvent *) override;
+    void keyPressEvent(QKeyEvent *) override;
+    void mouseDoubleClickEvent(QMouseEvent *) override;
 
 private:
     struct Presentation {
@@ -88,6 +91,8 @@ private:
     QVector<Presentation> m_presentations;
 
     QScopedPointer<Qt3DCore::QAspectEngine> m_aspectEngine;
+
+    QElapsedTimer m_profilerActivateTimer;
 };
 
 Q_DECLARE_OPERATORS_FOR_FLAGS(Q3DStudioWindow::InitFlags)

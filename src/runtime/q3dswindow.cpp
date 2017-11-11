@@ -32,10 +32,13 @@
 #include <Qt3DStudioRuntime2/q3dsutils.h>
 
 #include <QLoggingCategory>
+#include <QKeyEvent>
+#include <QMouseEvent>
+
 #include <QOpenGLContext>
 #include <QOpenGLFunctions>
-#include <QOffscreenSurface>
 #include <QOpenGLTexture>
+#include <QOffscreenSurface>
 
 #include <Qt3DCore/QEntity>
 #include <Qt3DRender/QRenderAspect>
@@ -105,6 +108,23 @@ static void initGraphicsLimits(QOpenGLContext *ctx)
 
     gfxLimits.multisampleTextureSupported = QOpenGLTexture::hasFeature(QOpenGLTexture::TextureMultisample);
     qDebug("  multisample textures: %s", gfxLimits.multisampleTextureSupported ? "true" : "false");
+
+    // version string bonanza for the profiler
+    const char *rendererStr = reinterpret_cast<const char *>(f->glGetString(GL_RENDERER));
+    if (rendererStr) {
+        gfxLimits.renderer = rendererStr;
+        qDebug("  renderer: %s", rendererStr);
+    }
+    const char *vendorStr = reinterpret_cast<const char *>(f->glGetString(GL_VENDOR));
+    if (vendorStr) {
+        gfxLimits.vendor = vendorStr;
+        qDebug("  vendor: %s", vendorStr);
+    }
+    const char *versionStr = reinterpret_cast<const char *>(f->glGetString(GL_VERSION));
+    if (versionStr) {
+        gfxLimits.version = versionStr;
+        qDebug("  version: %s", versionStr);
+    }
 
     ctx->doneCurrent();
 }
@@ -317,10 +337,13 @@ bool Q3DStudioWindow::loadPresentation(Presentation *pres)
     }
     pres->sceneManager = sceneManager.take();
 
-    // Input.
+    // Input (Qt3D).
     Qt3DInput::QInputSettings *inputSettings = new Qt3DInput::QInputSettings;
     inputSettings->setEventSource(this);
     pres->q3dscene.rootEntity->addComponent(inputSettings);
+
+    // Input (profiling UI).
+    pres->sceneManager->setProfileUiInputEventSource(this);
 
     // Try sizing the window to the presentation.
     Q3DSPresentation *pres3DS = pres->uipDocument->presentation();
@@ -451,6 +474,35 @@ void Q3DStudioWindow::setOnDemandRendering(bool enabled)
 {
     m_presentations[0].q3dscene.renderSettings->setRenderPolicy(enabled ? Qt3DRender::QRenderSettings::OnDemand
                                                                         : Qt3DRender::QRenderSettings::Always);
+}
+
+void Q3DStudioWindow::keyPressEvent(QKeyEvent *e)
+{
+    // not ideal since the window needs focus which it often won't have. also no keyboard on embedded/mobile.
+    if (e->key() == Qt::Key_F12 && !m_presentations.isEmpty()) {
+        auto m = m_presentations[0].sceneManager;
+        m->setProfileUiVisible(!m->isProfileUiVisible());
+    }
+}
+
+void Q3DStudioWindow::mouseDoubleClickEvent(QMouseEvent *e)
+{
+    // Toggle with short double-clicks. This should work both with
+    // touch and with mouse emulation via gamepads on Android. Just
+    // using a single double-click would be too error-prone.
+
+    if (!m_profilerActivateTimer.isValid()) {
+        m_profilerActivateTimer.start();
+        return;
+    }
+
+    if (m_profilerActivateTimer.restart() < 800
+        && e->button() == Qt::LeftButton
+        && !m_presentations.isEmpty())
+    {
+        auto m = m_presentations[0].sceneManager;
+        m->setProfileUiVisible(!m->isProfileUiVisible());
+    }
 }
 
 QT_END_NAMESPACE

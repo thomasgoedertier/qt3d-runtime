@@ -27,22 +27,48 @@
 **
 ****************************************************************************/
 
-#ifndef Q3DSGRAPHICSLIMITS_H
-#define Q3DSGRAPHICSLIMITS_H
+#ifndef Q3DSPROFILEUI_P_H
+#define Q3DSPROFILEUI_P_H
 
-#include <QByteArray>
+//
+//  W A R N I N G
+//  -------------
+//
+// This file is not part of the Qt API.  It exists for the convenience
+// of a number of Qt sources files.  This header file may change from
+// version to version without notice, or even be removed.
+//
+// We mean it.
+//
+
+#include "q3dsscenemanager.h"
 
 QT_BEGIN_NAMESPACE
 
-struct Q3DSGraphicsLimits {
-    int maxDrawBuffers = 4;
-    bool multisampleTextureSupported = false;
-    QByteArray renderer;
-    QByteArray vendor;
-    QByteArray version;
-};
+class Q3DSImguiManager;
+class Q3DSProfiler;
+class Q3DSProfileView;
 
-Q_DECLARE_TYPEINFO(Q3DSGraphicsLimits, Q_MOVABLE_TYPE);
+class Q3DSProfileUi
+{
+public:
+    Q3DSProfileUi(Q3DSGuiData *guiData, Q3DSProfiler *profiler);
+    ~Q3DSProfileUi();
+
+    void setInputEventSource(QObject *obj);
+
+    void releaseResources();
+
+    bool visible() const { return m_visible; }
+    void setVisible(bool visible);
+
+private:
+    Q3DSGuiData *m_data;
+    Q3DSImguiManager *m_guiMgr;
+    Q3DSProfileView *m_view;
+    bool m_inited = false;
+    bool m_visible = false;
+};
 
 QT_END_NAMESPACE
 

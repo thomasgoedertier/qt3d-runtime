@@ -33,7 +33,9 @@
 #include "q3dsanimationmanager.h"
 #include "q3dstextrenderer.h"
 #include "q3dsutils.h"
+#include "q3dsprofiler_p.h"
 #include "shadergenerator/q3dsshadermanager_p.h"
+#include "profileui/q3dsprofileui_p.h"
 
 #include <QDir>
 #include <QLoggingCategory>
@@ -94,6 +96,10 @@ Q_LOGGING_CATEGORY(lcScene, "q3ds.scene")
         components: [
             RenderSettings {
                 activeFrameGraph: RenderSurfaceSelector { // frameGraphRoot when params.window
+
+                    * Normally there would be a LayerFilter here with DiscardAnyMatchingLayers for m_guiData.guiTag
+                    * covering everything up to the profiling gui subtree. However, we only have LayerFilter/NoDraw/DispatchCompute
+                    * leaves that exclude gui entities by nature.
 
                     FrameGraphNode { // subPresFrameGraphRoot
                         NoDraw { }
@@ -265,6 +271,9 @@ Q_LOGGING_CATEGORY(lcScene, "q3ds.scene")
                         layers: [ compositorTag ]
                         ...
                     }
+
+                    // Profiling gui framegraph (once only, not included again for subpresentations)
+                    TechniqueFilter { CameraSelector { SortPolicy { LayerFilter { layers: [activeGuiTag] } } } }
                 }
             },
             ... // InputSettings etc. these are not handled by SceneManager
@@ -286,6 +295,9 @@ Q_LOGGING_CATEGORY(lcScene, "q3ds.scene")
            ... // subpresentation compositor and fs quad entities like above
         }
         ...
+
+        // profiling gui entities
+        Entity { ... } // tagged with guiTag
     }
 
     Entities for one (3DS) layer live under a per-layer root entity parented to
@@ -369,7 +381,8 @@ Q3DSSceneManager::Q3DSSceneManager(const Q3DSGraphicsLimits &limits)
       m_matGen(new Q3DSDefaultMaterialGenerator),
       m_textMatGen(new Q3DSTextMaterialGenerator),
       m_animationManager(new Q3DSAnimationManager),
-      m_textRenderer(new Q3DSTextRenderer)
+      m_textRenderer(new Q3DSTextRenderer),
+      m_profiler(new Q3DSProfiler(limits))
 {
     const QString fontDir = Q3DSUtils::resourcePrefix() + QLatin1String("res/Font");
     m_textRenderer->registerFonts({ fontDir });
@@ -377,11 +390,13 @@ Q3DSSceneManager::Q3DSSceneManager(const Q3DSGraphicsLimits &limits)
 
 Q3DSSceneManager::~Q3DSSceneManager()
 {
+    delete m_profileUi;
     delete m_textRenderer;
     delete m_animationManager;
     delete m_textMatGen;
     delete m_matGen;
     delete m_frameUpdater;
+    delete m_profiler;
 }
 
 void Q3DSSceneManager::updateSizes(const QSize &size, qreal dpr)
@@ -391,14 +406,23 @@ void Q3DSSceneManager::updateSizes(const QSize &size, qreal dpr)
 
     qCDebug(lcScene) << "Size" << size << "DPR" << dpr;
 
+    const QSize outputPixelSize = size * dpr;
+    m_guiData.outputSize = size;
+    m_guiData.outputDpr = dpr;
+
+    if (m_guiData.camera) {
+        m_guiData.camera->setRight(outputPixelSize.width());
+        m_guiData.camera->setBottom(outputPixelSize.height());
+    }
+
     Q3DSPresentation::forAllLayers(m_scene, [=](Q3DSLayerNode *layer3DS) {
         Q3DSLayerAttached *data = static_cast<Q3DSLayerAttached *>(layer3DS->attached());
         if (data) {
             // do it right away if there was no size set yet
             if (data->parentSize.isEmpty()) {
-                updateSizesForLayer(layer3DS, size * dpr);
+                updateSizesForLayer(layer3DS, outputPixelSize);
             } else { // defer otherwise, like it is done for other property changes
-                data->parentSize = size * dpr;
+                data->parentSize = outputPixelSize;
                 data->dirty |= Q3DSGraphObjectAttached::LayerDirty;
             }
         }
@@ -446,6 +470,9 @@ void Q3DSSceneManager::prepareEngineReset()
     m_frameUpdater = nullptr;
 
     m_animationManager->clearPendingChanges();
+
+    if (m_profileUi)
+        m_profileUi->releaseResources();
 }
 
 void Q3DSSceneManager::prepareEngineResetGlobal()
@@ -500,6 +527,7 @@ Q3DSSceneManager::Scene Q3DSSceneManager::buildScene(Q3DSPresentation *presentat
     m_subPresLayers.clear();
     m_subPresImages.clear();
     m_subPresentations.clear();
+    m_profiler->resetForNewScene(m_presentation);
 
     // Enter the first slide. (apply property changes from master+first)
     if (!m_masterSlide) {
@@ -548,6 +576,8 @@ Q3DSSceneManager::Scene Q3DSSceneManager::buildScene(Q3DSPresentation *presentat
     }
 
     const QSize outputPixelSize = params.outputSize * params.outputDpr;
+    m_guiData.outputSize = params.outputSize;
+    m_guiData.outputDpr = params.outputDpr;
 
     // Parent it to anything (but not a QEntity of course since this is a
     // component). Cannot leave globally used components unparented since that
@@ -575,6 +605,12 @@ Q3DSSceneManager::Scene Q3DSSceneManager::buildScene(Q3DSPresentation *presentat
 
     // Onscreen (or not) compositor (still offscreen when this is a subpresentation)
     buildCompositor(frameGraphRoot, m_rootEntity);
+
+    // Profiling UI
+    if (!m_flags.testFlag(SubPresentation)) {
+        buildGuiPass(frameGraphRoot, m_rootEntity);
+        m_profileUi = new Q3DSProfileUi(&m_guiData, m_profiler);
+    }
 
     // Fullscreen quad for bluring the shadow map/cubemap
     Q3DSShaderManager &sm(Q3DSShaderManager::instance());
@@ -2175,8 +2211,7 @@ static void setBlending(Qt3DRender::QBlendEquation *blendFunc,
     }
 }
 
-Qt3DRender::QFrameGraphNode *Q3DSSceneManager::buildCompositor(Qt3DRender::QFrameGraphNode *parent,
-                                                               Qt3DCore::QEntity *parentEntity)
+void Q3DSSceneManager::buildCompositor(Qt3DRender::QFrameGraphNode *parent, Qt3DCore::QEntity *parentEntity)
 {
     Qt3DRender::QCamera *camera = new Qt3DRender::QCamera;
     camera->setObjectName(QObject::tr("compositor camera"));
@@ -2291,8 +2326,44 @@ Qt3DRender::QFrameGraphNode *Q3DSSceneManager::buildCompositor(Qt3DRender::QFram
         compositorEntity->addComponent(transform);
         compositorEntity->addComponent(material);
     }, true); // process layers in reverse order
+}
 
-    return layerFilter;
+void Q3DSSceneManager::buildGuiPass(Qt3DRender::QFrameGraphNode *parent, Qt3DCore::QEntity *parentEntity)
+{
+    // No dependencies to the actual gui renderer here. Isolate that to
+    // profileui. The interface consists of tags and filter keys. profileui can
+    // then assume the framegraph has the necessary LayerFilters both for
+    // including and excluding.
+
+    m_guiData.tag = new Qt3DRender::QLayer; // all gui entities are tagged with this
+    m_guiData.activeTag = new Qt3DRender::QLayer; // active gui entities - added/removed to entities dynamically by imguimanager
+    m_guiData.techniqueFilterKey = new Qt3DRender::QFilterKey;
+    m_guiData.techniqueFilterKey->setName(QLatin1String("type"));
+    m_guiData.techniqueFilterKey->setValue(QLatin1String("gui"));
+    m_guiData.rootEntity = parentEntity;
+
+    Qt3DRender::QTechniqueFilter *tfilter = new Qt3DRender::QTechniqueFilter(parent);
+    tfilter->addMatch(m_guiData.techniqueFilterKey);
+
+    Qt3DRender::QViewport *viewport = new Qt3DRender::QViewport(tfilter);
+    viewport->setNormalizedRect(QRectF(0, 0, 1, 1));
+
+    Qt3DRender::QCameraSelector *cameraSel = new Qt3DRender::QCameraSelector(viewport);
+    m_guiData.camera = new Qt3DRender::QCamera;
+    m_guiData.camera->setProjectionType(Qt3DRender::QCameraLens::OrthographicProjection);
+    m_guiData.camera->setLeft(0);
+    m_guiData.camera->setRight(m_guiData.outputSize.width() * m_guiData.outputDpr);
+    m_guiData.camera->setTop(0);
+    m_guiData.camera->setBottom(m_guiData.outputSize.height() * m_guiData.outputDpr);
+    m_guiData.camera->setNearPlane(-1);
+    m_guiData.camera->setFarPlane(1);
+    cameraSel->setCamera(m_guiData.camera);
+
+    Qt3DRender::QSortPolicy *sortPolicy = new Qt3DRender::QSortPolicy(cameraSel);
+    sortPolicy->setSortTypes(QVector<Qt3DRender::QSortPolicy::SortType>() << Qt3DRender::QSortPolicy::BackToFront);
+
+    Qt3DRender::QLayerFilter *lfilter = new Qt3DRender::QLayerFilter(sortPolicy);
+    lfilter->addLayer(m_guiData.activeTag);
 }
 
 void Q3DSSceneManager::buildFsQuad(Qt3DCore::QEntity *parentEntity,
@@ -3933,11 +4004,30 @@ void Q3DSFrameUpdater::frameAction(float dt)
         qDebug().nospace() << "frame action " << frameCounter << ", delta=" << dt << ", applying animations and updating nodes";
         ++frameCounter;
     }
+    // Record new frame event.
+    m_sceneManager->profiler()->reportNewFrame(dt * 1000.0f);
     // Set and notify the value changes queued by animations.
     m_sceneManager->animationManager()->applyChanges();
     // Recursively check dirty flags and update inherited values, execute
     // pending visibility changes, update light cbuffers, etc.
     m_sceneManager->prepareNextFrame();
+}
+
+void Q3DSSceneManager::setProfileUiVisible(bool visible)
+{
+    if (m_profileUi)
+        m_profileUi->setVisible(visible);
+}
+
+bool Q3DSSceneManager::isProfileUiVisible() const
+{
+    return m_profileUi ? m_profileUi->visible() : false;
+}
+
+void Q3DSSceneManager::setProfileUiInputEventSource(QObject *obj)
+{
+    if (m_profileUi)
+        m_profileUi->setInputEventSource(obj);
 }
 
 QT_END_NAMESPACE

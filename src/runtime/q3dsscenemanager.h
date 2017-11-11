@@ -45,6 +45,8 @@ class Q3DSFrameUpdater;
 class Q3DSTextRenderer;
 class Q3DSDefaultMaterialGenerator;
 class Q3DSTextMaterialGenerator;
+class Q3DSProfiler;
+class Q3DSProfileUi;
 
 namespace Qt3DCore {
 class QEntity;
@@ -73,6 +75,7 @@ class QPaintedTextureImage;
 class QLayerFilter;
 class QRenderTargetSelector;
 class QTechnique;
+class QFilterKey;
 }
 
 namespace Qt3DExtras {
@@ -352,6 +355,17 @@ struct Q3DSSubPresentation
     Qt3DRender::QAbstractTexture *dsTex = nullptr;
 };
 
+struct Q3DSGuiData
+{
+    Qt3DRender::QLayer *tag = nullptr;
+    Qt3DRender::QLayer *activeTag = nullptr;
+    Qt3DRender::QFilterKey *techniqueFilterKey = nullptr;
+    Qt3DRender::QCamera *camera = nullptr;
+    Qt3DCore::QEntity *rootEntity = nullptr;
+    QSize outputSize;
+    qreal outputDpr = 1;
+};
+
 class Q3DSV_EXPORT Q3DSSceneManager
 {
 public:
@@ -414,6 +428,12 @@ public:
     static QVector<Qt3DRender::QTechnique *> computeTechniques(Q3DSLayerNode *layer3DS);
     static void markAsMainTechnique(Qt3DRender::QTechnique *technique);
 
+    Q3DSProfiler *profiler() { return m_profiler; }
+
+    void setProfileUiVisible(bool visible);
+    bool isProfileUiVisible() const;
+    void setProfileUiInputEventSource(QObject *obj);
+
     // for testing from the viewer - to be moved private later
     void setDepthTextureEnabled(Q3DSLayerNode *layer3DS, bool enabled);
     void rebuildModelMaterial(Q3DSModelNode *model3DS);
@@ -474,7 +494,8 @@ private:
     void updateLightsBuffer(const QVector<Q3DSLightSource> &lights, Qt3DRender::QBuffer *uniformBuffer);
     void updateModel(Q3DSModelNode *model3DS);
 
-    Qt3DRender::QFrameGraphNode *buildCompositor(Qt3DRender::QFrameGraphNode *parent, Qt3DCore::QEntity *parentEntity);
+    void buildCompositor(Qt3DRender::QFrameGraphNode *parent, Qt3DCore::QEntity *parentEntity);
+    void buildGuiPass(Qt3DRender::QFrameGraphNode *parent, Qt3DCore::QEntity *parentEntity);
 
     void buildFsQuad(Qt3DCore::QEntity *parentEntity,
                      const QStringList &passNames,
@@ -520,6 +541,9 @@ private:
     QVector<Q3DSSubPresentation> m_subPresentations;
     Qt3DRender::QTexture2D *m_dummyTex = nullptr;
     bool m_wasDirty = false;
+    Q3DSProfiler *m_profiler = nullptr;
+    Q3DSGuiData m_guiData;
+    Q3DSProfileUi *m_profileUi = nullptr;
 
     friend class Q3DSFrameUpdater;
 };
