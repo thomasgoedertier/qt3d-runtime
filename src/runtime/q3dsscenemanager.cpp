@@ -1578,11 +1578,252 @@ void Q3DSSceneManager::updateSsaoStatus(Q3DSLayerNode *layer3DS, bool *aoDidChan
     setSsaoTextureEnabled(layer3DS, needsSsao);
 }
 
+static const Qt3DRender::QAbstractTexture::CubeMapFace qt3ds_shadowCube_faceIds[6] = {
+    Qt3DRender::QAbstractTexture::CubeMapPositiveX,
+    Qt3DRender::QAbstractTexture::CubeMapNegativeX,
+    Qt3DRender::QAbstractTexture::CubeMapPositiveY,
+    Qt3DRender::QAbstractTexture::CubeMapNegativeY,
+    Qt3DRender::QAbstractTexture::CubeMapPositiveZ,
+    Qt3DRender::QAbstractTexture::CubeMapNegativeZ
+};
+
+static const QVector3D qt3ds_shadowCube_up[6] = {
+    QVector3D(0, -1, 0),
+    QVector3D(0, -1, 0),
+    QVector3D(0, 0, 1),
+    QVector3D(0, 0, -1),
+    QVector3D(0, -1, 0),
+    QVector3D(0, -1, 0)
+};
+
+static const QVector3D qt3ds_shadowCube_dir[6] = {
+    QVector3D(1, 0, 0),
+    QVector3D(-1, 0, 0),
+    QVector3D(0, 1, 0),
+    QVector3D(0, -1, 0),
+    QVector3D(0, 0, 1),
+    QVector3D(0, 0, -1)
+};
+
+void Q3DSSceneManager::updateCubeShadowMapParams(Q3DSLayerAttached::PerLightShadowMapData *d, Q3DSLightNode *light3DS, const QString &lightIndexStr)
+{
+    Q_ASSERT(light3DS->lightType() != Q3DSLightNode::Directional);
+    Q3DSLightAttached *lightData = static_cast<Q3DSLightAttached *>(light3DS->attached());
+
+    const QVector3D lightGlobalPos = lightData->globalTransform.column(3).toVector3D();
+    // camera_properties comes from the actual camera, so will reuse the parameter used by normal passes
+    // camera_position is for the light the viewpoint of which we are rendering from
+    d->cameraPositionParam->setName(QLatin1String("camera_position"));
+    d->cameraPositionParam->setValue(QVector3D(lightGlobalPos.x(), lightGlobalPos.y(), -lightGlobalPos.z())); // because the shader wants Z this way
+
+    d->shadowSampler->setName(QLatin1String("shadowcube") + lightIndexStr);
+    d->shadowSampler->setValue(QVariant::fromValue(d->shadowMapTexture));
+
+    d->shadowMatrixParam->setName(QLatin1String("shadowmap") + lightIndexStr + QLatin1String("_matrix"));
+    d->shadowMatrixParam->setValue(QVariant::fromValue(lightData->globalTransform.inverted()));
+
+    d->shadowControlParam->setName(QLatin1String("shadowmap") + lightIndexStr + QLatin1String("_control"));
+    d->shadowControlParam->setValue(QVariant::fromValue(QVector4D(light3DS->shadowBias(), light3DS->shadowFactor(), light3DS->shadowMapFar(), 0)));
+
+    d->shadowCamPropsParam->setName(QLatin1String("camera_properties"));
+    d->shadowCamPropsParam->setValue(QVector2D(light3DS->shadowFilter(), light3DS->shadowMapFar()));
+}
+
+void Q3DSSceneManager::updateCubeShadowCam(Q3DSLayerAttached::PerLightShadowMapData *d, int faceIdx, Q3DSLightNode *light3DS)
+{
+    Q_ASSERT(light3DS->lightType() != Q3DSLightNode::Directional);
+    Q3DSLightAttached *lightData = static_cast<Q3DSLightAttached *>(light3DS->attached());
+    Qt3DRender::QCamera *shadowCam = d->shadowCamProj[faceIdx];
+
+    shadowCam->setProjectionType(Qt3DRender::QCameraLens::PerspectiveProjection);
+    shadowCam->setFieldOfView(light3DS->shadowMapFov());
+    shadowCam->setNearPlane(1.0f);
+    shadowCam->setFarPlane(qMax(2.0f, light3DS->shadowMapFar()));
+
+    const QVector3D lightGlobalPos = lightData->globalTransform.column(3).toVector3D();
+    shadowCam->setPosition(lightGlobalPos);
+    const QVector3D center(lightGlobalPos + qt3ds_shadowCube_dir[faceIdx]);
+    shadowCam->setViewCenter(center);
+    shadowCam->setUpVector(qt3ds_shadowCube_up[faceIdx]);
+    shadowCam->setAspectRatio(1);
+}
+
+void Q3DSSceneManager::genCubeBlurPassFg(Q3DSLayerAttached::PerLightShadowMapData *d, Qt3DRender::QAbstractTexture *inTex,
+                                         Qt3DRender::QAbstractTexture *outTex, const QString &passName)
+{
+    Qt3DRender::QRenderTargetSelector *rtSelector = new Qt3DRender::QRenderTargetSelector(d->subTreeRoot);
+    Qt3DRender::QRenderTarget *rt = new Qt3DRender::QRenderTarget;
+    for (int faceIdx = 0; faceIdx < 6; ++faceIdx) {
+        Qt3DRender::QRenderTargetOutput *rtOutput = new Qt3DRender::QRenderTargetOutput;
+        rtOutput->setAttachmentPoint(Qt3DRender::QRenderTargetOutput::AttachmentPoint(Qt3DRender::QRenderTargetOutput::Color0 + faceIdx));
+        rtOutput->setTexture(outTex);
+        rtOutput->setFace(qt3ds_shadowCube_faceIds[faceIdx]);
+        rt->addOutput(rtOutput);
+    }
+    rtSelector->setTarget(rt);
+
+    Qt3DRender::QViewport *viewport = new Qt3DRender::QViewport(rtSelector);
+    viewport->setNormalizedRect(QRectF(0, 0, 1, 1));
+
+    // No Camera since the shaders do not care about view or projection.
+
+    Qt3DRender::QFilterKey *filterKey = new Qt3DRender::QFilterKey;
+    filterKey->setName(QLatin1String("pass"));
+    filterKey->setValue(passName);
+
+    Qt3DRender::QParameter *depthCubeParam = new Qt3DRender::QParameter(QLatin1String("depthCube"),
+                                                                        QVariant::fromValue(inTex));
+
+    Qt3DRender::QRenderPassFilter *filter = new Qt3DRender::QRenderPassFilter(viewport);
+    filter->addMatch(filterKey);
+    Qt3DRender::QLayerFilter *layerFilter = new Qt3DRender::QLayerFilter(filter);
+    layerFilter->addLayer(m_fsQuadTag);
+
+    filter->addParameter(depthCubeParam);
+    filter->addParameter(d->shadowCamPropsParam);
+}
+
+void Q3DSSceneManager::updateOrthoShadowMapParams(Q3DSLayerAttached::PerLightShadowMapData *d, Q3DSLightNode *light3DS, const QString &lightIndexStr)
+{
+    Q_ASSERT(light3DS->lightType() == Q3DSLightNode::Directional);
+
+    d->shadowSampler->setName(QLatin1String("shadowmap") + lightIndexStr);
+    d->shadowSampler->setValue(QVariant::fromValue(d->shadowMapTexture));
+
+    d->shadowMatrixParam->setName(QLatin1String("shadowmap") + lightIndexStr + QLatin1String("_matrix"));
+    // [-1, 1] -> [0, 1]
+    const QMatrix4x4 bias(0.5f, 0.0f, 0.0f, 0.5f, // ctor takes row major
+                          0.0f, 0.5f, 0.0f, 0.5f,
+                          0.0f, 0.0f, 0.5f, 0.5f,
+                          0.0f, 0.0f, 0.0f, 1.0f);
+    const QMatrix4x4 lightVP = d->shadowCamOrtho->projectionMatrix() * d->shadowCamOrtho->viewMatrix();
+    d->shadowMatrixParam->setValue(QVariant::fromValue(bias * lightVP));
+
+    d->shadowControlParam->setName(QLatin1String("shadowmap") + lightIndexStr + QLatin1String("_control"));
+    d->shadowControlParam->setValue(QVariant::fromValue(QVector4D(light3DS->shadowBias(), light3DS->shadowFactor(), light3DS->shadowMapFar(), 0)));
+
+    d->shadowCamPropsParam->setName(QLatin1String("camera_properties"));
+    d->shadowCamPropsParam->setValue(QVector2D(light3DS->shadowFilter(), light3DS->shadowMapFar()));
+}
+
+void Q3DSSceneManager::updateOrthoShadowCam(Q3DSLayerAttached::PerLightShadowMapData *d, Q3DSLightNode *light3DS, Q3DSLayerAttached *layerData)
+{
+    Q_ASSERT(light3DS->lightType() == Q3DSLightNode::Directional);
+    Q3DSLightAttached *lightData = static_cast<Q3DSLightAttached *>(light3DS->attached());
+
+    d->shadowCamOrtho->setProjectionType(Qt3DRender::QCameraLens::OrthographicProjection);
+    d->shadowCamOrtho->setFieldOfView(light3DS->shadowMapFov());
+    d->shadowCamOrtho->setAspectRatio(1);
+
+    // Pick a shadow camera position based on the real camera.
+
+    // For example, if the default camera at 0,0,-600 is used,
+    // then the shadow camera's position will be 0,0,N where N
+    // is something based on the real camera's frustum.
+
+    Q3DSCameraAttached *sceneCamData = static_cast<Q3DSCameraAttached *>(layerData->cam3DS->attached());
+    Qt3DRender::QCamera *sceneCamera = sceneCamData->camera;
+    QVector3D camX = sceneCamData->globalTransform.column(0).toVector3D();
+    QVector3D camY = sceneCamData->globalTransform.column(1).toVector3D();
+    QVector3D camZ = sceneCamData->globalTransform.column(2).toVector3D();
+    float tanFOV = qTan(qDegreesToRadians(sceneCamera->fieldOfView()) * 0.5f);
+    float asTanFOV = tanFOV; /* * viewport.height / viewport.width but this is always 1 */
+    QVector3D camEdges[4];
+    camEdges[0] = -tanFOV * camX + asTanFOV * camY + camZ;
+    camEdges[1] = tanFOV * camX + asTanFOV * camY + camZ;
+    camEdges[2] = tanFOV * camX - asTanFOV * camY + camZ;
+    camEdges[3] = -tanFOV * camX - asTanFOV * camY + camZ;
+    QVector3D camVerts[8];
+    const QVector3D camLocalPos = layerData->cam3DS->position();
+    camVerts[0] = camLocalPos + camEdges[0] * sceneCamera->nearPlane();
+    camVerts[1] = camLocalPos + camEdges[0] * sceneCamera->farPlane();
+    camVerts[2] = camLocalPos + camEdges[1] * sceneCamera->nearPlane();
+    camVerts[3] = camLocalPos + camEdges[1] * sceneCamera->farPlane();
+    camVerts[4] = camLocalPos + camEdges[2] * sceneCamera->nearPlane();
+    camVerts[5] = camLocalPos + camEdges[2] * sceneCamera->farPlane();
+    camVerts[6] = camLocalPos + camEdges[3] * sceneCamera->nearPlane();
+    camVerts[7] = camLocalPos + camEdges[3] * sceneCamera->farPlane();
+    QVector3D lightPos = camVerts[0];
+    for (int i = 1; i < 8; ++i)
+        lightPos += camVerts[i];
+    lightPos *= 0.125f;
+
+    const QVector3D lightDir = lightData->globalTransform.column(2).toVector3D().normalized();
+    float dd = 0.5f * (light3DS->shadowMapFar() + 1.0f);
+    lightPos += lightDir * dd;
+
+    const QVector3D camDir = sceneCamData->globalTransform.column(3).toVector3D().normalized();
+    float o1 = dd * 2.0f * qTan(0.5f * qDegreesToRadians(light3DS->shadowMapFov()));
+    float o2 = light3DS->shadowMapFar() - 1.0f;
+    float o = qFabs(QVector3D::dotProduct(lightDir, camDir));
+    o = (1.0f - o) * o2 + o * o1;
+
+    float clipNear = 1.0f;
+    float clipFar = light3DS->shadowMapFar();
+
+    lightPos -= lightDir * dd;
+    clipFar += sceneCamera->nearPlane();
+
+    d->shadowCamOrtho->setNearPlane(clipNear);
+    d->shadowCamOrtho->setFarPlane(clipFar);
+
+    // The shadow camera's projection is (more or less?) an ordinary orthographic projection.
+    float deltaZ = clipFar - clipNear;
+    float halfWidth = (M_PI / 2 * o) / 2;
+    if (deltaZ != 0) {
+        QMatrix4x4 proj;
+        float *writePtr = proj.data();
+        writePtr[0] = 1.0f / halfWidth;
+        writePtr[5] = 1.0f / (halfWidth / d->shadowCamOrtho->aspectRatio());
+        writePtr[10] = -2.0f / deltaZ;
+        writePtr[11] = 0.0f;
+        writePtr[14] = -(clipNear + clipFar) / deltaZ;
+        writePtr[15] = 1.0f;
+
+        d->shadowCamOrtho->setProjectionMatrix(proj);
+    }
+
+    // Shadow camera's view matrix.
+    lightPos.setZ(-lightPos.z()); // invert, who knows why (Left vs. Right handed mess in 3DS)
+    d->shadowCamOrtho->setPosition(lightPos);
+    d->shadowCamOrtho->setViewCenter(lightPos - lightDir); // ditto
+    d->shadowCamOrtho->setUpVector(QVector3D(0, 1, 0)); // no roll needed
+}
+
+void Q3DSSceneManager::genOrthoBlurPassFg(Q3DSLayerAttached::PerLightShadowMapData *d, Qt3DRender::QAbstractTexture *inTex,
+                                          Qt3DRender::QAbstractTexture *outTex, const QString &passName)
+{
+    Qt3DRender::QRenderTargetSelector *rtSelector = new Qt3DRender::QRenderTargetSelector(d->subTreeRoot);
+    Qt3DRender::QRenderTarget *rt = new Qt3DRender::QRenderTarget;
+    Qt3DRender::QRenderTargetOutput *rtOutput = new Qt3DRender::QRenderTargetOutput;
+    rtOutput->setAttachmentPoint(Qt3DRender::QRenderTargetOutput::Color0);
+    rtOutput->setTexture(outTex);
+    rt->addOutput(rtOutput);
+    rtSelector->setTarget(rt);
+
+    Qt3DRender::QViewport *viewport = new Qt3DRender::QViewport(rtSelector);
+    viewport->setNormalizedRect(QRectF(0, 0, 1, 1));
+
+    // No Camera since the shaders do not care about view or projection.
+
+    Qt3DRender::QFilterKey *filterKey = new Qt3DRender::QFilterKey;
+    filterKey->setName(QLatin1String("pass"));
+    filterKey->setValue(passName);
+
+    Qt3DRender::QParameter *texParam = new Qt3DRender::QParameter(QLatin1String("depthSrc"),
+                                                                  QVariant::fromValue(inTex));
+
+    Qt3DRender::QRenderPassFilter *filter = new Qt3DRender::QRenderPassFilter(viewport);
+    filter->addMatch(filterKey);
+    Qt3DRender::QLayerFilter *layerFilter = new Qt3DRender::QLayerFilter(filter);
+    layerFilter->addLayer(m_fsQuadTag);
+
+    filter->addParameter(texParam);
+    filter->addParameter(d->shadowCamPropsParam);
+}
+
 void Q3DSSceneManager::updateShadowMapStatus(Q3DSLayerNode *layer3DS, bool *smDidChange)
 {
-    // shadow properties are animatable and high frequency qCDebug should be avoided
-    static const bool shadowDebug = qEnvironmentVariableIntValue("Q3DS_DEBUG") >= 2;
-
     Q3DSLayerAttached *layerData = static_cast<Q3DSLayerAttached *>(layer3DS->attached());
     Q_ASSERT(layerData);
     const int oldShadowCasterCount = layerData->shadowMapData.shadowCasters.count();
@@ -1609,7 +1850,24 @@ void Q3DSSceneManager::updateShadowMapStatus(Q3DSLayerNode *layer3DS, bool *smDi
             }
             d->active = true;
 
+            // Framegraph sub-tree root
+            bool needsFramegraph = false;
+            if (!d->subTreeRoot) {
+                d->subTreeRoot = new Qt3DRender::QFrameGraphNode(layerData->shadowMapData.shadowRoot);
+                needsFramegraph = true;
+            }
+
             const qint32 size = 1 << light3DS->shadowMapRes();
+
+            if (layerData->shadowMapData.shadowDS) {
+                const QSize currentSize(layerData->shadowMapData.shadowDS->width(), layerData->shadowMapData.shadowDS->height());
+                if (currentSize != QSize(size, size)) {
+                    delete layerData->shadowMapData.shadowDS;
+                    layerData->shadowMapData.shadowDS = nullptr;
+                    // ###
+                    qWarning("changing shadow map resolution not yet implemented");
+                }
+            }
 
             if (!layerData->shadowMapData.shadowDS) {
                 Qt3DRender::QTexture2D *dsTexOrRb = new Qt3DRender::QTexture2D;
@@ -1621,13 +1879,20 @@ void Q3DSSceneManager::updateShadowMapStatus(Q3DSLayerNode *layer3DS, bool *smDi
                 layerData->shadowMapData.shadowDS = dsTexOrRb;
             }
 
+            if (d->shadowMapTexture) {
+                const QSize currentSize(d->shadowMapTexture->width(), d->shadowMapTexture->height());
+                if (currentSize != QSize(size, size)) {
+                    delete d->shadowMapTexture;
+                    d->shadowMapTexture = nullptr;
+                    // ###
+                    qWarning("changing shadow map resolution not yet implemented");
+                }
+            }
+
+            Q_ASSERT(d->lightNode == light3DS);
+            const bool isCube = light3DS->lightType() != Q3DSLightNode::Directional;
+
             if (!d->shadowMapTexture) {
-                Q_ASSERT(d->lightNode == light3DS);
-                const bool isCube = light3DS->lightType() != Q3DSLightNode::Directional;
-
-                // Framegraph sub-tree root
-                d->subTreeRoot = new Qt3DRender::QFrameGraphNode(layerData->shadowMapData.shadowRoot);
-
                 Qt3DCore::QNode *texParent = d->subTreeRoot;
                 if (isCube) {
                     d->shadowMapTexture = new Qt3DRender::QTextureCubeMap(texParent);
@@ -1645,58 +1910,32 @@ void Q3DSSceneManager::updateShadowMapStatus(Q3DSLayerNode *layer3DS, bool *smDi
                 d->shadowMapTexture->setMagnificationFilter(Qt3DRender::QAbstractTexture::Linear);
                 d->shadowMapTextureTemp->setMagnificationFilter(Qt3DRender::QAbstractTexture::Linear);
 
-                if (shadowDebug)
-                    qCDebug(lcScene, "Shadow cube map size is %d", size);
+                qCDebug(lcScene, "Shadow cube map size for light %s is %d", light3DS->id().constData(), size);
                 // do not add to layerData->sizeManagedTextures since the shadow map size is fixed
                 d->shadowMapTexture->setSize(size, size, 1);
                 d->shadowMapTextureTemp->setSize(size, size, 1);
+            }
 
-                Q3DSLightAttached *lightData = static_cast<Q3DSLightAttached *>(light3DS->attached());
+            // now the framegraph subtree
+            if (needsFramegraph) {
+                qCDebug(lcScene, "Generating framegraph for shadow casting light %s", light3DS->id().constData());
 
-                // now the framegraph subtree
+                d->shadowSampler = new Qt3DRender::QParameter;
+                d->shadowMatrixParam = new Qt3DRender::QParameter;
+                d->shadowControlParam = new Qt3DRender::QParameter;
+                d->shadowCamPropsParam = new Qt3DRender::QParameter;
 
                 if (isCube) {
+                    d->cameraPositionParam = new Qt3DRender::QParameter;
+
                     // we do not use geometry shaders for some reason, so run a separate pass for each cubemap face instead
-                    static const Qt3DRender::QAbstractTexture::CubeMapFace faceIds[6] = {
-                        Qt3DRender::QAbstractTexture::CubeMapPositiveX,
-                        Qt3DRender::QAbstractTexture::CubeMapNegativeX,
-                        Qt3DRender::QAbstractTexture::CubeMapPositiveY,
-                        Qt3DRender::QAbstractTexture::CubeMapNegativeY,
-                        Qt3DRender::QAbstractTexture::CubeMapPositiveZ,
-                        Qt3DRender::QAbstractTexture::CubeMapNegativeZ
-                    };
-                    static const QVector3D up[6] = {
-                        QVector3D(0, -1, 0),
-                        QVector3D(0, -1, 0),
-                        QVector3D(0, 0, 1),
-                        QVector3D(0, 0, -1),
-                        QVector3D(0, -1, 0),
-                        QVector3D(0, -1, 0)
-                    };
-                    static const QVector3D dir[6] = {
-                        QVector3D(1, 0, 0),
-                        QVector3D(-1, 0, 0),
-                        QVector3D(0, 1, 0),
-                        QVector3D(0, -1, 0),
-                        QVector3D(0, 0, 1),
-                        QVector3D(0, 0, -1)
-                    };
-
-                    const QVector3D lightGlobalPos = lightData->globalTransform.column(3).toVector3D();
-
-                    // camera_properties comes from the actual camera, so will reuse the parameter used by normal passes
-                    // camera_position is for the light the viewpoint of which we are rendering from
-                    d->cameraPositionParam = new Qt3DRender::QParameter(QLatin1String("camera_position"),
-                                                                        QVector3D(lightGlobalPos.x(), lightGlobalPos.y(), -lightGlobalPos.z())); // because the shader wants Z this way
-
-                    // Passes to fill up the 6 faces of the cubemap texture
                     for (int faceIdx = 0; faceIdx < 6; ++faceIdx) {
                         Qt3DRender::QRenderTargetSelector *shadowRtSelector = new Qt3DRender::QRenderTargetSelector(d->subTreeRoot);
                         Qt3DRender::QRenderTarget *shadowRt = new Qt3DRender::QRenderTarget;
                         Qt3DRender::QRenderTargetOutput *shadowRtOutput = new Qt3DRender::QRenderTargetOutput;
                         shadowRtOutput->setAttachmentPoint(Qt3DRender::QRenderTargetOutput::Color0);
                         shadowRtOutput->setTexture(d->shadowMapTexture);
-                        shadowRtOutput->setFace(faceIds[faceIdx]);
+                        shadowRtOutput->setFace(qt3ds_shadowCube_faceIds[faceIdx]);
                         shadowRt->addOutput(shadowRtOutput);
 
                         shadowRtOutput = new Qt3DRender::QRenderTargetOutput;
@@ -1711,20 +1950,9 @@ void Q3DSSceneManager::updateShadowMapStatus(Q3DSLayerNode *layer3DS, bool *smDi
                         viewport->setNormalizedRect(QRectF(0, 0, 1, 1));
 
                         Qt3DRender::QCameraSelector *camSel = new Qt3DRender::QCameraSelector(viewport);
-                        Qt3DRender::QCamera *shadowCam = new Qt3DRender::QCamera;
-
-                        shadowCam->setProjectionType(Qt3DRender::QCameraLens::PerspectiveProjection);
-                        shadowCam->setFieldOfView(light3DS->shadowMapFov());
-                        shadowCam->setNearPlane(1.0f);
-                        shadowCam->setFarPlane(qMax(2.0f, light3DS->shadowMapFar()));
-
-                        shadowCam->setPosition(lightGlobalPos);
-                        const QVector3D center(lightGlobalPos + dir[faceIdx]);
-                        shadowCam->setViewCenter(center);
-                        shadowCam->setUpVector(up[faceIdx]);
-                        shadowCam->setAspectRatio(1);
-
-                        camSel->setCamera(shadowCam);
+                        d->shadowCamProj[faceIdx] = new Qt3DRender::QCamera;
+                        updateCubeShadowCam(d, faceIdx, light3DS);
+                        camSel->setCamera(d->shadowCamProj[faceIdx]);
 
                         Qt3DRender::QClearBuffers *clearBuffers = new Qt3DRender::QClearBuffers(camSel);
                         clearBuffers->setBuffers(Qt3DRender::QClearBuffers::ColorDepthStencilBuffer);
@@ -1753,61 +1981,15 @@ void Q3DSSceneManager::updateShadowMapStatus(Q3DSLayerNode *layer3DS, bool *smDi
                     }
 
                     // Now two blur passes that output to the final texture, play ping pong.
-
-                    // Draws a fullscreen quad into the 6 faces of the cubemap texture (COLOR0..5), with the other texture as input.
-                    auto genCubeBlurPassFg = [=](Qt3DRender::QAbstractTexture *inTex, Qt3DRender::QAbstractTexture *outTex, const QString &passName)
-                    {
-                        Qt3DRender::QRenderTargetSelector *rtSelector = new Qt3DRender::QRenderTargetSelector(d->subTreeRoot);
-                        Qt3DRender::QRenderTarget *rt = new Qt3DRender::QRenderTarget;
-                        for (int faceIdx = 0; faceIdx < 6; ++faceIdx) {
-                            Qt3DRender::QRenderTargetOutput *rtOutput = new Qt3DRender::QRenderTargetOutput;
-                            rtOutput->setAttachmentPoint(Qt3DRender::QRenderTargetOutput::AttachmentPoint(Qt3DRender::QRenderTargetOutput::Color0 + faceIdx));
-                            rtOutput->setTexture(outTex);
-                            rtOutput->setFace(faceIds[faceIdx]);
-                            rt->addOutput(rtOutput);
-                        }
-                        rtSelector->setTarget(rt);
-
-                        Qt3DRender::QViewport *viewport = new Qt3DRender::QViewport(rtSelector);
-                        viewport->setNormalizedRect(QRectF(0, 0, 1, 1));
-
-                        // No Camera since the shaders do not care about view or projection.
-
-                        Qt3DRender::QFilterKey *filterKey = new Qt3DRender::QFilterKey;
-                        filterKey->setName(QLatin1String("pass"));
-                        filterKey->setValue(passName);
-
-                        Qt3DRender::QParameter *depthCubeParam = new Qt3DRender::QParameter(QLatin1String("depthCube"),
-                                                                                            QVariant::fromValue(inTex));
-
-                        Qt3DRender::QRenderPassFilter *filter = new Qt3DRender::QRenderPassFilter(viewport);
-                        filter->addMatch(filterKey);
-                        Qt3DRender::QLayerFilter *layerFilter = new Qt3DRender::QLayerFilter(filter);
-                        layerFilter->addLayer(m_fsQuadTag);
-
-                        Qt3DRender::QParameter *camPropsParam = new Qt3DRender::QParameter(QLatin1String("camera_properties"),
-                                                                                           QVector2D(light3DS->shadowFilter(), light3DS->shadowMapFar()));
-                        filter->addParameter(depthCubeParam);
-                        filter->addParameter(camPropsParam);
-                    };
-
                     if (m_gfxLimits.maxDrawBuffers >= 6) { // ###
-                        genCubeBlurPassFg(d->shadowMapTexture, d->shadowMapTextureTemp, QLatin1String("shadowCubeBlurX"));
-                        genCubeBlurPassFg(d->shadowMapTextureTemp, d->shadowMapTexture, QLatin1String("shadowCubeBlurY"));
+                        // Draws a fullscreen quad into the 6 faces of the cubemap texture (COLOR0..5), with the other texture as input.
+                        genCubeBlurPassFg(d, d->shadowMapTexture, d->shadowMapTextureTemp, QLatin1String("shadowCubeBlurX"));
+                        genCubeBlurPassFg(d, d->shadowMapTextureTemp, d->shadowMapTexture, QLatin1String("shadowCubeBlurY"));
                     }
 
-                    d->shadowSampler = new Qt3DRender::QParameter;
-                    d->shadowSampler->setName(QLatin1String("shadowcube") + lightIndexStr);
-                    d->shadowSampler->setValue(QVariant::fromValue(d->shadowMapTexture));
-
-                    d->shadowMatrixParam = new Qt3DRender::QParameter;
-                    d->shadowMatrixParam->setName(QLatin1String("shadowmap") + lightIndexStr + QLatin1String("_matrix"));
-                    d->shadowMatrixParam->setValue(QVariant::fromValue(lightData->globalTransform.inverted()));
-
+                    // set QParameter names and values
+                    updateCubeShadowMapParams(d, light3DS, lightIndexStr);
                 } else {
-
-                    QVector3D lightDir = lightData->globalTransform.column(2).toVector3D().normalized();
-
                     Qt3DRender::QRenderTargetSelector *shadowRtSelector = new Qt3DRender::QRenderTargetSelector(d->subTreeRoot);
                     Qt3DRender::QRenderTarget *shadowRt = new Qt3DRender::QRenderTarget;
                     Qt3DRender::QRenderTargetOutput *shadowRtOutput = new Qt3DRender::QRenderTargetOutput;
@@ -1826,86 +2008,9 @@ void Q3DSSceneManager::updateShadowMapStatus(Q3DSLayerNode *layer3DS, bool *smDi
                     viewport->setNormalizedRect(QRectF(0, 0, 1, 1));
 
                     Qt3DRender::QCameraSelector *camSel = new Qt3DRender::QCameraSelector(viewport);
-                    Qt3DRender::QCamera *shadowCam = new Qt3DRender::QCamera;
-
-                    shadowCam->setProjectionType(Qt3DRender::QCameraLens::OrthographicProjection);
-                    shadowCam->setFieldOfView(light3DS->shadowMapFov());
-                    shadowCam->setAspectRatio(1);
-
-                    // Pick a shadow camera position based on the real camera.
-
-                    // For example, if the default camera at 0,0,-600 is used,
-                    // then the shadow camera's position will be 0,0,N where N
-                    // is something based on the real camera's frustum.
-
-                    Q3DSCameraAttached *sceneCamData = static_cast<Q3DSCameraAttached *>(layerData->cam3DS->attached());
-                    Qt3DRender::QCamera *sceneCamera = sceneCamData->camera;
-                    QVector3D camX = sceneCamData->globalTransform.column(0).toVector3D();
-                    QVector3D camY = sceneCamData->globalTransform.column(1).toVector3D();
-                    QVector3D camZ = sceneCamData->globalTransform.column(2).toVector3D();
-                    float tanFOV = qTan(qDegreesToRadians(sceneCamera->fieldOfView()) * 0.5f);
-                    float asTanFOV = tanFOV; /* * viewport.height / viewport.width but this is always 1 */
-                    QVector3D camEdges[4];
-                    camEdges[0] = -tanFOV * camX + asTanFOV * camY + camZ;
-                    camEdges[1] = tanFOV * camX + asTanFOV * camY + camZ;
-                    camEdges[2] = tanFOV * camX - asTanFOV * camY + camZ;
-                    camEdges[3] = -tanFOV * camX - asTanFOV * camY + camZ;
-                    QVector3D camVerts[8];
-                    const QVector3D camLocalPos = layerData->cam3DS->position();
-                    camVerts[0] = camLocalPos + camEdges[0] * sceneCamera->nearPlane();
-                    camVerts[1] = camLocalPos + camEdges[0] * sceneCamera->farPlane();
-                    camVerts[2] = camLocalPos + camEdges[1] * sceneCamera->nearPlane();
-                    camVerts[3] = camLocalPos + camEdges[1] * sceneCamera->farPlane();
-                    camVerts[4] = camLocalPos + camEdges[2] * sceneCamera->nearPlane();
-                    camVerts[5] = camLocalPos + camEdges[2] * sceneCamera->farPlane();
-                    camVerts[6] = camLocalPos + camEdges[3] * sceneCamera->nearPlane();
-                    camVerts[7] = camLocalPos + camEdges[3] * sceneCamera->farPlane();
-                    QVector3D lightPos = camVerts[0];
-                    for (int i = 1; i < 8; ++i)
-                        lightPos += camVerts[i];
-                    lightPos *= 0.125f;
-
-                    float dd = 0.5f * (light3DS->shadowMapFar() + 1.0f);
-                    lightPos += lightDir * dd;
-
-                    const QVector3D camDir = sceneCamData->globalTransform.column(3).toVector3D().normalized();
-                    float o1 = dd * 2.0f * qTan(0.5f * qDegreesToRadians(light3DS->shadowMapFov()));
-                    float o2 = light3DS->shadowMapFar() - 1.0f;
-                    float o = qFabs(QVector3D::dotProduct(lightDir, camDir));
-                    o = (1.0f - o) * o2 + o * o1;
-
-                    float clipNear = 1.0f;
-                    float clipFar = light3DS->shadowMapFar();
-
-                    lightPos -= lightDir * dd;
-                    clipFar += sceneCamera->nearPlane();
-
-                    shadowCam->setNearPlane(clipNear);
-                    shadowCam->setFarPlane(clipFar);
-
-                    // The shadow camera's projection is (more or less?) an ordinary orthographic projection.
-                    float deltaZ = clipFar - clipNear;
-                    float halfWidth = (M_PI / 2 * o) / 2;
-                    if (deltaZ != 0) {
-                        QMatrix4x4 proj;
-                        float *writePtr = proj.data();
-                        writePtr[0] = 1.0f / halfWidth;
-                        writePtr[5] = 1.0f / (halfWidth / shadowCam->aspectRatio());
-                        writePtr[10] = -2.0f / deltaZ;
-                        writePtr[11] = 0.0f;
-                        writePtr[14] = -(clipNear + clipFar) / deltaZ;
-                        writePtr[15] = 1.0f;
-
-                        shadowCam->setProjectionMatrix(proj);
-                    }
-
-                    // Shadow camera's view matrix.
-                    lightPos.setZ(-lightPos.z()); // invert, who knows why (Left vs. Right handed mess in 3DS)
-                    shadowCam->setPosition(lightPos);
-                    shadowCam->setViewCenter(lightPos - lightDir); // ditto
-                    shadowCam->setUpVector(QVector3D(0, 1, 0)); // no roll needed
-
-                    camSel->setCamera(shadowCam);
+                    d->shadowCamOrtho = new Qt3DRender::QCamera;
+                    updateOrthoShadowCam(d, light3DS, layerData);
+                    camSel->setCamera(d->shadowCamOrtho);
 
                     Qt3DRender::QClearBuffers *clearBuffers = new Qt3DRender::QClearBuffers(camSel);
                     clearBuffers->setBuffers(Qt3DRender::QClearBuffers::ColorDepthStencilBuffer);
@@ -1929,63 +2034,25 @@ void Q3DSSceneManager::updateShadowMapStatus(Q3DSLayerNode *layer3DS, bool *smDi
                     layerFilterTransparent->addLayer(layerData->transparentTag);
 
                     // 2 blur passes
-                    auto genOrthoBlurPassFg = [=](Qt3DRender::QAbstractTexture *inTex, Qt3DRender::QAbstractTexture *outTex, const QString &passName)
-                    {
-                        Qt3DRender::QRenderTargetSelector *rtSelector = new Qt3DRender::QRenderTargetSelector(d->subTreeRoot);
-                        Qt3DRender::QRenderTarget *rt = new Qt3DRender::QRenderTarget;
-                        Qt3DRender::QRenderTargetOutput *rtOutput = new Qt3DRender::QRenderTargetOutput;
-                        rtOutput->setAttachmentPoint(Qt3DRender::QRenderTargetOutput::Color0);
-                        rtOutput->setTexture(outTex);
-                        rt->addOutput(rtOutput);
-                        rtSelector->setTarget(rt);
+                    genOrthoBlurPassFg(d, d->shadowMapTexture, d->shadowMapTextureTemp, QLatin1String("shadowOrthoBlurX"));
+                    genOrthoBlurPassFg(d, d->shadowMapTextureTemp, d->shadowMapTexture, QLatin1String("shadowOrthoBlurY"));
 
-                        Qt3DRender::QViewport *viewport = new Qt3DRender::QViewport(rtSelector);
-                        viewport->setNormalizedRect(QRectF(0, 0, 1, 1));
+                    // set QParameter names and values
+                    updateOrthoShadowMapParams(d, light3DS, lightIndexStr);
+                } // if isCube
+            } else {
+                // !needsFramegraph -> update the values that could have changed
+                if (isCube) {
+                    for (int faceIdx = 0; faceIdx < 6; ++faceIdx)
+                        updateCubeShadowCam(d, faceIdx, light3DS);
 
-                        // No Camera since the shaders do not care about view or projection.
-
-                        Qt3DRender::QFilterKey *filterKey = new Qt3DRender::QFilterKey;
-                        filterKey->setName(QLatin1String("pass"));
-                        filterKey->setValue(passName);
-
-                        Qt3DRender::QParameter *texParam = new Qt3DRender::QParameter(QLatin1String("depthSrc"),
-                                                                                      QVariant::fromValue(inTex));
-
-                        Qt3DRender::QRenderPassFilter *filter = new Qt3DRender::QRenderPassFilter(viewport);
-                        filter->addMatch(filterKey);
-                        Qt3DRender::QLayerFilter *layerFilter = new Qt3DRender::QLayerFilter(filter);
-                        layerFilter->addLayer(m_fsQuadTag);
-
-                        Qt3DRender::QParameter *camPropsParam = new Qt3DRender::QParameter(QLatin1String("camera_properties"),
-                                                                                           QVector2D(light3DS->shadowFilter(), light3DS->shadowMapFar()));
-                        filter->addParameter(texParam);
-                        filter->addParameter(camPropsParam);
-                    };
-
-                    genOrthoBlurPassFg(d->shadowMapTexture, d->shadowMapTextureTemp, QLatin1String("shadowOrthoBlurX"));
-                    genOrthoBlurPassFg(d->shadowMapTextureTemp, d->shadowMapTexture, QLatin1String("shadowOrthoBlurY"));
-
-                    // Uniforms
-                    d->shadowSampler = new Qt3DRender::QParameter;
-                    d->shadowSampler->setName(QLatin1String("shadowmap") + lightIndexStr);
-                    d->shadowSampler->setValue(QVariant::fromValue(d->shadowMapTexture));
-
-                    d->shadowMatrixParam = new Qt3DRender::QParameter;
-                    d->shadowMatrixParam->setName(QLatin1String("shadowmap") + lightIndexStr + QLatin1String("_matrix"));
-                    // [-1, 1] -> [0, 1]
-                    const QMatrix4x4 bias(0.5f, 0.0f, 0.0f, 0.5f, // ctor takes row major
-                                          0.0f, 0.5f, 0.0f, 0.5f,
-                                          0.0f, 0.0f, 0.5f, 0.5f,
-                                          0.0f, 0.0f, 0.0f, 1.0f);
-                    const QMatrix4x4 lightVP = shadowCam->projectionMatrix() * shadowCam->viewMatrix();
-                    d->shadowMatrixParam->setValue(QVariant::fromValue(bias * lightVP));
+                    updateCubeShadowMapParams(d, light3DS, lightIndexStr);
+                } else {
+                    updateOrthoShadowCam(d, light3DS, layerData);
+                    updateOrthoShadowMapParams(d, light3DS, lightIndexStr);
                 }
-
-                d->shadowControlParam = new Qt3DRender::QParameter;
-                d->shadowControlParam->setName(QLatin1String("shadowmap") + lightIndexStr + QLatin1String("_control"));
-                d->shadowControlParam->setValue(QVariant::fromValue(QVector4D(light3DS->shadowBias(), light3DS->shadowFactor(), light3DS->shadowMapFar(), 0)));
             }
-        }
+        } // if light3DS->castShadow
     }
 
     // Drop shadow map data for lights that are not casting anymore either due
@@ -2002,7 +2069,7 @@ void Q3DSSceneManager::updateShadowMapStatus(Q3DSLayerNode *layer3DS, bool *smDi
     if (smDidChange)
         *smDidChange = newShadowCasterCount != oldShadowCasterCount;
 
-    if (shadowDebug && newShadowCasterCount > 0)
+    if (newShadowCasterCount != oldShadowCasterCount)
         qCDebug(lcScene, "Layer %s has %d shadow casting lights", layer3DS->id().constData(), layerData->shadowMapData.shadowCasters.count());
 }
 
@@ -3540,7 +3607,6 @@ void Q3DSSceneManager::handleSlideChange(Q3DSSlide *prevSlide, Q3DSSlide *curren
         }
     }
     slideData->needsMasterRollback.clear();
-
 
     m_presentation->applySlidePropertyChanges(currentSlide);
 

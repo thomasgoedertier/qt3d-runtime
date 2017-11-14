@@ -223,6 +223,9 @@ public:
         Qt3DRender::QParameter *shadowSampler = nullptr;
         Qt3DRender::QParameter *shadowMatrixParam = nullptr;
         Qt3DRender::QParameter *shadowControlParam = nullptr;
+        Qt3DRender::QParameter *shadowCamPropsParam = nullptr;
+        Qt3DRender::QCamera *shadowCamOrtho = nullptr;
+        Qt3DRender::QCamera *shadowCamProj[6];
     };
     struct ShadowMapData {
         Qt3DRender::QFrameGraphNode *shadowRoot = nullptr;
@@ -429,6 +432,14 @@ private:
     void updateAoParameters(Q3DSLayerNode *layer3DS);
     void updateSsaoStatus(Q3DSLayerNode *layer3DS, bool *aoDidChange = nullptr);
     void updateShadowMapStatus(Q3DSLayerNode *layer3DS, bool *smDidChange = nullptr);
+    void updateCubeShadowMapParams(Q3DSLayerAttached::PerLightShadowMapData *d, Q3DSLightNode *light3DS, const QString &lightIndexStr);
+    void updateCubeShadowCam(Q3DSLayerAttached::PerLightShadowMapData *d, int faceIdx, Q3DSLightNode *light3DS);
+    void genCubeBlurPassFg(Q3DSLayerAttached::PerLightShadowMapData *d, Qt3DRender::QAbstractTexture *inTex,
+                           Qt3DRender::QAbstractTexture *outTex, const QString &passName);
+    void updateOrthoShadowMapParams(Q3DSLayerAttached::PerLightShadowMapData *d, Q3DSLightNode *light3DS, const QString &lightIndexStr);
+    void updateOrthoShadowCam(Q3DSLayerAttached::PerLightShadowMapData *d, Q3DSLightNode *light3DS, Q3DSLayerAttached *layerData);
+    void genOrthoBlurPassFg(Q3DSLayerAttached::PerLightShadowMapData *d, Qt3DRender::QAbstractTexture *inTex,
+                            Qt3DRender::QAbstractTexture *outTex, const QString &passName);
 
     Q3DSCameraNode *chooseLayerCamera(Q3DSLayerNode *layer3DS, Qt3DRender::QCamera **camera);
     Qt3DRender::QCamera *buildLayerCamera(Q3DSLayerNode *layer3DS, Q3DSCameraNode *camNode);
