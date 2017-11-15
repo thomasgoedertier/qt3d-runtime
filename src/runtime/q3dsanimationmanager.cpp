@@ -38,6 +38,7 @@
 #include <Qt3DAnimation/QClipAnimator>
 #include <Qt3DAnimation/QChannelMapper>
 #include <Qt3DAnimation/QChannelMapping>
+#include <Qt3DAnimation/QCallbackMapping>
 #include <Qt3DAnimation/QAnimationClip>
 
 QT_BEGIN_NAMESPACE
@@ -465,7 +466,7 @@ template<class AttT, class T> void Q3DSAnimationManager::updateAnimationHelper(c
             }
 
             // Create a mapping with a custom callback.
-            QScopedPointer<Qt3DAnimation::QChannelMapping> mapping(new Qt3DAnimation::QChannelMapping);
+            QScopedPointer<Qt3DAnimation::QCallbackMapping> mapping(new Qt3DAnimation::QCallbackMapping);
             mapping->setChannelName(channelName);
             Q3DSAnimationCallback *cb = new Q3DSAnimationCallback(target, chIt->meta, this);
             data->animationDataMap[animSourceSlide]->animationCallbacks.append(cb);
