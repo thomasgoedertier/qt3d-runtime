@@ -219,10 +219,13 @@ public:
         Qt3DRender::QFrameGraphNode *subTreeRoot = nullptr;
         Qt3DRender::QAbstractTexture *shadowMapTextureTemp = nullptr;
         Qt3DRender::QAbstractTexture *shadowMapTexture = nullptr;
+        Qt3DRender::QAbstractTexture *shadowDS = nullptr;
         Qt3DRender::QParameter *cameraPositionParam = nullptr;
-        Qt3DRender::QParameter *shadowSampler = nullptr;
-        Qt3DRender::QParameter *shadowMatrixParam = nullptr;
-        Qt3DRender::QParameter *shadowControlParam = nullptr;
+        struct {
+            Qt3DRender::QParameter *shadowSampler = nullptr;
+            Qt3DRender::QParameter *shadowMatrixParam = nullptr;
+            Qt3DRender::QParameter *shadowControlParam = nullptr;
+        } materialParams;
         Qt3DRender::QParameter *shadowCamPropsParam = nullptr;
         Qt3DRender::QCamera *shadowCamOrtho = nullptr;
         Qt3DRender::QCamera *shadowCamProj[6];
@@ -230,7 +233,7 @@ public:
     struct ShadowMapData {
         Qt3DRender::QFrameGraphNode *shadowRoot = nullptr;
         QVector<PerLightShadowMapData> shadowCasters;
-        Qt3DRender::QTexture2D *shadowDS = nullptr;
+        Qt3DRender::QAbstractTexture *defaultShadowDS = nullptr;
     } shadowMapData;
 };
 

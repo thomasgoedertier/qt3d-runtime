@@ -539,7 +539,12 @@ Q3DSSceneManager::Scene Q3DSSceneManager::buildScene(Q3DSPresentation *presentat
 
     const QSize outputPixelSize = params.outputSize * params.outputDpr;
 
-    m_fsQuadTag = new Qt3DRender::QLayer;
+    // Parent it to anything (but not a QEntity of course since this is a
+    // component). Cannot leave globally used components unparented since that
+    // would mean they get parented to the first node they get added to - and
+    // that might be something that gets destroyed over time, e.g. in a
+    // framegraph subtree that gets removed or replaced at some point.
+    m_fsQuadTag = new Qt3DRender::QLayer(frameGraphRoot);
 
     // Prepare image objects (these are non-nodes and not covered in layer building below).
     m_presentation->forAllImages([this](Q3DSImage *image) {
@@ -838,7 +843,7 @@ void Q3DSSceneManager::buildLayer(Q3DSLayerNode *layer3DS,
     data->ssaaScaleFactor = ssaaScaleFactor;
     data->opaqueTag = opaqueTag;
     data->transparentTag = transparentTag;
-    data->cameraPropertiesParam = new Qt3DRender::QParameter(QLatin1String("camera_properties"), QVector2D(10, 5000));
+    data->cameraPropertiesParam = new Qt3DRender::QParameter(QLatin1String("camera_properties"), QVector2D(10, 5000), m_rootEntity);
     if (cam3DS)
         data->cameraPropertiesParam->setValue(QVector2D(cam3DS->clipNear(), cam3DS->clipFar()));
 
@@ -1616,14 +1621,14 @@ void Q3DSSceneManager::updateCubeShadowMapParams(Q3DSLayerAttached::PerLightShad
     d->cameraPositionParam->setName(QLatin1String("camera_position"));
     d->cameraPositionParam->setValue(QVector3D(lightGlobalPos.x(), lightGlobalPos.y(), -lightGlobalPos.z())); // because the shader wants Z this way
 
-    d->shadowSampler->setName(QLatin1String("shadowcube") + lightIndexStr);
-    d->shadowSampler->setValue(QVariant::fromValue(d->shadowMapTexture));
+    d->materialParams.shadowSampler->setName(QLatin1String("shadowcube") + lightIndexStr);
+    d->materialParams.shadowSampler->setValue(QVariant::fromValue(d->shadowMapTexture));
 
-    d->shadowMatrixParam->setName(QLatin1String("shadowmap") + lightIndexStr + QLatin1String("_matrix"));
-    d->shadowMatrixParam->setValue(QVariant::fromValue(lightData->globalTransform.inverted()));
+    d->materialParams.shadowMatrixParam->setName(QLatin1String("shadowmap") + lightIndexStr + QLatin1String("_matrix"));
+    d->materialParams.shadowMatrixParam->setValue(QVariant::fromValue(lightData->globalTransform.inverted()));
 
-    d->shadowControlParam->setName(QLatin1String("shadowmap") + lightIndexStr + QLatin1String("_control"));
-    d->shadowControlParam->setValue(QVariant::fromValue(QVector4D(light3DS->shadowBias(), light3DS->shadowFactor(), light3DS->shadowMapFar(), 0)));
+    d->materialParams.shadowControlParam->setName(QLatin1String("shadowmap") + lightIndexStr + QLatin1String("_control"));
+    d->materialParams.shadowControlParam->setValue(QVariant::fromValue(QVector4D(light3DS->shadowBias(), light3DS->shadowFactor(), light3DS->shadowMapFar(), 0)));
 
     d->shadowCamPropsParam->setName(QLatin1String("camera_properties"));
     d->shadowCamPropsParam->setValue(QVector2D(light3DS->shadowFilter(), light3DS->shadowMapFar()));
@@ -1687,20 +1692,20 @@ void Q3DSSceneManager::updateOrthoShadowMapParams(Q3DSLayerAttached::PerLightSha
 {
     Q_ASSERT(light3DS->lightType() == Q3DSLightNode::Directional);
 
-    d->shadowSampler->setName(QLatin1String("shadowmap") + lightIndexStr);
-    d->shadowSampler->setValue(QVariant::fromValue(d->shadowMapTexture));
+    d->materialParams.shadowSampler->setName(QLatin1String("shadowmap") + lightIndexStr);
+    d->materialParams.shadowSampler->setValue(QVariant::fromValue(d->shadowMapTexture));
 
-    d->shadowMatrixParam->setName(QLatin1String("shadowmap") + lightIndexStr + QLatin1String("_matrix"));
+    d->materialParams.shadowMatrixParam->setName(QLatin1String("shadowmap") + lightIndexStr + QLatin1String("_matrix"));
     // [-1, 1] -> [0, 1]
     const QMatrix4x4 bias(0.5f, 0.0f, 0.0f, 0.5f, // ctor takes row major
                           0.0f, 0.5f, 0.0f, 0.5f,
                           0.0f, 0.0f, 0.5f, 0.5f,
                           0.0f, 0.0f, 0.0f, 1.0f);
     const QMatrix4x4 lightVP = d->shadowCamOrtho->projectionMatrix() * d->shadowCamOrtho->viewMatrix();
-    d->shadowMatrixParam->setValue(QVariant::fromValue(bias * lightVP));
+    d->materialParams.shadowMatrixParam->setValue(QVariant::fromValue(bias * lightVP));
 
-    d->shadowControlParam->setName(QLatin1String("shadowmap") + lightIndexStr + QLatin1String("_control"));
-    d->shadowControlParam->setValue(QVariant::fromValue(QVector4D(light3DS->shadowBias(), light3DS->shadowFactor(), light3DS->shadowMapFar(), 0)));
+    d->materialParams.shadowControlParam->setName(QLatin1String("shadowmap") + lightIndexStr + QLatin1String("_control"));
+    d->materialParams.shadowControlParam->setValue(QVariant::fromValue(QVector4D(light3DS->shadowBias(), light3DS->shadowFactor(), light3DS->shadowMapFar(), 0)));
 
     d->shadowCamPropsParam->setName(QLatin1String("camera_properties"));
     d->shadowCamPropsParam->setValue(QVector2D(light3DS->shadowFilter(), light3DS->shadowMapFar()));
@@ -1850,6 +1855,28 @@ void Q3DSSceneManager::updateShadowMapStatus(Q3DSLayerNode *layer3DS, bool *smDi
             }
             d->active = true;
 
+            const qint32 size = 1 << light3DS->shadowMapRes();
+            bool needsNewTextures = false;
+            if (d->shadowDS) {
+                const QSize currentSize(d->shadowDS->width(), d->shadowDS->height());
+                if (currentSize != QSize(size, size))
+                    needsNewTextures = true;
+            }
+            if (d->shadowMapTexture) {
+                const QSize currentSize(d->shadowMapTexture->width(), d->shadowMapTexture->height());
+                if (currentSize != QSize(size, size))
+                    needsNewTextures = true;
+            }
+            if (needsNewTextures) {
+                qCDebug(lcScene, "Slow path! Recreating shadow map textures for light %s", light3DS->id().constData());
+                d->shadowDS = nullptr;
+                d->shadowMapTexture = nullptr;
+                // Regenerate the whole framegraph. A change in shadow map resolution
+                // is not something that should happen frequently (or at all).
+                delete d->subTreeRoot;
+                d->subTreeRoot = nullptr;
+            }
+
             // Framegraph sub-tree root
             bool needsFramegraph = false;
             if (!d->subTreeRoot) {
@@ -1857,35 +1884,36 @@ void Q3DSSceneManager::updateShadowMapStatus(Q3DSLayerNode *layer3DS, bool *smDi
                 needsFramegraph = true;
             }
 
-            const qint32 size = 1 << light3DS->shadowMapRes();
+            Qt3DCore::QNode *texParent = d->subTreeRoot;
+            if (!d->shadowDS) {
+                auto createDepthStencil = [size]() {
+                    Qt3DRender::QTexture2D *dsTexOrRb = new Qt3DRender::QTexture2D;
+                    dsTexOrRb->setFormat(Qt3DRender::QAbstractTexture::D24S8);
+                    dsTexOrRb->setWidth(size);
+                    dsTexOrRb->setHeight(size);
+                    dsTexOrRb->setMinificationFilter(Qt3DRender::QAbstractTexture::Linear);
+                    dsTexOrRb->setMagnificationFilter(Qt3DRender::QAbstractTexture::Linear);
+                    return dsTexOrRb;
+                };
 
-            if (layerData->shadowMapData.shadowDS) {
-                const QSize currentSize(layerData->shadowMapData.shadowDS->width(), layerData->shadowMapData.shadowDS->height());
-                if (currentSize != QSize(size, size)) {
-                    delete layerData->shadowMapData.shadowDS;
-                    layerData->shadowMapData.shadowDS = nullptr;
-                    // ###
-                    qWarning("changing shadow map resolution not yet implemented");
-                }
-            }
-
-            if (!layerData->shadowMapData.shadowDS) {
-                Qt3DRender::QTexture2D *dsTexOrRb = new Qt3DRender::QTexture2D;
-                dsTexOrRb->setFormat(Qt3DRender::QAbstractTexture::D24S8);
-                dsTexOrRb->setWidth(size);
-                dsTexOrRb->setHeight(size);
-                dsTexOrRb->setMinificationFilter(Qt3DRender::QAbstractTexture::Linear);
-                dsTexOrRb->setMagnificationFilter(Qt3DRender::QAbstractTexture::Linear);
-                layerData->shadowMapData.shadowDS = dsTexOrRb;
-            }
-
-            if (d->shadowMapTexture) {
-                const QSize currentSize(d->shadowMapTexture->width(), d->shadowMapTexture->height());
-                if (currentSize != QSize(size, size)) {
-                    delete d->shadowMapTexture;
-                    d->shadowMapTexture = nullptr;
-                    // ###
-                    qWarning("changing shadow map resolution not yet implemented");
+                // Try to optimize by reusing the same depth-stencil buffer for
+                // all lights in the default case where they all have the same
+                // shadow map resolution value.
+                if (layerData->shadowMapData.defaultShadowDS) {
+                    const QSize availSize = QSize(layerData->shadowMapData.defaultShadowDS->width(),
+                                                  layerData->shadowMapData.defaultShadowDS->height());
+                    if (availSize == QSize(size, size)) {
+                        d->shadowDS = layerData->shadowMapData.defaultShadowDS;
+                    } else {
+                        d->shadowDS = createDepthStencil();
+                        // owned by this framegraph subtree
+                        d->shadowDS->setParent(texParent);
+                    }
+                } else {
+                    layerData->shadowMapData.defaultShadowDS = createDepthStencil();
+                    // parent it so that it outlives this framegraph subtree
+                    layerData->shadowMapData.defaultShadowDS->setParent(layerData->entity);
+                    d->shadowDS = layerData->shadowMapData.defaultShadowDS;
                 }
             }
 
@@ -1893,7 +1921,6 @@ void Q3DSSceneManager::updateShadowMapStatus(Q3DSLayerNode *layer3DS, bool *smDi
             const bool isCube = light3DS->lightType() != Q3DSLightNode::Directional;
 
             if (!d->shadowMapTexture) {
-                Qt3DCore::QNode *texParent = d->subTreeRoot;
                 if (isCube) {
                     d->shadowMapTexture = new Qt3DRender::QTextureCubeMap(texParent);
                     d->shadowMapTextureTemp = new Qt3DRender::QTextureCubeMap(texParent);
@@ -1919,11 +1946,24 @@ void Q3DSSceneManager::updateShadowMapStatus(Q3DSLayerNode *layer3DS, bool *smDi
             // now the framegraph subtree
             if (needsFramegraph) {
                 qCDebug(lcScene, "Generating framegraph for shadow casting light %s", light3DS->id().constData());
-
-                d->shadowSampler = new Qt3DRender::QParameter;
-                d->shadowMatrixParam = new Qt3DRender::QParameter;
-                d->shadowControlParam = new Qt3DRender::QParameter;
                 d->shadowCamPropsParam = new Qt3DRender::QParameter;
+
+                // These parameters will be referenced by the material which
+                // means they must persist even if this framegraph subtree gets
+                // recreated due to a texture change later on. Thus cannot be
+                // parented to this part of the fg.
+                if (!d->materialParams.shadowSampler)
+                    d->materialParams.shadowSampler = new Qt3DRender::QParameter(layerData->entity);
+                if (!d->materialParams.shadowMatrixParam)
+                    d->materialParams.shadowMatrixParam = new Qt3DRender::QParameter(layerData->entity);
+                if (!d->materialParams.shadowControlParam)
+                    d->materialParams.shadowControlParam = new Qt3DRender::QParameter(layerData->entity);
+
+                // verify no globally used parameters get parented to this volatile framegraph subtree
+                Q_ASSERT(layerData->opaqueTag->parent());
+                Q_ASSERT(layerData->transparentTag->parent());
+                Q_ASSERT(layerData->cameraPropertiesParam->parent());
+                Q_ASSERT(m_fsQuadTag->parent());
 
                 if (isCube) {
                     d->cameraPositionParam = new Qt3DRender::QParameter;
@@ -1940,7 +1980,7 @@ void Q3DSSceneManager::updateShadowMapStatus(Q3DSLayerNode *layer3DS, bool *smDi
 
                         shadowRtOutput = new Qt3DRender::QRenderTargetOutput;
                         shadowRtOutput->setAttachmentPoint(Qt3DRender::QRenderTargetOutput::DepthStencil);
-                        shadowRtOutput->setTexture(layerData->shadowMapData.shadowDS);
+                        shadowRtOutput->setTexture(d->shadowDS);
                         shadowRt->addOutput(shadowRtOutput);
 
                         shadowRtSelector->setTarget(shadowRt);
@@ -1999,7 +2039,7 @@ void Q3DSSceneManager::updateShadowMapStatus(Q3DSLayerNode *layer3DS, bool *smDi
 
                     shadowRtOutput = new Qt3DRender::QRenderTargetOutput;
                     shadowRtOutput->setAttachmentPoint(Qt3DRender::QRenderTargetOutput::DepthStencil);
-                    shadowRtOutput->setTexture(layerData->shadowMapData.shadowDS);
+                    shadowRtOutput->setTexture(d->shadowDS);
                     shadowRt->addOutput(shadowRtOutput);
 
                     shadowRtSelector->setTarget(shadowRt);
@@ -2877,12 +2917,12 @@ void Q3DSSceneManager::buildModelMaterial(Q3DSModelNode *model3DS)
                 params.append(layerData->allLightsParam);
 
                 for (const Q3DSLayerAttached::PerLightShadowMapData &sd : qAsConst(layerData->shadowMapData.shadowCasters)) {
-                    if (sd.shadowSampler)
-                        params.append(sd.shadowSampler);
-                    if (sd.shadowMatrixParam)
-                        params.append(sd.shadowMatrixParam);
-                    if (sd.shadowControlParam)
-                        params.append(sd.shadowControlParam);
+                    if (sd.materialParams.shadowSampler)
+                        params.append(sd.materialParams.shadowSampler);
+                    if (sd.materialParams.shadowMatrixParam)
+                        params.append(sd.materialParams.shadowMatrixParam);
+                    if (sd.materialParams.shadowControlParam)
+                        params.append(sd.materialParams.shadowControlParam);
                 }
 
                 if (layerData->ssaoTextureData.enabled && layerData->ssaoTextureData.ssaoTextureSampler)

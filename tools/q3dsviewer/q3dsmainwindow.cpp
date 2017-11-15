@@ -140,6 +140,19 @@ Q3DStudioMainWindow::Q3DStudioMainWindow(Q3DStudioWindow *view, QWidget *parent)
             }
         });
     });
+    QAction *shadowResChangeAction = debugMenu->addAction(tr("&Maximize shadow map resolution for lights"));
+    connect(shadowResChangeAction, &QAction::triggered, [=]() {
+        Q3DSPresentation::forAllObjectsOfType(view->uipDocument()->presentation()->scene(), Q3DSGraphObject::Light, [=](Q3DSGraphObject *obj) {
+            Q3DSLightNode *light3DS = static_cast<Q3DSLightNode *>(obj);
+            if (light3DS->flags().testFlag(Q3DSNode::Active)) {
+                Q3DSPropertyChangeList changeList;
+                const QString value = QLatin1String("11"); // 8..11
+                changeList.append(Q3DSPropertyChange(QLatin1String("shdwmapres"), value));
+                light3DS->applyPropertyChanges(&changeList);
+                light3DS->notifyPropertyChanges(&changeList);
+            }
+        });
+    });
 
     QMenu *helpMenu = menuBar()->addMenu(tr("&Help"));
     helpMenu->addAction(tr("&About"), this, [this]() {
