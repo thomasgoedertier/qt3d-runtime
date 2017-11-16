@@ -127,13 +127,33 @@ static struct AnimatableExtraMeta {
 };
 
 template<class T>
-void initAnimator(T *data, Q3DSSlide *slide, Q3DSAnimationManager *manager)
+void initAnimator(T *data, Q3DSSlide *slide, Q3DSSlide *previousSlide, Q3DSAnimationManager *manager)
 {
+    static const bool animDebug = qEnvironmentVariableIntValue("Q3DS_DEBUG") >= 2;
+    if (animDebug)
+        qCDebug(lcScene) << "initAnimator@:" << data << "animationData:" << data->animationDataMap[slide]
+                         << "slide:" << slide->name() << "previousSlide: " << previousSlide;
+
     Q_ASSERT(data->entity);
 
-    auto slideAttached = static_cast<Q3DSSlideAttached *>(slide->attached());
+    // If previous slide is null, check to see if there is
+    // animationData attached to the current slide to in the case
+    // that this is just an update.
+    Q3DSGraphObjectAttached::AnimationData *animationData = nullptr;
+    Q3DSSlideAttached *prevSlideAttached = nullptr;
+    Q3DSSlide *slideKey = nullptr;
 
-    if (data->animator) {
+    if (previousSlide) {
+        animationData = data->animationDataMap.value(previousSlide);
+        prevSlideAttached = static_cast<Q3DSSlideAttached *>(previousSlide->attached());
+        slideKey = previousSlide;
+    } else {
+        animationData = data->animationDataMap.value(slide);
+        prevSlideAttached = static_cast<Q3DSSlideAttached *>(slide->attached());
+        slideKey = slide;
+    }
+
+    if (animationData) {
         // Properties that were animated before have to be reset to their
         // original value, otherwise things will flicker when switching between
         // slides since the animations we build may not update the first value
@@ -151,39 +171,56 @@ void initAnimator(T *data, Q3DSSlide *slide, Q3DSAnimationManager *manager)
             // now-restored values from the object.
             manager->applyChanges();
         }
+        // Cleanup previous animator
+        auto prevAnimator = animationData->animator;
+        data->entity->removeComponent(prevAnimator);
+        bool isRemoved = prevSlideAttached->animators.removeOne(prevAnimator);
+        if (animDebug) {
+            if (isRemoved)
+                qCDebug(lcScene) << "\tanimator removed from previousSlide attached: " << prevSlideAttached
+                                 << "new list: " << prevSlideAttached->animators;
+            else
+                qCDebug(lcScene) << "\tanimator deleted, but not associated with current prevSlideAttached";
+        }
+        delete prevAnimator;
 
-        data->entity->removeComponent(data->animator);
-        slideAttached->animators.removeOne(data->animator);
-        delete data->animator;
-        data->animator = nullptr;
+        // Cleanup previous animation callbacks
+        qDeleteAll(animationData->animationCallbacks);
+        animationData->animationCallbacks.clear();
+        data->animationDataMap.remove(slideKey);
+        delete animationData;
     }
 
-    qDeleteAll(data->animationCallbacks);
-    data->animationCallbacks.clear();
+    auto slideAttached = static_cast<Q3DSSlideAttached *>(slide->attached());
     data->animationRollbacks.clear();
 
-    data->animator = new Qt3DAnimation::QClipAnimator;
-    slideAttached->animators.append(data->animator);
+    animationData = new Q3DSGraphObjectAttached::AnimationData;
+    animationData->animator = new Qt3DAnimation::QClipAnimator;
+    data->animationDataMap.insert(slide, animationData);
+    slideAttached->animators.append(animationData->animator);
+    if (animDebug)
+        qCDebug(lcScene) << "\tnew Clip Animator: " << animationData->animator << "slideAttached: "
+                         << slideAttached << "new list: " << slideAttached->animators;
 }
 
 template<class T>
-void finalizeAnimator(T *data, Qt3DAnimation::QAnimationClip *clip, Q3DSSlide *slide)
+void finalizeAnimator(T *data, Qt3DAnimation::QClipAnimator *animator, Qt3DAnimation::QAnimationClip *clip, Q3DSSlide *playModeSourceSlide)
 {
-    data->animator->setClip(clip);
+    animator->setClip(clip);
 
-    switch (slide->playMode()) {
+    switch (playModeSourceSlide->playMode()) {
     case Q3DSSlide::Looping:
-        data->animator->setLoopCount(Qt3DAnimation::QAbstractClipAnimator::Infinite);
+        animator->setLoopCount(Qt3DAnimation::QAbstractClipAnimator::Infinite);
         break;
     // ### other play modes?
     default:
-        data->animator->setLoopCount(1);
+        animator->setLoopCount(1);
         break;
     }
 
-    data->animator->setRunning(true);
+    animator->setRunning(true);
 
-    data->entity->addComponent(data->animator);
+    data->entity->addComponent(animator);
 }
 
 void Q3DSAnimationManager::gatherAnimatableMeta(const QString &type, AnimatableTab *dst)
@@ -265,13 +302,14 @@ static int componentSuffixToIndex(const QString &s)
 template<class AttT, class T> void Q3DSAnimationManager::updateAnimationHelper(const QHash<T *, QVector<const Q3DSAnimationTrack *> > &targets,
                                                                                AnimatableTab *animatables,
                                                                                Q3DSSlide *animSourceSlide,
+                                                                               Q3DSSlide *prevAnimSourceSlide,
                                                                                Q3DSSlide *playModeSourceSlide)
 {
     for (auto it = targets.cbegin(), ite = targets.cend(); it != ite; ++it) {
         T *target = it.key();
         AttT *data = static_cast<AttT *>(target->attached());
         Q_ASSERT(data);
-        initAnimator(data, animSourceSlide, this);
+        initAnimator(data, animSourceSlide, prevAnimSourceSlide, this);
 
         QScopedPointer<Qt3DAnimation::QAnimationClip> clip(new Qt3DAnimation::QAnimationClip);
         QScopedPointer<Qt3DAnimation::QChannelMapper> mapper(new Qt3DAnimation::QChannelMapper);
@@ -382,7 +420,7 @@ template<class AttT, class T> void Q3DSAnimationManager::updateAnimationHelper(c
             QScopedPointer<Qt3DAnimation::QChannelMapping> mapping(new Qt3DAnimation::QChannelMapping);
             mapping->setChannelName(channelName);
             Q3DSAnimationCallback *cb = new Q3DSAnimationCallback(target, chIt->meta, this);
-            data->animationCallbacks.append(cb);
+            data->animationDataMap[animSourceSlide]->animationCallbacks.append(cb);
             mapping->setCallback(type, cb, 0);
             mapper->addMapping(mapping.take());
 
@@ -397,17 +435,19 @@ template<class AttT, class T> void Q3DSAnimationManager::updateAnimationHelper(c
             }
         }
 
-        data->animator->setChannelMapper(mapper.take());
+        auto animator = data->animationDataMap[animSourceSlide]->animator;
+        Q_ASSERT(animator);
+        animator->setChannelMapper(mapper.take());
         clip->setClipData(clipData);
 
         // Done. Add the ClipAnimator component to the entity.
-        finalizeAnimator(data, clip.take(), playModeSourceSlide);
+        finalizeAnimator(data, animator, clip.take(), playModeSourceSlide);
     }
 }
 
 // Pass in two slides since animSourceSlide may be the master whereas the play
 // mode must always be taken from the active sub-slide.
-void Q3DSAnimationManager::updateAnimations(Q3DSSlide *animSourceSlide, Q3DSSlide *playModeSourceSlide)
+void Q3DSAnimationManager::updateAnimations(Q3DSSlide *animSourceSlide, Q3DSSlide *prevAnimSourceSlide, Q3DSSlide *playModeSourceSlide)
 {
     const QVector<Q3DSAnimationTrack> *anims = animSourceSlide->animations();
     if (anims->isEmpty())
@@ -490,57 +530,57 @@ void Q3DSAnimationManager::updateAnimations(Q3DSSlide *animSourceSlide, Q3DSSlid
     if (m_defaultMaterialAnimatables.isEmpty())
         gatherAnimatableMeta(QLatin1String("Material"), &m_defaultMaterialAnimatables);
 
-    updateAnimationHelper<Q3DSDefaultMaterialAttached>(defMatAnims, &m_defaultMaterialAnimatables, animSourceSlide, playModeSourceSlide);
+    updateAnimationHelper<Q3DSDefaultMaterialAttached>(defMatAnims, &m_defaultMaterialAnimatables, animSourceSlide, prevAnimSourceSlide, playModeSourceSlide);
 
     if (m_cameraAnimatables.isEmpty()) {
         gatherAnimatableMeta(QLatin1String("Node"), &m_cameraAnimatables);
         gatherAnimatableMeta(QLatin1String("Camera"), &m_cameraAnimatables);
     }
 
-    updateAnimationHelper<Q3DSCameraAttached>(camAnims, &m_cameraAnimatables, animSourceSlide, playModeSourceSlide);
+    updateAnimationHelper<Q3DSCameraAttached>(camAnims, &m_cameraAnimatables, prevAnimSourceSlide, animSourceSlide, playModeSourceSlide);
 
     if (m_lightAnimatables.isEmpty()) {
         gatherAnimatableMeta(QLatin1String("Node"), &m_lightAnimatables);
         gatherAnimatableMeta(QLatin1String("Light"), &m_lightAnimatables);
     }
 
-    updateAnimationHelper<Q3DSLightAttached>(lightAnims, &m_lightAnimatables, animSourceSlide, playModeSourceSlide);
+    updateAnimationHelper<Q3DSLightAttached>(lightAnims, &m_lightAnimatables, animSourceSlide, prevAnimSourceSlide, playModeSourceSlide);
 
     if (m_modelAnimatables.isEmpty()) {
         gatherAnimatableMeta(QLatin1String("Node"), &m_modelAnimatables);
         gatherAnimatableMeta(QLatin1String("Model"), &m_modelAnimatables);
     }
 
-    updateAnimationHelper<Q3DSModelAttached>(modelAnims, &m_modelAnimatables, animSourceSlide, playModeSourceSlide);
+    updateAnimationHelper<Q3DSModelAttached>(modelAnims, &m_modelAnimatables, animSourceSlide, prevAnimSourceSlide, playModeSourceSlide);
 
     if (m_groupAnimatables.isEmpty()) {
         gatherAnimatableMeta(QLatin1String("Node"), &m_groupAnimatables);
         gatherAnimatableMeta(QLatin1String("Group"), &m_groupAnimatables);
     }
 
-    updateAnimationHelper<Q3DSGroupAttached>(groupAnims, &m_groupAnimatables, animSourceSlide, playModeSourceSlide);
+    updateAnimationHelper<Q3DSGroupAttached>(groupAnims, &m_groupAnimatables, animSourceSlide, prevAnimSourceSlide, playModeSourceSlide);
 
     if (m_componentAnimatables.isEmpty())
         gatherAnimatableMeta(QLatin1String("Node"), &m_componentAnimatables);
 
-    updateAnimationHelper<Q3DSComponentAttached>(compAnims, &m_componentAnimatables, animSourceSlide, playModeSourceSlide);
+    updateAnimationHelper<Q3DSComponentAttached>(compAnims, &m_componentAnimatables, animSourceSlide, prevAnimSourceSlide, playModeSourceSlide);
 
     if (m_textAnimatables.isEmpty()) {
         gatherAnimatableMeta(QLatin1String("Node"), &m_textAnimatables);
         gatherAnimatableMeta(QLatin1String("Text"), &m_textAnimatables);
     }
 
-    updateAnimationHelper<Q3DSTextAttached>(textAnims, &m_textAnimatables, animSourceSlide, playModeSourceSlide);
+    updateAnimationHelper<Q3DSTextAttached>(textAnims, &m_textAnimatables, animSourceSlide, prevAnimSourceSlide, playModeSourceSlide);
 
     if (m_imageAnimatables.isEmpty())
         gatherAnimatableMeta(QLatin1String("Image"), &m_imageAnimatables);
 
-    updateAnimationHelper<Q3DSImageAttached>(imageAnims, &m_imageAnimatables, animSourceSlide, playModeSourceSlide);
+    updateAnimationHelper<Q3DSImageAttached>(imageAnims, &m_imageAnimatables, animSourceSlide, prevAnimSourceSlide, playModeSourceSlide);
 
     if (m_layerAnimatables.isEmpty())
         gatherAnimatableMeta(QLatin1String("Layer"), &m_layerAnimatables);
 
-    updateAnimationHelper<Q3DSLayerAttached>(layerAnims, &m_layerAnimatables, animSourceSlide, playModeSourceSlide);
+    updateAnimationHelper<Q3DSLayerAttached>(layerAnims, &m_layerAnimatables, animSourceSlide, prevAnimSourceSlide, playModeSourceSlide);
 }
 
 QDebug operator<<(QDebug dbg, const Q3DSAnimationManager::Animatable &a)

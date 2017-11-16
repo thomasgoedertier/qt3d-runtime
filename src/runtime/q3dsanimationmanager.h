@@ -38,7 +38,7 @@ QT_BEGIN_NAMESPACE
 class Q3DSAnimationManager
 {
 public:
-    void updateAnimations(Q3DSSlide *animSourceSlide, Q3DSSlide *playModeSourceSlide);
+    void updateAnimations(Q3DSSlide *animSourceSlide, Q3DSSlide *prevAnimSourceSlide, Q3DSSlide *playModeSourceSlide);
     void applyChanges();
     void clearPendingChanges();
 
@@ -68,6 +68,7 @@ private:
     template<class AttT, class T> void updateAnimationHelper(const QHash<T *, QVector<const Q3DSAnimationTrack *> > &targets,
                                                              AnimatableTab *animatables,
                                                              Q3DSSlide *animSourceSlide,
+                                                             Q3DSSlide *prevAnimSourceSlide,
                                                              Q3DSSlide *playModeSourceSlide);
 
     AnimatableTab m_defaultMaterialAnimatables;

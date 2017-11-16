@@ -677,8 +677,8 @@ Q3DSSceneManager::Scene Q3DSSceneManager::buildScene(Q3DSPresentation *presentat
                                           [this](Q3DSGraphObject *s) {
         updateSlideObjectVisibilities(static_cast<Q3DSSlide *>(s));
     });
-    updateAnimations(m_masterSlide, m_currentSlide);
-    updateAnimations(m_currentSlide, m_currentSlide);
+    updateAnimations(m_masterSlide, nullptr, m_currentSlide);
+    updateAnimations(m_currentSlide, nullptr, m_currentSlide);
 
     return sc;
 }
@@ -4027,8 +4027,8 @@ void Q3DSSceneManager::handleSlideChange(Q3DSSlide *prevSlide, Q3DSSlide *curren
     updateSlideObjectVisibilities(prevSlide, component);
     updateSlideObjectVisibilities(currentSlide, component);
 
-    updateAnimations(masterSlide, currentSlide);
-    updateAnimations(currentSlide, currentSlide);
+    updateAnimations(masterSlide, nullptr, currentSlide);
+    updateAnimations(currentSlide, prevSlide, currentSlide);
 }
 
 void Q3DSSceneManager::prepareNextFrame()
@@ -4305,8 +4305,8 @@ void Q3DSSceneManager::updateSlideObjectVisibilities(Q3DSSlide *slide, Q3DSCompo
             for (Q3DSGraphObject *cobj : *comp->currentSlide()->objects())
                 scheduleNodeVisibilityUpdate(cobj, comp);
             if (visible) { // if Component is not on the current slide, then don't care for now
-                updateAnimations(comp->masterSlide(), comp->currentSlide());
-                updateAnimations(comp->currentSlide(), comp->currentSlide());
+                updateAnimations(comp->masterSlide(), nullptr, comp->currentSlide());
+                updateAnimations(comp->currentSlide(), nullptr, comp->currentSlide());
             }
         }
     }
@@ -4376,11 +4376,14 @@ bool Q3DSSceneManager::scheduleNodeVisibilityUpdate(Q3DSGraphObject *obj, Q3DSCo
     return false;
 }
 
-void Q3DSSceneManager::updateAnimations(Q3DSSlide *animSourceSlide, Q3DSSlide *playModeSourceSlide)
+void Q3DSSceneManager::updateAnimations(Q3DSSlide *animSourceSlide, Q3DSSlide *prevAnimSourceSlide, Q3DSSlide *playModeSourceSlide)
 {
     // Called when entering a slide. Go through the slide's animations and add
     // Animator components for the affected entities (after removing existing ones).
-    m_animationManager->updateAnimations(animSourceSlide, playModeSourceSlide);
+    if (prevAnimSourceSlide) {
+        setAnimationsRunning(prevAnimSourceSlide, false);
+    }
+    m_animationManager->updateAnimations(animSourceSlide, prevAnimSourceSlide, playModeSourceSlide);
 }
 
 void Q3DSSceneManager::setAnimationsRunning(Q3DSSlide *slide, bool running)

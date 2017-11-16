@@ -539,7 +539,7 @@ private:
     void setNodeVisibility(Q3DSNode *node, bool visible);
     bool scheduleNodeVisibilityUpdate(Q3DSGraphObject *obj, Q3DSComponentNode *component = nullptr);
 
-    void updateAnimations(Q3DSSlide *animSourceSlide, Q3DSSlide *playModeSourceSlide);
+    void updateAnimations(Q3DSSlide *animSourceSlide, Q3DSSlide *prevAnimSourceSlide, Q3DSSlide *playModeSourceSlide);
 
     Qt3DRender::QTexture2D *dummyTexture();
 

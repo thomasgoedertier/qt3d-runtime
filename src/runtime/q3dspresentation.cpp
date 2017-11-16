@@ -2042,8 +2042,12 @@ void Q3DSPresentation::applySlidePropertyChanges(Q3DSSlide *slide) const
     if (!changeList)
         return;
 
-    for (auto it = changeList->cbegin(), ite = changeList->cend(); it != ite; ++it)
+    for (auto it = changeList->cbegin(), ite = changeList->cend(); it != ite; ++it) {
+        for (auto change = it.value()->begin(); change != it.value()->end(); change++) {
+            qCDebug(lcUip) << "\t" << it.key() << "applying property change:" << change->name() << change->value();
+        }
         it.key()->applyPropertyChanges(it.value());
+    }
 
     for (auto it = changeList->cbegin(), ite = changeList->cend(); it != ite; ++it)
         it.key()->notifyPropertyChanges(it.value());
