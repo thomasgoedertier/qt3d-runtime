@@ -36,6 +36,7 @@
 #include <Qt3DRender/QShaderProgram>
 #include <Qt3DRender/QGraphicsApiFilter>
 
+#include <QtCore/QLoggingCategory>
 #include <QtGui/QOpenGLContext>
 
 #include "q3dsdefaultmaterialgenerator.h"
@@ -44,6 +45,8 @@
 #include "shadergenerator/q3dsshadermanager_p.h"
 
 QT_BEGIN_NAMESPACE
+
+Q_DECLARE_LOGGING_CATEGORY(lcScene)
 
 // List of Qt3D builtin Uniforms: (from RenderView)
 //
@@ -131,8 +134,14 @@ Qt3DRender::QMaterial *Q3DSDefaultMaterialGenerator::generateMaterial(Q3DSDefaul
             effect->addTechnique(computeTechnique);
     }
 
-    for (Qt3DRender::QParameter *param : params)
+    static const bool paramDebug = qEnvironmentVariableIntValue("Q3DS_DEBUG") >= 2;
+    if (paramDebug)
+        qCDebug(lcScene) << effect << "for default material" << defaultMaterial->id() << "has parameters:";
+    for (Qt3DRender::QParameter *param : params) {
         effect->addParameter(param);
+        if (paramDebug)
+            qCDebug(lcScene) << "  " << param << param->name() << param->value();
+    }
     material->setEffect(effect);
 
     return material;

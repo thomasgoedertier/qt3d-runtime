@@ -2100,6 +2100,7 @@ void Q3DSSceneManager::updateShadowMapStatus(Q3DSLayerNode *layer3DS, bool *smDi
     for (int i = 0; i < layerData->shadowMapData.shadowCasters.count(); ++i) {
         auto &sc = layerData->shadowMapData.shadowCasters[i];
         if (!sc.active) {
+            qCDebug(lcScene, "Shadow casting light %s is gone", sc.lightNode->id().constData());
             delete sc.subTreeRoot; // bye bye framegraph and shadow map textures
             layerData->shadowMapData.shadowCasters.remove(i--);
         }
