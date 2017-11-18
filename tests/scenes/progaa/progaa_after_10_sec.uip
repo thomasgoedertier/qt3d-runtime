@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<UIP version="3" >
+	<Project >
+		<ProjectSettings author="" company="" presentationWidth="800" presentationHeight="480" maintainAspect="False" >
+			<CustomColors count="16" >#ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff</CustomColors>
+		</ProjectSettings>
+		<Graph >
+			<Scene id="Scene" backgroundcolor="1 1 1" >
+				<Layer id="Layer" >
+					<Camera id="Camera" />
+					<Light id="Light" />
+					<Light id="Light2" />
+					<Model id="Cube" >
+						<Material id="Material" />
+					</Model>
+					<Model id="Cone" >
+						<Material id="Material_001" />
+					</Model>
+					<Model id="Rectangle" >
+						<Material id="Material_002" />
+					</Model>
+				</Layer>
+			</Scene>
+		</Graph>
+		<Logic >
+			<State name="Master Slide" component="#Scene" >
+				<Add ref="#Layer" progressiveaa="8x" temporalaa="False" />
+				<Add ref="#Camera" />
+				<Add ref="#Light" lighttype="Point" position="500 500 -500" rotation="36.8649 -268.216 350.188" />
+				<State id="Scene-Circling cube" name="Circling cube" playmode="Looping" >
+					<Set ref="#Layer" endtime="18805" />
+					<Set ref="#Camera" endtime="18805" />
+					<Set ref="#Light" endtime="18805" />
+					<Add ref="#Light2" name="Light2" endtime="18805" lighttype="Point" position="-500 -500 -500" rotation="-52.8052 -40.339 113.184" />
+					<Add ref="#Cube" name="Cube" endtime="18805" position="-399.815 10.1036 0" sourcepath="#Cube" >
+						<AnimationTrack property="position.x" type="EaseInOut" >0 -400 0 0 4.803 -200 0 0 5.401 0 0 0 6.243 200 0 0 7.061 400 0 0 7.65 200 0 0 8.451 0 0 0 9.0011 -200
+							0 0 9.5201 -400 100 100</AnimationTrack>
+						<AnimationTrack property="position.y" type="EaseInOut" >0 0 0 0 4.803 120 0 0 5.401 200 0 0 6.243 120 0 0 7.061 0 0 0 7.65 -120 0 0 8.451 -200 0 0 9.0011 -120
+							0 0 9.5201 0 100 100</AnimationTrack>
+						<AnimationTrack property="position.z" type="EaseInOut" >0 0 0 0 4.803 0 0 0 5.401 0 0 0 6.243 0 0 0 7.061 0 0 0 7.65 0 0 0 8.451 0 0 0 9.0011 0
+							0 0 9.5201 0 100 100</AnimationTrack>
+						<AnimationTrack property="rotation.x" type="EaseInOut" >0 0 0 0 1 0 0 0 2 0 0 0 3 0 0 0 4 0 0 0</AnimationTrack>
+						<AnimationTrack property="rotation.y" type="EaseInOut" >0 0 0 0 1 0 0 0 2 0 0 0 3 0 0 0 4 0 0 0</AnimationTrack>
+						<AnimationTrack property="rotation.z" type="EaseInOut" >0 0 0 0 1 -90 0 0 2 -180 0 0 3 -270 0 0 4 -360 0 0</AnimationTrack>
+					</Add>
+					<Add ref="#Material" diffuse="0.12549 0.301961 0.909804" >
+						<AnimationTrack property="diffuse.x" type="EaseInOut" >0 0.188235 100 100 2 1 100 100 2.346 0.933333 100 100 4 0.160784 100 100 4.054 0.0509804 100 100 9.662 0.00392157 100 100</AnimationTrack>
+						<AnimationTrack property="diffuse.y" type="EaseInOut" >0 0.054902 100 100 2 0 100 100 2.346 0.054902 100 100 4 0.956863 100 100 4.054 0.32549 100 100 9.662 0.0431373 100 100</AnimationTrack>
+						<AnimationTrack property="diffuse.z" type="EaseInOut" >0 0.956863 100 100 2 0 100 100 2.346 0.145098 100 100 4 0.0745098 100 100 4.054 0.0235294 100 100 9.662 0 100 100</AnimationTrack>
+					</Add>
+					<Add ref="#Cone" name="Cone" endtime="18805" position="-443.116 132.791 0" scale="1.50746 1.59375 1" sourcepath="#Cone" >
+						<AnimationTrack property="position.x" type="EaseInOut" >0 -443.116 100 100 9.675 382.495 100 100</AnimationTrack>
+						<AnimationTrack property="position.y" type="EaseInOut" >0 132.791 100 100 9.675 -249.704 100 100</AnimationTrack>
+						<AnimationTrack property="position.z" type="EaseInOut" >0 0 100 100 9.675 0 100 100</AnimationTrack>
+					</Add>
+					<Add ref="#Material_001" diffuse="0 0 0" />
+					<Add ref="#Rectangle" name="Rectangle" endtime="18805" position="362.287 155.885 0" scale="2.5 2.10294 1" sourcepath="#Rectangle" >
+						<AnimationTrack property="rotation.x" type="EaseInOut" >0 0 100 100 9.7 0 100 100</AnimationTrack>
+						<AnimationTrack property="rotation.y" type="EaseInOut" >0 0 100 100 9.7 0 100 100</AnimationTrack>
+						<AnimationTrack property="rotation.z" type="EaseInOut" >0 0 100 100 9.7 250 100 100</AnimationTrack>
+					</Add>
+					<Add ref="#Material_002" diffuse="0 0 0" />
+				</State>
+			</State>
+		</Logic>
+	</Project>
+</UIP>
