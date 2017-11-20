@@ -94,6 +94,12 @@ Q3DStudioMainWindow::Q3DStudioMainWindow(Q3DStudioWindow *view, QWidget *parent)
         }
     });
 
+    viewMenu->addAction(tr("Toggle fullscree&n"), this, [this] {
+        Qt::WindowStates s = windowState();
+        s.setFlag(Qt::WindowFullScreen, !s.testFlag(Qt::WindowFullScreen));
+        setWindowState(s);
+    });
+
     QMenu *debugMenu = menuBar()->addMenu(tr("&Debug"));
     debugMenu->addAction(tr("&Object graph..."), [=]() {
         Q3DSUtils::showObjectGraph(view->uipDocument()->presentation()->scene());

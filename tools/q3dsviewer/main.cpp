@@ -44,6 +44,8 @@ int main(int argc, char *argv[])
     cmdLineParser.addPositionalArgument(QLatin1String("filename"), QObject::tr("UIP or UIA file to open"));
     QCommandLineOption noMainWindowOption({ "w", "no-main-window" }, QObject::tr("Skips the QWidget-based main window (use this for eglfs)."));
     cmdLineParser.addOption(noMainWindowOption);
+    QCommandLineOption fullScreenOption({ "f", "fullscreen" }, QObject::tr("Shows in fullscreen"));
+    cmdLineParser.addOption(fullScreenOption);
     QCommandLineOption msaaOption({ "m", "multisample" }, QObject::tr("Force 4x MSAA"));
     cmdLineParser.addOption(msaaOption);
     cmdLineParser.process(app);
@@ -76,10 +78,16 @@ int main(int argc, char *argv[])
 
     QScopedPointer<Q3DStudioMainWindow> mw;
     if (noWindow) {
-        view->show();
+        if (cmdLineParser.isSet(fullScreenOption))
+            view->showFullScreen();
+        else
+            view->show();
     } else {
         mw.reset(new Q3DStudioMainWindow(view.take()));
-        mw->show();
+        if (cmdLineParser.isSet(fullScreenOption))
+            mw->showFullScreen();
+        else
+            mw->show();
     }
 
     return app.exec();
