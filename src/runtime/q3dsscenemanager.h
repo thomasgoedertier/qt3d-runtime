@@ -519,6 +519,7 @@ private:
     QVector<QPair<Qt3DRender::QParameter *, Q3DSImage *> > m_subPresImages;
     QVector<Q3DSSubPresentation> m_subPresentations;
     Qt3DRender::QTexture2D *m_dummyTex = nullptr;
+    bool m_wasDirty = false;
 
     friend class Q3DSFrameUpdater;
 };

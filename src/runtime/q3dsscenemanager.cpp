@@ -391,8 +391,18 @@ void Q3DSSceneManager::updateSizes(const QSize &size, qreal dpr)
 
     qCDebug(lcScene) << "Size" << size << "DPR" << dpr;
 
-    Q3DSPresentation::forAllLayers(m_scene,
-                                   [=](Q3DSLayerNode *layer3DS) { updateSizesForLayer(layer3DS, size * dpr); });
+    Q3DSPresentation::forAllLayers(m_scene, [=](Q3DSLayerNode *layer3DS) {
+        Q3DSLayerAttached *data = static_cast<Q3DSLayerAttached *>(layer3DS->attached());
+        if (data) {
+            // do it right away if there was no size set yet
+            if (data->parentSize.isEmpty()) {
+                updateSizesForLayer(layer3DS, size * dpr);
+            } else { // defer otherwise, like it is done for other property changes
+                data->parentSize = size * dpr;
+                data->dirty |= Q3DSGraphObjectAttached::LayerDirty;
+            }
+        }
+    });
 }
 
 void Q3DSSceneManager::setCurrentSlide(Q3DSSlide *newSlide)
@@ -1149,6 +1159,8 @@ void Q3DSSceneManager::updateSizesForLayer(Q3DSLayerNode *layer3DS, const QSize 
 {
     if (newParentSize.isEmpty())
         return;
+
+    // note: no bail out when newParentSize == data->parentSize, the other values could still be out of date
 
     Q3DSLayerAttached *data = static_cast<Q3DSLayerAttached *>(layer3DS->attached());
     Q_ASSERT(data);
@@ -3453,105 +3465,66 @@ void Q3DSSceneManager::updateModel(Q3DSModelNode *model3DS)
 void Q3DSSceneManager::handlePropertyChange(Q3DSGraphObject *obj, const QSet<QString> &keys, int changeFlags)
 {
     Q_UNUSED(keys);
-    if (!obj->attached()) // Qt3D stuff not yet built for this object -> nothing to do
+    Q3DSGraphObjectAttached *data = obj->attached();
+    if (!data) // Qt3D stuff not yet built for this object -> nothing to do
         return;
 
     const Q3DSPropertyChangeList::Flags cf = Q3DSPropertyChangeList::Flags(changeFlags);
 
+    // all actual processing must be deferred to updateSubTreeRecursive()
     switch (obj->type()) {
     case Q3DSGraphObject::Layer:
     {
-        Q3DSLayerNode *layer3DS = static_cast<Q3DSLayerNode *>(obj);
-        Q3DSLayerAttached *data = static_cast<Q3DSLayerAttached *>(layer3DS->attached());
-        updateSizesForLayer(layer3DS, data->parentSize);
-        setLayerProperties(layer3DS);
-        if (cf.testFlag(Q3DSPropertyChangeList::AoOrShadowChanges)) {
-            bool aoDidChange = false;
-            updateSsaoStatus(layer3DS, &aoDidChange);
-            if (aoDidChange) {
-                Q3DSPresentation::forAllModels(layer3DS->firstChild(),
-                                               [this](Q3DSModelNode *model3DS) { rebuildModelMaterial(model3DS); },
-                                               true); // include hidden ones too
-            }
-        }
+        data->dirty |= Q3DSGraphObjectAttached::LayerDirty;
+        data->changeFlags |= cf;
     }
         break;
     case Q3DSGraphObject::Camera:
     {
-        Q3DSCameraNode *cam3DS = static_cast<Q3DSCameraNode *>(obj);
-        Q3DSCameraAttached *data = static_cast<Q3DSCameraAttached *>(cam3DS->attached());
-        if (cf.testFlag(Q3DSPropertyChangeList::EyeballChanges)) {
-            cam3DS = chooseLayerCamera(data->layer3DS, &data->camera);
-            Q3DSLayerAttached *layerData = static_cast<Q3DSLayerAttached *>(data->layer3DS->attached());
-            layerData->cam3DS = cam3DS;
-            layerData->cameraSelector->setCamera(data->camera);
-            reparentCamera(data->layer3DS);
-        }
-        setCameraProperties(cam3DS, changeFlags); // handles both Node- and Camera-level properties
-        setLayerCameraSizeProperties(data->layer3DS);
-        // still have to keep data->globalTransform and globalVisibility up-to-date
         data->dirty |= Q3DSGraphObjectAttached::CameraDirty;
         data->changeFlags |= cf;
     }
         break;
 
-    // Objects with fully deferred processing
-
     case Q3DSGraphObject::DefaultMaterial:
     {
-        Q3DSDefaultMaterial *mat3DS = static_cast<Q3DSDefaultMaterial *>(obj);
-        Q3DSDefaultMaterialAttached *data = static_cast<Q3DSDefaultMaterialAttached *>(mat3DS->attached());
         data->dirty |= Q3DSGraphObjectAttached::DefaultMaterialDirty;
         data->changeFlags |= cf;
     }
         break;
     case Q3DSGraphObject::Image:
     {
-        Q3DSImage *image3DS = static_cast<Q3DSImage *>(obj);
-        Q3DSImageAttached *data = static_cast<Q3DSImageAttached *>(image3DS->attached());
         data->dirty |= Q3DSGraphObjectAttached::ImageDirty;
         data->changeFlags |= cf;
     }
         break;
 
-    // Nodes with fully deferred processing
-
     case Q3DSGraphObject::Group:
     {
-        Q3DSGroupNode *group3DS = static_cast<Q3DSGroupNode *>(obj);
-        Q3DSGroupAttached *data = static_cast<Q3DSGroupAttached *>(group3DS->attached());
         data->dirty |= Q3DSGraphObjectAttached::GroupDirty;
         data->changeFlags |= cf;
     }
         break;
     case Q3DSGraphObject::Component:
     {
-        Q3DSComponentNode *comp3DS = static_cast<Q3DSComponentNode *>(obj);
-        Q3DSComponentAttached *data = static_cast<Q3DSComponentAttached *>(comp3DS->attached());
         data->dirty |= Q3DSGraphObjectAttached::ComponentDirty;
         data->changeFlags |= cf;
     }
         break;
     case Q3DSGraphObject::Light:
     {
-        Q3DSLightNode *light3DS = static_cast<Q3DSLightNode *>(obj);
-        Q3DSLightAttached *data = static_cast<Q3DSLightAttached *>(light3DS->attached());
         data->dirty |= Q3DSGraphObjectAttached::LightDirty;
         data->changeFlags |= cf;
     }
         break;
     case Q3DSGraphObject::Model:
     {
-        Q3DSModelNode *model3DS = static_cast<Q3DSModelNode *>(obj);
-        Q3DSModelAttached *data = static_cast<Q3DSModelAttached *>(model3DS->attached());
         data->dirty |= Q3DSGraphObjectAttached::ModelDirty;
         data->changeFlags |= cf;
     }
         break;
     case Q3DSGraphObject::Text:
     {
-        Q3DSTextNode *text3DS = static_cast<Q3DSTextNode *>(obj);
-        Q3DSTextAttached *data = static_cast<Q3DSTextAttached *>(text3DS->attached());
         data->dirty |= Q3DSGraphObjectAttached::TextDirty;
         data->changeFlags |= cf;
     }
@@ -3561,7 +3534,7 @@ void Q3DSSceneManager::handlePropertyChange(Q3DSGraphObject *obj, const QSet<QSt
         break;
     }
 
-    // Note the lack of call to updateNode(). That happens in a QFrameAction once per frame.
+    // Note the lack of call to updateSubTree(). That happens in a QFrameAction once per frame.
 }
 
 void Q3DSSceneManager::updateSubTree(Q3DSGraphObject *obj)
@@ -3660,103 +3633,134 @@ void Q3DSSceneManager::handleSlideChange(Q3DSSlide *prevSlide, Q3DSSlide *curren
 
 void Q3DSSceneManager::prepareNextFrame()
 {
+    m_wasDirty = false;
     updateSubTree(m_scene);
 }
 
 void Q3DSSceneManager::updateSubTreeRecursive(Q3DSGraphObject *obj)
 {
-    if (obj->isNode()) {
+    switch (obj->type()) {
+    case Q3DSGraphObject::Group:
+        Q_FALLTHROUGH();
+    case Q3DSGraphObject::Component:
+    {
+        // Group and Component inherit all interesting properties from Node
         Q3DSNode *node = static_cast<Q3DSNode *>(obj);
-        switch (node->type()) {
-        case Q3DSGraphObject::Group:
-            Q_FALLTHROUGH();
-        case Q3DSGraphObject::Component:
-        {
-            // Group and Component inherit all interesting properties from Node
-            Q3DSNodeAttached *data = static_cast<Q3DSNodeAttached *>(node->attached());
-            if (data)
-                updateNodeFromChangeFlags(node, data->transform, data->changeFlags);
+        Q3DSNodeAttached *data = static_cast<Q3DSNodeAttached *>(obj->attached());
+        if (data)
+            updateNodeFromChangeFlags(node, data->transform, data->changeFlags);
+    }
+        break;
+    case Q3DSGraphObject::Text:
+    {
+        Q3DSTextNode *text3DS = static_cast<Q3DSTextNode *>(obj);
+        Q3DSTextAttached *data = static_cast<Q3DSTextAttached *>(text3DS->attached());
+        if (data) {
+            updateNodeFromChangeFlags(text3DS, data->transform, data->changeFlags);
+            if (data->dirty & (Q3DSGraphObjectAttached::TextDirty | Q3DSGraphObjectAttached::GlobalOpacityDirty)) {
+                const bool needsNewImage = data->changeFlags.testFlag(Q3DSPropertyChangeList::TextTextureImageDepChanges);
+                updateText(text3DS, needsNewImage);
+                m_wasDirty = true;
+            }
         }
-            break;
-        case Q3DSGraphObject::Text:
-        {
-            Q3DSTextNode *text3DS = static_cast<Q3DSTextNode *>(node);
-            Q3DSTextAttached *data = static_cast<Q3DSTextAttached *>(text3DS->attached());
-            if (data) {
-                updateNodeFromChangeFlags(text3DS, data->transform, data->changeFlags);
-                if (data->dirty & (Q3DSGraphObjectAttached::TextDirty | Q3DSGraphObjectAttached::GlobalOpacityDirty)) {
-                    const bool needsNewImage = data->changeFlags.testFlag(Q3DSPropertyChangeList::TextTextureImageDepChanges);
-                    updateText(static_cast<Q3DSTextNode *>(node), needsNewImage);
+    }
+        break;
+    case Q3DSGraphObject::Light:
+    {
+        Q3DSLightNode *light3DS = static_cast<Q3DSLightNode *>(obj);
+        Q3DSLightAttached *data = static_cast<Q3DSLightAttached *>(light3DS->attached());
+        if (data) {
+            updateNodeFromChangeFlags(light3DS, data->transform, data->changeFlags);
+            if (data->dirty & (Q3DSGraphObjectAttached::LightDirty | Q3DSGraphObjectAttached::GlobalTransformDirty)) {
+                setLightProperties(light3DS);
+                if (!data->changeFlags.testFlag(Q3DSPropertyChangeList::EyeballChanges)) // already done if eyeball changed
+                    m_layersWithDirtyLights.insert(data->layer3DS);
+                m_wasDirty = true;
+            }
+        }
+    }
+        break;
+    case Q3DSGraphObject::Model:
+    {
+        Q3DSModelNode *model3DS = static_cast<Q3DSModelNode *>(obj);
+        Q3DSModelAttached *data = static_cast<Q3DSModelAttached *>(model3DS->attached());
+        if (data) {
+            updateNodeFromChangeFlags(model3DS, data->transform, data->changeFlags);
+            if (data->dirty & (Q3DSGraphObjectAttached::ModelDirty | Q3DSGraphObjectAttached::GlobalOpacityDirty)) {
+                updateModel(model3DS);
+                m_wasDirty = true;
+            }
+        }
+    }
+        break;
+    case Q3DSGraphObject::Camera:
+    {
+        Q3DSCameraNode *cam3DS = static_cast<Q3DSCameraNode *>(obj);
+        Q3DSCameraAttached *data = static_cast<Q3DSCameraAttached *>(cam3DS->attached());
+        if (data) {
+            updateNodeFromChangeFlags(cam3DS, data->transform, data->changeFlags);
+            if (data->dirty & Q3DSGraphObjectAttached::CameraDirty) {
+                if (data->changeFlags.testFlag(Q3DSPropertyChangeList::EyeballChanges)) {
+                    cam3DS = chooseLayerCamera(data->layer3DS, &data->camera);
+                    Q3DSLayerAttached *layerData = static_cast<Q3DSLayerAttached *>(data->layer3DS->attached());
+                    layerData->cam3DS = cam3DS;
+                    layerData->cameraSelector->setCamera(data->camera);
+                    reparentCamera(data->layer3DS);
+                }
+                setCameraProperties(cam3DS, data->changeFlags); // handles both Node- and Camera-level properties
+                setLayerCameraSizeProperties(data->layer3DS);
+                m_wasDirty = true;
+            }
+        }
+    }
+        break;
+    case Q3DSGraphObject::Layer:
+    {
+        Q3DSLayerNode *layer3DS = static_cast<Q3DSLayerNode *>(obj);
+        Q3DSLayerAttached *data = static_cast<Q3DSLayerAttached *>(layer3DS->attached());
+        if (data && (data->dirty & Q3DSGraphObjectAttached::LayerDirty)) {
+            updateSizesForLayer(layer3DS, data->parentSize);
+            setLayerProperties(layer3DS);
+            if (data->changeFlags.testFlag(Q3DSPropertyChangeList::AoOrShadowChanges)) {
+                bool aoDidChange = false;
+                updateSsaoStatus(layer3DS, &aoDidChange);
+                if (aoDidChange) {
+                    Q3DSPresentation::forAllModels(layer3DS->firstChild(),
+                                                   [this](Q3DSModelNode *model3DS) { rebuildModelMaterial(model3DS); },
+                    true); // include hidden ones too
                 }
             }
+            m_wasDirty = true;
         }
-            break;
-        case Q3DSGraphObject::Light:
-        {
-            Q3DSLightNode *light3DS = static_cast<Q3DSLightNode *>(node);
-            Q3DSLightAttached *data = static_cast<Q3DSLightAttached *>(light3DS->attached());
-            if (data) {
-                updateNodeFromChangeFlags(light3DS, data->transform, data->changeFlags);
-                if (data->dirty & (Q3DSGraphObjectAttached::LightDirty | Q3DSGraphObjectAttached::GlobalTransformDirty)) {
-                    setLightProperties(static_cast<Q3DSLightNode *>(node));
-                    if (!data->changeFlags.testFlag(Q3DSPropertyChangeList::EyeballChanges)) // already done if eyeball changed
-                        m_layersWithDirtyLights.insert(data->layer3DS);
-                }
-            }
+    }
+        break;
+    case Q3DSGraphObject::DefaultMaterial:
+    {
+        Q3DSDefaultMaterial *mat3DS = static_cast<Q3DSDefaultMaterial *>(obj);
+        Q3DSDefaultMaterialAttached *data = static_cast<Q3DSDefaultMaterialAttached *>(mat3DS->attached());
+        if (data && (data->dirty & Q3DSGraphObjectAttached::DefaultMaterialDirty)) {
+            Q3DSModelAttached *modelData = static_cast<Q3DSModelAttached *>(data->model3DS->attached());
+            data->opacity = modelData->globalOpacity * mat3DS->opacity();
+            updateDefaultMaterial(mat3DS);
+            m_wasDirty = true;
         }
-            break;
-        case Q3DSGraphObject::Model:
-        {
-            Q3DSModelNode *model3DS = static_cast<Q3DSModelNode *>(node);
-            Q3DSModelAttached *data = static_cast<Q3DSModelAttached *>(model3DS->attached());
-            if (data) {
-                updateNodeFromChangeFlags(model3DS, data->transform, data->changeFlags);
-                if (data->dirty & (Q3DSGraphObjectAttached::ModelDirty | Q3DSGraphObjectAttached::GlobalOpacityDirty))
-                    updateModel(static_cast<Q3DSModelNode *>(node));
-            }
+    }
+        break;
+    case Q3DSGraphObject::Image:
+    {
+        Q3DSImage *image3DS = static_cast<Q3DSImage *>(obj);
+        Q3DSImageAttached *data = static_cast<Q3DSImageAttached *>(image3DS->attached());
+        if (data && (data->dirty & Q3DSGraphObjectAttached::ImageDirty)) {
+            image3DS->calculateTextureTransform();
+            for (Q3DSDefaultMaterial *m : data->referencingMaterials)
+                updateDefaultMaterial(m);
+            m_wasDirty = true;
         }
-            break;
+    }
+        break;
 
-        case Q3DSGraphObject::Camera:
-        {
-            Q3DSCameraNode *cam3DS = static_cast<Q3DSCameraNode *>(node);
-            Q3DSCameraAttached *data = static_cast<Q3DSCameraAttached *>(cam3DS->attached());
-            if (data)
-                updateNodeFromChangeFlags(cam3DS, data->transform, data->changeFlags);
-        }
-            break;
-
-        default:
-            break;
-        }
-    } else {
-        switch (obj->type()) {
-        case Q3DSGraphObject::DefaultMaterial:
-        {
-            Q3DSDefaultMaterial *mat3DS = static_cast<Q3DSDefaultMaterial *>(obj);
-            Q3DSDefaultMaterialAttached *data = static_cast<Q3DSDefaultMaterialAttached *>(mat3DS->attached());
-            if (data && (data->dirty & Q3DSGraphObjectAttached::DefaultMaterialDirty)) {
-                Q3DSModelAttached *modelData = static_cast<Q3DSModelAttached *>(data->model3DS->attached());
-                data->opacity = modelData->globalOpacity * mat3DS->opacity();
-                updateDefaultMaterial(mat3DS);
-            }
-        }
-            break;
-        case Q3DSGraphObject::Image:
-        {
-            Q3DSImage *image3DS = static_cast<Q3DSImage *>(obj);
-            Q3DSImageAttached *data = static_cast<Q3DSImageAttached *>(image3DS->attached());
-            if (data && (data->dirty & Q3DSGraphObjectAttached::ImageDirty)) {
-                image3DS->calculateTextureTransform();
-                for (Q3DSDefaultMaterial *m : data->referencingMaterials)
-                    updateDefaultMaterial(m);
-            }
-        }
-            break;
-
-        default:
-            break;
-        }
+    default:
+        break;
     }
 
     Q3DSGraphObjectAttached *data = obj->attached();
@@ -3767,7 +3771,7 @@ void Q3DSSceneManager::updateSubTreeRecursive(Q3DSGraphObject *obj)
 
     obj = obj->firstChild();
     while (obj) {
-        updateSubTreeRecursive(static_cast<Q3DSNode *>(obj));
+        updateSubTreeRecursive(obj);
         obj = obj->nextSibling();
     }
 }
@@ -3779,6 +3783,7 @@ void Q3DSSceneManager::updateNodeFromChangeFlags(Q3DSNode *node, Qt3DCore::QTran
             || cf.testFlag(Q3DSPropertyChangeList::NodeOpacityChanges))
     {
         setNodeProperties(node, nullptr, transform, NodePropUpdateGlobalsRecursively);
+        m_wasDirty = true;
     }
 
     if (cf.testFlag(Q3DSPropertyChangeList::EyeballChanges)) {
@@ -3813,6 +3818,7 @@ void Q3DSSceneManager::updateNodeFromChangeFlags(Q3DSNode *node, Qt3DCore::QTran
             const bool active = node->flags().testFlag(Q3DSNode::Active);
             setNodeVisibility(node, active);
         }
+        m_wasDirty = true;
     }
 }
 
