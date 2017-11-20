@@ -81,33 +81,6 @@ public:
 
     Qt3DRender::QShaderProgram *getBsdfMipPreFilterShader(Qt3DCore::QNode *parent);
 
-#if 0
-    Qt3DRender::QShaderProgram* getParaboloidDepthShader(TessModeValues::Enum tessMode);
-    Qt3DRender::QShaderProgram* getParaboloidDepthNoTessShader();
-    Qt3DRender::QShaderProgram* getParaboloidDepthTessLinearShader();
-    Qt3DRender::QShaderProgram* getParaboloidDepthTessPhongShader();
-    Qt3DRender::QShaderProgram* getParaboloidDepthTessNPatchShader();
-
-    Qt3DRender::QShaderProgram* getCubeShadowDepthShader(TessModeValues::Enum tessMode);
-
-    Qt3DRender::QShaderProgram* getCubeDepthTessLinearShader();
-    Qt3DRender::QShaderProgram* getCubeDepthTessPhongShader();
-    Qt3DRender::QShaderProgram* getCubeDepthTessNPatchShader();
-
-    Qt3DRender::QShaderProgram* getOrthographicDepthShader(TessModeValues::Enum tessMode);
-    Qt3DRender::QShaderProgram* getOrthographicDepthTessLinearShader();
-    Qt3DRender::QShaderProgram* getOrthographicDepthTessPhongShader();
-    Qt3DRender::QShaderProgram* getOrthographicDepthTessNPatchShader();
-
-    Qt3DRender::QShaderProgram* getDepthTessPrepassShader(TessModeValues::Enum tessMode, bool displaced);
-    Qt3DRender::QShaderProgram* getDepthTessLinearPrepassShader(bool displaced);
-    Qt3DRender::QShaderProgram* getDepthTessPhongPrepassShader();
-    Qt3DRender::QShaderProgram* getDepthTessNPatchPrepassShader();
-
-    Qt3DRender::QShaderProgram* getDefaultAoPassShader(Q3DSShaderFeatureSet featureSet);
-    Qt3DRender::QShaderProgram* getFakeCubeDepthShader(Q3DSShaderFeatureSet featureSet);
-#endif
-
 private:
     Q3DSShaderManager();
 
