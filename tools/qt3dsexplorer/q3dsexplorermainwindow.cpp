@@ -59,7 +59,7 @@ Q3DSExplorerMainWindow::Q3DSExplorerMainWindow(Q3DStudioWindow *view, QWidget *p
 
     // Add Dock Widgets
     auto slideDockWidget = new QDockWidget("Presentation", this);
-    m_slideExplorer = new SlideExplorerWidget(m_view->sceneManager(), slideDockWidget);
+    m_slideExplorer = new SlideExplorerWidget(slideDockWidget);
     slideDockWidget->setWidget(m_slideExplorer);
     this->addDockWidget(Qt::LeftDockWidgetArea, slideDockWidget);
 
@@ -69,7 +69,7 @@ Q3DSExplorerMainWindow::Q3DSExplorerMainWindow(Q3DStudioWindow *view, QWidget *p
     this->addDockWidget(Qt::RightDockWidgetArea, sceneExplorerDockWidget);
 
     auto componentSlideDockWidget = new QDockWidget("Component", this);
-    m_componentSlideExplorer = new SlideExplorerWidget(m_view->sceneManager(), componentSlideDockWidget);
+    m_componentSlideExplorer = new SlideExplorerWidget(componentSlideDockWidget);
     componentSlideDockWidget->setWidget(m_componentSlideExplorer);
     addDockWidget(Qt::LeftDockWidgetArea, componentSlideDockWidget);
     m_componentSlideExplorer->setEnabled(false);
@@ -133,10 +133,13 @@ Q3DSExplorerMainWindow::~Q3DSExplorerMainWindow()
 void Q3DSExplorerMainWindow::updatePresentation()
 {
     auto pres = m_view->uipDocument()->presentation();
+    m_slideExplorer->reset();
+    handleComponentSelected(nullptr);
     if (pres) {
         m_sceneExplorer->setPresentation(pres);
         m_slideExplorer->setPresentation(pres);
-        handleComponentSelected(nullptr);
+        m_slideExplorer->setSceneManager(m_view->sceneManager(0));
+        m_componentSlideExplorer->setSceneManager(m_view->sceneManager(0));
     }
 }
 
@@ -150,4 +153,5 @@ void Q3DSExplorerMainWindow::handleComponentSelected(Q3DSComponentNode *componen
 
     m_componentSlideExplorer->setEnabled(true);
     m_componentSlideExplorer->setComponent(component);
+    m_componentSlideExplorer->setSceneManager(m_view->sceneManager(0));
 }

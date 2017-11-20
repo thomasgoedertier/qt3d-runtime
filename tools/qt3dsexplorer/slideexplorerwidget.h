@@ -46,10 +46,13 @@ class SlideExplorerWidget : public QWidget
 {
     Q_OBJECT
 public:
-    explicit SlideExplorerWidget(Q3DSSceneManager *sceneManager, QWidget *parent = nullptr);
+    explicit SlideExplorerWidget(QWidget *parent = nullptr);
 
     void setPresentation(Q3DSPresentation *pres);
     void setComponent(Q3DSComponentNode *component);
+    void setSceneManager(Q3DSSceneManager *sceneManager);
+
+    void reset();
 
 private slots:
     void handleSelectionChanged(const QModelIndex &index);
@@ -60,9 +63,10 @@ private slots:
     void seekInCurrentSlide(int value);
 private:
     void init();
+    void updateModel();
     Q3DSComponentNode *m_component = nullptr;
     Q3DSPresentation *m_presentation = nullptr;
-    Q3DSSceneManager *m_sceneManager;
+    Q3DSSceneManager *m_sceneManager = nullptr;
     Q3DSSlide *m_masterSlide = nullptr;
     Q3DSSlide *m_currentSlide = nullptr;
     QListView *m_slideListView;
