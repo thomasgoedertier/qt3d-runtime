@@ -644,6 +644,38 @@ Qt3DRender::QShaderProgram *Q3DSShaderManager::getBsdfMipPreFilterShader(Qt3DCor
     return m_bsdfMipPreFilterShader;
 }
 
+Qt3DRender::QShaderProgram *Q3DSShaderManager::getProgAABlendShader(Qt3DCore::QNode *parent)
+{
+    if (!m_progAABlendShader) {
+        m_shaderProgramGenerator->beginProgram();
+        Q3DSAbstractShaderStageGenerator *vertexShader = m_shaderProgramGenerator->getStage(Q3DSShaderGeneratorStages::Vertex);
+        Q3DSAbstractShaderStageGenerator *fragmentShader = m_shaderProgramGenerator->getStage(Q3DSShaderGeneratorStages::Fragment);
+
+        vertexShader->addIncoming("vertexPosition", "vec3");
+        vertexShader->addIncoming("vertexTexCoord", "vec2");
+        vertexShader->addOutgoing("uv_coords", "vec2");
+        vertexShader->append("void main() {");
+        vertexShader->append("    gl_Position = vec4(attr_pos, 1.0 );");
+        vertexShader->append("    uv_coords = attr_uv;");
+        vertexShader->append("}");
+
+        fragmentShader->addUniform("accumulator", "sampler2D");
+        fragmentShader->addUniform("last_frame", "sampler2D");
+        fragmentShader->addUniform("blend_factors", "vec2");
+        fragmentShader->append("void main() {");
+        fragmentShader->append("    vec4 accum = texture2D( accumulator, uv_coords );");
+        fragmentShader->append("    vec4 lastFrame = texture2D( last_frame, uv_coords );");
+        fragmentShader->append("    fragOutput = accum*blend_factors.y + lastFrame*blend_factors.x;");
+        fragmentShader->append("}");
+
+        m_progAABlendShader = m_shaderProgramGenerator->compileGeneratedShader(
+                    QLatin1String("layer progressive/temporal AA blend shader"), Q3DSShaderFeatureSet());
+        m_progAABlendShader->setParent(parent);
+    }
+
+    return m_progAABlendShader;
+}
+
 Q3DSShaderManager::Q3DSShaderManager()
     : m_materialShaderGenerator(&Q3DSDefaultMaterialShaderGenerator::createDefaultMaterialShaderGenerator())
     , m_shaderProgramGenerator(Q3DSAbstractShaderProgramGenerator::createProgramGenerator())
@@ -661,6 +693,7 @@ void Q3DSShaderManager::invalidate()
     m_cubeShadowBlurYShader = nullptr;
     m_ssaoTextureShader = nullptr;
     m_bsdfMipPreFilterShader = nullptr;
+    m_progAABlendShader = nullptr;
 
     m_shaderProgramGenerator->invalidate();
 }

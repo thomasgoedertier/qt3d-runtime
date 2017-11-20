@@ -81,6 +81,8 @@ public:
 
     Qt3DRender::QShaderProgram *getBsdfMipPreFilterShader(Qt3DCore::QNode *parent);
 
+    Qt3DRender::QShaderProgram *getProgAABlendShader(Qt3DCore::QNode *parent);
+
 private:
     Q3DSShaderManager();
 
@@ -95,6 +97,7 @@ private:
     Qt3DRender::QShaderProgram *m_cubeShadowBlurYShader = nullptr;
     Qt3DRender::QShaderProgram *m_ssaoTextureShader = nullptr;
     Qt3DRender::QShaderProgram *m_bsdfMipPreFilterShader = nullptr;
+    Qt3DRender::QShaderProgram *m_progAABlendShader = nullptr;
 };
 
 QT_END_NAMESPACE
