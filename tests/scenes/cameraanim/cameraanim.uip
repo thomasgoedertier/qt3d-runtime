@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<UIP version="3" >
+	<Project >
+		<ProjectSettings author="" company="Eagle Jump" presentationWidth="800" presentationHeight="480" maintainAspect="False" >
+			<CustomColors count="16" >#ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff</CustomColors>
+		</ProjectSettings>
+		<Graph >
+			<Scene id="Scene" >
+				<Layer id="Layer" >
+					<Camera id="Camera" />
+					<Light id="Light" />
+					<Model id="Sphere" >
+						<Material id="Material" />
+					</Model>
+					<Model id="Cube" >
+						<Material id="Material_001" />
+					</Model>
+					<Model id="Rectangle" >
+						<Material id="Material_002" />
+					</Model>
+				</Layer>
+			</Scene>
+		</Graph>
+		<Logic >
+			<State name="Master Slide" component="#Scene" >
+				<Add ref="#Layer" />
+				<Add ref="#Camera" position="0 0 -600" >
+					<AnimationTrack property="position.x" type="EaseInOut" >0 0 100 100 5.18 100 100 100</AnimationTrack>
+					<AnimationTrack property="position.y" type="EaseInOut" >0 0 100 100 5.18 0 100 100</AnimationTrack>
+					<AnimationTrack property="position.z" type="EaseInOut" >0 -600 100 100 5.18 -600 100 100</AnimationTrack>
+					<AnimationTrack property="rotation.x" type="EaseInOut" >5.4841 0 100 100 10 0 100 100</AnimationTrack>
+					<AnimationTrack property="rotation.y" type="EaseInOut" >5.4841 0 100 100 10 0 100 100</AnimationTrack>
+					<AnimationTrack property="rotation.z" type="EaseInOut" >5.4841 0 100 100 10 60 100 100</AnimationTrack>
+				</Add>
+				<Add ref="#Light" castshadow="False" lighttype="Directional" />
+				<State id="Scene-Slide1" name="Slide1" playmode="Looping" >
+					<Add ref="#Sphere" name="Sphere" position="-382.495 161.658 0" sourcepath="#Sphere" />
+					<Add ref="#Material" />
+					<Add ref="#Cube" name="Cube" position="392.598 165.988 0" rotation="-37.4375 -0.741211 6.28161" sourcepath="#Cube" >
+						<AnimationTrack property="rotation.x" type="EaseInOut" >0 -37.4375 100 100 10 -37.438 100 100</AnimationTrack>
+						<AnimationTrack property="rotation.y" type="EaseInOut" >0 -0.741211 100 100 10 360 100 100</AnimationTrack>
+						<AnimationTrack property="rotation.z" type="EaseInOut" >0 6.28161 100 100 10 6.282 100 100</AnimationTrack>
+					</Add>
+					<Add ref="#Material_001" />
+					<Add ref="#Rectangle" name="Rectangle" rotation="50 0 0" scale="4.82089 5.90164 1" sourcepath="#Rectangle" />
+					<Add ref="#Material_002" />
+				</State>
+			</State>
+		</Logic>
+	</Project>
+</UIP>
