@@ -30,6 +30,7 @@
 #include <QApplication>
 #include <QCommandLineParser>
 #include <QFileDialog>
+#include <QStandardPaths>
 #include <Qt3DStudioRuntime2/q3dsutils.h>
 #include "q3dsmainwindow.h"
 #include "q3dswindow.h"
@@ -55,9 +56,16 @@ int main(int argc, char *argv[])
         initFlags |= Q3DStudioWindow::Force4xMSAA;
     Q3DStudioWindow::initStaticPostApp(initFlags);
 
+#if !defined(Q_OS_ANDROID) && !defined(Q_OS_IOS)
+    const bool noWidgets = cmdLineParser.isSet(noMainWindowOption);
+    const bool fullscreen = cmdLineParser.isSet(fullScreenOption);
+#else
+    const bool noWidgets = true;
+    const bool fullscreen = true;
+#endif
+
     QStringList fn = cmdLineParser.positionalArguments();
-    const bool noWindow = cmdLineParser.isSet(noMainWindowOption);
-    if (noWindow) {
+    if (noWidgets) {
         Q3DSUtils::setDialogsEnabled(false);
     } else if (fn.isEmpty()) {
         QString fileName = QFileDialog::getOpenFileName(nullptr, QObject::tr("Open"), QString(),
@@ -65,6 +73,16 @@ int main(int argc, char *argv[])
         if (!fileName.isEmpty())
             fn.append(fileName);
     }
+
+    // Try a default file on mobile,
+    // e.g. /storage/emulated/0/Documents/default.uip on Android.
+#if defined(Q_OS_ANDROID) || defined(Q_OS_IOS)
+    if (fn.isEmpty()) {
+        QStringList docPath = QStandardPaths::standardLocations(QStandardPaths::DocumentsLocation);
+        if (!docPath.isEmpty())
+            fn = QStringList { docPath.first() + QLatin1String("/default.uip") };
+    }
+#endif
 
     if (fn.isEmpty()) {
         Q3DSUtils::showMessage(QObject::tr("No file specified."));
@@ -77,14 +95,14 @@ int main(int argc, char *argv[])
         return 0;
 
     QScopedPointer<Q3DStudioMainWindow> mw;
-    if (noWindow) {
-        if (cmdLineParser.isSet(fullScreenOption))
+    if (noWidgets) {
+        if (fullscreen)
             view->showFullScreen();
         else
             view->show();
     } else {
         mw.reset(new Q3DStudioMainWindow(view.take()));
-        if (cmdLineParser.isSet(fullScreenOption))
+        if (fullscreen)
             mw->showFullScreen();
         else
             mw->show();
