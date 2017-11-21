@@ -141,6 +141,15 @@ void Q3DSProfileView::frame()
         addTip("Elapsed time between frames on the main thread (QFrameAction callback)");
     }
 
+    if (ImGui::CollapsingHeader("Frame stats")) {
+        const QVector<Q3DSProfiler::FrameData> *frameData = m_profiler->frameData();
+        const Q3DSProfiler::FrameData *lastFrameData = !frameData->isEmpty() ? &frameData->last() : nullptr;
+        // life is too short to figure out why mingw does not like %lld so stick with %u
+        uint frameNo = lastFrameData ? lastFrameData->globalFrameCounter : 0;
+        ImGui::Text("Frame %u", frameNo);
+        ImGui::Text("wasDirty: %s", lastFrameData ? (lastFrameData->wasDirty ? "true" : "false") : "unknown");
+    }
+
     if (ImGui::CollapsingHeader("Alter scene"))
         addAlterSceneStuff();
 

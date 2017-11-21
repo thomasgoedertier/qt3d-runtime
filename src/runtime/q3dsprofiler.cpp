@@ -28,6 +28,7 @@
 ****************************************************************************/
 
 #include "q3dsprofiler_p.h"
+#include "q3dsscenemanager.h"
 
 #if defined(Q_OS_WIN) && !defined(Q_OS_WINRT)
 #include <qt_windows.h>
@@ -47,10 +48,12 @@ Q3DSProfiler::Q3DSProfiler(const Q3DSGraphicsLimits &limits)
     m_frameData.reserve(64 * 1024);
 }
 
-void Q3DSProfiler::resetForNewScene(Q3DSPresentation *presentation)
+void Q3DSProfiler::resetForNewScene(Q3DSSceneManager *sceneManager)
 {
     m_frameData.clear();
-    m_presentation = presentation;
+    m_sceneManager = sceneManager;
+    m_presentation = m_sceneManager->m_presentation;
+    Q_ASSERT(m_presentation);
 }
 
 void Q3DSProfiler::setEnabled(bool enabled)
@@ -69,6 +72,17 @@ void Q3DSProfiler::reportNewFrame(float deltaMs)
     FrameData d;
     d.deltaMs = deltaMs;
     m_frameData.append(d);
+}
+
+void Q3DSProfiler::updateFrameStats(qint64 globalFrameCounter)
+{
+    if (!m_enabled)
+        return;
+
+    Q_ASSERT(!m_frameData.isEmpty());
+    FrameData &d(m_frameData.last());
+    d.globalFrameCounter = globalFrameCounter;
+    d.wasDirty = m_sceneManager->m_wasDirty;
 }
 
 float Q3DSProfiler::cpuLoadForCurrentProcess()

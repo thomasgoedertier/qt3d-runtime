@@ -47,21 +47,25 @@
 
 QT_BEGIN_NAMESPACE
 
+class Q3DSSceneManager;
 class Q3DSPresentation;
 
 class Q3DSProfiler
 {
 public:
     Q3DSProfiler(const Q3DSGraphicsLimits &limits);
-    void resetForNewScene(Q3DSPresentation *presentation);
+    void resetForNewScene(Q3DSSceneManager *sceneManager);
 
     bool isEnabled() const { return m_enabled; }
     void setEnabled(bool enabled);
 
     void reportNewFrame(float deltaMs);
+    void updateFrameStats(qint64 globalFrameCounter);
 
     struct FrameData {
         float deltaMs = 0;
+        qint64 globalFrameCounter = 0;
+        bool wasDirty = false;
     };
 
     const QVector<FrameData> *frameData() const { return &m_frameData; }
@@ -76,6 +80,7 @@ private:
     bool m_enabled = false; // disabled by default, profiling is opt-in
     Q3DSGraphicsLimits m_gfxLimits;
     QVector<FrameData> m_frameData;
+    Q3DSSceneManager *m_sceneManager = nullptr;
     Q3DSPresentation *m_presentation = nullptr;
 
     QElapsedTimer m_cpuLoadTimer;

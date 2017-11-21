@@ -546,6 +546,7 @@ private:
     Q3DSProfileUi *m_profileUi = nullptr;
 
     friend class Q3DSFrameUpdater;
+    friend class Q3DSProfiler;
 };
 
 Q_DECLARE_OPERATORS_FOR_FLAGS(Q3DSSceneManager::SceneBuilderFlags)

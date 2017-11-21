@@ -527,7 +527,7 @@ Q3DSSceneManager::Scene Q3DSSceneManager::buildScene(Q3DSPresentation *presentat
     m_subPresLayers.clear();
     m_subPresImages.clear();
     m_subPresentations.clear();
-    m_profiler->resetForNewScene(m_presentation);
+    m_profiler->resetForNewScene(this);
 
     // Enter the first slide. (apply property changes from master+first)
     if (!m_masterSlide) {
@@ -4000,10 +4000,9 @@ void Q3DSFrameUpdater::frameAction(float dt)
 {
     static qint64 frameCounter = 0;
     static const bool animDebug = qEnvironmentVariableIntValue("Q3DS_DEBUG") >= 3;
-    if (Q_UNLIKELY(animDebug)) {
+    if (Q_UNLIKELY(animDebug))
         qDebug().nospace() << "frame action " << frameCounter << ", delta=" << dt << ", applying animations and updating nodes";
-        ++frameCounter;
-    }
+
     // Record new frame event.
     m_sceneManager->profiler()->reportNewFrame(dt * 1000.0f);
     // Set and notify the value changes queued by animations.
@@ -4011,6 +4010,9 @@ void Q3DSFrameUpdater::frameAction(float dt)
     // Recursively check dirty flags and update inherited values, execute
     // pending visibility changes, update light cbuffers, etc.
     m_sceneManager->prepareNextFrame();
+    // Update profiling statistics for this frame.
+    m_sceneManager->profiler()->updateFrameStats(frameCounter);
+    ++frameCounter;
 }
 
 void Q3DSSceneManager::setProfileUiVisible(bool visible)
