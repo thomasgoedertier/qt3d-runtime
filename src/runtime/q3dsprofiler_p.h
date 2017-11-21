@@ -78,16 +78,20 @@ private:
     QVector<FrameData> m_frameData;
     Q3DSPresentation *m_presentation = nullptr;
 
-#if defined(Q_OS_WIN) && !defined(Q_OS_WINRT)
     QElapsedTimer m_cpuLoadTimer;
+    float m_lastCpuLoad = 0;
+    QElapsedTimer m_memUsageTimer;
+    QPair<qint64, qint64> m_lastMemUsage;
+#if defined(Q_OS_WIN) && !defined(Q_OS_WINRT)
     quint64 m_lastKernelTimeSys = 0;
     quint64 m_lastUserTimeSys = 0;
     quint64 m_lastKernelTimeProc = 0;
     quint64 m_lastUserTimeProc = 0;
-    float m_lastLoad = 0;
-
-    QElapsedTimer m_memUsageTimer;
-    QPair<qint64, qint64> m_lastMemUsage;
+#elif defined(Q_OS_LINUX)
+    int m_numCpus = 0;
+    qint64 m_lastTimestamp = 0;
+    qint64 m_lastKernel = 0;
+    qint64 m_lastUser = 0;
 #endif
 };
 
