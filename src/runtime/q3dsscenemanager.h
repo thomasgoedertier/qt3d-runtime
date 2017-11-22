@@ -180,6 +180,7 @@ public:
     QPointF layerPos;
     int msaaSampleCount = 0;
     int ssaaScaleFactor = 1;
+    bool wasDirty = false;
     QVector<Q3DSLightSource> allLights;
     QVector<Q3DSLightSource> nonAreaLights;
     QVector<Q3DSLightSource> areaLights;
@@ -463,6 +464,7 @@ private:
     void updateOrthoShadowCam(Q3DSLayerAttached::PerLightShadowMapData *d, Q3DSLightNode *light3DS, Q3DSLayerAttached *layerData);
     void genOrthoBlurPassFg(Q3DSLayerAttached::PerLightShadowMapData *d, Qt3DRender::QAbstractTexture *inTex,
                             Qt3DRender::QAbstractTexture *outTex, const QString &passName);
+    void updateProgressiveAA(Q3DSLayerNode *layer3DS);
 
     Q3DSCameraNode *chooseLayerCamera(Q3DSLayerNode *layer3DS, Qt3DRender::QCamera **camera);
     Qt3DRender::QCamera *buildLayerCamera(Q3DSLayerNode *layer3DS, Q3DSCameraNode *camNode);

@@ -147,7 +147,22 @@ void Q3DSProfileView::frame()
         // life is too short to figure out why mingw does not like %lld so stick with %u
         uint frameNo = lastFrameData ? lastFrameData->globalFrameCounter : 0;
         ImGui::Text("Frame %u", frameNo);
-        ImGui::Text("wasDirty: %s", lastFrameData ? (lastFrameData->wasDirty ? "true" : "false") : "unknown");
+        ImGui::Text("Scene dirty: %s", lastFrameData ? (lastFrameData->wasDirty ? "true" : "false") : "unknown");
+
+        int totalLayerCount = 0, visibleLayerCount = 0, dirtyLayerCount = 0;
+        if (m_profiler->isEnabled()) {
+            Q3DSPresentation::forAllLayers(m_profiler->presentation()->scene(), [&](Q3DSLayerNode *layer3DS) {
+                ++totalLayerCount;
+                if (layer3DS->flags().testFlag(Q3DSNode::Active))
+                    ++visibleLayerCount;
+                Q3DSLayerAttached *data = static_cast<Q3DSLayerAttached *>(layer3DS->attached());
+                if (data) {
+                    if (data->wasDirty)
+                        ++dirtyLayerCount;
+                }
+            });
+        }
+        ImGui::Text("Layer count: %d Visible: %d Dirty: %d", totalLayerCount, visibleLayerCount, dirtyLayerCount);
     }
 
     if (ImGui::CollapsingHeader("Alter scene"))

@@ -421,7 +421,11 @@ void Q3DSSceneManager::updateSizes(const QSize &size, qreal dpr)
             // do it right away if there was no size set yet
             if (data->parentSize.isEmpty()) {
                 updateSizesForLayer(layer3DS, outputPixelSize);
-            } else { // defer otherwise, like it is done for other property changes
+            } else {
+                // Defer otherwise, like it is done for other property changes.
+                // This is not merely an optimization, it is required to defer
+                // everything that affects the logic for - for example -
+                // progressive AA to prepareNextFrame().
                 data->parentSize = outputPixelSize;
                 data->dirty |= Q3DSGraphObjectAttached::LayerDirty;
             }
@@ -2162,6 +2166,43 @@ void Q3DSSceneManager::updateShadowMapStatus(Q3DSLayerNode *layer3DS, bool *smDi
         qCDebug(lcScene, "Layer %s has %d shadow casting lights", layer3DS->id().constData(), layerData->shadowMapData.shadowCasters.count());
 }
 
+static const int MAX_AA_LEVELS = 8;
+
+// Called once per frame (in the preparation step from the frame action) for
+// each progressive AA enabled layer.
+void Q3DSSceneManager::updateProgressiveAA(Q3DSLayerNode *layer3DS)
+{
+    static QVector2D vertexOffsets[MAX_AA_LEVELS] = {
+        QVector2D(-0.170840f, -0.553840f), // 1x
+        QVector2D(0.162960f, -0.319340f),  // 2x
+        QVector2D(0.360260f, -0.245840f),  // 3x
+        QVector2D(-0.561340f, -0.149540f), // 4x
+        QVector2D(0.249460f, 0.453460f),   // 5x
+        QVector2D(-0.336340f, 0.378260f),  // 6x
+        QVector2D(0.340000f, 0.166260f),   // 7x
+        QVector2D(0.235760f, 0.527760f),   // 8x
+    };
+    // (frame blend factor, accumulator blend factor)
+    static QVector2D blendFactors[MAX_AA_LEVELS] = {
+        QVector2D(0.500000f, 0.500000f), // 1x
+        QVector2D(0.333333f, 0.666667f), // 2x
+        QVector2D(0.250000f, 0.750000f), // 3x
+        QVector2D(0.200000f, 0.800000f), // 4x
+        QVector2D(0.166667f, 0.833333f), // 5x
+        QVector2D(0.142857f, 0.857143f), // 6x
+        QVector2D(0.125000f, 0.875000f), // 7x
+        QVector2D(0.111111f, 0.888889f), // 8x
+    };
+
+    Q3DSLayerAttached *data = static_cast<Q3DSLayerAttached *>(layer3DS->attached());
+    if (!data)
+        return;
+
+    // ###
+    Q_UNUSED(vertexOffsets);
+    Q_UNUSED(blendFactors);
+}
+
 static void setBlending(Qt3DRender::QBlendEquation *blendFunc,
                         Qt3DRender::QBlendEquationArguments *blendArgs,
                         Q3DSLayerNode *layer3DS)
@@ -3705,7 +3746,63 @@ void Q3DSSceneManager::handleSlideChange(Q3DSSlide *prevSlide, Q3DSSlide *curren
 void Q3DSSceneManager::prepareNextFrame()
 {
     m_wasDirty = false;
+    Q3DSPresentation::forAllLayers(m_scene, [this](Q3DSLayerNode *layer3DS) {
+        static_cast<Q3DSLayerAttached *>(layer3DS->attached())->wasDirty = false;
+    });
+
     updateSubTree(m_scene);
+
+    // Dirty flags now up-to-date -> update progressive AA status
+    Q3DSPresentation::forAllLayers(m_scene, [this](Q3DSLayerNode *layer3DS) {
+        if (layer3DS->progressiveAA() != Q3DSLayerNode::NoPAA)
+            updateProgressiveAA(layer3DS);
+    });
+}
+
+// Now to the nightmare of maintaining per-layer dirty flags. The scene-wide
+// m_wasDirty flag is simple but ultimately of little value since techniques
+// like progressive or temporal AA need to know the status on a per-layer basis.
+
+// For nodes there is a link to the layer, but no such thing for non-node
+// objects (e.g. Image, DefaultMaterial), and there really cannot be due to
+// references. So e.g. for Image, the correct approach is to go through its
+// referencingMaterials set, follow the model3DS link in those materials, and
+// take the layer3DS from that.
+
+static void markLayerForObjectDirty(Q3DSGraphObject *obj)
+{
+    auto findLayerForDefMat = [](Q3DSGraphObject *obj) {
+        Q3DSLayerNode *layer3DS = nullptr;
+        Q3DSDefaultMaterialAttached *data = static_cast<Q3DSDefaultMaterialAttached *>(obj->attached());
+        if (data && data->model3DS) {
+            Q3DSNodeAttached *ndata = static_cast<Q3DSNodeAttached *>(data->model3DS->attached());
+            layer3DS = ndata->layer3DS;
+        }
+        return layer3DS;
+    };
+    auto markLayerDirty = [](Q3DSLayerNode *layer3DS) {
+        static_cast<Q3DSLayerAttached *>(layer3DS->attached())->wasDirty = true;
+    };
+
+    if (obj->type() == Q3DSGraphObject::Layer) {
+        markLayerDirty(static_cast<Q3DSLayerNode *>(obj));
+    } else if (obj->isNode()) {
+        Q3DSNodeAttached *data = static_cast<Q3DSNodeAttached *>(obj->attached());
+        if (data && data->layer3DS)
+            markLayerDirty(data->layer3DS);
+    } else if (obj->type() == Q3DSGraphObject::Image) {
+        Q3DSImageAttached *data = static_cast<Q3DSImageAttached *>(obj->attached());
+        for (Q3DSDefaultMaterial *mat3DS : qAsConst(data->referencingMaterials)) {
+            Q3DSLayerNode *layer3DS = findLayerForDefMat(mat3DS);
+            if (layer3DS)
+                markLayerDirty(layer3DS);
+        }
+    } else if (obj->type() == Q3DSGraphObject::DefaultMaterial) {
+        Q3DSLayerNode *layer3DS = findLayerForDefMat(obj);
+        if (layer3DS)
+            markLayerDirty(layer3DS);
+    }
+    // ### custom materials, effects, ...
 }
 
 void Q3DSSceneManager::updateSubTreeRecursive(Q3DSGraphObject *obj)
@@ -3732,6 +3829,7 @@ void Q3DSSceneManager::updateSubTreeRecursive(Q3DSGraphObject *obj)
                 const bool needsNewImage = data->changeFlags.testFlag(Q3DSPropertyChangeList::TextTextureImageDepChanges);
                 updateText(text3DS, needsNewImage);
                 m_wasDirty = true;
+                markLayerForObjectDirty(text3DS);
             }
         }
     }
@@ -3747,6 +3845,7 @@ void Q3DSSceneManager::updateSubTreeRecursive(Q3DSGraphObject *obj)
                 if (!data->changeFlags.testFlag(Q3DSPropertyChangeList::EyeballChanges)) // already done if eyeball changed
                     m_layersWithDirtyLights.insert(data->layer3DS);
                 m_wasDirty = true;
+                markLayerForObjectDirty(light3DS);
             }
         }
     }
@@ -3760,6 +3859,7 @@ void Q3DSSceneManager::updateSubTreeRecursive(Q3DSGraphObject *obj)
             if (data->dirty & (Q3DSGraphObjectAttached::ModelDirty | Q3DSGraphObjectAttached::GlobalOpacityDirty)) {
                 updateModel(model3DS);
                 m_wasDirty = true;
+                markLayerForObjectDirty(model3DS);
             }
         }
     }
@@ -3781,6 +3881,7 @@ void Q3DSSceneManager::updateSubTreeRecursive(Q3DSGraphObject *obj)
                 setCameraProperties(cam3DS, data->changeFlags); // handles both Node- and Camera-level properties
                 setLayerCameraSizeProperties(data->layer3DS);
                 m_wasDirty = true;
+                markLayerForObjectDirty(cam3DS);
             }
         }
     }
@@ -3802,6 +3903,7 @@ void Q3DSSceneManager::updateSubTreeRecursive(Q3DSGraphObject *obj)
                 }
             }
             m_wasDirty = true;
+            markLayerForObjectDirty(layer3DS);
         }
     }
         break;
@@ -3814,6 +3916,7 @@ void Q3DSSceneManager::updateSubTreeRecursive(Q3DSGraphObject *obj)
             data->opacity = modelData->globalOpacity * mat3DS->opacity();
             updateDefaultMaterial(mat3DS);
             m_wasDirty = true;
+            markLayerForObjectDirty(mat3DS);
         }
     }
         break;
@@ -3826,6 +3929,7 @@ void Q3DSSceneManager::updateSubTreeRecursive(Q3DSGraphObject *obj)
             for (Q3DSDefaultMaterial *m : data->referencingMaterials)
                 updateDefaultMaterial(m);
             m_wasDirty = true;
+            markLayerForObjectDirty(image3DS);
         }
     }
         break;
@@ -3855,6 +3959,7 @@ void Q3DSSceneManager::updateNodeFromChangeFlags(Q3DSNode *node, Qt3DCore::QTran
     {
         setNodeProperties(node, nullptr, transform, NodePropUpdateGlobalsRecursively);
         m_wasDirty = true;
+        markLayerForObjectDirty(node);
     }
 
     if (cf.testFlag(Q3DSPropertyChangeList::EyeballChanges)) {
@@ -3890,6 +3995,7 @@ void Q3DSSceneManager::updateNodeFromChangeFlags(Q3DSNode *node, Qt3DCore::QTran
             setNodeVisibility(node, active);
         }
         m_wasDirty = true;
+        markLayerForObjectDirty(node);
     }
 }
 
