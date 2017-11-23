@@ -651,12 +651,15 @@ Qt3DRender::QShaderProgram *Q3DSShaderManager::getProgAABlendShader(Qt3DCore::QN
         Q3DSAbstractShaderStageGenerator *vertexShader = m_shaderProgramGenerator->getStage(Q3DSShaderGeneratorStages::Vertex);
         Q3DSAbstractShaderStageGenerator *fragmentShader = m_shaderProgramGenerator->getStage(Q3DSShaderGeneratorStages::Fragment);
 
+        // Use Qt3D attribute names and take modelMatrix into account since the
+        // quad entity may have a transform on it.
         vertexShader->addIncoming("vertexPosition", "vec3");
         vertexShader->addIncoming("vertexTexCoord", "vec2");
+        vertexShader->addUniform("modelMatrix", "mat4");
         vertexShader->addOutgoing("uv_coords", "vec2");
         vertexShader->append("void main() {");
-        vertexShader->append("    gl_Position = vec4(attr_pos, 1.0 );");
-        vertexShader->append("    uv_coords = attr_uv;");
+        vertexShader->append("    gl_Position = modelMatrix * vec4(vertexPosition, 1.0 );");
+        vertexShader->append("    uv_coords = vertexTexCoord;");
         vertexShader->append("}");
 
         fragmentShader->addUniform("accumulator", "sampler2D");

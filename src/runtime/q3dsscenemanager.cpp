@@ -115,154 +115,170 @@ Q_LOGGING_CATEGORY(lcScene, "q3ds.scene")
                     }
 
                     // Layer #1 framegraph
-                    RenderTargetSelector { Viewport { CameraSelector {
+                    FrameGraphNode { // layer subtree root, children may get added/deleted dynamically due to progressive AA for example
+                        // main layer framegraph, always present
+                        RenderTargetSelector { Viewport { CameraSelector {
+                            // objects in the scene will be tagged with these. note
+                            // that entities without geometryrenderers will have
+                            // both so that we do not lose the transforms.
+                            Layer { id: layer1Opaque }
+                            Layer { id: layer1Transparent }
 
-                        // objects in the scene will be tagged with these. note
-                        // that entities without geometryrenderers will have
-                        // both so that we do not lose the transforms.
-                        Layer { id: layer1Opaque }
-                        Layer { id: layer1Transparent }
-
-                        // 0.1 optional texture prefiltering via compute [not currently implemented, although material provides renderpass already]
-                        TechniqueFilter {
-                            matchAll: [ FilterKey { name: "type"; value: "bsdfPrefilter"} ]
-                            NoDraw { }
-                            // [creation of the rest below is deferred]
-                            DispatchCompute {
-                               ... // with appropriate technique filter
-                            }
-                        }
-
-                        TechniqueFilter {
-                            matchAll: [ FilterKey { name: "type"; value: "main"} ]
-
-                            // 1.1 optional depth texture generation
-                            RenderTargetSelector {
-                                NoDraw { } // so that we do not issue drawcalls when depth texture is not needed
+                            // 0.1 optional texture prefiltering via compute [not currently implemented, although material provides renderpass already]
+                            TechniqueFilter {
+                                matchAll: [ FilterKey { name: "type"; value: "bsdfPrefilter"} ]
+                                NoDraw { }
                                 // [creation of the rest below is deferred]
-                                ... // depth texture (depth attachment only)
-                                ClearBuffers {
-                                    // depth clear
-                                    enabled: when depth texture is needed
-                                    NoDraw { }
+                                DispatchCompute {
+                                   ... // with appropriate technique filter
                                 }
-                                RenderPassFilter {
-                                    matchAny: [ FilterKey { name: "pass"; value: "depth" } ]
-                                    LayerFilter {
-                                        layers: [ layer1Opaque ] or empty list if depth texture gets disabled afterwards
+                            }
+
+                            TechniqueFilter {
+                                matchAll: [ FilterKey { name: "type"; value: "main"} ]
+
+                                // 1.1 optional depth texture generation
+                                RenderTargetSelector {
+                                    NoDraw { } // so that we do not issue drawcalls when depth texture is not needed
+                                    // [creation of the rest below is deferred]
+                                    ... // depth texture (depth attachment only)
+                                    ClearBuffers {
+                                        // depth clear
+                                        enabled: when depth texture is needed
+                                        NoDraw { }
                                     }
-                                }
-                                RenderPassFilter {
-                                    matchAny: [ FilterKey { name: "pass"; value: "depth" } ]
-                                    SortPolicy {
-                                        sortTypes: [ SortPolicy.BackToFront ]
+                                    RenderPassFilter {
+                                        matchAny: [ FilterKey { name: "pass"; value: "depth" } ]
                                         LayerFilter {
-                                            layers: [ layer1Transparent ] or empty list if depth texture gets disabled afterwards
+                                            layers: [ layer1Opaque ] or empty list if depth texture gets disabled afterwards
+                                        }
+                                    }
+                                    RenderPassFilter {
+                                        matchAny: [ FilterKey { name: "pass"; value: "depth" } ]
+                                        SortPolicy {
+                                            sortTypes: [ SortPolicy.BackToFront ]
+                                            LayerFilter {
+                                                layers: [ layer1Transparent ] or empty list if depth texture gets disabled afterwards
+                                            }
                                         }
                                     }
                                 }
-                            }
 
-                            // 1.2 optional SSAO texture generation (depends on depth texture)
-                            RenderTargetSelector {
-                                NoDraw { } // so that we do not issue drawcalls when depth texture is not needed
-                                // [creation of the rest below is deferred]
-                                ... // color attachment only, rgba8 texture
-                                ClearBuffers {
-                                    // color clear
-                                    enabled: when ssao is enabled
-                                    NoDraw { }
-                                }
-                                RenderPassFilter {
-                                    matchAny: [ FilterKey { name: "pass"; value: "ssao" } ]
-                                    LayerFilter {
-                                        layers: [ fsQuad ] or empty list if ssao gets disabled afterwards
+                                // 1.2 optional SSAO texture generation (depends on depth texture)
+                                RenderTargetSelector {
+                                    NoDraw { } // so that we do not issue drawcalls when depth texture is not needed
+                                    // [creation of the rest below is deferred]
+                                    ... // color attachment only, rgba8 texture
+                                    ClearBuffers {
+                                        // color clear
+                                        enabled: when ssao is enabled
+                                        NoDraw { }
+                                    }
+                                    RenderPassFilter {
+                                        matchAny: [ FilterKey { name: "pass"; value: "ssao" } ]
+                                        LayerFilter {
+                                            layers: [ fsQuad ] or empty list if ssao gets disabled afterwards
+                                        }
                                     }
                                 }
-                            }
 
-                            // 1.3 optional shadow map generation
-                            FrameGraphNode {
-                                NoDraw { } // so that we do not issue drawcalls when there are no shadow casting lights in the scene
-                                // [the creation of the rest is deferred and is *repeated for each shadow casting light* hence the need for a dummy FrameGraphNode as our sub-root ]
-                                FrameGraphNode { // per-light sub-tree root
-                                    for each cubemap face (if cubemap is used):
-                                        RenderTargetSelector {
-                                            ... // per-light shadow map texture (2d or cubemap) of R16 as color, throwaway depth-stencil; select the current face when cubemap
-                                            Viewport {
-                                                ClearBuffers {
-                                                    NoDraw { }
-                                                }
-                                                RenderPassFilter {
-                                                    matchAny: [ FilterKey { name: "pass"; value: "shadowCube" } ] // or "shadowOrtho" depending on the light type
-                                                    LayerFilter {
-                                                        layers: [ layer1Opaque ]
+                                // 1.3 optional shadow map generation
+                                FrameGraphNode {
+                                    NoDraw { } // so that we do not issue drawcalls when there are no shadow casting lights in the scene
+                                    // [the creation of the rest is deferred and is *repeated for each shadow casting light* hence the need for a dummy FrameGraphNode as our sub-root ]
+                                    FrameGraphNode { // per-light sub-tree root
+                                        for each cubemap face (if cubemap is used):
+                                            RenderTargetSelector {
+                                                ... // per-light shadow map texture (2d or cubemap) of R16 as color, throwaway depth-stencil; select the current face when cubemap
+                                                Viewport {
+                                                    ClearBuffers {
+                                                        NoDraw { }
                                                     }
-                                                }
-                                                RenderPassFilter {
-                                                    matchAny: [ FilterKey { name: "pass"; value: "shadowCube" } ] // or "shadowOrtho" depending on the light type
-                                                    SortPolicy {
-                                                        sortTypes: [ SortPolicy.BackToFront ]
+                                                    RenderPassFilter {
+                                                        matchAny: [ FilterKey { name: "pass"; value: "shadowCube" } ] // or "shadowOrtho" depending on the light type
                                                         LayerFilter {
-                                                            layers: [ layer1Transparent ] or empty list when depth texture is not needed
+                                                            layers: [ layer1Opaque ]
+                                                        }
+                                                    }
+                                                    RenderPassFilter {
+                                                        matchAny: [ FilterKey { name: "pass"; value: "shadowCube" } ] // or "shadowOrtho" depending on the light type
+                                                        SortPolicy {
+                                                            sortTypes: [ SortPolicy.BackToFront ]
+                                                            LayerFilter {
+                                                                layers: [ layer1Transparent ] or empty list when depth texture is not needed
+                                                            }
                                                         }
                                                     }
                                                 }
                                             }
-                                        }
-                                    // cubemap blur X
-                                    RenderTargetSelector {
-                                        ... // input is 6 cubemap faces attached to color0-5, output is another cubemap
-                                        RenderPassFilter {
-                                            matchAny: [ FilterKey { name: "pass"; value: "shadowCubeBlurX" } ]
-                                            LayerFilter {
-                                                layers: [ fsQuad ]
+                                        // cubemap blur X
+                                        RenderTargetSelector {
+                                            ... // input is 6 cubemap faces attached to color0-5, output is another cubemap
+                                            RenderPassFilter {
+                                                matchAny: [ FilterKey { name: "pass"; value: "shadowCubeBlurX" } ]
+                                                LayerFilter {
+                                                    layers: [ fsQuad ]
+                                                }
                                             }
                                         }
+                                        // repeat for cubemap blur Y
+                                        RenderTargetSelector {
+                                            ...
+                                        }
+                                        ... // repeat for orthographic blur, concept is the same, input/output is a 2d texture, passes are shadowOrthoBlurX and Y
                                     }
-                                    // repeat for cubemap blur Y
-                                    RenderTargetSelector {
-                                        ...
-                                    }
-                                    ... // repeat for orthographic blur, concept is the same, input/output is a 2d texture, passes are shadowOrthoBlurX and Y
                                 }
-                            }
 
-                            // 2. main clear
-                            ClearBuffers {
-                                NoDraw { }
-                            }
-
-                            // 3. depth pre-pass, optional depending on layer flags
-                            RenderPassFilter {
-                                matchAny: [ FilterKey { name: "pass"; value: "depth" } ]
-                                LayerFilter {
-                                    layers: [ layer1Opaque ] or empty list when DisableDepthPrePass is set
+                                // 2. main clear
+                                ClearBuffers {
+                                    NoDraw { }
                                 }
-                            }
 
-                            // 4. opaque pass
-                            RenderPassFilter {
-                                matchAny: [ FilterKey { name: "pass"; value: "opaque" } ]
-                                LayerFilter {
-                                    layers: [ layer1Opaque ]
-                                }
-                            }
-
-                            // 5. transparent pass
-                            RenderPassFilter {
-                                matchAny: [ FilterKey { name: "pass"; value: "transparent" } ]
-                                SortPolicy {
-                                    sortTypes: [ SortPolicy.BackToFront ]
+                                // 3. depth pre-pass, optional depending on layer flags
+                                RenderPassFilter {
+                                    matchAny: [ FilterKey { name: "pass"; value: "depth" } ]
                                     LayerFilter {
-                                        layers: [ layer1Transparent ]
+                                        layers: [ layer1Opaque ] or empty list when DisableDepthPrePass is set
+                                    }
+                                }
+
+                                // 4. opaque pass
+                                RenderPassFilter {
+                                    matchAny: [ FilterKey { name: "pass"; value: "opaque" } ]
+                                    LayerFilter {
+                                        layers: [ layer1Opaque ]
+                                    }
+                                }
+
+                                // 5. transparent pass
+                                RenderPassFilter {
+                                    matchAny: [ FilterKey { name: "pass"; value: "transparent" } ]
+                                    SortPolicy {
+                                        sortTypes: [ SortPolicy.BackToFront ]
+                                        LayerFilter {
+                                            layers: [ layer1Transparent ]
+                                        }
                                     }
                                 }
                             }
+                        } } }
+
+                        // Optional progressive AA pass, depends on the texture from the main layer pass
+                        RenderTargetSelector {
+                            ... // draw a quad using layer texture + accumulator texture with the prog AA blend shader
                         }
-                    } } }
+                    }
 
                     // Layer #2 framegraph
+                    FrameGraphNode {
+                        // main
+                        RenderTargetSelector {
+                            ... // like above in layer #1
+                        }
+                        // prog. AA
+                        [RenderTargetSelector { ... } ]
+                    }
+
                     ...
 
                     // compositor framegraph
@@ -386,6 +402,8 @@ Q3DSSceneManager::Q3DSSceneManager(const Q3DSGraphicsLimits &limits)
 {
     const QString fontDir = Q3DSUtils::resourcePrefix() + QLatin1String("res/Font");
     m_textRenderer->registerFonts({ fontDir });
+
+    qRegisterMetaType<Qt3DRender::QRenderTarget *>("Qt3DRender::QRenderTarget*"); // wtf??
 }
 
 Q3DSSceneManager::~Q3DSSceneManager()
@@ -397,6 +415,16 @@ Q3DSSceneManager::~Q3DSSceneManager()
     delete m_matGen;
     delete m_frameUpdater;
     delete m_profiler;
+}
+
+bool operator==(const Q3DSLayerAttached::SizeManagedTexture &a, const Q3DSLayerAttached::SizeManagedTexture &b)
+{
+    return a.texture == b.texture;
+}
+
+bool operator!=(const Q3DSLayerAttached::SizeManagedTexture &a, const Q3DSLayerAttached::SizeManagedTexture &b)
+{
+    return a.texture != b.texture;
 }
 
 void Q3DSSceneManager::updateSizes(const QSize &size, qreal dpr)
@@ -624,8 +652,8 @@ Q3DSSceneManager::Scene Q3DSSceneManager::buildScene(Q3DSPresentation *presentat
         fsQuadPassNames << QLatin1String("shadowCubeBlurX") << QLatin1String("shadowCubeBlurY");
         fsQuadPassProgs << sm.getCubeShadowBlurXShader(m_rootEntity, m_gfxLimits) << sm.getCubeShadowBlurYShader(m_rootEntity, m_gfxLimits);
     }
-    fsQuadPassNames << QLatin1String("ssao");
-    fsQuadPassProgs << sm.getSsaoTextureShader(m_rootEntity);
+    fsQuadPassNames << QLatin1String("ssao") << QLatin1String("progaa");
+    fsQuadPassProgs << sm.getSsaoTextureShader(m_rootEntity) << sm.getProgAABlendShader(m_rootEntity);
     buildFsQuad(m_rootEntity, fsQuadPassNames, fsQuadPassProgs, m_fsQuadTag);
 
     Scene sc;
@@ -675,7 +703,8 @@ void Q3DSSceneManager::finalizeMainScene(const QVector<Q3DSSubPresentation> &sub
         if (it != subPresentations.cend()) {
             qCDebug(lcScene, "Directing subpresentation %s to layer %s", qPrintable(it->id), layer3DS->id().constData());
             Q3DSLayerAttached *layerData = static_cast<Q3DSLayerAttached *>(layer3DS->attached());
-            layerData->compositorSourceParam->setValue(QVariant::fromValue(it->colorTex));
+            layerData->layerTexture = it->colorTex;
+            layerData->compositorSourceParam->setValue(QVariant::fromValue(layerData->layerTexture));
             layerData->updateSubPresentationSize();
         } else {
             qCDebug(lcScene, "Subpresentation %s for layer %s not found",
@@ -724,12 +753,84 @@ static Qt3DRender::QSortPolicy *transparentPassSortPolicy(Qt3DCore::QNode *paren
     return sortPolicy;
 }
 
+static Qt3DRender::QAbstractTexture *newColorBuffer(const QSize &layerPixelSize, int msaaSampleCount)
+{
+    Qt3DRender::QAbstractTexture *colorTex;
+    if (msaaSampleCount > 1) {
+        colorTex = new Qt3DRender::QTexture2DMultisample;
+        colorTex->setSamples(msaaSampleCount);
+    } else {
+        colorTex = new Qt3DRender::QTexture2D;
+    }
+    colorTex->setFormat(Qt3DRender::QAbstractTexture::RGBA8_UNorm);
+    colorTex->setWidth(layerPixelSize.width());
+    colorTex->setHeight(layerPixelSize.height());
+    colorTex->setMinificationFilter(Qt3DRender::QAbstractTexture::Linear);
+    colorTex->setMagnificationFilter(Qt3DRender::QAbstractTexture::Linear);
+    return colorTex;
+}
+
+static Qt3DRender::QAbstractTexture *newDepthStencilBuffer(const QSize &layerPixelSize, int msaaSampleCount)
+{
+    // GLES <= 3.1 does not have glFramebufferTexture and support for combined
+    // depth-stencil textures. Here we rely on the fact the Qt3D will
+    // transparently switch to using a renderbuffer in place of a texture. Using
+    // separate textures is problematic for stencil since the suitable texture
+    // type is an ES 3.1 extension, so that is not an option either for <= 3.1.
+    //
+    // The internal difference (renderbuffer vs. texture) won't matter as long
+    // as a custom material or other thing does not need the depth texture.
+    // When that happens, we will be in trouble when running on GLES < 3.2 ...
+    // An option then would be to get rid of stencil since plain depth textures
+    // work in GLES >= 3.0.
+
+    Qt3DRender::QAbstractTexture *dsTexOrRb;
+    if (msaaSampleCount > 1) {
+        dsTexOrRb = new Qt3DRender::QTexture2DMultisample;
+        dsTexOrRb->setSamples(msaaSampleCount);
+    } else {
+        dsTexOrRb = new Qt3DRender::QTexture2D;
+    }
+    dsTexOrRb->setFormat(Qt3DRender::QAbstractTexture::D24S8);
+    dsTexOrRb->setWidth(layerPixelSize.width());
+    dsTexOrRb->setHeight(layerPixelSize.height());
+    dsTexOrRb->setMinificationFilter(Qt3DRender::QAbstractTexture::Linear);
+    dsTexOrRb->setMagnificationFilter(Qt3DRender::QAbstractTexture::Linear);
+    return dsTexOrRb;
+}
+
+static Qt3DRender::QRenderTarget *newLayerRenderTarget(const QSize &layerPixelSize, int msaaSampleCount,
+                                                       Qt3DRender::QAbstractTexture **colorTex, Qt3DRender::QAbstractTexture **dsTexOrRb,
+                                                       Qt3DCore::QNode *textureParentNode)
+{
+    Qt3DRender::QRenderTarget *rt = new Qt3DRender::QRenderTarget;
+
+    Qt3DRender::QRenderTargetOutput *color = new Qt3DRender::QRenderTargetOutput;
+    color->setAttachmentPoint(Qt3DRender::QRenderTargetOutput::Color0);
+    *colorTex = newColorBuffer(layerPixelSize, msaaSampleCount);
+    (*colorTex)->setParent(textureParentNode);
+    color->setTexture(*colorTex);
+
+    Qt3DRender::QRenderTargetOutput *ds = new Qt3DRender::QRenderTargetOutput;
+    ds->setAttachmentPoint(Qt3DRender::QRenderTargetOutput::DepthStencil);
+    *dsTexOrRb = newDepthStencilBuffer(layerPixelSize, msaaSampleCount);
+    (*dsTexOrRb)->setParent(textureParentNode);
+    ds->setTexture(*dsTexOrRb);
+
+    rt->addOutput(color);
+    rt->addOutput(ds);
+
+    return rt;
+}
+
 void Q3DSSceneManager::buildLayer(Q3DSLayerNode *layer3DS,
                                   Qt3DRender::QFrameGraphNode *parent,
                                   const QSize &parentSize)
 {
-    Qt3DRender::QRenderTargetSelector *rtSelector = new Qt3DRender::QRenderTargetSelector(parent);
-    Qt3DRender::QRenderTarget *rt = new Qt3DRender::QRenderTarget;
+    Qt3DRender::QFrameGraphNode *layerFgRoot = new Qt3DRender::QFrameGraphNode(parent);
+
+    // main passes, generating the layer texture
+    Qt3DRender::QRenderTargetSelector *rtSelector = new Qt3DRender::QRenderTargetSelector(layerFgRoot);
 
     int ssaaScaleFactor = 1;
     if (layer3DS->multisampleAA() == Q3DSLayerNode::SSAA) {
@@ -758,53 +859,17 @@ void Q3DSSceneManager::buildLayer(Q3DSLayerNode *layer3DS,
         msaaSampleCount = 0;
     }
 
-    Qt3DRender::QRenderTargetOutput *color = new Qt3DRender::QRenderTargetOutput;
-    color->setAttachmentPoint(Qt3DRender::QRenderTargetOutput::Color0);
-    Qt3DRender::QAbstractTexture *colorTex;
-    if (msaaSampleCount > 1) {
+    if (msaaSampleCount > 1)
         qCDebug(lcScene, "Layer %s uses multisample texture", layer3DS->id().constData());
-        colorTex = new Qt3DRender::QTexture2DMultisample;
-        colorTex->setSamples(msaaSampleCount);
-    } else {
-        colorTex = new Qt3DRender::QTexture2D;
-    }
-    colorTex->setFormat(Qt3DRender::QAbstractTexture::RGBA8_UNorm);
-    colorTex->setWidth(parentSize.width() * ssaaScaleFactor);
-    colorTex->setHeight(parentSize.height() * ssaaScaleFactor);
-    colorTex->setMinificationFilter(Qt3DRender::QAbstractTexture::Linear);
-    colorTex->setMagnificationFilter(Qt3DRender::QAbstractTexture::Linear);
-    color->setTexture(colorTex);
 
-    // GLES <= 3.1 does not have glFramebufferTexture and support for combined
-    // depth-stencil textures. Here we rely on the fact the Qt3D will
-    // transparently switch to using a renderbuffer in place of a texture. Using
-    // separate textures is problematic for stencil since the suitable texture
-    // type is an ES 3.1 extension, so that is not an option either for <= 3.1.
-    //
-    // The internal difference (renderbuffer vs. texture) won't matter as long
-    // as a custom material or other thing does not need the depth texture.
-    // When that happens, we will be in trouble when running on GLES < 3.2 ...
-    // An option then would be to get rid of stencil since plain depth textures
-    // work in GLES >= 3.0.
+    // parentSize could well be (0, 0) at this stage still, nevermind that
+    const QSize layerSize = calculateLayerSize(layer3DS, parentSize);
+    const QSize layerPixelSize = layerSize * ssaaScaleFactor;
 
-    Qt3DRender::QRenderTargetOutput *ds = new Qt3DRender::QRenderTargetOutput;
-    ds->setAttachmentPoint(Qt3DRender::QRenderTargetOutput::DepthStencil);
+    // Create color and depth-stencil buffers for this layer
+    Qt3DRender::QAbstractTexture *colorTex;
     Qt3DRender::QAbstractTexture *dsTexOrRb;
-    if (msaaSampleCount > 1) {
-        dsTexOrRb = new Qt3DRender::QTexture2DMultisample;
-        dsTexOrRb->setSamples(msaaSampleCount);
-    } else {
-        dsTexOrRb = new Qt3DRender::QTexture2D;
-    }
-    dsTexOrRb->setFormat(Qt3DRender::QAbstractTexture::D24S8);
-    dsTexOrRb->setWidth(parentSize.width() * ssaaScaleFactor);
-    dsTexOrRb->setHeight(parentSize.height() * ssaaScaleFactor);
-    dsTexOrRb->setMinificationFilter(Qt3DRender::QAbstractTexture::Linear);
-    dsTexOrRb->setMagnificationFilter(Qt3DRender::QAbstractTexture::Linear);
-    ds->setTexture(dsTexOrRb);
-
-    rt->addOutput(color);
-    rt->addOutput(ds);
+    Qt3DRender::QRenderTarget *rt = newLayerRenderTarget(layerPixelSize, msaaSampleCount, &colorTex, &dsTexOrRb, layerFgRoot);
     rtSelector->setTarget(rt);
 
     Qt3DRender::QViewport *viewport = new Qt3DRender::QViewport(rtSelector);
@@ -883,11 +948,15 @@ void Q3DSSceneManager::buildLayer(Q3DSLayerNode *layer3DS,
     Q3DSLayerAttached *data = new Q3DSLayerAttached;
     data->entity = m_rootEntity; // must set an entity to to make Q3DSLayerNode properties animatable, just use the root
     data->layer3DS = layer3DS;
+    data->layerFgRoot = layerFgRoot;
     data->cam3DS = cam3DS;
     data->cameraSelector = cameraSelector;
     data->clearBuffers = clearBuffers;
-    data->compositorSourceParam = new Qt3DRender::QParameter(QLatin1String("tex"), colorTex);
-    data->layerSize = calculateLayerSize(layer3DS, parentSize);
+    data->rtSelector = rtSelector;
+    data->layerTexture = colorTex;
+    data->layerDS = dsTexOrRb;
+    data->compositorSourceParam = new Qt3DRender::QParameter(QLatin1String("tex"), data->layerTexture);
+    data->layerSize = layerSize;
     data->parentSize = parentSize;
     data->msaaSampleCount = msaaSampleCount;
     data->ssaaScaleFactor = ssaaScaleFactor;
@@ -1433,10 +1502,10 @@ static void prepareSizeDependentTexture(Qt3DRender::QAbstractTexture *texture,
 {
     Q3DSLayerAttached *data = static_cast<Q3DSLayerAttached *>(layer3DS->attached());
 
-    const QSize layerSize = data->parentSize;
+    const QSize layerPixelSize = data->layerSize * data->ssaaScaleFactor;
     // may not be available yet, use a temporary size then
-    texture->setWidth(layerSize.width() > 0 ? layerSize.width() * data->ssaaScaleFactor : 32);
-    texture->setHeight(layerSize.height() > 0 ? layerSize.height() * data->ssaaScaleFactor : 32);
+    texture->setWidth(layerPixelSize.width() > 0 ? layerPixelSize.width() : 32);
+    texture->setHeight(layerPixelSize.height() > 0 ? layerPixelSize.height() : 32);
 
     // the layer will resize the texture automatically
     data->sizeManagedTextures << Q3DSLayerAttached::SizeManagedTexture(texture, callback);
@@ -1465,7 +1534,6 @@ void Q3DSSceneManager::setDepthTextureEnabled(Q3DSLayerNode *layer3DS, bool enab
             depthRtOutput->setAttachmentPoint(Qt3DRender::QRenderTargetOutput::Depth);
             depthRtOutput->setTexture(data->depthTextureData.depthTexture);
             depthRt->addOutput(depthRtOutput);
-            qRegisterMetaType<Qt3DRender::QRenderTarget *>("Qt3DRender::QRenderTarget*"); // wtf??
             data->depthTextureData.rtSelector->setTarget(depthRt);
 
             data->depthTextureData.clearBuffers = new Qt3DRender::QClearBuffers(data->depthTextureData.rtSelector);
@@ -2166,12 +2234,100 @@ void Q3DSSceneManager::updateShadowMapStatus(Q3DSLayerNode *layer3DS, bool *smDi
         qCDebug(lcScene, "Layer %s has %d shadow casting lights", layer3DS->id().constData(), layerData->shadowMapData.shadowCasters.count());
 }
 
+static void offsetProjectionMatrix(QMatrix4x4 *m, const QVector2D &vertexOffset)
+{
+    QVector4D col3 = m->column(3);
+    col3.setX(col3.x() + col3.w() * vertexOffset.x());
+    col3.setY(col3.y() + col3.w() * vertexOffset.y());
+    m->setColumn(3, col3);
+}
+
+//#define PAA_ALWAYS_ON
+
 static const int MAX_AA_LEVELS = 8;
 
 // Called once per frame (in the preparation step from the frame action) for
 // each progressive AA enabled layer.
 void Q3DSSceneManager::updateProgressiveAA(Q3DSLayerNode *layer3DS)
 {
+    if (m_flags.testFlag(SubPresentation)) // no PAA for subpresentation layers
+        return;
+
+    Q3DSLayerAttached *data = static_cast<Q3DSLayerAttached *>(layer3DS->attached());
+    if (!data)
+        return;
+
+    // When a frame applies an offset to the projection matrix, the next frame
+    // must reset it. This must happen regardless of having PAA active in the next frame.
+    // ### broken, to be replaced, see below
+    Qt3DRender::QCamera *camera = static_cast<Qt3DRender::QCamera *>(data->cameraSelector->camera());
+    if (data->progAA.projMatAltered) {
+        data->progAA.projMatAltered = false;
+        if (camera->projectionMatrix() == data->progAA.alteredProjMat) // size change could have caused recalculating the camera
+            camera->setProjectionMatrix(data->progAA.origProjMat);
+    }
+
+    const QSize layerPixelSize = data->layerSize * data->ssaaScaleFactor;
+    if (layerPixelSize.isEmpty())
+        return;
+
+    // Progressive AA kicks in only when "movement has stopped", or rather,
+    // when no properties have changed, meaning the frame was not dirty. Reset
+    // the pass index otherwise.
+#ifndef PAA_ALWAYS_ON
+    if (data->wasDirty)
+        data->progAA.pass = 0;
+#endif
+
+    // Do not start accumulating before at least 2 non-dirty frames. This is
+    // not what 3DS1 does (there there's no delay) but our dirty flags do not
+    // work the same way, apparently (or could be anim fw that causes the
+    // difference in some test scenes, not sure).
+    const int PROGAA_FRAME_DELAY = 1;
+
+    int maxPass = 0;
+    switch (layer3DS->progressiveAA()) {
+    case Q3DSLayerNode::PAA2x:
+        maxPass = 2 + PROGAA_FRAME_DELAY;
+        break;
+    case Q3DSLayerNode::PAA4x:
+        maxPass = 4 + PROGAA_FRAME_DELAY;
+        break;
+    case Q3DSLayerNode::PAA8x:
+        maxPass = 8 + PROGAA_FRAME_DELAY;
+        break;
+    default:
+        Q_UNREACHABLE();
+        break;
+    }
+
+    if (data->progAA.pass > maxPass) {
+        if (data->progAA.layerFilter->layers().contains(m_fsQuadTag))
+            data->progAA.layerFilter->removeLayer(m_fsQuadTag);
+#ifdef PAA_ALWAYS_ON
+        data->progAA.pass = 0;
+#endif
+        return;
+    }
+
+    if (data->progAA.pass < 1 + PROGAA_FRAME_DELAY) {
+        ++data->progAA.pass;
+        if (data->progAA.enabled) {
+            qCDebug(lcScene, "Stopping progressive AA for layer %s", layer3DS->id().constData());
+            data->progAA.enabled = false;
+            data->compositorSourceParam->setValue(QVariant::fromValue(data->layerTexture));
+
+            // Do not delete and then recreate the framegraph subtree since
+            // that is likely way too expensive. Keep it around instead and
+            // disable it by making sure it has no renderable entities. This
+            // could have already been done in the > maxPass branch above but
+            // won't hurt to repeat since we may get a dirty frame before
+            // reaching the maximum accumulation level.
+            data->progAA.layerFilter->removeLayer(m_fsQuadTag);
+        }
+        return;
+    }
+
     static QVector2D vertexOffsets[MAX_AA_LEVELS] = {
         QVector2D(-0.170840f, -0.553840f), // 1x
         QVector2D(0.162960f, -0.319340f),  // 2x
@@ -2194,13 +2350,145 @@ void Q3DSSceneManager::updateProgressiveAA(Q3DSLayerNode *layer3DS)
         QVector2D(0.111111f, 0.888889f), // 8x
     };
 
-    Q3DSLayerAttached *data = static_cast<Q3DSLayerAttached *>(layer3DS->attached());
-    if (!data)
-        return;
+    int factorsIdx = data->progAA.pass - (1 + PROGAA_FRAME_DELAY);
+    QVector2D vertexOffset = vertexOffsets[factorsIdx];
+    vertexOffset.setX(vertexOffset.x() / (layerPixelSize.width() / 2.0f));
+    vertexOffset.setY(vertexOffset.y() / (layerPixelSize.height() / 2.0f));
+    QVector2D blendFactor = blendFactors[factorsIdx];
 
-    // ###
-    Q_UNUSED(vertexOffsets);
-    Q_UNUSED(blendFactors);
+    if (!data->progAA.enabled && data->progAA.fg && data->progAA.layerFilter)
+        data->progAA.layerFilter->addLayer(m_fsQuadTag);
+
+    data->progAA.enabled = true;
+    if (factorsIdx == 0)
+        qCDebug(lcScene, "Kicking off progressive AA for layer %s", layer3DS->id().constData());
+
+    // Alter the camera's projection matrix by a little movement based on the current vertexOffset.
+    // This applies to the camera used by the main layer passes.
+
+    // ### this is broken. The original approach was to apply the offset to the
+    // final modelview-projection matrix. The projection here is not sufficient.
+    QMatrix4x4 projMat = camera->projectionMatrix();
+    data->progAA.origProjMat = projMat;
+    offsetProjectionMatrix(&projMat, vertexOffset);
+    data->progAA.alteredProjMat = projMat;
+    camera->setProjectionMatrix(projMat);
+    data->progAA.projMatAltered = true;
+
+    // data->layerTexture is the original contents (albeit with jiggled
+    // camera), generated by the main layer passes. Have two additional
+    // textures, and swap them every frame (the one that was used as input will
+    // be used as output in the next frame). The layer compositor will be
+    // switched over to use always the one that is the (blended) output.
+
+    if (!data->progAA.outputTex) {
+        data->progAA.outputTex = new Qt3DRender::QTexture2D(data->layerFgRoot);
+        data->progAA.outputTex->setFormat(Qt3DRender::QAbstractTexture::RGBA8_UNorm);
+        data->progAA.outputTex->setMinificationFilter(Qt3DRender::QAbstractTexture::Linear);
+        data->progAA.outputTex->setMagnificationFilter(Qt3DRender::QAbstractTexture::Linear);
+        prepareSizeDependentTexture(data->progAA.outputTex, layer3DS);
+    }
+
+    // ### depth, ssao, shadow passes in the main layer framegraph subtree should be disabled when pass > 0
+
+    // ### what if data->layerTexture is multisample?
+
+    // For data->progAA.accumTex there is no new texture needed - instead,
+    // steal data->layerTexture.
+    if (factorsIdx == 0) {
+        delete data->progAA.accumTex;
+        data->progAA.accumTex = data->layerTexture;
+        // create a whole new render target for the layer
+        data->sizeManagedTextures.removeOne(data->layerTexture);
+        data->sizeManagedTextures.removeOne(data->layerDS);
+        int msaaSampleCount = 0; // ###
+        Qt3DRender::QAbstractTexture *colorTex;
+        Qt3DRender::QAbstractTexture *dsTexOrRb;
+        Qt3DRender::QRenderTarget *rt = newLayerRenderTarget(layerPixelSize, msaaSampleCount,
+                                                             &colorTex, &dsTexOrRb, data->layerFgRoot);
+        Qt3DRender::QRenderTarget *oldRt = data->rtSelector->target();
+        data->rtSelector->setTarget(rt);
+        delete oldRt;
+        data->sizeManagedTextures.insert(0, colorTex);
+        data->sizeManagedTextures.insert(1, dsTexOrRb);
+        data->layerTexture = colorTex;
+        data->layerDS = dsTexOrRb;
+    }
+
+    //if (!data->progAA.fg) {
+    // ### have to do this on every new PAA run since accumTex changes above.
+    // It is an overkill though since the framegraph should be generated just once.
+    if (factorsIdx == 0) {
+        delete data->progAA.fg;
+
+        // set up a framegraph subtree to render a quad
+
+        // Due to QTBUG-64757 we will need to switch QRenderTargets, not just
+        // the texture in QRenderTargetOutput. Hence the need for multiple
+        // ones. This is probably more efficient anyways (since it results in
+        // binding a different FBO, without altering attachments).
+
+        // will render to outputTex, accumTex, outputTex, accumTex, outputTex, ...
+        data->progAA.curTarget = 0;
+        for (Qt3DRender::QAbstractTexture *t : { data->progAA.outputTex, data->progAA.accumTex }) {
+            Qt3DRender::QRenderTargetOutput *rtOutput = new Qt3DRender::QRenderTargetOutput;
+            rtOutput->setAttachmentPoint(Qt3DRender::QRenderTargetOutput::Color0);
+            rtOutput->setTexture(t);
+            Qt3DRender::QRenderTarget *rt = new Qt3DRender::QRenderTarget;
+            rt->addOutput(rtOutput);
+            data->progAA.rts[data->progAA.curTarget++] = rt;
+        }
+
+        Qt3DRender::QRenderTargetSelector *rtSel = new Qt3DRender::QRenderTargetSelector(data->layerFgRoot);
+        data->progAA.fg = rtSel;
+        data->progAA.rtSel = rtSel;
+        data->progAA.curTarget = 0;
+        rtSel->setTarget(data->progAA.rts[0]);
+
+        Qt3DRender::QViewport *viewport = new Qt3DRender::QViewport(rtSel);
+        viewport->setNormalizedRect(QRectF(0, 0, 1, 1));
+
+        Qt3DRender::QFilterKey *filterKey = new Qt3DRender::QFilterKey;
+        filterKey->setName(QLatin1String("pass"));
+        filterKey->setValue(QLatin1String("progaa"));
+        Qt3DRender::QRenderPassFilter *filter = new Qt3DRender::QRenderPassFilter(viewport);
+        filter->addMatch(filterKey);
+
+        Qt3DRender::QLayerFilter *layerFilter = new Qt3DRender::QLayerFilter(filter);
+        data->progAA.layerFilter = layerFilter;
+        layerFilter->addLayer(m_fsQuadTag);
+
+        data->progAA.accumTexParam = new Qt3DRender::QParameter;
+        data->progAA.accumTexParam->setName(QLatin1String("accumulator"));
+        data->progAA.lastTexParam = new Qt3DRender::QParameter;
+        data->progAA.lastTexParam->setName(QLatin1String("last_frame"));
+        data->progAA.blendFactorsParam = new Qt3DRender::QParameter;
+        data->progAA.blendFactorsParam->setName(QLatin1String("blend_factors"));
+
+        filter->addParameter(data->progAA.accumTexParam);
+        filter->addParameter(data->progAA.lastTexParam);
+        filter->addParameter(data->progAA.blendFactorsParam);
+    }
+
+    // Input
+    data->progAA.accumTexParam->setValue(QVariant::fromValue(data->progAA.accumTex));
+    data->progAA.lastTexParam->setValue(QVariant::fromValue(data->layerTexture));
+    data->progAA.blendFactorsParam->setValue(blendFactor);
+
+    // Output
+    data->progAA.rtSel->setTarget(data->progAA.rts[data->progAA.curTarget]);
+
+    // have the compositor use the blended results instead of the layer texture
+    data->compositorSourceParam->setValue(QVariant::fromValue(data->progAA.outputTex));
+
+    // In the next PAA round (i.e. the frame after the next one) reuse accumTex
+    // as the output and the current output as accumTex...
+    std::swap(data->progAA.accumTex, data->progAA.outputTex);
+    // ...whereas the output of the next frame will be used as input, so flip the
+    // index to use the correct render target.
+    data->progAA.curTarget = 1 - data->progAA.curTarget;
+
+    ++data->progAA.pass;
 }
 
 static void setBlending(Qt3DRender::QBlendEquation *blendFunc,

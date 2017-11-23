@@ -74,6 +74,7 @@ class QTextureImage;
 class QPaintedTextureImage;
 class QLayerFilter;
 class QRenderTargetSelector;
+class QRenderTarget;
 class QTechnique;
 class QFilterKey;
 }
@@ -159,9 +160,11 @@ class Q3DSLayerAttached : public Q3DSNodeAttached
 {
 public:
     Qt3DCore::QEntity *compositorEntity = nullptr;
+    Qt3DRender::QFrameGraphNode *layerFgRoot = nullptr;
     Q3DSCameraNode *cam3DS = nullptr;
     Qt3DRender::QCameraSelector *cameraSelector = nullptr;
     Qt3DRender::QClearBuffers *clearBuffers = nullptr;
+    Qt3DRender::QRenderTargetSelector *rtSelector = nullptr;
     struct SizeManagedTexture {
         typedef std::function<void(Q3DSLayerNode *)> SizeChangeCallback;
         SizeManagedTexture() { }
@@ -172,6 +175,8 @@ public:
         SizeChangeCallback sizeChangeCallback = nullptr;
     };
     QVector<SizeManagedTexture> sizeManagedTextures;
+    Qt3DRender::QAbstractTexture *layerTexture = nullptr;
+    Qt3DRender::QAbstractTexture *layerDS = nullptr;
     Qt3DRender::QParameter *compositorSourceParam = nullptr;
     std::function<void()> updateCompositorCalculations = nullptr;
     std::function<void()> updateSubPresentationSize = nullptr;
@@ -239,6 +244,24 @@ public:
         QVector<PerLightShadowMapData> shadowCasters;
         Qt3DRender::QAbstractTexture *defaultShadowDS = nullptr;
     } shadowMapData;
+
+    struct ProgAAData {
+        int pass = 0;
+        bool projMatAltered = false;
+        QMatrix4x4 origProjMat;
+        QMatrix4x4 alteredProjMat;
+        Qt3DRender::QFrameGraphNode *fg = nullptr;
+        bool enabled = false;
+        Qt3DRender::QRenderTargetSelector *rtSel = nullptr;
+        Qt3DRender::QRenderTarget *rts[2];
+        int curTarget = 0;
+        Qt3DRender::QAbstractTexture *accumTex = nullptr;
+        Qt3DRender::QAbstractTexture *outputTex = nullptr;
+        Qt3DRender::QParameter *accumTexParam = nullptr;
+        Qt3DRender::QParameter *lastTexParam = nullptr;
+        Qt3DRender::QParameter *blendFactorsParam = nullptr;
+        Qt3DRender::QLayerFilter *layerFilter = nullptr;
+    } progAA;
 };
 
 Q_DECLARE_TYPEINFO(Q3DSLayerAttached::SizeManagedTexture, Q_MOVABLE_TYPE);
