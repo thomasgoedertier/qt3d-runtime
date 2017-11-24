@@ -179,19 +179,50 @@ void SceneExplorerWidget::setPresentation(Q3DSPresentation *presentation)
     m_sceneTreeView->expandAll();
 }
 
+void SceneExplorerWidget::reset()
+{
+    m_currentObject = nullptr;
+    resetPropertyViewer();
+    m_presentation = nullptr;
+    m_sceneModel->setSceneRoot(nullptr);
+}
+
 void SceneExplorerWidget::handleSelectionChanged(const QModelIndex &current, const QModelIndex &)
 {
-    m_propertyBrowser->clear();
+    resetPropertyViewer();
+
     Q3DSGraphObject *obj = static_cast<Q3DSGraphObject *>(current.internalPointer());
-    const QStringList pnames = obj->gex_propertyNames();
-    const QVariantList pvalues = obj->gex_propertyValues();
-    QtProperty *topLevelItem = m_variantManager->addProperty(QtVariantPropertyManager::groupTypeId(), obj->gex_typeAsString());
+    m_currentObject = obj;
+    m_updateCallbackIndex = m_currentObject->addPropertyChangeObserver([&](Q3DSGraphObject *object, const QSet<QString> &keys, int changeFlags) {
+            // Update property browser with new settings
+            Q_UNUSED(changeFlags);
+            if (object != m_currentObject)
+                return;
+            // Everything here is pretty expensive, but there isn't
+            // an easier way to do things yet.
+            const QStringList pnames = object->gex_propertyNames();
+            const QVariantList pvalues = object->gex_propertyValues();
+
+            for (auto key : keys) {
+                auto property = m_propertyMap.value(key);
+                if (!property)
+                    continue;
+                auto value = pvalues.value(pnames.indexOf(key));
+                m_variantManager->setValue(property, value);
+            }
+        });
+
+    // Set the initial settings
+    const QStringList pnames = m_currentObject->gex_propertyNames();
+    const QVariantList pvalues = m_currentObject->gex_propertyValues();
+    QtProperty *topLevelItem = m_variantManager->addProperty(QtVariantPropertyManager::groupTypeId(), m_currentObject->gex_typeAsString());
     Q_ASSERT(pnames.count() == pvalues.count());
     for (int i = 0; i < pnames.count(); ++i) {
         auto item = m_variantManager->addProperty(pvalues[i].type(), pnames[i]);
         if (item) {
             item->setValue(pvalues[i]);
             topLevelItem->addSubProperty(item);
+            m_propertyMap.insert(pnames[i], item);
         } else {
             qDebug() << "skipping: " << pnames[i]<< " of type: " << pvalues[i].type();
         }
@@ -199,10 +230,17 @@ void SceneExplorerWidget::handleSelectionChanged(const QModelIndex &current, con
     m_propertyBrowser->addProperty(topLevelItem);
 
     // If selection is a Component
-    if (obj->type() == Q3DSGraphObject::Component) {
-        Q3DSComponentNode *component = static_cast<Q3DSComponentNode *>(obj);
+    if (m_currentObject->type() == Q3DSGraphObject::Component) {
+        Q3DSComponentNode *component = static_cast<Q3DSComponentNode *>(m_currentObject);
         emit componentSelected(component);
     }
+}
+
+void SceneExplorerWidget::handleValueChanged(const QtProperty *property, const QVariant &value)
+{
+    Q_UNUSED(property)
+    Q_UNUSED(value)
+    // TODO handle updating properties from editor
 }
 
 void SceneExplorerWidget::init()
@@ -222,6 +260,18 @@ void SceneExplorerWidget::init()
     m_sceneTreeView->setModel(m_sceneModel);
 
     connect(m_sceneTreeView->selectionModel(), &QItemSelectionModel::currentChanged, this, &SceneExplorerWidget::handleSelectionChanged);
+    connect(m_variantManager, &QtVariantPropertyManager::valueChanged, this, &SceneExplorerWidget::handleValueChanged);
+}
+
+void SceneExplorerWidget::resetPropertyViewer()
+{
+    m_propertyBrowser->clear();
+    m_propertyMap.clear();
+    if (m_currentObject) {
+        m_currentObject->removePropertyChangeObserver(m_updateCallbackIndex);
+        m_currentObject = nullptr;
+        m_updateCallbackIndex = -1;
+    }
 }
 
 QT_END_NAMESPACE

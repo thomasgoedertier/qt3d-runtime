@@ -134,6 +134,7 @@ void Q3DSExplorerMainWindow::updatePresentation()
 {
     auto pres = m_view->uipDocument()->presentation();
     m_slideExplorer->reset();
+    m_sceneExplorer->reset();
     handleComponentSelected(nullptr);
     if (pres) {
         m_sceneExplorer->setPresentation(pres);

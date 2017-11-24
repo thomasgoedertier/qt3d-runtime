@@ -34,10 +34,13 @@
 QT_BEGIN_NAMESPACE
 
 class Q3DSPresentation;
+class Q3DSGraphObject;
 class QTreeView;
 class QtTreePropertyBrowser;
 class QtVariantPropertyManager;
 class QtVariantEditorFactory;
+class QtVariantProperty;
+class QtProperty;
 class SceneTreeModel;
 class Q3DSComponentNode;
 class SceneExplorerWidget : public QWidget
@@ -48,18 +51,28 @@ public:
 
     void setPresentation(Q3DSPresentation *presentation);
 
+    void reset();
+
 private slots:
     void handleSelectionChanged(const QModelIndex &current, const QModelIndex &);
+    void handleValueChanged(const QtProperty *property, const QVariant &value);
 signals:
     void componentSelected(Q3DSComponentNode *component);
 private:
     void init();
+    void resetPropertyViewer();
+
     Q3DSPresentation *m_presentation = nullptr;
     QTreeView *m_sceneTreeView = nullptr;
     QtTreePropertyBrowser *m_propertyBrowser = nullptr;
     QtVariantPropertyManager *m_variantManager = nullptr;
     QtVariantEditorFactory *m_variantFactory = nullptr;
     SceneTreeModel *m_sceneModel = nullptr;
+
+    // Updates
+    QHash<QString, QtVariantProperty *> m_propertyMap;
+    Q3DSGraphObject *m_currentObject = nullptr;
+    int m_updateCallbackIndex = -1;
 };
 
 QT_END_NAMESPACE
