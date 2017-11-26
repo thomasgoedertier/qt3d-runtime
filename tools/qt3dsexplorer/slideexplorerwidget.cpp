@@ -35,6 +35,9 @@
 #include <QPushButton>
 #include <QSlider>
 #include <QAbstractListModel>
+#include <Qt3DAnimation/qclipanimator.h>
+#include <Qt3DAnimation/qabstractanimationclip.h>
+#include <Qt3DCore/qnode.h>
 
 QT_BEGIN_NAMESPACE
 
@@ -189,65 +192,110 @@ void SlideExplorerWidget::reset()
 void SlideExplorerWidget::handleSelectionChanged(const QModelIndex &index)
 {
     auto slide = static_cast<Q3DSSlide*>(index.internalPointer());
-    if (slide && m_currentSlide != slide) {
-        m_currentSlide = slide;
-        handleCurrentSlideChanged(m_currentSlide);
-    }
+    if (slide && m_currentSlide != slide)
+        handleCurrentSlideChanged(slide, m_currentSlide);
 }
 
-void SlideExplorerWidget::handleCurrentSlideChanged(Q3DSSlide *slide)
+void SlideExplorerWidget::handleCurrentSlideChanged(Q3DSSlide *slide, Q3DSSlide *oldSlide)
 {
     // Set the current slide selection
     m_slideListView->setCurrentIndex(m_slideModel->getSlideIndex(slide));
-    m_slideSeekSlider->setMinimum(0);
+
     if (slide) {
-        m_slideSeekSlider->setValue(slide->startTime());
-        m_slideSeekSlider->setMaximum(slide->endTime());
-    }
+        const qint32 startTime = slide->startTime();
+        const qint32 endTime = slide->endTime();
+        m_slideSeekSlider->setValue(startTime);
+        m_slideSeekSlider->setMaximum(endTime);
+        m_slideSeekSlider->setTickPosition(QSlider::TicksBelow);
+        m_slideSeekSlider->setTickInterval(1000);
+   }
+
     if (m_presentation) {
         m_sceneManager->setCurrentSlide(slide);
     } else if (m_component) {
         m_sceneManager->setComponentCurrentSlide(m_component, slide);
     }
-    m_isSlidePlaying = true;
-    m_playSlideButton->setText("stop");
+
+    if (oldSlide) {
+        Q3DSSlideAttached *data = static_cast<Q3DSSlideAttached *>(oldSlide->attached());
+        if (data && !data->animators.isEmpty()) {
+            Qt3DAnimation::QClipAnimator *animator = data->animators.at(0);
+            animator->clearPropertyTrackings();
+            animator->disconnect();
+        }
+
+        m_currentSlide = slide;
+    }
+
+    if (slide) {
+        Q3DSSlideAttached *data = static_cast<Q3DSSlideAttached *>(slide->attached());
+        if (!data->animators.isEmpty()) {
+            Qt3DAnimation::QClipAnimator *animator = data->animators.at(0);
+            QObject::connect(animator, &Qt3DAnimation::QClipAnimator::normalizedTimeChanged, [this](float t) {
+                const qint32 duration = m_currentSlide->endTime() - m_currentSlide->startTime();
+                m_slideSeekSlider->setValue(int(duration * t));
+                m_slideAtEnd = (t == 1.0f);
+            });
+
+            const auto onRunningChanged = [this](bool r) {
+                m_playSlideButton->setText(r ? QStringLiteral("Pause") : QStringLiteral("Play"));
+                m_isSlidePlaying = r;
+            };
+            onRunningChanged(animator->isRunning());
+            QObject::connect(animator, &Qt3DAnimation::QClipAnimator::runningChanged, onRunningChanged);
+
+
+            animator->setPropertyTracking(QStringLiteral("normalizedTime"), Qt3DCore::QNode::TrackAllValues);
+            animator->setPropertyTracking(QStringLiteral("running"), Qt3DCore::QNode::TrackAllValues);
+        }
+    }
 }
 
 void SlideExplorerWidget::switchToNextSlide()
 {
     auto nextSlide = m_slideModel->getNextSlide(m_currentSlide);
-    if (nextSlide) {
-        m_currentSlide = nextSlide;
-        handleCurrentSlideChanged(m_currentSlide);
-    }
+    if (nextSlide)
+        handleCurrentSlideChanged(nextSlide, m_currentSlide);
 }
 
 void SlideExplorerWidget::switchToPrevSlide()
 {
     auto prevSlide = m_slideModel->getPrevSlide(m_currentSlide);
-    if (prevSlide) {
-        m_currentSlide = prevSlide;
-        handleCurrentSlideChanged(m_currentSlide);
-    }
+    if (prevSlide)
+        handleCurrentSlideChanged(prevSlide, m_currentSlide);
 }
 
 void SlideExplorerWidget::playCurrentSlide()
 {
-    if (m_isSlidePlaying) {
-        m_playSlideButton->setText("play");
-    } else {
-        m_playSlideButton->setText("stop");
-    }
-    m_isSlidePlaying = !m_isSlidePlaying;
     if (m_sceneManager) {
-        m_sceneManager->setAnimationsRunning(m_currentSlide, m_isSlidePlaying);
-        m_sceneManager->setAnimationsRunning(m_masterSlide, m_isSlidePlaying);
+        m_isSlidePlaying = !m_isSlidePlaying;
+        const bool restart = m_isSlidePlaying && m_slideAtEnd;
+        m_sceneManager->setAnimationsRunning(m_currentSlide, m_isSlidePlaying, restart);
+        m_sceneManager->setAnimationsRunning(m_masterSlide, m_isSlidePlaying, restart);
     }
 }
 
 void SlideExplorerWidget::seekInCurrentSlide(int value)
 {
-    Q_UNUSED(value)
+    static const auto seekInSlide = [](Q3DSSlide *slide, float normalizedTime) {
+        Q3DSSlideAttached *data = static_cast<Q3DSSlideAttached *>(slide->attached());
+        if (!data)
+            return;
+        for (Qt3DAnimation::QClipAnimator *animator : data->animators)
+            animator->setNormalizedTime(normalizedTime);
+    };
+
+    Q3DSSlideAttached *data = static_cast<Q3DSSlideAttached *>(m_currentSlide->attached());
+    if (!data)
+        return;
+
+    if (data->animators.isEmpty())
+        return;
+
+    const float durationInMS = m_currentSlide->endTime() - m_currentSlide->startTime();
+    const float normalized = value / durationInMS;
+
+    seekInSlide(m_currentSlide, normalized);
 }
 
 void SlideExplorerWidget::init()
@@ -281,13 +329,12 @@ void SlideExplorerWidget::updateModel()
         if (m_presentation) {
             m_masterSlide = m_presentation->masterSlide();
             m_currentSlide = m_sceneManager->currentSlide();
-
         } else if (m_component) {
             m_masterSlide = m_component->masterSlide();
             m_currentSlide = m_component->currentSlide();
         }
         m_slideModel->setMasterSlide(m_masterSlide);
-        handleCurrentSlideChanged(m_currentSlide);
+        handleCurrentSlideChanged(m_currentSlide, nullptr);
     }
 }
 

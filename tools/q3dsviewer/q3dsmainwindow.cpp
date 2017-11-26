@@ -96,15 +96,15 @@ Q3DStudioMainWindow::Q3DStudioMainWindow(Q3DSWindow *view, QWidget *parent)
         view->engine()->setOnDemandRendering(renderOnDemand->isChecked());
     });
 
-    QAction *pauseAnims = viewMenu->addAction(tr("&Stop animations"));
+    QAction *pauseAnims = viewMenu->addAction(tr("&Pause animations"));
     pauseAnims->setCheckable(true);
     pauseAnims->setChecked(false);
     connect(pauseAnims, &QAction::toggled, [=]() {
         Q3DSSceneManager *sb = view->engine()->sceneManager();
         Q3DSSlide *slide = sb->currentSlide();
         if (slide) {
-            sb->setAnimationsRunning(sb->masterSlide(), !pauseAnims->isChecked());
-            sb->setAnimationsRunning(slide, !pauseAnims->isChecked());
+            sb->setAnimationsRunning(sb->masterSlide(), pauseAnims->isChecked());
+            sb->setAnimationsRunning(slide, pauseAnims->isChecked());
         }
     });
 

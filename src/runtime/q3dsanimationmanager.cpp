@@ -40,6 +40,7 @@
 #include <Qt3DAnimation/QChannelMapping>
 #include <Qt3DAnimation/QCallbackMapping>
 #include <Qt3DAnimation/QAnimationClip>
+#include <Qt3DAnimation/qclock.h>
 
 QT_BEGIN_NAMESPACE
 
@@ -200,6 +201,7 @@ void initAnimator(T *data, Q3DSSlide *slide, Q3DSSlide *previousSlide, Q3DSAnima
 
     animationData = new Q3DSGraphObjectAttached::AnimationData;
     animationData->animator = new Qt3DAnimation::QClipAnimator;
+    animationData->animator->setClock(new Qt3DAnimation::QClock);
     data->animationDataMap.insert(slide, animationData);
     slideAttached->animators.append(animationData->animator);
     if (animDebug)

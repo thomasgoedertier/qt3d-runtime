@@ -525,7 +525,7 @@ public:
     void setCurrentSlide(Q3DSSlide *newSlide);
     void setComponentCurrentSlide(Q3DSComponentNode *component, Q3DSSlide *newSlide);
 
-    void setAnimationsRunning(Q3DSSlide *slide, bool running);
+    void setAnimationsRunning(Q3DSSlide *slide, bool running, bool restart = false);
     Q3DSAnimationManager *animationManager() { return m_animationManager; }
 
     enum SetNodePropFlag {

@@ -89,6 +89,7 @@
 #include <Qt3DRender/QStencilOperationArguments>
 
 #include <Qt3DAnimation/QClipAnimator>
+#include <Qt3DAnimation/qclock.h>
 
 #include <Qt3DExtras/QPlaneMesh>
 
@@ -5812,11 +5813,14 @@ void Q3DSSceneManager::updateAnimations(Q3DSSlide *animSourceSlide, Q3DSSlide *p
     m_animationManager->updateAnimations(animSourceSlide, prevAnimSourceSlide, playModeSourceSlide);
 }
 
-void Q3DSSceneManager::setAnimationsRunning(Q3DSSlide *slide, bool running)
+void Q3DSSceneManager::setAnimationsRunning(Q3DSSlide *slide, bool running, bool restart)
 {
     Q3DSSlideAttached *data = static_cast<Q3DSSlideAttached *>(slide->attached());
-    for (Qt3DAnimation::QClipAnimator *animator : data->animators)
+    for (Qt3DAnimation::QClipAnimator *animator : data->animators) {
+        if (restart)
+            animator->setNormalizedTime(0.0f);
         animator->setRunning(running);
+    }
 }
 
 void Q3DSFrameUpdater::frameAction(float dt)

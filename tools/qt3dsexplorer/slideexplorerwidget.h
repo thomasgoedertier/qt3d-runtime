@@ -56,7 +56,7 @@ public:
 
 private slots:
     void handleSelectionChanged(const QModelIndex &index);
-    void handleCurrentSlideChanged(Q3DSSlide *slide);
+    void handleCurrentSlideChanged(Q3DSSlide *slide, Q3DSSlide *oldSlide);
     void switchToNextSlide();
     void switchToPrevSlide();
     void playCurrentSlide();
@@ -77,7 +77,8 @@ private:
     QSlider *m_slideSeekSlider;
     SlideListModel *m_slideModel;
 
-    bool m_isSlidePlaying;
+    bool m_isSlidePlaying = false;
+    bool m_slideAtEnd = false;
 };
 
 QT_END_NAMESPACE
