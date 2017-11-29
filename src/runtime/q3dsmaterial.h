@@ -283,13 +283,13 @@ class Q3DSV_EXPORT PassCommand
 public:
     enum Type {
         UnknownType,
-        BufferBlitType,      // custommaterial only
+        BufferBlitType,      // custom material only
         BufferInputType,     // both
         DataBufferInputType, // effect only
         ImageInputType,      // effect only
         DepthInputType,      // effect only
         BlendingType,        // both
-        SetParamType,        // both
+        SetParamType,        // effect only
         RenderStateType,     // both
         DepthStencilType     // effect only
     };
