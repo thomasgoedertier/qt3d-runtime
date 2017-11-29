@@ -45,6 +45,11 @@ Q3DSDefaultMaterialShaderGenerator *Q3DSShaderManager::defaultMaterialShaderGene
     return m_materialShaderGenerator;
 }
 
+Q3DSCustomMaterialShaderGenerator *Q3DSShaderManager::customMaterialShaderGenerator()
+{
+    return m_customMaterialShaderGenerator;
+}
+
 Qt3DRender::QShaderProgram *Q3DSShaderManager::generateShaderProgram(Q3DSDefaultMaterial &material,
                                                                      const QVector<Q3DSLightNode*> &lights,
                                                                      bool hasTransparency,
@@ -52,6 +57,16 @@ Qt3DRender::QShaderProgram *Q3DSShaderManager::generateShaderProgram(Q3DSDefault
 {
     Q3DSSubsetMaterialVertexPipeline pipeline(*m_materialShaderGenerator, *m_shaderProgramGenerator, false);
     return m_materialShaderGenerator->generateShader(material, pipeline, featureSet, lights, hasTransparency);
+}
+
+Qt3DRender::QShaderProgram *Q3DSShaderManager::generateShaderProgram(Q3DSCustomMaterialInstance &material,
+                                                                     const QVector<Q3DSLightNode *> &lights,
+                                                                     bool hasTransparency,
+                                                                     const Q3DSShaderFeatureSet &featureSet,
+                                                                     const QString &shaderName)
+{
+    Q3DSCustomMaterialVertexPipeline pipeline(*m_materialShaderGenerator, *m_shaderProgramGenerator, false);
+    return m_customMaterialShaderGenerator->generateShader(material, pipeline, featureSet, lights, hasTransparency, QString(), shaderName);
 }
 
 Qt3DRender::QShaderProgram *Q3DSShaderManager::getCubeDepthNoTessShader(Qt3DCore::QNode *parent)
@@ -681,6 +696,7 @@ Qt3DRender::QShaderProgram *Q3DSShaderManager::getProgAABlendShader(Qt3DCore::QN
 
 Q3DSShaderManager::Q3DSShaderManager()
     : m_materialShaderGenerator(&Q3DSDefaultMaterialShaderGenerator::createDefaultMaterialShaderGenerator())
+    , m_customMaterialShaderGenerator(&Q3DSCustomMaterialShaderGenerator::createCustomMaterialShaderGenerator())
     , m_shaderProgramGenerator(Q3DSAbstractShaderProgramGenerator::createProgramGenerator())
 {
 }

@@ -1064,20 +1064,26 @@ struct ShaderGenerator : public Q3DSDefaultMaterialShaderGenerator
         return programGenerator()->compileGeneratedShader(m_GeneratedShaderString, m_CurrentFeatureSet);
     }
 
-    Qt3DRender::QShaderProgram *generateShader(Q3DSDefaultMaterial &defaultMaterial,
+    Qt3DRender::QShaderProgram *generateShader(Q3DSGraphObject &defaultMaterial,
                                                Q3DSAbstractShaderStageGenerator &vertexPipeline,
                                                const Q3DSShaderFeatureSet &featureSet,
                                                const QVector<Q3DSLightNode*> &lights,
-                                               bool hasTransparency) override
+                                               bool hasTransparency,
+                                               const QString &shaderPrefix = QString(),
+                                               const QString &materialName = QString()) override
     {
-        m_CurrentMaterial = &defaultMaterial;
+        Q_UNUSED(materialName)
+        if (defaultMaterial.type() != Q3DSGraphObject::DefaultMaterial)
+            return nullptr;
+
+        m_CurrentMaterial = static_cast<Q3DSDefaultMaterial*>(&defaultMaterial);
         m_CurrentPipeline = static_cast<Q3DSDefaultVertexPipeline*>(&vertexPipeline);
         m_ProgramGenerator = &static_cast<Q3DSVertexPipelineImpl*>(&vertexPipeline)->programGenerator();
         m_CurrentFeatureSet = featureSet;
         m_Lights = lights;
         m_HasTransparency = hasTransparency;
 
-        return generateMaterialShader(QString());
+        return generateMaterialShader(shaderPrefix);
     }
 };
 

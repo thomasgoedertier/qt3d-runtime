@@ -27,8 +27,8 @@
 **
 ****************************************************************************/
 
-#ifndef Q3DSRENDERMATERIALSHADERGENERATOR_H
-#define Q3DSRENDERMATERIALSHADERGENERATOR_H
+#ifndef Q3DSCUSTOMMATERIALVERTEXPIPELINE_H
+#define Q3DSCUSTOMMATERIALVERTEXPIPELINE_H
 
 //
 //  W A R N I N G
@@ -41,37 +41,39 @@
 // We mean it.
 //
 
-#include "q3dsshaderprogramgenerator_p.h"
-#include <Qt3DStudioRuntime2/q3dspresentation.h>
-#include <Qt3DStudioRuntime2/q3dsscenemanager.h>
+#include "q3dsshadergenerators_p.h"
 
 QT_BEGIN_NAMESPACE
 
-class Q3DSAbstractMaterialGenerator
+class Q3DSCustomMaterialVertexPipeline : public Q3DSSubsetMaterialVertexPipeline
 {
 public:
-    struct ImageVariableNames
-    {
-        QString imageSampler;
-        QString imageFragCoords;
-    };
+    Q3DSCustomMaterialVertexPipeline(Q3DSDefaultMaterialShaderGenerator &inMaterial,
+                                     Q3DSAbstractShaderProgramGenerator &inProgram,
+                                     bool inWireframe);
 
-    virtual ~Q3DSAbstractMaterialGenerator() { }
-    virtual ImageVariableNames getImageVariableNames(const QString &name) = 0;
-    virtual void generateImageUVCoordinates(Q3DSAbstractShaderStageGenerator &vertexPipeline,
-                                            const QString &name,
-                                            quint32 uvSet,
-                                            Q3DSImage &image) = 0;
+    void beginVertexGeneration(Q3DSImage *displacementImage) override;
+    void beginFragmentGeneration() override;
+    void generateUVCoords(quint32 inUVSet) override;
+    void generateEnvMapReflection() override;
+    void generateViewVector() override;
+    void generateWorldNormal() override;
+    void generateObjectNormal() override;
+    void generateWorldPosition() override;
+    void generateVarTangentAndBinormal() override;
+    void doGenerateUVCoords(quint32 inUVSet) override;
+    void doGenerateWorldNormal() override;
+    void doGenerateObjectNormal() override;
+    void doGenerateWorldPosition() override;
+    void doGenerateVarTangentAndBinormal() override;
+};
 
-    virtual Qt3DRender::QShaderProgram *generateShader(Q3DSGraphObject &material,
-                                                       Q3DSAbstractShaderStageGenerator &vertexPipeline,
-                                                       const Q3DSShaderFeatureSet &featureSet,
-                                                       const QVector<Q3DSLightNode*> &lights,
-                                                       bool hasTransparency,
-                                                       const QString &shaderPrefix = QString(),
-                                                       const QString &materialName = QString()) = 0;
+class Q3DSCustomMaterialShaderGenerator : public Q3DSAbstractMaterialGenerator
+{
+public:
+    static Q3DSCustomMaterialShaderGenerator &createCustomMaterialShaderGenerator();
 };
 
 QT_END_NAMESPACE
 
-#endif // Q3DSRENDERMATERIALSHADERGENERATOR_H
+#endif // Q3DSCUSTOMMATERIALVERTEXPIPELINE_H

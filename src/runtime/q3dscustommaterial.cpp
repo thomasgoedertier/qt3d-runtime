@@ -177,7 +177,7 @@ Qt3DRender::QShaderProgram* Q3DSCustomMaterial::generateShaderProgram(const Q3DS
     fragmentShaderCode.append(globalShared.toUtf8());
     fragmentShaderCode.append(shared.toUtf8());
     fragmentShaderCode.append(QByteArrayLiteral("\n#ifdef FRAGMENT_SHADER\n"));
-    fragmentShaderCode.append(vertexShader.toUtf8());
+    fragmentShaderCode.append(fragmentShader.toUtf8());
     fragmentShaderCode.append(QByteArrayLiteral("\n#endif\n"));
 
     auto shaderProgram = new Qt3DRender::QShaderProgram();

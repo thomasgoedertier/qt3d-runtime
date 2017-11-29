@@ -43,6 +43,7 @@
 
 #include "q3dsshaderprogramgenerator_p.h"
 #include "q3dsdefaultvertexpipeline_p.h"
+#include "q3dscustommaterialvertexpipeline_p.h"
 #include <Qt3DStudioRuntime2/q3dspresentation.h>
 #include <Qt3DStudioRuntime2/q3dsgraphicslimits.h>
 #include <Qt3DRender/QShaderProgram>
@@ -59,11 +60,17 @@ public:
     void invalidate();
 
     Q3DSDefaultMaterialShaderGenerator *defaultMaterialShaderGenerator();
+    Q3DSCustomMaterialShaderGenerator *customMaterialShaderGenerator();
 
     Qt3DRender::QShaderProgram *generateShaderProgram(Q3DSDefaultMaterial &material,
                                                       const QVector<Q3DSLightNode*> &lights,
                                                       bool hasTransparency,
                                                       const Q3DSShaderFeatureSet &featureSet);
+    Qt3DRender::QShaderProgram *generateShaderProgram(Q3DSCustomMaterialInstance &material,
+                                                      const QVector<Q3DSLightNode*> &lights,
+                                                      bool hasTransparency,
+                                                      const Q3DSShaderFeatureSet &featureSet,
+                                                      const QString &shaderName = QString());
 
     Qt3DRender::QShaderProgram* getCubeDepthNoTessShader(Qt3DCore::QNode *parent);
 
@@ -87,6 +94,7 @@ private:
     Q3DSShaderManager();
 
     Q3DSDefaultMaterialShaderGenerator *m_materialShaderGenerator;
+    Q3DSCustomMaterialShaderGenerator *m_customMaterialShaderGenerator;
     Q3DSAbstractShaderProgramGenerator *m_shaderProgramGenerator;
     Qt3DRender::QShaderProgram *m_depthPrePassShader = nullptr;
     Qt3DRender::QShaderProgram *m_orthoDepthShader = nullptr;

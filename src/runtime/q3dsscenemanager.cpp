@@ -3363,6 +3363,19 @@ void Q3DSSceneManager::buildModelMaterial(Q3DSModelNode *model3DS)
                 custMatData->opacity = modelData->globalOpacity;
                 updateCustomMaterial(customMaterial);
 
+
+                QMap<QString, Qt3DRender::QShaderProgram*> shaderPrograms;
+                int shaderCount = 0;
+                for (auto shader : customMaterial->material()->shaders()) {
+                    QString shaderName = shader.name;
+                    if (shaderName.isEmpty())
+                        shaderName = QString::number(shaderCount);
+                    shaderPrograms.insert(shaderName, Q3DSShaderManager::instance().generateShaderProgram(*customMaterial, layerData->lightNodes, false, Q3DSShaderFeatureSet(), shader.name));
+                    shaderCount++;
+                }
+
+                // XXX Do something with the shaders...
+
                 // light handling should be something like the following:
 
                 // Here lights are provided in two separate buffers.
