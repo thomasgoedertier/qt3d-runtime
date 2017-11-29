@@ -188,135 +188,138 @@ void Q3DSEffectParser::parsePass(Q3DSEffect &effect)
     Q3DSMaterial::Pass pass;
     QXmlStreamReader *r = reader();
     for (auto attribute : r->attributes()) {
-        if (attribute.name() == QStringLiteral("shader"))
+        if (attribute.name() == QStringLiteral("shader")) {
             pass.shaderName = attribute.value().toString();
-        else if (attribute.name() == QStringLiteral("input"))
+        } else if (attribute.name() == QStringLiteral("input")) {
             pass.input = attribute.value().toString();
-        else if (attribute.name() == QStringLiteral("output"))
+        } else if (attribute.name() == QStringLiteral("output")) {
             pass.output = attribute.value().toString();
-        else if (attribute.name() == QStringLiteral("format"))
-            pass.outputFormat = attribute.value().toString();
+        } else if (attribute.name() == QStringLiteral("format")) {
+            Q3DSMaterial::TextureFormat fmt;
+            if (Q3DSMaterial::convertToTextureFormat(attribute.value(), QLatin1String("ubyte"), &fmt, "texture format", r))
+                pass.outputFormat = fmt;
+        }
     }
 
-    // Parse Pass Buffer Parameters
+    // Parse pass commands
     while (r->readNextStartElement()) {
         if (r->name() == QStringLiteral("BufferInput")) {
-            Q3DSMaterial::PassState bufferInput(Q3DSMaterial::PassState::BufferInputType);
+            Q3DSMaterial::PassCommand bufferInput(Q3DSMaterial::PassCommand::BufferInputType);
             for (auto attribute : r->attributes()) {
                 if (attribute.name() == QStringLiteral("param"))
-                    bufferInput.state.param = attribute.value().toString();
+                    bufferInput.data()->param = attribute.value().toString();
                 else if (attribute.name() == QStringLiteral("value"))
-                    bufferInput.state.value = attribute.value().toString();
+                    bufferInput.data()->value = attribute.value().toString();
             }
-            pass.states.append(bufferInput);
+            pass.commands.append(bufferInput);
             while (r->readNextStartElement())
                 r->skipCurrentElement();
         } else if (r->name() == QStringLiteral("DepthInput")) {
-            Q3DSMaterial::PassState depthInput(Q3DSMaterial::PassState::DepthInputType);
+            Q3DSMaterial::PassCommand depthInput(Q3DSMaterial::PassCommand::DepthInputType);
             for (auto attribute : r->attributes()) {
                 if (attribute.name() == QStringLiteral("param"))
-                    depthInput.state.param = attribute.value().toString();
+                    depthInput.data()->param = attribute.value().toString();
             }
-            pass.states.append(depthInput);
+            pass.commands.append(depthInput);
             while (r->readNextStartElement())
                 r->skipCurrentElement();
         } else if (r->name() == QStringLiteral("ImageInput")) {
             //Q3DSMaterial::ImageInput imageInput;
-            Q3DSMaterial::PassState imageInput(Q3DSMaterial::PassState::ImageInputType);
+            Q3DSMaterial::PassCommand imageInput(Q3DSMaterial::PassCommand::ImageInputType);
             for (auto attribute : r->attributes()) {
                 if (attribute.name() == QStringLiteral("param"))
-                    imageInput.state.param = (attribute.value().toString());
+                    imageInput.data()->param = attribute.value().toString();
                 else if (attribute.name() == QStringLiteral("value"))
-                    imageInput.state.value = (attribute.value().toString());
+                    imageInput.data()->value = attribute.value().toString();
                 else if (attribute.name() == QStringLiteral("usage"))
-                    imageInput.state.usage = (attribute.value().toString());
+                    imageInput.data()->usage = attribute.value().toString();
                 else if (attribute.name() == QStringLiteral("sync")) {
                     bool sync = false;
                     if (Q3DS::convertToBool(attribute.value(), &sync, "ImageInput sync", r))
-                        imageInput.state.sync = sync;
+                        imageInput.data()->sync = sync;
                 }
             }
-            pass.states.append(imageInput);
+            pass.commands.append(imageInput);
             while (r->readNextStartElement())
                 r->skipCurrentElement();
         } else if (r->name() == QStringLiteral("DataBufferInput")) {
-            Q3DSMaterial::PassState dataBufferInput(Q3DSMaterial::PassState::DataBufferInputType);
+            Q3DSMaterial::PassCommand dataBufferInput(Q3DSMaterial::PassCommand::DataBufferInputType);
             for (auto attribute : r->attributes()) {
                 if (attribute.name() == QStringLiteral("param"))
-                    dataBufferInput.state.param = (attribute.value().toString());
+                    dataBufferInput.data()->param = attribute.value().toString();
                 else if (attribute.name() == QStringLiteral("usage"))
-                    dataBufferInput.state.usage = (attribute.value().toString());
+                    dataBufferInput.data()->usage = attribute.value().toString();
             }
-            pass.states.append(dataBufferInput);
+            pass.commands.append(dataBufferInput);
             while (r->readNextStartElement())
                 r->skipCurrentElement();
         } else if (r->name() == QStringLiteral("SetParam")) {
-            Q3DSMaterial::PassState setParam(Q3DSMaterial::PassState::SetParamType);
+            Q3DSMaterial::PassCommand setParam(Q3DSMaterial::PassCommand::SetParamType);
             for (auto attribute : r->attributes()) {
                 if (attribute.name() == QStringLiteral("name"))
-                    setParam.state.name = (attribute.value().toString());
+                    setParam.data()->name = attribute.value().toString();
                 else if (attribute.name() == QStringLiteral("value"))
-                    setParam.state.value = (attribute.value().toString());
+                    setParam.data()->value = attribute.value().toString();
             }
-            pass.states.append(setParam);
+            pass.commands.append(setParam);
             while (r->readNextStartElement())
                 r->skipCurrentElement();
         } else if (r->name() == QStringLiteral("Blending")) {
-            Q3DSMaterial::PassState blending(Q3DSMaterial::PassState::BlendingType);
+            Q3DSMaterial::PassCommand blending(Q3DSMaterial::PassCommand::BlendingType);
             for (auto attribute : r->attributes()) {
                 if (attribute.name() == QStringLiteral("source"))
-                    blending.state.source = (attribute.value().toString());
+                    blending.data()->source = attribute.value().toString();
                 else if (attribute.name() == QStringLiteral("dest"))
-                    blending.state.destination = (attribute.value().toString());
+                    blending.data()->destination = attribute.value().toString();
             }
-            pass.states.append(blending);
+            pass.commands.append(blending);
             while (r->readNextStartElement())
                 r->skipCurrentElement();
         } else if (r->name() == QStringLiteral("RenderState")) {
-            Q3DSMaterial::PassState renderState(Q3DSMaterial::PassState::RenderStateType);
+            Q3DSMaterial::PassCommand renderState(Q3DSMaterial::PassCommand::RenderStateType);
             for (auto attribute : r->attributes()) {
                 if (attribute.name() == QStringLiteral("name"))
-                    renderState.state.name = (attribute.value().toString());
+                    renderState.data()->name = attribute.value().toString();
                 else if (attribute.name() == QStringLiteral("value"))
-                    renderState.state.value = (attribute.value().toString());
+                    renderState.data()->value = attribute.value().toString();
             }
-            pass.states.append(renderState);
+            pass.commands.append(renderState);
             while (r->readNextStartElement())
                 r->skipCurrentElement();
         } else if (r->name() == QStringLiteral("DepthStencil")) {
-            Q3DSMaterial::PassState depthStencil(Q3DSMaterial::PassState::DepthStencilType);
+            Q3DSMaterial::PassCommand depthStencil(Q3DSMaterial::PassCommand::DepthStencilType);
             for (auto attribute : r->attributes()) {
                 if (attribute.name() == QStringLiteral("buffer")) {
-                    depthStencil.state.bufferName = (attribute.value().toString());
+                    depthStencil.data()->bufferName = attribute.value().toString();
                 } else if (attribute.name() == QStringLiteral("reference")) {
                     qint32 stencilValue = 0;
                     if (Q3DS::convertToInt32(attribute.value(), &stencilValue, "stencil value", r))
-                        depthStencil.state.stencilValue = stencilValue;
+                        depthStencil.data()->stencilValue = stencilValue;
                 } else if (attribute.name() == QStringLiteral("flags")) {
-                    depthStencil.state.flags = (attribute.value().toString());
+                    depthStencil.data()->flags = attribute.value().toString();
                 } else if (attribute.name() == QStringLiteral("mask")) {
                     qint32 mask;
                     if (Q3DS::convertToInt32(attribute.value(), &mask, "stencil mask", r))
-                        depthStencil.state.mask = mask;
+                        depthStencil.data()->mask = mask;
                 } else if (attribute.name() == QStringLiteral("stencil-fail")) {
                     Q3DSMaterial::StencilOp stencilOp;
                     if (Q3DSMaterial::convertToStencilOp(attribute.value(), &stencilOp, "stencil fail", r))
-                        depthStencil.state.stencilFail = stencilOp;
+                        depthStencil.data()->stencilFail = stencilOp;
                 } else if (attribute.name() == QStringLiteral("depth-pass")) {
                     Q3DSMaterial::StencilOp stencilOp;
                     if (Q3DSMaterial::convertToStencilOp(attribute.value(), &stencilOp, "depth pass", r))
-                        depthStencil.state.depthPass = stencilOp;
+                        depthStencil.data()->depthPass = stencilOp;
                 } else if (attribute.name() == QStringLiteral("depth-fail")) {
                     Q3DSMaterial::StencilOp stencilOp;
                     if (Q3DSMaterial::convertToStencilOp(attribute.value(), &stencilOp, "depth fail", r))
-                        depthStencil.state.depthFail = stencilOp;
+                        depthStencil.data()->depthFail = stencilOp;
                 } else if (attribute.name() == QStringLiteral("stencil-function")) {
                     Q3DSMaterial::BoolOp boolOp;
                     if (Q3DSMaterial::convertToBoolOp(attribute.value(), &boolOp, "stencil function", r))
-                        depthStencil.state.stencilFunction = boolOp;
+                        depthStencil.data()->stencilFunction = boolOp;
                 }
             }
-            pass.states.append(depthStencil);
+            pass.commands.append(depthStencil);
             while (r->readNextStartElement())
                 r->skipCurrentElement();
         } else {

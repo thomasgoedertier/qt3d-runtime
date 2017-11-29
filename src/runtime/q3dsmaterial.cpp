@@ -269,22 +269,24 @@ void DataBuffer::setWrapType(const QString &wrapType)
     m_wrapType = wrapType;
 }
 
-PassState::PassState(PassStateType type)
+PassCommand::PassCommand(Type type)
     : m_type(type)
 {
-    if (m_type == DepthStencilType) {
-        state.stencilValue = 0;
-        state.mask = 4294967295U; //0xffffffff
-        state.stencilFunction = BoolOp::Equal;
-        state.stencilFail = StencilOp::Keep;
-        state.depthPass = StencilOp::Keep;
-        state.depthFail = StencilOp::Keep;
-    }
 }
 
-PassState::PassStateType PassState::type() const
+PassCommand::Type PassCommand::type() const
 {
     return m_type;
+}
+
+const PassCommand::Data *PassCommand::data() const
+{
+    return &m_data;
+}
+
+PassCommand::Data *PassCommand::data()
+{
+    return &m_data;
 }
 
 PropertyElement parserPropertyElement(QXmlStreamReader *r)

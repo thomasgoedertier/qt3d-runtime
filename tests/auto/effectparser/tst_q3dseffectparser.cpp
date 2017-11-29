@@ -148,14 +148,14 @@ void tst_Q3DSEffectParser::testValidateData()
     QVERIFY(bokehRenderPass.shaderName == "BOKEH_RENDER");
     QVERIFY(bokehRenderPass.input == "depthblur_buffer");
     QVERIFY(bokehRenderPass.output == "bokeh_buffer");
-    // Pass States
-    auto state = bokehRenderPass.states.at(0);
-    QVERIFY(state.type() == Q3DSMaterial::PassState::ImageInputType);
-    Q3DSMaterial::PassState imageInputState = state;
-    QVERIFY(imageInputState.state.value == "bokeh_color_image");
-    QVERIFY(imageInputState.state.param == "BokehSampler");
-    QVERIFY(imageInputState.state.usage == "texture");
-    QVERIFY(imageInputState.state.sync);
+    // Pass commands
+    auto cmd = bokehRenderPass.commands.at(0);
+    QVERIFY(cmd.type() == Q3DSMaterial::PassCommand::ImageInputType);
+    Q3DSMaterial::PassCommand imageInputCmd = cmd;
+    QVERIFY(imageInputCmd.data()->value == "bokeh_color_image");
+    QVERIFY(imageInputCmd.data()->param == "BokehSampler");
+    QVERIFY(imageInputCmd.data()->usage == "texture");
+    QVERIFY(imageInputCmd.data()->sync);
 }
 
 QTEST_APPLESS_MAIN(tst_Q3DSEffectParser)

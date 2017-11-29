@@ -46,6 +46,7 @@ private Q_SLOTS:
     void testRepeatedLoad();
     void testValidateData();
     void testMaterialGeneration();
+    void testCommands();
 };
 
 tst_Q3DSCustomMaterialParser::tst_Q3DSCustomMaterialParser()
@@ -116,6 +117,8 @@ void tst_Q3DSCustomMaterialParser::testRepeatedLoad()
     material = parser.parse(QStringLiteral(":/data/aluminum.material"), &ok);
     QVERIFY(ok);
     QVERIFY(!material.isNull());
+    QVERIFY(!material.materialHasRefraction());
+    QVERIFY(!material.materialHasTransparency());
 }
 
 void tst_Q3DSCustomMaterialParser::testValidateData()
@@ -141,14 +144,17 @@ void tst_Q3DSCustomMaterialParser::testValidateData()
     QVERIFY(!material.shaders().first().fragmentShader.isEmpty());
 
     // Pass Data
-    QVERIFY(material.shaderKey() == 5);
     QVERIFY(material.layerCount() == 3);
+
+    // shaderKey of 5 means Diffuse + Glossy
+    QVERIFY(material.shaderIsDielectric());
+    QVERIFY(material.shaderIsGlossy());
 }
 
 void tst_Q3DSCustomMaterialParser::testMaterialGeneration()
 {
     Q3DSCustomMaterialParser parser;
-    bool ok;
+    bool ok = false;
     auto customMaterial = parser.parse(QStringLiteral(":/data/carbon_fiber.material"), &ok);
     QVERIFY(ok);
 
@@ -156,7 +162,95 @@ void tst_Q3DSCustomMaterialParser::testMaterialGeneration()
     QVERIFY(material != nullptr);
 
     delete material;
+}
 
+void tst_Q3DSCustomMaterialParser::testCommands()
+{
+    Q3DSCustomMaterialParser parser;
+    Q3DSCustomMaterial customMaterial;
+    bool ok = false;
+
+    customMaterial = parser.parse(QStringLiteral(":/data/thin_glass_frosted.material"), &ok);
+    QVERIFY(ok);
+    QVERIFY(!customMaterial.isNull());
+
+    QCOMPARE(customMaterial.shaders().count(), 5);
+    QCOMPARE(customMaterial.passes().count(), 5);
+
+    QCOMPARE(customMaterial.layerCount(), 1);
+
+    // ShaderKey == 20
+    QVERIFY(customMaterial.shaderIsGlossy());
+    QVERIFY(customMaterial.shaderHasRefraction());
+
+    // Due to BufferBlit and Blending
+    QVERIFY(customMaterial.materialHasRefraction());
+    QVERIFY(customMaterial.materialHasTransparency());
+
+    auto passes = customMaterial.passes();
+    QCOMPARE(passes[0].commands.count(), 1);
+    QCOMPARE(passes[1].commands.count(), 1);
+    QCOMPARE(passes[2].commands.count(), 1);
+    QCOMPARE(passes[3].commands.count(), 2);
+    QCOMPARE(passes[4].commands.count(), 2);
+
+    QCOMPARE(passes[0].shaderName, QLatin1String("NOOP"));
+    QCOMPARE(passes[0].input, QLatin1String("[source]"));
+    QCOMPARE(passes[0].output, QLatin1String("dummy_buffer"));
+    QCOMPARE(passes[0].outputFormat, Q3DSMaterial::RGBA8);
+    QCOMPARE(passes[0].needsClear, false);
+    auto cmd = passes[0].commands[0];
+    QCOMPARE(cmd.type(), Q3DSMaterial::PassCommand::BufferBlitType);
+    QCOMPARE(cmd.data()->source, QString());
+    QCOMPARE(cmd.data()->destination, QLatin1String("frame_buffer"));
+
+    QCOMPARE(passes[1].shaderName, QLatin1String("PREBLUR"));
+    QCOMPARE(passes[1].input, QLatin1String("[source]"));
+    QCOMPARE(passes[1].output, QLatin1String("temp_buffer"));
+    QCOMPARE(passes[1].outputFormat, Q3DSMaterial::RGBA8);
+    QCOMPARE(passes[1].needsClear, false);
+    cmd = passes[1].commands[0];
+    QCOMPARE(cmd.type(), Q3DSMaterial::PassCommand::BufferInputType);
+    QCOMPARE(cmd.data()->value, QLatin1String("frame_buffer"));
+    QCOMPARE(cmd.data()->param, QLatin1String("OriginBuffer"));
+
+    QCOMPARE(passes[2].shaderName, QLatin1String("BLURX"));
+    QCOMPARE(passes[2].input, QLatin1String("[source]"));
+    QCOMPARE(passes[2].output, QLatin1String("temp_blurX"));
+    QCOMPARE(passes[2].outputFormat, Q3DSMaterial::RGBA8);
+    QCOMPARE(passes[2].needsClear, false);
+    cmd = passes[2].commands[0];
+    QCOMPARE(cmd.type(), Q3DSMaterial::PassCommand::BufferInputType);
+    QCOMPARE(cmd.data()->value, QLatin1String("temp_buffer"));
+    QCOMPARE(cmd.data()->param, QLatin1String("BlurBuffer"));
+
+    QCOMPARE(passes[3].shaderName, QLatin1String("BLURY"));
+    QCOMPARE(passes[3].input, QLatin1String("[source]"));
+    QCOMPARE(passes[3].output, QLatin1String("temp_blurY"));
+    QCOMPARE(passes[3].outputFormat, Q3DSMaterial::RGBA8);
+    QCOMPARE(passes[3].needsClear, false);
+    cmd = passes[3].commands[0];
+    QCOMPARE(cmd.type(), Q3DSMaterial::PassCommand::BufferInputType);
+    QCOMPARE(cmd.data()->value, QLatin1String("temp_blurX"));
+    QCOMPARE(cmd.data()->param, QLatin1String("BlurBuffer"));
+    cmd = passes[3].commands[1];
+    QCOMPARE(cmd.type(), Q3DSMaterial::PassCommand::BufferInputType);
+    QCOMPARE(cmd.data()->value, QLatin1String("temp_buffer"));
+    QCOMPARE(cmd.data()->param, QLatin1String("OriginBuffer"));
+
+    QCOMPARE(passes[4].shaderName, QLatin1String("MAIN"));
+    QCOMPARE(passes[4].input, QLatin1String("[source]"));
+    QCOMPARE(passes[4].output, QLatin1String("[dest]"));
+    QCOMPARE(passes[4].outputFormat, Q3DSMaterial::RGBA8);
+    QCOMPARE(passes[4].needsClear, false);
+    cmd = passes[4].commands[0];
+    QCOMPARE(cmd.type(), Q3DSMaterial::PassCommand::BufferInputType);
+    QCOMPARE(cmd.data()->value, QLatin1String("temp_blurY"));
+    QCOMPARE(cmd.data()->param, QLatin1String("refractiveTexture"));
+    cmd = passes[4].commands[1];
+    QCOMPARE(cmd.type(), Q3DSMaterial::PassCommand::BlendingType);
+    QCOMPARE(cmd.data()->source, QLatin1String("SrcAlpha"));
+    QCOMPARE(cmd.data()->destination, QLatin1String("OneMinusSrcAlpha"));
 }
 
 QTEST_MAIN(tst_Q3DSCustomMaterialParser)

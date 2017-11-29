@@ -42,11 +42,11 @@
 QT_BEGIN_NAMESPACE
 
 Q3DSCustomMaterial::Q3DSCustomMaterial()
-    : m_hasTransparency(false)
-    , m_hasRefraction(false)
-    , m_alwaysDirty(false)
-    , m_shaderKey(0)
+    : m_alwaysDirty(false)
     , m_layerCount(0)
+    , m_hasTransparency(false)
+    , m_hasRefraction(false)
+    , m_shaderKey(0)
 {
 }
 
@@ -92,6 +92,11 @@ QString Q3DSCustomMaterial::shadersSharedCode() const
 QVector<Q3DSMaterial::Shader> Q3DSCustomMaterial::shaders() const
 {
     return m_shaders;
+}
+
+QVector<Q3DSMaterial::Pass> Q3DSCustomMaterial::passes() const
+{
+    return m_passes;
 }
 
 Qt3DRender::QMaterial *Q3DSCustomMaterial::generateMaterial()
@@ -327,26 +332,65 @@ quint32 Q3DSCustomMaterial::layerCount() const
     return m_layerCount;
 }
 
-quint32 Q3DSCustomMaterial::shaderKey() const
-{
-    return m_shaderKey;
-}
-
-bool Q3DSCustomMaterial::alwaysDirty() const
+bool Q3DSCustomMaterial::isAlwaysDirty() const
 {
     return m_alwaysDirty;
 }
 
-bool Q3DSCustomMaterial::hasRefraction() const
+bool Q3DSCustomMaterial::shaderIsDielectric() const
 {
-    return m_hasRefraction;
+    return m_shaderKey & Diffuse;
 }
 
-bool Q3DSCustomMaterial::hasTransparency() const
+bool Q3DSCustomMaterial::shaderIsSpecular() const
+{
+    return m_shaderKey & Specular;
+}
+
+bool Q3DSCustomMaterial::shaderIsGlossy() const
+{
+    return m_shaderKey & Glossy;
+}
+
+bool Q3DSCustomMaterial::shaderIsCutoutEnabled() const
+{
+    return m_shaderKey & Cutout;
+}
+
+bool Q3DSCustomMaterial::shaderHasRefraction() const
+{
+    return m_shaderKey & Refraction;
+}
+
+bool Q3DSCustomMaterial::shaderHasTransparency() const
+{
+    return m_shaderKey & Transparent;
+}
+
+bool Q3DSCustomMaterial::shaderIsDisplaced() const
+{
+    return m_shaderKey & Displace;
+}
+
+bool Q3DSCustomMaterial::shaderIsVolumetric() const
+{
+    return m_shaderKey & Volumetric;
+}
+
+bool Q3DSCustomMaterial::shaderIsTransmissive() const
+{
+    return m_shaderKey & Transmissive;
+}
+
+bool Q3DSCustomMaterial::materialHasTransparency() const
 {
     return m_hasTransparency;
 }
 
+bool Q3DSCustomMaterial::materialHasRefraction() const
+{
+    return m_hasRefraction;
+}
 
 Q3DSCustomMaterial Q3DSCustomMaterialParser::parse(const QString &filename, bool *ok)
 {
@@ -356,12 +400,12 @@ Q3DSCustomMaterial Q3DSCustomMaterialParser::parse(const QString &filename, bool
         return Q3DSCustomMaterial();
     }
 
-    Q3DSCustomMaterial customMaterial;
+    m_material = Q3DSCustomMaterial();
 
     QXmlStreamReader *r = reader();
     if (r->readNextStartElement()) {
         if (r->name() == QStringLiteral("Material") && r->attributes().value(QLatin1String("version")) == QStringLiteral("1.0"))
-            parseMaterial(customMaterial);
+            parseMaterial();
         else
             r->raiseError(QObject::tr("Not a valid version 1.0 .material file"));
     }
@@ -375,33 +419,34 @@ Q3DSCustomMaterial Q3DSCustomMaterialParser::parse(const QString &filename, bool
 
     if (ok != nullptr)
         *ok = true;
-    return customMaterial;
+
+    return m_material;
 }
 
-void Q3DSCustomMaterialParser::parseMaterial(Q3DSCustomMaterial &customMaterial)
+void Q3DSCustomMaterialParser::parseMaterial()
 {
     QXmlStreamReader *r = reader();
     for (auto attribute : r->attributes()) {
         if (attribute.name() == QStringLiteral("name"))
-            customMaterial.m_name = attribute.value().toString();
+            m_material.m_name = attribute.value().toString();
         else if (attribute.name() == QStringLiteral("description"))
-            customMaterial.m_description = attribute.value().toString();
+            m_material.m_description = attribute.value().toString();
         else if (attribute.name() == QStringLiteral("always-dirty"))
-            customMaterial.m_alwaysDirty = true;
+            m_material.m_alwaysDirty = true;
     }
 
-    if (customMaterial.m_name.isEmpty()) // Use filename (minus extension)
-        customMaterial.m_name = sourceInfo()->baseName();
+    if (m_material.m_name.isEmpty()) // Use filename (minus extension)
+        m_material.m_name = sourceInfo()->baseName();
 
     int shadersCount = 0;
     while (r->readNextStartElement()) {
         if (r->name() == QStringLiteral("MetaData")) {
-            parseMetaData(customMaterial);
+            parseMetaData();
         } else if (r->name() == QStringLiteral("Shaders")) {
-            parseShaders(customMaterial);
+            parseShaders();
             shadersCount++;
         } else if (r->name() == QStringLiteral("Passes")) {
-            parsePasses(customMaterial);
+            parsePasses();
         } else {
             r->skipCurrentElement();
         }
@@ -411,44 +456,44 @@ void Q3DSCustomMaterialParser::parseMaterial(Q3DSCustomMaterial &customMaterial)
         r->raiseError(QObject::tr("A Shaders element is required for a valid Material"));
 }
 
-void Q3DSCustomMaterialParser::parseMetaData(Q3DSCustomMaterial &customMaterial)
+void Q3DSCustomMaterialParser::parseMetaData()
 {
     QXmlStreamReader *r = reader();
     for (auto attribute : r->attributes()) {
         if (attribute.name() == QStringLiteral("author"))
-            customMaterial.m_author = attribute.value().toString();
+            m_material.m_author = attribute.value().toString();
         else if (attribute.name() == QStringLiteral("created"))
-            customMaterial.m_created = attribute.value().toString();
+            m_material.m_created = attribute.value().toString();
         else if (attribute.name() == QStringLiteral("modified"))
-            customMaterial.m_modified = attribute.value().toString();
+            m_material.m_modified = attribute.value().toString();
     }
 
     while (r->readNextStartElement()) {
         if (r->name() == QStringLiteral("Property"))
-            parseProperty(customMaterial);
+            parseProperty();
         else
             r->skipCurrentElement();
     }
 }
 
-void Q3DSCustomMaterialParser::parseShaders(Q3DSCustomMaterial &customMaterial)
+void Q3DSCustomMaterialParser::parseShaders()
 {
     QXmlStreamReader *r = reader();
     for (auto attribute : r->attributes()) {
         if (attribute.name() == QStringLiteral("type"))
-            customMaterial.m_shaderType = attribute.value().toString();
+            m_material.m_shaderType = attribute.value().toString();
         else if (attribute.name() == QStringLiteral("version"))
-            customMaterial.m_shadersVersion = attribute.value().toString();
+            m_material.m_shadersVersion = attribute.value().toString();
     }
 
     int shaderCount = 0;
     while (r->readNextStartElement()) {
         if (r->name() == QStringLiteral("Shared")) {
-            if ( r->readNext() == QXmlStreamReader::Characters)
-                customMaterial.m_shadersSharedCode = r->text().toString().trimmed();
+            if (r->readNext() == QXmlStreamReader::Characters)
+                m_material.m_shadersSharedCode = r->text().toString().trimmed();
             r->skipCurrentElement();
         } else if (r->name() == QStringLiteral("Shader")) {
-            parseShader(customMaterial);
+            parseShader();
             shaderCount++;
         } else {
             r->skipCurrentElement();
@@ -458,12 +503,12 @@ void Q3DSCustomMaterialParser::parseShaders(Q3DSCustomMaterial &customMaterial)
         r->raiseError(QObject::tr("At least one Shader is required for a valid Material"));
 }
 
-void Q3DSCustomMaterialParser::parseProperty(Q3DSCustomMaterial &customMaterial)
+void Q3DSCustomMaterialParser::parseProperty()
 {
     QXmlStreamReader *r = reader();
     Q3DSMaterial::PropertyElement property = Q3DSMaterial::parserPropertyElement(r);
 
-    if (property.name.isEmpty() || !isPropertyNameUnique(property.name, customMaterial)) {
+    if (property.name.isEmpty() || !isPropertyNameUnique(property.name)) {
         // name can not be empty
         r->raiseError(QObject::tr("Property elements must have a unique name"));
     }
@@ -471,36 +516,32 @@ void Q3DSCustomMaterialParser::parseProperty(Q3DSCustomMaterial &customMaterial)
     if (property.formalName.isEmpty())
         property.formalName = property.name;
 
-    customMaterial.m_properties.insert(property.name, property);
+    m_material.m_properties.insert(property.name, property);
 
-    while (r->readNextStartElement()) {
+    while (r->readNextStartElement())
         r->skipCurrentElement();
-    }
 }
 
-void Q3DSCustomMaterialParser::parseShader(Q3DSCustomMaterial &customMaterial)
+void Q3DSCustomMaterialParser::parseShader()
 {
     QXmlStreamReader *r = reader();
     Q3DSMaterial::Shader shader = Q3DSMaterial::parserShaderElement(r);
 
-    customMaterial.m_shaders.append(shader);
+    m_material.m_shaders.append(shader);
 }
 
-void Q3DSCustomMaterialParser::parsePasses(Q3DSCustomMaterial &customMaterial)
+void Q3DSCustomMaterialParser::parsePasses()
 {
     QXmlStreamReader *r = reader();
     while (r->readNextStartElement()) {
         if (r->name() == QStringLiteral("Pass")) {
-            //TODO: Parse Pass (not used as far as I know) UICDMMetaData.cpp: LoadMaterialClassXML(...)
-            while (r->readNextStartElement()) {
-                r->skipCurrentElement();
-            }
+            parsePass();
         } else if (r->name() == QStringLiteral("ShaderKey")) {
             for (auto attribute : r->attributes()) {
                 if (attribute.name() == QStringLiteral("value")) {
                     qint32 value;
                     if (Q3DS::convertToInt32(attribute.value(), &value, "shaderkey value", r))
-                        customMaterial.m_shaderKey = value;
+                        m_material.m_shaderKey = value;
                 }
             }
             while (r->readNextStartElement()) {
@@ -510,15 +551,15 @@ void Q3DSCustomMaterialParser::parsePasses(Q3DSCustomMaterial &customMaterial)
             for (auto attribute : r->attributes()) {
                 if (attribute.name() == QStringLiteral("count")) {
                     qint32 count;
-                    if (Q3DS::convertToInt32(attribute.value(), &count, "shaderkey value", r))
-                        customMaterial.m_layerCount = count;
+                    if (Q3DS::convertToInt32(attribute.value(), &count, "layerkey value", r))
+                        m_material.m_layerCount = count;
                 }
             }
             while (r->readNextStartElement()) {
                 r->skipCurrentElement();
             }
         } else if (r->name() == QStringLiteral("Buffer")) {
-            // TODO: parse Buffer (not used as far as I know) UICDMMetaData.cpp: LoadMaterialClassXML(...)
+            // ### parse Buffer
             while (r->readNextStartElement()) {
                 r->skipCurrentElement();
             }
@@ -528,9 +569,131 @@ void Q3DSCustomMaterialParser::parsePasses(Q3DSCustomMaterial &customMaterial)
     }
 }
 
-bool Q3DSCustomMaterialParser::isPropertyNameUnique(const QString &name, const Q3DSCustomMaterial &customMaterial)
+void Q3DSCustomMaterialParser::parsePass()
 {
-    for (auto property : customMaterial.m_properties) {
+    /* A complex example would be:
+      <Passes>
+        <ShaderKey value="20"/>
+        <LayerKey count="1"/>
+        <Buffer name="frame_buffer" format="source" filter="linear" wrap="clamp" size="1.0" lifetime="frame"/>
+        <Buffer name="dummy_buffer" type="ubyte" format="rgba" wrap="clamp" size="1.0" lifetime="frame"/>
+        <Buffer name="temp_buffer" type="fp16" format="rgba" filter="linear" wrap="clamp" size="0.5" lifetime="frame"/>
+        <Buffer name="temp_blurX" type="fp16" format="rgba" filter="linear" wrap="clamp" size="0.5" lifetime="frame"/>
+        <Buffer name="temp_blurY" type="fp16" format="rgba" filter="linear" wrap="clamp" size="0.5" lifetime="frame"/>
+        <Pass shader="NOOP" output="dummy_buffer">
+            <BufferBlit dest="frame_buffer"/>
+        </Pass>
+        <Pass shader="PREBLUR" output="temp_buffer">
+            <BufferInput value="frame_buffer" param="OriginBuffer"/>
+        </Pass>
+        <Pass shader="BLURX" output="temp_blurX">
+            <BufferInput value="temp_buffer" param="BlurBuffer"/>
+        </Pass>
+        <Pass shader="BLURY" output="temp_blurY">
+            <BufferInput value="temp_blurX" param="BlurBuffer"/>
+            <BufferInput value="temp_buffer" param="OriginBuffer"/>
+        </Pass>
+        <Pass shader="MAIN">
+            <BufferInput value="temp_blurY" param="refractiveTexture"/>
+            <Blending source="SrcAlpha" dest="OneMinusSrcAlpha"/>
+        </Pass>
+      </Passes>
+    */
+
+    QXmlStreamReader *r = reader();
+    QXmlStreamAttributes passAttrs = r->attributes();
+
+    // skip when type != "render"
+    QStringRef passType = passAttrs.value(QLatin1String("type"));
+    if (!passType.isEmpty() && passType != QStringLiteral("render")) {
+        r->skipCurrentElement();
+        return;
+    }
+
+    Q3DSMaterial::Pass pass; // sets defaults like [source], [dest], RGBA8, ...
+
+    for (auto attribute : passAttrs) {
+        if (attribute.name() == QStringLiteral("shader")) {
+            // The old runtime prefixes shader names with the custom material
+            // ID and " - ". This is skipped here since the shaders are stored
+            // per Q3DSCustomMaterial anyway.
+            pass.shaderName = attribute.value().toString();
+        } else if (attribute.name() == QStringLiteral("input")) {
+            pass.input = attribute.value().toString();
+        } else if (attribute.name() == QStringLiteral("output")) {
+            pass.output = attribute.value().toString();
+        } else if (attribute.name() == QStringLiteral("clear")) {
+            bool needsClear = false;
+            if (Q3DS::convertToBool(attribute.value(), &needsClear, "bool", r))
+                pass.needsClear = needsClear;
+        } else if (attribute.name() == QStringLiteral("format")) {
+            Q3DSMaterial::TextureFormat fmt;
+            if (Q3DSMaterial::convertToTextureFormat(attribute.value(), QLatin1String("ubyte"), &fmt, "texture format", r))
+                pass.outputFormat = fmt;
+        }
+    }
+
+    while (r->readNextStartElement()) {
+        // Commands with unspecified attributes leave the corresponding
+        // PassCommand::Data fields unset (e.g. empty string). This is
+        // different from Pass::input, output, etc. that do get a default value.
+        if (r->name() == QStringLiteral("BufferBlit")) {
+            Q3DSMaterial::PassCommand bufferBlit(Q3DSMaterial::PassCommand::BufferBlitType);
+            for (auto attribute : r->attributes()) {
+                if (attribute.name() == QStringLiteral("source"))
+                    bufferBlit.data()->source = attribute.value().toString();
+                else if (attribute.name() == QStringLiteral("dest"))
+                    bufferBlit.data()->destination = attribute.value().toString();
+            }
+            pass.commands.append(bufferBlit);
+            m_material.m_hasRefraction = true; // "We use buffer blits to simulate glass refraction"
+            while (r->readNextStartElement())
+                r->skipCurrentElement();
+        } else if (r->name() == QStringLiteral("BufferInput")) {
+            Q3DSMaterial::PassCommand bufferInput(Q3DSMaterial::PassCommand::BufferInputType);
+            for (auto attribute : r->attributes()) {
+                if (attribute.name() == QStringLiteral("param"))
+                    bufferInput.data()->param = attribute.value().toString();
+                else if (attribute.name() == QStringLiteral("value"))
+                    bufferInput.data()->value = attribute.value().toString();
+            }
+            pass.commands.append(bufferInput);
+            while (r->readNextStartElement())
+                r->skipCurrentElement();
+        } else if (r->name() == QStringLiteral("Blending")) {
+            Q3DSMaterial::PassCommand blending(Q3DSMaterial::PassCommand::BlendingType);
+            for (auto attribute : r->attributes()) {
+                if (attribute.name() == QStringLiteral("source"))
+                    blending.data()->source = attribute.value().toString();
+                else if (attribute.name() == QStringLiteral("dest"))
+                    blending.data()->destination = attribute.value().toString();
+            }
+            pass.commands.append(blending);
+            m_material.m_hasTransparency = true; // if we have blending we have transparency
+            while (r->readNextStartElement())
+                r->skipCurrentElement();
+        } else if (r->name() == QStringLiteral("RenderState")) {
+            Q3DSMaterial::PassCommand renderState(Q3DSMaterial::PassCommand::RenderStateType);
+            for (auto attribute : r->attributes()) {
+                if (attribute.name() == QStringLiteral("name"))
+                    renderState.data()->name = attribute.value().toString();
+                else if (attribute.name() == QStringLiteral("value"))
+                    renderState.data()->value = attribute.value().toString();
+            }
+            pass.commands.append(renderState);
+            while (r->readNextStartElement())
+                r->skipCurrentElement();
+        } else {
+            r->skipCurrentElement();
+        }
+    }
+
+    m_material.m_passes.append(pass);
+}
+
+bool Q3DSCustomMaterialParser::isPropertyNameUnique(const QString &name)
+{
+    for (auto property : m_material.m_properties) {
         if (property.name == name)
             return false;
     }

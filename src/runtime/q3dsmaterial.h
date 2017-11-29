@@ -40,6 +40,8 @@ QT_BEGIN_NAMESPACE
 
 class QXmlStreamReader;
 
+// The data structures here are used by both custom materials and effects.
+// Some are only applicable to effects however since those have a wider set of features.
 namespace Q3DSMaterial {
 
 enum UsageType {
@@ -153,13 +155,17 @@ struct Q3DSV_EXPORT PropertyElement
     {}
 };
 
-struct Q3DSV_EXPORT Shader
+Q_DECLARE_TYPEINFO(PropertyElement, Q_MOVABLE_TYPE);
+
+struct Q3DSV_EXPORT Shader // or rather, program
 {
     QString name;
     QString shared;
     QString vertexShader;
     QString fragmentShader;
 };
+
+Q_DECLARE_TYPEINFO(Shader, Q_MOVABLE_TYPE);
 
 enum PassBuffersType {
     UnknownBufferType,
@@ -208,6 +214,8 @@ private:
     bool m_hasSceneLifetime;
 };
 
+Q_DECLARE_TYPEINFO(PassBuffers, Q_MOVABLE_TYPE);
+
 class Q3DSV_EXPORT Buffer : public PassBuffers
 {
 public:
@@ -226,6 +234,8 @@ private:
     ClampType m_wrap;
     TextureFormat m_textureFormat;
 };
+
+Q_DECLARE_TYPEINFO(Buffer, Q_MOVABLE_TYPE);
 
 class Q3DSV_EXPORT ImageBuffer : public PassBuffers
 {
@@ -250,6 +260,8 @@ private:
     TextureFormat m_textureFormat;
 };
 
+Q_DECLARE_TYPEINFO(ImageBuffer, Q_MOVABLE_TYPE);
+
 class Q3DSV_EXPORT DataBuffer : public PassBuffers
 {
 public:
@@ -264,6 +276,8 @@ private:
     QString m_wrapName;
     QString m_wrapType;
 };
+
+Q_DECLARE_TYPEINFO(DataBuffer, Q_MOVABLE_TYPE);
 
 enum BoolOp {
     Never,
@@ -287,59 +301,72 @@ enum StencilOp {
     Invert
 };
 
-class Q3DSV_EXPORT PassState
+class Q3DSV_EXPORT PassCommand
 {
 public:
-    enum PassStateType {
+    enum Type {
         UnknownType,
-        BufferInputType,
-        DataBufferInputType,
-        ImageInputType,
-        DepthInputType,
-        BlendingType,
-        SetParamType,
-        RenderStateType,
-        DepthStencilType
+        BufferBlitType,      // custommaterial only
+        BufferInputType,     // both
+        DataBufferInputType, // effect only
+        ImageInputType,      // effect only
+        DepthInputType,      // effect only
+        BlendingType,        // both
+        SetParamType,        // both
+        RenderStateType,     // both
+        DepthStencilType     // effect only
     };
 
-    PassState(PassStateType type = UnknownType);
-    PassStateType type() const;
+    PassCommand(Type type = UnknownType);
+    Type type() const;
 
-    struct PassStateData{
+    struct Data {
         QString value;
         QString param;
         QString usage;
-        bool sync;
+        bool sync = false;
         QString source;
         QString destination;
         QString name;
         QString bufferName;
-        quint32 stencilValue;
+        quint32 stencilValue = 0;
         QString flags;
-        quint32 mask;
-        BoolOp stencilFunction;
-        StencilOp stencilFail;
-        StencilOp depthPass;
-        StencilOp depthFail;
-    } state;
+        quint32 mask = 4294967295U; // 0xffffffff
+        BoolOp stencilFunction = Equal;
+        StencilOp stencilFail = Keep;
+        StencilOp depthPass = Keep;
+        StencilOp depthFail = Keep;
+    };
+
+    const Data *data() const;
+    Data *data();
 
 private:
-    PassStateType m_type;
+    Type m_type;
+    Data m_data;
 };
+
+Q_DECLARE_TYPEINFO(PassCommand::Data, Q_MOVABLE_TYPE);
+Q_DECLARE_TYPEINFO(PassCommand, Q_MOVABLE_TYPE);
 
 struct Q3DSV_EXPORT Pass
 {
     QString shaderName;
     QString input;
     QString output;
-    QString outputFormat;
-    QVector<PassState> states;
+    Q3DSMaterial::TextureFormat outputFormat;
+    QVector<PassCommand> commands;
+    bool needsClear;
+
     Pass()
         : input(QLatin1String("[source]"))
         , output(QLatin1String("[dest]"))
-        , outputFormat(QLatin1String("rgba"))
+        , outputFormat(Q3DSMaterial::RGBA8)
+        , needsClear(false)
     {}
 };
+
+Q_DECLARE_TYPEINFO(Pass, Q_MOVABLE_TYPE);
 
 PropertyElement parserPropertyElement(QXmlStreamReader *r);
 Shader parserShaderElement(QXmlStreamReader *r);

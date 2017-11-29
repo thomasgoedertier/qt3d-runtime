@@ -64,14 +64,26 @@ public:
     QString shadersVersion() const;
     QString shadersSharedCode() const;
     QVector<Q3DSMaterial::Shader> shaders() const;
+    QVector<Q3DSMaterial::Pass> passes() const;
 
     Qt3DRender::QMaterial *generateMaterial();
 
-    bool hasTransparency() const;
-    bool hasRefraction() const;
-    bool alwaysDirty() const;
-    quint32 shaderKey() const;
-    quint32 layerCount() const;
+    bool isAlwaysDirty() const;
+
+    quint32 layerCount() const; // nothing to do with normal layers
+
+    bool shaderIsDielectric() const;
+    bool shaderIsSpecular() const;
+    bool shaderIsGlossy() const;
+    bool shaderIsCutoutEnabled() const;
+    bool shaderHasRefraction() const;
+    bool shaderHasTransparency() const;
+    bool shaderIsDisplaced() const;
+    bool shaderIsVolumetric() const;
+    bool shaderIsTransmissive() const;
+
+    bool materialHasTransparency() const;
+    bool materialHasRefraction() const;
 
 private:
     Qt3DRender::QShaderProgram *generateShaderProgram(const Q3DSMaterial::Shader &shader,
@@ -83,6 +95,7 @@ private:
     // MaterialElement
     QString m_name;
     QString m_description;
+    bool m_alwaysDirty;
 
     // MetaData
     QString m_author;
@@ -96,11 +109,25 @@ private:
     QString m_shadersSharedCode; //Shared between all shaders
     QVector<Q3DSMaterial::Shader> m_shaders;
 
+    // Passes
+    QVector<Q3DSMaterial::Pass> m_passes;
+    quint32 m_layerCount;
+    // these two are set based on Blending and Buffer stuff, not related to the shader key
     bool m_hasTransparency;
     bool m_hasRefraction;
-    bool m_alwaysDirty;
+    // metadata for the shader generator
+    enum ShaderKeyFlag {
+        Diffuse = 1 << 0,
+        Specular = 1 << 1,
+        Glossy = 1 << 2,
+        Cutout = 1 << 3,
+        Refraction = 1 << 4,
+        Transparent = 1 << 5,
+        Displace = 1 << 6,
+        Volumetric = 1 << 7,
+        Transmissive = 1 << 8,
+    };
     quint32 m_shaderKey;
-    quint32 m_layerCount;
 
     friend class Q3DSCustomMaterialParser;
 };
@@ -111,14 +138,17 @@ public:
     Q3DSCustomMaterial parse(const QString &filename, bool *ok = nullptr);
 
 private:
-    void parseMaterial(Q3DSCustomMaterial &customMaterial);
-    void parseMetaData(Q3DSCustomMaterial &customMaterial);
-    void parseShaders(Q3DSCustomMaterial &customMaterial);
-    void parseProperty(Q3DSCustomMaterial &customMaterial);
-    void parseShader(Q3DSCustomMaterial &customMaterial);
-    void parsePasses(Q3DSCustomMaterial &customMaterial);
+    void parseMaterial();
+    void parseMetaData();
+    void parseShaders();
+    void parseProperty();
+    void parseShader();
+    void parsePasses();
+    void parsePass();
 
-    bool isPropertyNameUnique(const QString &name, const Q3DSCustomMaterial &customMaterial);
+    bool isPropertyNameUnique(const QString &name);
+
+    Q3DSCustomMaterial m_material;
 };
 
 QT_END_NAMESPACE
