@@ -44,7 +44,7 @@ public:
     const QMap<QString, Q3DSMaterial::PropertyElement>& properties() const;
     const QString &sharedShaderCode() const;
     const QMap<QString, Q3DSMaterial::Shader>& shaders() const;
-    const QMap<QString, Q3DSMaterial::PassBuffers>& buffers() const;
+    const QMap<QString, Q3DSMaterial::PassBuffer>& buffers() const;
     const QVector<Q3DSMaterial::Pass> &passes() const;
 
 private:
@@ -52,7 +52,7 @@ private:
 
     QString m_sharedShaderCode;
     QMap<QString, Q3DSMaterial::Shader> m_shaders;
-    QMap<QString, Q3DSMaterial::PassBuffers> m_buffers;
+    QMap<QString, Q3DSMaterial::PassBuffer> m_buffers; // value type is the base class, subclasses have no data
     QVector<Q3DSMaterial::Pass> m_passes;
 
     friend class Q3DSEffectParser;

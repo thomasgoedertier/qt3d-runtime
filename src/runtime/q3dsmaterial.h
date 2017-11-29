@@ -155,8 +155,6 @@ struct Q3DSV_EXPORT PropertyElement
     {}
 };
 
-Q_DECLARE_TYPEINFO(PropertyElement, Q_MOVABLE_TYPE);
-
 struct Q3DSV_EXPORT Shader // or rather, program
 {
     QString name;
@@ -165,38 +163,29 @@ struct Q3DSV_EXPORT Shader // or rather, program
     QString fragmentShader;
 };
 
-Q_DECLARE_TYPEINFO(Shader, Q_MOVABLE_TYPE);
-
-enum PassBuffersType {
+enum PassBufferType {
     UnknownBufferType,
     BufferType,
     ImageType,
     DataBufferType
 };
 
-class Q3DSV_EXPORT PassBuffers
+class Q3DSV_EXPORT PassBuffer
 {
 public:
-    PassBuffers(PassBuffersType type_)
+    PassBuffer(PassBufferType type_ = UnknownBufferType)
         : m_passBufferType(type_)
-        , m_size(1.0f)
-        , m_hasSceneLifetime(false)
-    {}
-    PassBuffers()
-        : m_passBufferType(UnknownBufferType)
-        , m_size(1.0f)
-        , m_hasSceneLifetime(false)
     {}
 
     QString name() const;
     void setName(const QString &name);
 
-    PassBuffersType passBufferType() const;
+    PassBufferType passBufferType() const;
 
     QString type() const;
     void setType(const QString &type);
 
-    QString format() const;
+    QString format() const; // "source" or a texture format
     void setFormat(const QString &format);
 
     float size() const;
@@ -205,67 +194,24 @@ public:
     bool hasSceneLifetime() const;
     void setHasSceneLifetime(bool hasSceneLifetime);
 
-private:
-    QString m_name;
-    PassBuffersType m_passBufferType;
-    QString m_type;
-    QString m_format;
-    float m_size;
-    bool m_hasSceneLifetime;
-};
+    // Buffer + Image
 
-Q_DECLARE_TYPEINFO(PassBuffers, Q_MOVABLE_TYPE);
-
-class Q3DSV_EXPORT Buffer : public PassBuffers
-{
-public:
-    Buffer() : PassBuffers(PassBuffersType::BufferType) {}
     FilterType filter() const;
     void setFilter(const FilterType &filter);
 
     ClampType wrap() const;
     void setWrap(const ClampType &wrap);
 
-    TextureFormat textureFormat() const;
+    TextureFormat textureFormat() const; // unknown when format() == "source", a valid format otherwise
     void setTextureFormat(const TextureFormat &textureFormat);
 
-private:
-    FilterType m_filter;
-    ClampType m_wrap;
-    TextureFormat m_textureFormat;
-};
-
-Q_DECLARE_TYPEINFO(Buffer, Q_MOVABLE_TYPE);
-
-class Q3DSV_EXPORT ImageBuffer : public PassBuffers
-{
-public:
-    ImageBuffer() : PassBuffers(PassBuffersType::ImageType) {}
-    FilterType filter() const;
-    void setFilter(const FilterType &filter);
-
-    ClampType wrap() const;
-    void setWrap(const ClampType &wrap);
+    // Image
 
     ImageAccess access() const;
     void setAccess(ImageAccess access);
 
-    TextureFormat textureFormat() const;
-    void setTextureFormat(const TextureFormat &textureFormat);
+    // DataBuffer
 
-private:
-    FilterType m_filter;
-    ClampType m_wrap;
-    ImageAccess m_access;
-    TextureFormat m_textureFormat;
-};
-
-Q_DECLARE_TYPEINFO(ImageBuffer, Q_MOVABLE_TYPE);
-
-class Q3DSV_EXPORT DataBuffer : public PassBuffers
-{
-public:
-    DataBuffer() : PassBuffers(PassBuffersType::DataBufferType) {}
     QString wrapName() const;
     void setWrapName(const QString &wrapName);
 
@@ -273,11 +219,42 @@ public:
     void setWrapType(const QString &wrapType);
 
 private:
+    QString m_name;
+    PassBufferType m_passBufferType = UnknownBufferType;
+    QString m_type;
+    QString m_format;
+    float m_size = 1.0f;
+    bool m_hasSceneLifetime = false;
+
+    FilterType m_filter = Nearest;
+    ClampType m_wrap = Clamp;
+    TextureFormat m_textureFormat = UnknownTextureFormat;
+
+    ImageAccess m_access = Read;
+
     QString m_wrapName;
     QString m_wrapType;
 };
 
-Q_DECLARE_TYPEINFO(DataBuffer, Q_MOVABLE_TYPE);
+// no data allowed in the PassBuffer subclasses in order to avoid object slicing
+
+class Q3DSV_EXPORT Buffer : public PassBuffer
+{
+public:
+    Buffer() : PassBuffer(PassBufferType::BufferType) {}
+};
+
+class Q3DSV_EXPORT ImageBuffer : public PassBuffer
+{
+public:
+    ImageBuffer() : PassBuffer(PassBufferType::ImageType) {}
+};
+
+class Q3DSV_EXPORT DataBuffer : public PassBuffer
+{
+public:
+    DataBuffer() : PassBuffer(PassBufferType::DataBufferType) {}
+};
 
 enum BoolOp {
     Never,
@@ -346,9 +323,6 @@ private:
     Data m_data;
 };
 
-Q_DECLARE_TYPEINFO(PassCommand::Data, Q_MOVABLE_TYPE);
-Q_DECLARE_TYPEINFO(PassCommand, Q_MOVABLE_TYPE);
-
 struct Q3DSV_EXPORT Pass
 {
     QString shaderName;
@@ -366,10 +340,10 @@ struct Q3DSV_EXPORT Pass
     {}
 };
 
-Q_DECLARE_TYPEINFO(Pass, Q_MOVABLE_TYPE);
-
+// parsing code common between custom materials and effects
 PropertyElement parserPropertyElement(QXmlStreamReader *r);
 Shader parserShaderElement(QXmlStreamReader *r);
+Buffer parseBuffer(QXmlStreamReader *r);
 
 bool convertToUsageType(const QStringRef &value, Q3DSMaterial::UsageType *type, const char *desc, QXmlStreamReader *reader = nullptr);
 bool convertToFilterType(const QStringRef &value, Q3DSMaterial::FilterType *type, const char *desc, QXmlStreamReader *reader = nullptr);
@@ -380,6 +354,16 @@ bool convertToTextureFormat(const QStringRef &value, const QString &typeValue, Q
 bool convertToBlendFunc(const QStringRef &value, Q3DSMaterial::BlendFunc *type, const char *desc, QXmlStreamReader *reader = nullptr);
 bool convertToImageAccess(const QStringRef &value, Q3DSMaterial::ImageAccess *type, const char *desc, QXmlStreamReader *reader = nullptr);
 }
+
+Q_DECLARE_TYPEINFO(Q3DSMaterial::PropertyElement, Q_MOVABLE_TYPE);
+Q_DECLARE_TYPEINFO(Q3DSMaterial::Shader, Q_MOVABLE_TYPE);
+Q_DECLARE_TYPEINFO(Q3DSMaterial::PassBuffer, Q_MOVABLE_TYPE);
+Q_DECLARE_TYPEINFO(Q3DSMaterial::Buffer, Q_MOVABLE_TYPE);
+Q_DECLARE_TYPEINFO(Q3DSMaterial::ImageBuffer, Q_MOVABLE_TYPE);
+Q_DECLARE_TYPEINFO(Q3DSMaterial::DataBuffer, Q_MOVABLE_TYPE);
+Q_DECLARE_TYPEINFO(Q3DSMaterial::PassCommand::Data, Q_MOVABLE_TYPE);
+Q_DECLARE_TYPEINFO(Q3DSMaterial::PassCommand, Q_MOVABLE_TYPE);
+Q_DECLARE_TYPEINFO(Q3DSMaterial::Pass, Q_MOVABLE_TYPE);
 
 QT_END_NAMESPACE
 

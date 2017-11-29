@@ -124,147 +124,117 @@ bool convertToClampType(const QStringRef &value, ClampType *type, const char *de
     return ok;
 }
 
-QString PassBuffers::name() const
+QString PassBuffer::name() const
 {
     return m_name;
 }
 
-void PassBuffers::setName(const QString &name)
+void PassBuffer::setName(const QString &name)
 {
     m_name = name;
 }
 
-QString PassBuffers::type() const
+QString PassBuffer::type() const
 {
     return m_type;
 }
 
-void PassBuffers::setType(const QString &type)
+void PassBuffer::setType(const QString &type)
 {
     m_type = type;
 }
 
-QString PassBuffers::format() const
+QString PassBuffer::format() const
 {
     return m_format;
 }
 
-void PassBuffers::setFormat(const QString &format)
+void PassBuffer::setFormat(const QString &format)
 {
     m_format = format;
 }
 
-float PassBuffers::size() const
+float PassBuffer::size() const
 {
     return m_size;
 }
 
-void PassBuffers::setSize(float size)
+void PassBuffer::setSize(float size)
 {
     m_size = size;
 }
 
-bool PassBuffers::hasSceneLifetime() const
+bool PassBuffer::hasSceneLifetime() const
 {
     return m_hasSceneLifetime;
 }
 
-void PassBuffers::setHasSceneLifetime(bool hasSceneLifetime)
+void PassBuffer::setHasSceneLifetime(bool hasSceneLifetime)
 {
     m_hasSceneLifetime = hasSceneLifetime;
 }
 
-PassBuffersType PassBuffers::passBufferType() const
+PassBufferType PassBuffer::passBufferType() const
 {
     return m_passBufferType;
 }
 
-FilterType Buffer::filter() const
+FilterType PassBuffer::filter() const
 {
     return m_filter;
 }
 
-void Buffer::setFilter(const FilterType &filter)
+void PassBuffer::setFilter(const FilterType &filter)
 {
     m_filter = filter;
 }
 
-ClampType Buffer::wrap() const
+ClampType PassBuffer::wrap() const
 {
     return m_wrap;
 }
 
-void Buffer::setWrap(const ClampType &wrap)
+void PassBuffer::setWrap(const ClampType &wrap)
 {
     m_wrap = wrap;
 }
 
-TextureFormat Buffer::textureFormat() const
+TextureFormat PassBuffer::textureFormat() const
 {
     return m_textureFormat;
 }
 
-void Buffer::setTextureFormat(const TextureFormat &textureFormat)
+void PassBuffer::setTextureFormat(const TextureFormat &textureFormat)
 {
     m_textureFormat = textureFormat;
 }
 
-FilterType ImageBuffer::filter() const
-{
-    return m_filter;
-}
-
-void ImageBuffer::setFilter(const FilterType &filter)
-{
-    m_filter = filter;
-}
-
-ClampType ImageBuffer::wrap() const
-{
-    return m_wrap;
-}
-
-void ImageBuffer::setWrap(const ClampType &wrap)
-{
-    m_wrap = wrap;
-}
-
-ImageAccess ImageBuffer::access() const
+ImageAccess PassBuffer::access() const
 {
     return m_access;
 }
 
-void ImageBuffer::setAccess(ImageAccess access)
+void PassBuffer::setAccess(ImageAccess access)
 {
     m_access = access;
 }
 
-TextureFormat ImageBuffer::textureFormat() const
-{
-    return m_textureFormat;
-}
-
-void ImageBuffer::setTextureFormat(const TextureFormat &textureFormat)
-{
-    m_textureFormat = textureFormat;
-}
-
-QString DataBuffer::wrapName() const
+QString PassBuffer::wrapName() const
 {
     return m_wrapName;
 }
 
-void DataBuffer::setWrapName(const QString &wrapName)
+void PassBuffer::setWrapName(const QString &wrapName)
 {
     m_wrapName = wrapName;
 }
 
-QString DataBuffer::wrapType() const
+QString PassBuffer::wrapType() const
 {
     return m_wrapType;
 }
 
-void DataBuffer::setWrapType(const QString &wrapType)
+void PassBuffer::setWrapType(const QString &wrapType)
 {
     m_wrapType = wrapType;
 }
@@ -370,6 +340,46 @@ Shader parserShaderElement(QXmlStreamReader *r)
         }
     }
     return shader;
+}
+
+Buffer parseBuffer(QXmlStreamReader *r)
+{
+    Q3DSMaterial::Buffer buffer;
+
+    for (auto attribute : r->attributes()) {
+        if (attribute.name() == QStringLiteral("name")) {
+            buffer.setName(attribute.value().toString());
+        } else if (attribute.name() == QStringLiteral("lifetime")) {
+            buffer.setHasSceneLifetime(attribute.value().toString() == QStringLiteral("scene"));
+        } else if (attribute.name() == QStringLiteral("type")) {
+            buffer.setType(attribute.value().toString());
+        } else if (attribute.name() == QStringLiteral("format")) {
+            buffer.setFormat(attribute.value().toString());
+        } else if (attribute.name() == QStringLiteral("filter")) {
+            Q3DSMaterial::FilterType filter;
+            if (Q3DSMaterial::convertToFilterType(attribute.value(), &filter, "filter", r))
+                buffer.setFilter(filter);
+        } else if (attribute.name() == QStringLiteral("wrap")) {
+            Q3DSMaterial::ClampType wrap;
+            if (Q3DSMaterial::convertToClampType(attribute.value(), &wrap, "wrap", r))
+                buffer.setWrap(wrap);
+        } else if (attribute.name() == QStringLiteral("size")) {
+            float size;
+            if (Q3DS::convertToFloat(attribute.value(), &size, "size", r))
+                buffer.setSize(size);
+        }
+    }
+
+    // Try to resolve the texture format. "source" is handled specially and resolves to Unknown.
+    Q3DSMaterial::TextureFormat format;
+    const QString formatStr = buffer.format();
+    if (Q3DSMaterial::convertToTextureFormat(&formatStr, buffer.type(), &format, "texture format", r))
+        buffer.setTextureFormat(format);
+
+    while (r->readNextStartElement())
+        r->skipCurrentElement();
+
+    return buffer;
 }
 
 QString filterTypeToString(FilterType type)

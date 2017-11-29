@@ -89,14 +89,19 @@ QString Q3DSCustomMaterial::shadersSharedCode() const
     return m_shadersSharedCode;
 }
 
-QVector<Q3DSMaterial::Shader> Q3DSCustomMaterial::shaders() const
+const QVector<Q3DSMaterial::Shader> &Q3DSCustomMaterial::shaders() const
 {
     return m_shaders;
 }
 
-QVector<Q3DSMaterial::Pass> Q3DSCustomMaterial::passes() const
+const QVector<Q3DSMaterial::Pass> &Q3DSCustomMaterial::passes() const
 {
     return m_passes;
+}
+
+const QHash<QString, Q3DSMaterial::Buffer> &Q3DSCustomMaterial::buffers() const
+{
+    return m_buffers;
 }
 
 Qt3DRender::QMaterial *Q3DSCustomMaterial::generateMaterial()
@@ -544,9 +549,8 @@ void Q3DSCustomMaterialParser::parsePasses()
                         m_material.m_shaderKey = value;
                 }
             }
-            while (r->readNextStartElement()) {
+            while (r->readNextStartElement())
                 r->skipCurrentElement();
-            }
         } else if (r->name() == QStringLiteral("LayerKey")) {
             for (auto attribute : r->attributes()) {
                 if (attribute.name() == QStringLiteral("count")) {
@@ -555,14 +559,10 @@ void Q3DSCustomMaterialParser::parsePasses()
                         m_material.m_layerCount = count;
                 }
             }
-            while (r->readNextStartElement()) {
+            while (r->readNextStartElement())
                 r->skipCurrentElement();
-            }
         } else if (r->name() == QStringLiteral("Buffer")) {
-            // ### parse Buffer
-            while (r->readNextStartElement()) {
-                r->skipCurrentElement();
-            }
+            parseBuffer();
         } else {
             r->skipCurrentElement();
         }
@@ -689,6 +689,13 @@ void Q3DSCustomMaterialParser::parsePass()
     }
 
     m_material.m_passes.append(pass);
+}
+
+void Q3DSCustomMaterialParser::parseBuffer()
+{
+    QXmlStreamReader *r = reader();
+    Q3DSMaterial::Buffer buffer = Q3DSMaterial::parseBuffer(r);
+    m_material.m_buffers.insert(buffer.name(), buffer);
 }
 
 bool Q3DSCustomMaterialParser::isPropertyNameUnique(const QString &name)

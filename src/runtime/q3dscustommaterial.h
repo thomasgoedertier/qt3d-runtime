@@ -63,8 +63,9 @@ public:
     QString shaderType() const;
     QString shadersVersion() const;
     QString shadersSharedCode() const;
-    QVector<Q3DSMaterial::Shader> shaders() const;
-    QVector<Q3DSMaterial::Pass> passes() const;
+    const QVector<Q3DSMaterial::Shader> &shaders() const;
+    const QVector<Q3DSMaterial::Pass> &passes() const;
+    const QHash<QString, Q3DSMaterial::Buffer> &buffers() const;
 
     Qt3DRender::QMaterial *generateMaterial();
 
@@ -111,6 +112,7 @@ private:
 
     // Passes
     QVector<Q3DSMaterial::Pass> m_passes;
+    QHash<QString, Q3DSMaterial::Buffer> m_buffers;
     quint32 m_layerCount;
     // these two are set based on Blending and Buffer stuff, not related to the shader key
     bool m_hasTransparency;
@@ -145,6 +147,7 @@ private:
     void parseShader();
     void parsePasses();
     void parsePass();
+    void parseBuffer();
 
     bool isPropertyNameUnique(const QString &name);
 

@@ -47,6 +47,7 @@ private Q_SLOTS:
     void testValidateData();
     void testMaterialGeneration();
     void testCommands();
+    void testBuffers();
 };
 
 tst_Q3DSCustomMaterialParser::tst_Q3DSCustomMaterialParser()
@@ -251,6 +252,73 @@ void tst_Q3DSCustomMaterialParser::testCommands()
     QCOMPARE(cmd.type(), Q3DSMaterial::PassCommand::BlendingType);
     QCOMPARE(cmd.data()->source, QLatin1String("SrcAlpha"));
     QCOMPARE(cmd.data()->destination, QLatin1String("OneMinusSrcAlpha"));
+}
+
+void tst_Q3DSCustomMaterialParser::testBuffers()
+{
+    Q3DSCustomMaterialParser parser;
+    Q3DSCustomMaterial customMaterial;
+    bool ok = false;
+
+    customMaterial = parser.parse(QStringLiteral(":/data/thin_glass_frosted.material"), &ok);
+    QVERIFY(ok);
+    QVERIFY(!customMaterial.isNull());
+
+    QCOMPARE(customMaterial.shaders().count(), 5);
+    QCOMPARE(customMaterial.passes().count(), 5);
+    QCOMPARE(customMaterial.buffers().count(), 5);
+
+    auto buffers = customMaterial.buffers();
+    QVERIFY(buffers.contains(QLatin1String("frame_buffer")));
+    QVERIFY(buffers.contains(QLatin1String("dummy_buffer")));
+    QVERIFY(buffers.contains(QLatin1String("temp_buffer")));
+    QVERIFY(buffers.contains(QLatin1String("temp_blurX")));
+    QVERIFY(buffers.contains(QLatin1String("temp_blurY")));
+
+    Q3DSMaterial::Buffer b = buffers.value(QLatin1String("frame_buffer"));
+    QCOMPARE(b.format(), QStringLiteral("source"));
+    QCOMPARE(b.type(), QString());
+    QCOMPARE(b.textureFormat(), Q3DSMaterial::UnknownTextureFormat);
+    QCOMPARE(b.filter(), Q3DSMaterial::Linear);
+    QCOMPARE(b.wrap(), Q3DSMaterial::Clamp);
+    QCOMPARE(b.size(), 1.0f);
+    QCOMPARE(b.hasSceneLifetime(), false);
+
+    b = buffers.value(QLatin1String("dummy_buffer"));
+    QCOMPARE(b.format(), QStringLiteral("rgba"));
+    QCOMPARE(b.type(), QStringLiteral("ubyte"));
+    QCOMPARE(b.textureFormat(), Q3DSMaterial::RGBA8);
+    QCOMPARE(b.filter(), Q3DSMaterial::Nearest);
+    QCOMPARE(b.wrap(), Q3DSMaterial::Clamp);
+    QCOMPARE(b.size(), 1.0f);
+    QCOMPARE(b.hasSceneLifetime(), false);
+
+    b = buffers.value(QLatin1String("temp_buffer"));
+    QCOMPARE(b.format(), QStringLiteral("rgba"));
+    QCOMPARE(b.type(), QStringLiteral("fp16"));
+    QCOMPARE(b.textureFormat(), Q3DSMaterial::RGBA16F);
+    QCOMPARE(b.filter(), Q3DSMaterial::Linear);
+    QCOMPARE(b.wrap(), Q3DSMaterial::Clamp);
+    QCOMPARE(b.size(), 0.5f);
+    QCOMPARE(b.hasSceneLifetime(), false);
+
+    b = buffers.value(QLatin1String("temp_blurX"));
+    QCOMPARE(b.format(), QStringLiteral("rgba"));
+    QCOMPARE(b.type(), QStringLiteral("fp16"));
+    QCOMPARE(b.textureFormat(), Q3DSMaterial::RGBA16F);
+    QCOMPARE(b.filter(), Q3DSMaterial::Linear);
+    QCOMPARE(b.wrap(), Q3DSMaterial::Clamp);
+    QCOMPARE(b.size(), 0.5f);
+    QCOMPARE(b.hasSceneLifetime(), false);
+
+    b = buffers.value(QLatin1String("temp_blurY"));
+    QCOMPARE(b.format(), QStringLiteral("rgba"));
+    QCOMPARE(b.type(), QStringLiteral("fp16"));
+    QCOMPARE(b.textureFormat(), Q3DSMaterial::RGBA16F);
+    QCOMPARE(b.filter(), Q3DSMaterial::Linear);
+    QCOMPARE(b.wrap(), Q3DSMaterial::Clamp);
+    QCOMPARE(b.size(), 0.5f);
+    QCOMPARE(b.hasSceneLifetime(), false);
 }
 
 QTEST_MAIN(tst_Q3DSCustomMaterialParser)

@@ -58,7 +58,7 @@ const QMap<QString, Q3DSMaterial::Shader> &Q3DSEffect::shaders() const
     return m_shaders;
 }
 
-const QMap<QString, Q3DSMaterial::PassBuffers> &Q3DSEffect::buffers() const
+const QMap<QString, Q3DSMaterial::PassBuffer> &Q3DSEffect::buffers() const
 {
     return m_buffers;
 }
@@ -332,41 +332,9 @@ void Q3DSEffectParser::parsePass(Q3DSEffect &effect)
 
 void Q3DSEffectParser::parseBuffer(Q3DSEffect &effect)
 {
-    Q3DSMaterial::Buffer buffer;
     QXmlStreamReader *r = reader();
-    for (auto attribute : r->attributes()) {
-        if (attribute.name() == QStringLiteral("name")) {
-            buffer.setName(attribute.value().toString());
-        } else if (attribute.name() == QStringLiteral("lifetime")) {
-            buffer.setHasSceneLifetime(attribute.value().toString() == QStringLiteral("scene"));
-        } else if (attribute.name() == QStringLiteral("type")) {
-            buffer.setType(attribute.value().toString());
-        } else if (attribute.name() == QStringLiteral("format")) {
-            buffer.setFormat(attribute.value().toString());
-        } else if (attribute.name() == QStringLiteral("filter")) {
-            Q3DSMaterial::FilterType filter;
-            if (Q3DSMaterial::convertToFilterType(attribute.value(), &filter, "filter", r))
-                buffer.setFilter(filter);
-        } else if (attribute.name() == QStringLiteral("wrap")) {
-            Q3DSMaterial::ClampType wrap;
-            if (Q3DSMaterial::convertToClampType(attribute.value(), &wrap, "wrap", r))
-                buffer.setWrap(wrap);
-        } else if (attribute.name() == QStringLiteral("size")) {
-            float size;
-            if (Q3DS::convertToFloat(attribute.value(), &size, "size", r))
-                buffer.setSize(size);
-        }
-    }
-    // Try and resolve TextureFormat
-    Q3DSMaterial::TextureFormat format;
-    const QString formatStr = buffer.format();
-    if (Q3DSMaterial::convertToTextureFormat(&formatStr, buffer.type(), &format, "texture format", r)) {
-        buffer.setTextureFormat(format);
-    }
+    Q3DSMaterial::Buffer buffer = Q3DSMaterial::parseBuffer(r);
     effect.m_buffers.insert(buffer.name(), buffer);
-
-    while (r->readNextStartElement())
-        r->skipCurrentElement();
 }
 
 void Q3DSEffectParser::parseImage(Q3DSEffect &effect)
