@@ -327,12 +327,18 @@ struct Q3DSTextureParameters
     QString subPresId;
 };
 
-class Q3DSDefaultMaterialAttached : public Q3DSGraphObjectAttached
+// common base class for default and custom material data
+class Q3DSMaterialAttached : public Q3DSGraphObjectAttached
 {
 public:
     Qt3DCore::QEntity *entity = nullptr; // model3DS->attached->entity, req'd separately here for templated animation stuff
     Q3DSModelNode *model3DS = nullptr;
     float opacity = 1.0f;
+};
+
+class Q3DSDefaultMaterialAttached : public Q3DSMaterialAttached
+{
+public:
     Qt3DRender::QParameter *diffuseParam = nullptr;
     Qt3DRender::QParameter *materialDiffuseParam = nullptr;
     Qt3DRender::QParameter *materialPropertiesParam = nullptr;
@@ -357,6 +363,11 @@ public:
     Q3DSTextureParameters translucencyMapParams;
 };
 
+class Q3DSCustomMaterialAttached : public Q3DSMaterialAttached
+{
+public:
+};
+
 class Q3DSSlideAttached : public Q3DSGraphObjectAttached
 {
 public:
@@ -368,7 +379,8 @@ class Q3DSImageAttached : public Q3DSGraphObjectAttached
 {
 public:
     Qt3DCore::QEntity *entity = nullptr; // dummy, for animation
-    QSet<Q3DSDefaultMaterial *> referencingMaterials;
+    QSet<Q3DSDefaultMaterial *> referencingDefaultMaterials;
+    QSet<Q3DSCustomMaterialInstance *> referencingCustomMaterials;
 };
 
 struct Q3DSSubPresentation
@@ -511,9 +523,11 @@ private:
     void retagSubMeshes(Q3DSModelNode *model3DS);
     void prepareTextureParameters(Q3DSTextureParameters &textureParameters, const QString &name);
     QVector<Qt3DRender::QParameter *> prepareDefaultMaterial(Q3DSDefaultMaterial *m, Q3DSModelNode *model3DS);
+    void prepareCustomMaterial(Q3DSCustomMaterialInstance *m, Q3DSModelNode *model3DS);
     void setImageTextureFromSubPresentation(Qt3DRender::QParameter *sampler, Q3DSImage *image);
     void updateTextureParameters(Q3DSTextureParameters &textureParameters, Q3DSImage *image);
     void updateDefaultMaterial(Q3DSDefaultMaterial *m);
+    void updateCustomMaterial(Q3DSCustomMaterialInstance *m);
     void gatherLights(Q3DSGraphObject *root, QVector<Q3DSLightSource> *allLights, QVector<Q3DSLightSource> *nonAreaLights,
                       QVector<Q3DSLightSource> *areaLights, QVector<Q3DSLightNode *> *lightNodes);
     void updateLightsBuffer(const QVector<Q3DSLightSource> &lights, Qt3DRender::QBuffer *uniformBuffer);

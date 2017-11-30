@@ -160,7 +160,8 @@ public:
         CameraDirty = 0x100,
         DefaultMaterialDirty = 0x200,
         ImageDirty = 0x400,
-        LayerDirty = 0x800
+        LayerDirty = 0x800,
+        CustomMaterialDirty = 0x1000
     };
     Q_DECLARE_FLAGS(DirtyFlags, DirtyFlag)
 

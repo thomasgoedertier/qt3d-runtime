@@ -3352,7 +3352,15 @@ void Q3DSSceneManager::buildModelMaterial(Q3DSModelNode *model3DS)
                 sm.entity->addComponent(sm.materialComponent);
             } else if (sm.resolvedMaterial->type() == Q3DSGraphObject::CustomMaterial) {
 
-                // ### custom materials - lots of code to be added, light handling should be something like the following:
+                // ### custom materials
+
+                Q3DSCustomMaterialInstance *customMaterial = static_cast<Q3DSCustomMaterialInstance *>(sm.resolvedMaterial);
+                prepareCustomMaterial(customMaterial, model3DS);
+                Q3DSCustomMaterialAttached *custMatData = static_cast<Q3DSCustomMaterialAttached *>(customMaterial->attached());
+                custMatData->opacity = modelData->globalOpacity;
+                updateCustomMaterial(customMaterial);
+
+                // light handling should be something like the following:
 
                 // Here lights are provided in two separate buffers.
                 if (!layerData->nonAreaLightsConstantBuffer) {
@@ -3422,6 +3430,8 @@ void Q3DSSceneManager::retagSubMeshes(Q3DSModelNode *model3DS)
                                defaultMaterial->blendMode() != Q3DSDefaultMaterial::Normal);
         } else if (sm.resolvedMaterial->type() == Q3DSGraphObject::CustomMaterial) {
             // ### custom material
+            auto customMaterial = static_cast<Q3DSCustomMaterialInstance *>(sm.resolvedMaterial);
+            Q_UNUSED(customMaterial);
         }
 
         sm.hasTransparency = opacity < 1.0f || hasTransparency;
@@ -3596,73 +3606,73 @@ QVector<Qt3DRender::QParameter *> Q3DSSceneManager::prepareDefaultMaterial(Q3DSD
     if (m->diffuseMap()) {
         prepareTextureParameters(data->diffuseMapParams, QLatin1String("diffuseMap"));
         params.append(data->diffuseMapParams.parameters());
-        static_cast<Q3DSImageAttached *>(m->diffuseMap()->attached())->referencingMaterials.insert(m);
+        static_cast<Q3DSImageAttached *>(m->diffuseMap()->attached())->referencingDefaultMaterials.insert(m);
     }
 
     if (m->diffuseMap2()) {
         prepareTextureParameters(data->diffuseMap2Params, QLatin1String("diffuseMap2"));
         params.append(data->diffuseMap2Params.parameters());
-        static_cast<Q3DSImageAttached *>(m->diffuseMap2()->attached())->referencingMaterials.insert(m);
+        static_cast<Q3DSImageAttached *>(m->diffuseMap2()->attached())->referencingDefaultMaterials.insert(m);
     }
 
     if (m->diffuseMap3()) {
         prepareTextureParameters(data->diffuseMap3Params, QLatin1String("diffuseMap3"));
         params.append(data->diffuseMap3Params.parameters());
-        static_cast<Q3DSImageAttached *>(m->diffuseMap3()->attached())->referencingMaterials.insert(m);
+        static_cast<Q3DSImageAttached *>(m->diffuseMap3()->attached())->referencingDefaultMaterials.insert(m);
     }
 
     if (m->specularReflection()) {
         prepareTextureParameters(data->specularReflectionParams, QLatin1String("specularreflection"));
         params.append(data->specularReflectionParams.parameters());
-        static_cast<Q3DSImageAttached *>(m->specularReflection()->attached())->referencingMaterials.insert(m);
+        static_cast<Q3DSImageAttached *>(m->specularReflection()->attached())->referencingDefaultMaterials.insert(m);
     }
 
     if (m->specularMap()) {
         prepareTextureParameters(data->specularMapParams, QLatin1String("specularMap"));
         params.append(data->specularMapParams.parameters());
-        static_cast<Q3DSImageAttached *>(m->specularMap()->attached())->referencingMaterials.insert(m);
+        static_cast<Q3DSImageAttached *>(m->specularMap()->attached())->referencingDefaultMaterials.insert(m);
     }
 
     if (m->bumpMap()) {
         prepareTextureParameters(data->bumpMapParams, QLatin1String("bumpMap"));
         params.append(data->bumpMapParams.parameters());
-        static_cast<Q3DSImageAttached *>(m->bumpMap()->attached())->referencingMaterials.insert(m);
+        static_cast<Q3DSImageAttached *>(m->bumpMap()->attached())->referencingDefaultMaterials.insert(m);
     }
 
     if (m->normalMap()) {
         prepareTextureParameters(data->normalMapParams, QLatin1String("normalMap"));
         params.append(data->normalMapParams.parameters());
-        static_cast<Q3DSImageAttached *>(m->normalMap()->attached())->referencingMaterials.insert(m);
+        static_cast<Q3DSImageAttached *>(m->normalMap()->attached())->referencingDefaultMaterials.insert(m);
     }
 
     if (m->displacementmap()) {
         prepareTextureParameters(data->displacementMapParams, QLatin1String("displacementMap"));
         params.append(data->displacementMapParams.parameters());
-        static_cast<Q3DSImageAttached *>(m->displacementmap()->attached())->referencingMaterials.insert(m);
+        static_cast<Q3DSImageAttached *>(m->displacementmap()->attached())->referencingDefaultMaterials.insert(m);
     }
 
     if (m->opacityMap()) {
         prepareTextureParameters(data->opacityMapParams, QLatin1String("opacityMap"));
         params.append(data->opacityMapParams.parameters());
-        static_cast<Q3DSImageAttached *>(m->opacityMap()->attached())->referencingMaterials.insert(m);
+        static_cast<Q3DSImageAttached *>(m->opacityMap()->attached())->referencingDefaultMaterials.insert(m);
     }
 
     if (m->emissiveMap()) {
         prepareTextureParameters(data->emissiveMapParams, QLatin1String("emissiveMap"));
         params.append(data->emissiveMapParams.parameters());
-        static_cast<Q3DSImageAttached *>(m->emissiveMap()->attached())->referencingMaterials.insert(m);
+        static_cast<Q3DSImageAttached *>(m->emissiveMap()->attached())->referencingDefaultMaterials.insert(m);
     }
 
     if (m->emissiveMap2()) {
         prepareTextureParameters(data->emissiveMap2Params, QLatin1String("emissiveMap2"));
         params.append(data->emissiveMap2Params.parameters());
-        static_cast<Q3DSImageAttached *>(m->emissiveMap2()->attached())->referencingMaterials.insert(m);
+        static_cast<Q3DSImageAttached *>(m->emissiveMap2()->attached())->referencingDefaultMaterials.insert(m);
     }
 
     if (m->translucencyMap()) {
         prepareTextureParameters(data->translucencyMapParams, QLatin1String("translucencyMap"));
         params.append(data->translucencyMapParams.parameters());
-        static_cast<Q3DSImageAttached *>(m->translucencyMap()->attached())->referencingMaterials.insert(m);
+        static_cast<Q3DSImageAttached *>(m->translucencyMap()->attached())->referencingDefaultMaterials.insert(m);
     }
 
     return params;
@@ -3743,6 +3753,27 @@ void Q3DSSceneManager::updateDefaultMaterial(Q3DSDefaultMaterial *m)
 
     if (m->translucencyMap())
         updateTextureParameters(data->translucencyMapParams, m->translucencyMap());
+}
+
+void Q3DSSceneManager::prepareCustomMaterial(Q3DSCustomMaterialInstance *m, Q3DSModelNode *model3DS)
+{
+    if (!m->attached())
+        m->setAttached(new Q3DSCustomMaterialAttached);
+
+    Q3DSCustomMaterialAttached *data = static_cast<Q3DSCustomMaterialAttached *>(m->attached());
+    Q3DSModelAttached *modelData = static_cast<Q3DSModelAttached *>(model3DS->attached());
+    data->entity = modelData->entity;
+    data->model3DS = model3DS;
+
+    // ### custom material
+
+    // also keep image.referencingCustomMaterials up-to-date!
+}
+
+void Q3DSSceneManager::updateCustomMaterial(Q3DSCustomMaterialInstance *m)
+{
+    // ### custom material
+    Q_UNUSED(m);
 }
 
 void Q3DSSceneManager::gatherLights(Q3DSGraphObject *root,
@@ -4059,9 +4090,9 @@ void Q3DSSceneManager::prepareNextFrame()
 
 static void markLayerForObjectDirty(Q3DSGraphObject *obj)
 {
-    auto findLayerForDefMat = [](Q3DSGraphObject *obj) {
+    auto findLayerForMat = [](Q3DSGraphObject *obj) {
         Q3DSLayerNode *layer3DS = nullptr;
-        Q3DSDefaultMaterialAttached *data = static_cast<Q3DSDefaultMaterialAttached *>(obj->attached());
+        Q3DSMaterialAttached *data = static_cast<Q3DSMaterialAttached *>(obj->attached());
         if (data && data->model3DS) {
             Q3DSNodeAttached *ndata = static_cast<Q3DSNodeAttached *>(data->model3DS->attached());
             layer3DS = ndata->layer3DS;
@@ -4080,17 +4111,21 @@ static void markLayerForObjectDirty(Q3DSGraphObject *obj)
             markLayerDirty(data->layer3DS);
     } else if (obj->type() == Q3DSGraphObject::Image) {
         Q3DSImageAttached *data = static_cast<Q3DSImageAttached *>(obj->attached());
-        for (Q3DSDefaultMaterial *mat3DS : qAsConst(data->referencingMaterials)) {
-            Q3DSLayerNode *layer3DS = findLayerForDefMat(mat3DS);
+        for (Q3DSDefaultMaterial *mat3DS : qAsConst(data->referencingDefaultMaterials)) {
+            Q3DSLayerNode *layer3DS = findLayerForMat(mat3DS);
             if (layer3DS)
                 markLayerDirty(layer3DS);
         }
-    } else if (obj->type() == Q3DSGraphObject::DefaultMaterial) {
-        Q3DSLayerNode *layer3DS = findLayerForDefMat(obj);
+        for (Q3DSCustomMaterialInstance *mat3DS : qAsConst(data->referencingCustomMaterials)) {
+            Q3DSLayerNode *layer3DS = findLayerForMat(mat3DS);
+            if (layer3DS)
+                markLayerDirty(layer3DS);
+        }
+    } else if (obj->type() == Q3DSGraphObject::DefaultMaterial || obj->type() == Q3DSGraphObject::CustomMaterial) {
+        Q3DSLayerNode *layer3DS = findLayerForMat(obj);
         if (layer3DS)
             markLayerDirty(layer3DS);
     }
-    // ### custom materials, effects, ...
 }
 
 void Q3DSSceneManager::updateSubTreeRecursive(Q3DSGraphObject *obj)
@@ -4208,14 +4243,29 @@ void Q3DSSceneManager::updateSubTreeRecursive(Q3DSGraphObject *obj)
         }
     }
         break;
+    case Q3DSGraphObject::CustomMaterial:
+    {
+        Q3DSCustomMaterialInstance *mat3DS = static_cast<Q3DSCustomMaterialInstance *>(obj);
+        Q3DSCustomMaterialAttached *data = static_cast<Q3DSCustomMaterialAttached *>(mat3DS->attached());
+        if (data && (data->dirty & Q3DSGraphObjectAttached::CustomMaterialDirty)) {
+            Q3DSModelAttached *modelData = static_cast<Q3DSModelAttached *>(data->model3DS->attached());
+            data->opacity = modelData->globalOpacity;
+            updateCustomMaterial(mat3DS);
+            m_wasDirty = true;
+            markLayerForObjectDirty(mat3DS);
+        }
+    }
+        break;
     case Q3DSGraphObject::Image:
     {
         Q3DSImage *image3DS = static_cast<Q3DSImage *>(obj);
         Q3DSImageAttached *data = static_cast<Q3DSImageAttached *>(image3DS->attached());
         if (data && (data->dirty & Q3DSGraphObjectAttached::ImageDirty)) {
             image3DS->calculateTextureTransform();
-            for (Q3DSDefaultMaterial *m : data->referencingMaterials)
+            for (Q3DSDefaultMaterial *m : data->referencingDefaultMaterials)
                 updateDefaultMaterial(m);
+            for (Q3DSCustomMaterialInstance *m : data->referencingCustomMaterials)
+                updateCustomMaterial(m);
             m_wasDirty = true;
             markLayerForObjectDirty(image3DS);
         }
