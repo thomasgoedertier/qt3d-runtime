@@ -332,7 +332,7 @@ QString Q3DSCustomMaterial::resolveShaderIncludes(const QString &shaderCode) con
     return output;
 }
 
-quint32 Q3DSCustomMaterial::layerCount() const
+int Q3DSCustomMaterial::layerCount() const
 {
     return m_layerCount;
 }

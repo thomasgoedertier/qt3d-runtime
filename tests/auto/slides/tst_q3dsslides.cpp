@@ -200,7 +200,7 @@ void tst_Q3DSSlides::initTestCase()
     QVERIFY(m_deepComponentMasterText);
 
     m_view->show();
-    QTest::qWaitForWindowExposed(m_view);
+    QVERIFY(QTest::qWaitForWindowExposed(m_view));
 }
 
 void tst_Q3DSSlides::cleanupTestCase()

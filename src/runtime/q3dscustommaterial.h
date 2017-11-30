@@ -71,7 +71,7 @@ public:
 
     bool isAlwaysDirty() const;
 
-    quint32 layerCount() const; // nothing to do with normal layers
+    int layerCount() const; // nothing to do with normal layers
 
     bool shaderIsDielectric() const;
     bool shaderIsSpecular() const;
@@ -113,7 +113,7 @@ private:
     // Passes
     QVector<Q3DSMaterial::Pass> m_passes;
     QHash<QString, Q3DSMaterial::Buffer> m_buffers;
-    quint32 m_layerCount;
+    int m_layerCount;
     // these two are set based on Blending and Buffer stuff, not related to the shader key
     bool m_hasTransparency;
     bool m_hasRefraction;
