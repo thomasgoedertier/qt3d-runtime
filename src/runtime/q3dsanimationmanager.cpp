@@ -543,7 +543,7 @@ void Q3DSAnimationManager::updateAnimations(Q3DSSlide *animSourceSlide, Q3DSSlid
         gatherAnimatableMeta(QLatin1String("Camera"), &m_cameraAnimatables);
     }
 
-    updateAnimationHelper<Q3DSCameraAttached>(camAnims, &m_cameraAnimatables, prevAnimSourceSlide, animSourceSlide, playModeSourceSlide);
+    updateAnimationHelper<Q3DSCameraAttached>(camAnims, &m_cameraAnimatables, animSourceSlide, prevAnimSourceSlide, playModeSourceSlide);
 
     if (m_lightAnimatables.isEmpty()) {
         gatherAnimatableMeta(QLatin1String("Node"), &m_lightAnimatables);
