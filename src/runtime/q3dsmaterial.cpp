@@ -259,7 +259,7 @@ PassCommand::Data *PassCommand::data()
     return &m_data;
 }
 
-PropertyElement parserPropertyElement(QXmlStreamReader *r)
+PropertyElement parsePropertyElement(QXmlStreamReader *r)
 {
     Q3DSMaterial::PropertyElement property;
     for (auto attribute : r->attributes()) {
@@ -271,8 +271,11 @@ PropertyElement parserPropertyElement(QXmlStreamReader *r)
             property.formalName = attribute.value().toString();
         } else if (attribute.name() == QStringLiteral("type")) {
             Q3DS::PropertyType type;
-            if (Q3DS::convertToPropertyType(attribute.value(), &type, "property type", r))
-                    property.type = type;
+            int componentCount;
+            if (Q3DS::convertToPropertyType(attribute.value(), &type, &componentCount, "property type", r)) {
+                property.type = type;
+                property.componentCount = componentCount;
+            }
         } else if (attribute.name() == QStringLiteral("min")) {
             float min;
             if (Q3DS::convertToFloat(attribute.value(), &min, "min value", r))

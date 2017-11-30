@@ -108,7 +108,7 @@ void Q3DSDataModelParser::parseProperty(QVector<Property> *props)
         if (a.name() == QStringLiteral("name")) {
             prop.name = a.value().toString();
         } else if (a.name() == QStringLiteral("type")) {
-            if (!Q3DS::convertToPropertyType(a.value(), &prop.type, "property type", r))
+            if (!Q3DS::convertToPropertyType(a.value(), &prop.type, &prop.componentCount, "property type", r))
                 return;
             prop.typeStr = a.value().toString();
         } else if (a.name() == QStringLiteral("list")) {

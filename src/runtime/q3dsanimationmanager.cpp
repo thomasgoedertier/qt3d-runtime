@@ -124,6 +124,8 @@ static struct AnimatableExtraMeta {
     { QLatin1String("Layer"), QLatin1String("probe2fade"), 1, &Q3DSLayerNode::setProbe2Fade, &Q3DSLayerNode::getProbe2Fade },
     { QLatin1String("Layer"), QLatin1String("probe2window"), 1, &Q3DSLayerNode::setProbe2Window, &Q3DSLayerNode::getProbe2Window },
     { QLatin1String("Layer"), QLatin1String("probe2pos"), 1, &Q3DSLayerNode::setProbe2Pos, &Q3DSLayerNode::getProbe2Pos }
+
+    // CustomMaterial is not listed here since they are handled differently
 };
 
 template<class T>
@@ -231,21 +233,17 @@ void Q3DSAnimationManager::gatherAnimatableMeta(const QString &type, AnimatableT
         for (const Q3DSDataModelParser::Property &prop : *propMeta) {
             // Filter out the ones explicitly marked with animatable="False",
             // although there's still going to be many that will never get animated (enum, Image, etc. types).
-            // There's a second filter below anyways.
+            // There's a second filter below based on extraMeta anyways.
             if (prop.animatable) {
                 Animatable a;
                 a.name = prop.name;
                 a.type = prop.type;
+                a.componentCount = prop.componentCount;
 
                 bool known = false;
-                // Add some extra metadata. We could deduce the component count
-                // from the type (as long as only 3-component vectors are
-                // supported), but the names must be mapped anyway so
-                // additional data can be included as well.
                 const size_t extraCount = sizeof(extraMeta) / sizeof(AnimatableExtraMeta);
                 for (size_t i = 0; i < extraCount; ++i) {
                     if (extraMeta[i].type3DS == type && extraMeta[i].name3DS == a.name) {
-                        a.componentCount = extraMeta[i].componentCount;
                         a.setter = extraMeta[i].setter;
                         a.getter = extraMeta[i].getter;
                         known = true;
@@ -429,7 +427,7 @@ template<class AttT, class T> void Q3DSAnimationManager::updateAnimationHelper(c
                 Q3DSGraphObjectAttached::AnimatedValueRollbackData rd;
                 rd.obj = target;
                 rd.name = chIt->meta->name;
-                rd.value = chIt->meta->getter(target);
+                rd.value = chIt->meta->getter(target, chIt->meta->name);
                 rd.setter = chIt->meta->setter;
                 data->animationRollbacks.append(rd);
             }
@@ -454,6 +452,7 @@ void Q3DSAnimationManager::updateAnimations(Q3DSSlide *animSourceSlide, Q3DSSlid
         return;
 
     QHash<Q3DSDefaultMaterial *, QVector<const Q3DSAnimationTrack *> > defMatAnims;
+    QHash<Q3DSCustomMaterialInstance *, QVector<const Q3DSAnimationTrack *> > customMatAnims;
     QHash<Q3DSCameraNode *, QVector<const Q3DSAnimationTrack *> > camAnims;
     QHash<Q3DSLightNode *, QVector<const Q3DSAnimationTrack *> > lightAnims;
     QHash<Q3DSModelNode *, QVector<const Q3DSAnimationTrack *> > modelAnims;
@@ -470,6 +469,12 @@ void Q3DSAnimationManager::updateAnimations(Q3DSSlide *animSourceSlide, Q3DSSlid
         {
             Q3DSDefaultMaterial *mat = static_cast<Q3DSDefaultMaterial *>(target);
             defMatAnims[mat].append(&animTrack);
+        }
+            break;
+        case Q3DSGraphObject::CustomMaterial:
+        {
+            Q3DSCustomMaterialInstance *mat = static_cast<Q3DSCustomMaterialInstance *>(target);
+            customMatAnims[mat].append(&animTrack);
         }
             break;
         case Q3DSGraphObject::Camera:
@@ -524,8 +529,9 @@ void Q3DSAnimationManager::updateAnimations(Q3DSSlide *animSourceSlide, Q3DSSlid
             break;
         }
     }
-    qCDebug(lcScene, "Slide %s has %d, %d, %d, %d, %d, %d, %d, %d, %d animated objects", animSourceSlide->id().constData(),
-            defMatAnims.count(), camAnims.count(), lightAnims.count(), modelAnims.count(), groupAnims.count(), compAnims.count(), textAnims.count(), imageAnims.count(), layerAnims.count());
+    qCDebug(lcScene, "Slide %s has %d, %d, %d, %d, %d, %d, %d, %d, %d, %d animated objects", animSourceSlide->id().constData(),
+            defMatAnims.count(), customMatAnims.count(), camAnims.count(), lightAnims.count(), modelAnims.count(), groupAnims.count(),
+            compAnims.count(), textAnims.count(), imageAnims.count(), layerAnims.count());
 
     if (m_defaultMaterialAnimatables.isEmpty())
         gatherAnimatableMeta(QLatin1String("Material"), &m_defaultMaterialAnimatables);
@@ -581,6 +587,33 @@ void Q3DSAnimationManager::updateAnimations(Q3DSSlide *animSourceSlide, Q3DSSlid
         gatherAnimatableMeta(QLatin1String("Layer"), &m_layerAnimatables);
 
     updateAnimationHelper<Q3DSLayerAttached>(layerAnims, &m_layerAnimatables, animSourceSlide, prevAnimSourceSlide, playModeSourceSlide);
+
+    // custom materials need special handling due to their dynamic properties
+    if (!customMatAnims.isEmpty()) {
+        AnimatableTab customMaterialAnimatables; // ### would be nice to cache this, but it depends on the actual Q3DSCustomMaterialInstance objects
+        for (auto it = customMatAnims.cbegin(), itEnd = customMatAnims.cend(); it != itEnd; ++it) {
+            Q3DSCustomMaterialInstance *mat3DS = it.key();
+            // this is the name - value map with the actual (or the default) values for the custom material instance
+            const QMap<QString, QString> *dynProps = mat3DS->materialPropertyValues();
+            // this is the metadata for all the dynamic properties of the custom material
+            const QMap<QString, Q3DSMaterial::PropertyElement> &propMeta = mat3DS->material()->properties();
+            for (auto propIt = dynProps->cbegin(), propItEnd = dynProps->cend(); propIt != propItEnd; ++propIt) {
+                Animatable a;
+                a.name = propIt.key();
+                Q_ASSERT(propMeta.contains(a.name));
+                Q3DSMaterial::PropertyElement prop = propMeta.value(a.name);
+                a.type = prop.type;
+                a.componentCount = prop.componentCount;
+                // ### custom material - add a single, generic setter/getter implementation (this is possible now due to the 3rd QString parameter in the signature)
+                // this will need revising the value in dynProps, storing just strings will not fly, it probably has to be a QVariant
+                //a.setter
+                //a.getter
+                customMaterialAnimatables.insert(a.name, a);
+            }
+        }
+
+        //updateAnimationHelper<Q3DSCustomMaterialAttached>(customMatAnims, &customMaterialAnimatables, animSourceSlide, prevAnimSourceSlide, playModeSourceSlide);
+    }
 }
 
 QDebug operator<<(QDebug dbg, const Q3DSAnimationManager::Animatable &a)
@@ -605,7 +638,7 @@ void Q3DSAnimationManager::applyChanges()
         while (it != m_changes.cend() && it.key() == target) {
             if (Q_UNLIKELY(animDebug))
                 qDebug() << "animate:" << target->id() << it->name << it->value;
-            it->setter(target, it->value);
+            it->setter(target, it->value, it->name);
             changeList.append(Q3DSPropertyChange(it->name, QString()));
             ++it;
         }

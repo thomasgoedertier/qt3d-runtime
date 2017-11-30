@@ -511,7 +511,7 @@ void Q3DSCustomMaterialParser::parseShaders()
 void Q3DSCustomMaterialParser::parseProperty()
 {
     QXmlStreamReader *r = reader();
-    Q3DSMaterial::PropertyElement property = Q3DSMaterial::parserPropertyElement(r);
+    Q3DSMaterial::PropertyElement property = Q3DSMaterial::parsePropertyElement(r);
 
     if (property.name.isEmpty() || !isPropertyNameUnique(property.name)) {
         // name can not be empty

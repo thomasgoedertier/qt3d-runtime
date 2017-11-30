@@ -59,7 +59,7 @@ enum PropertyType {     // value format
     String,             // String
     MultiLineString,    // String
     ObjectRef,          // ObjectRef
-    Image,              // Long4
+    Image,              // String
     Mesh,               // String
     Import,             // String
     Texture,            // String
@@ -72,7 +72,7 @@ enum PropertyType {     // value format
     Enum                // depends on name; data model only
 };
 
-bool convertToPropertyType(const QStringRef &value, Q3DS::PropertyType *type, const char *desc = nullptr, QXmlStreamReader *reader = nullptr);
+bool convertToPropertyType(const QStringRef &value, Q3DS::PropertyType *type, int *componentCount, const char *desc = nullptr, QXmlStreamReader *reader = nullptr);
 bool convertToFloat(const QStringRef &value, float *v, const char *desc = nullptr, QXmlStreamReader *reader = nullptr);
 bool convertToInt(const QStringRef &value, int *v, const char *desc = nullptr, QXmlStreamReader *reader = nullptr);
 bool convertToInt32(const QStringRef &value, qint32 *v, const char *desc = nullptr, QXmlStreamReader *reader = nullptr);

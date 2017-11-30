@@ -44,6 +44,7 @@ public:
     {
         QString name;
         Q3DS::PropertyType type = Q3DS::Unknown;
+        int componentCount = 1;
         QString typeStr;
         QStringList enumValues;
         QString defaultValue;

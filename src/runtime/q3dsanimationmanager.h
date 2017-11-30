@@ -42,8 +42,8 @@ public:
     void applyChanges();
     void clearPendingChanges();
 
-    typedef std::function<void (Q3DSGraphObject *, const QVariant &)> SetterFunc;
-    typedef std::function<QVariant (Q3DSGraphObject *)> GetterFunc;
+    typedef std::function<void (Q3DSGraphObject *, const QVariant &, const QString &)> SetterFunc;
+    typedef std::function<QVariant (Q3DSGraphObject *, const QString &)> GetterFunc;
 
     struct Animatable {
         QString name;

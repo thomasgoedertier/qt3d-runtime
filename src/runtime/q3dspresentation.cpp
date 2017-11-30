@@ -44,8 +44,10 @@ Q_DECLARE_LOGGING_CATEGORY(lcUip)
 
 namespace Q3DS {
 
-bool convertToPropertyType(const QStringRef &value, Q3DS::PropertyType *type, const char *desc, QXmlStreamReader *reader)
+bool convertToPropertyType(const QStringRef &value, Q3DS::PropertyType *type, int *componentCount, const char *desc, QXmlStreamReader *reader)
 {
+    if (componentCount)
+        *componentCount = 1;
     bool ok = false;
     if (value == QStringLiteral("StringList")) {
         ok = true;
@@ -62,21 +64,31 @@ bool convertToPropertyType(const QStringRef &value, Q3DS::PropertyType *type, co
     } else if (value == QStringLiteral("Float2")) {
         ok = true;
         *type = Q3DS::Float2;
+        if (componentCount)
+            *componentCount = 2;
     } else if (value == QStringLiteral("Long")) {
         ok = true;
         *type = Q3DS::Long;
     } else if (value == QStringLiteral("Vector")) {
         ok = true;
         *type = Q3DS::Vector;
+        if (componentCount)
+            *componentCount = 3;
     } else if (value == QStringLiteral("Scale")) {
         ok = true;
         *type = Q3DS::Scale;
+        if (componentCount)
+            *componentCount = 3;
     } else if (value == QStringLiteral("Rotation")) {
         ok = true;
         *type = Q3DS::Rotation;
+        if (componentCount)
+            *componentCount = 3;
     } else if (value == QStringLiteral("Color")) {
         ok = true;
         *type = Q3DS::Color;
+        if (componentCount)
+            *componentCount = 3;
     } else if (value == QStringLiteral("Boolean")) {
         ok = true;
         *type = Q3DS::Boolean;

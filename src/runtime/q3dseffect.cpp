@@ -114,7 +114,7 @@ void Q3DSEffectParser::parseProperties(Q3DSEffect &effect)
     QXmlStreamReader *r = reader();
     while (r->readNextStartElement()) {
         if (r->name() == QStringLiteral("Property")) {
-            Q3DSMaterial::PropertyElement property = Q3DSMaterial::parserPropertyElement(r);
+            Q3DSMaterial::PropertyElement property = Q3DSMaterial::parsePropertyElement(r);
 
             if (property.name.isEmpty() || !isPropertyNameUnique(property.name, effect)) {
                 // name can not be empty

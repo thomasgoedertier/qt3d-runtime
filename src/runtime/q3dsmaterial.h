@@ -131,6 +131,7 @@ struct Q3DSV_EXPORT PropertyElement
     QString description;
     QString formalName;
     Q3DS::PropertyType type;
+    int componentCount;
     float min;
     float max;
     QString defaultValue;
@@ -147,6 +148,7 @@ struct Q3DSV_EXPORT PropertyElement
 
     PropertyElement()
         : type(Q3DS::Float)
+        , componentCount(1)
         , min(0.0f)
         , max(0.0f)
         , usageType(Diffuse)
@@ -341,7 +343,7 @@ struct Q3DSV_EXPORT Pass
 };
 
 // parsing code common between custom materials and effects
-PropertyElement parserPropertyElement(QXmlStreamReader *r);
+PropertyElement parsePropertyElement(QXmlStreamReader *r);
 Shader parserShaderElement(QXmlStreamReader *r);
 Buffer parseBuffer(QXmlStreamReader *r);
 
