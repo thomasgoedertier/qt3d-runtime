@@ -3099,7 +3099,10 @@ Qt3DCore::QEntity *Q3DSSceneManager::buildLight(Q3DSLightNode *light3DS, Q3DSLay
 
 static inline QColor mulColor(const QColor &c, float f)
 {
-    return QColor::fromRgbF(c.redF() * f, c.greenF() * f, c.blueF() * f);
+    float r = qBound<float>(0.0f, c.redF() * f, 1.0f);
+    float g = qBound<float>(0.0f, c.greenF() * f, 1.0f);
+    float b = qBound<float>(0.0f, c.blueF() * f, 1.0f);
+    return QColor::fromRgbF(r, g, b);
 }
 
 void Q3DSSceneManager::setLightProperties(Q3DSLightNode *light3DS, bool forceUpdate)
