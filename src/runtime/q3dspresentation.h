@@ -1262,6 +1262,7 @@ public:
     // All custom properties, either with the default or the instance-specific value.
     // Filenames are already sanitized.
     const QVariantMap *materialPropertyValues() const { return &m_materialPropertyVals; }
+    QVariantMap *materialPropertyValues() { return &m_materialPropertyVals; }
 
     QStringList gex_propertyNames() const override;
     QVariantList gex_propertyValues() const override;
@@ -1292,6 +1293,7 @@ public:
     // All custom properties, either with the default or the instance-specific value.
     // Filenames are already sanitized.
     const QVariantMap *effectPropertyValues() const { return &m_effectPropertyVals; }
+    QVariantMap *effectPropertyValues() { return &m_effectPropertyVals; }
 
     QStringList gex_propertyNames() const override;
     QVariantList gex_propertyValues() const override;

@@ -3774,6 +3774,7 @@ void Q3DSSceneManager::updateCustomMaterial(Q3DSCustomMaterialInstance *m)
 {
     // ### custom material
     Q_UNUSED(m);
+    // set all dynamic property values to the corresponding QParameters
 }
 
 void Q3DSSceneManager::gatherLights(Q3DSGraphObject *root,
@@ -3900,6 +3901,9 @@ void Q3DSSceneManager::handlePropertyChange(Q3DSGraphObject *obj, const QSet<QSt
     if (!data) // Qt3D stuff not yet built for this object -> nothing to do
         return;
 
+    // 'keys' is not used in general, rely rather on Q3DSPropertyChangeList's
+    // pre-baked flags to determine certain special cases. For most other cases
+    // it is enough to know that _something_ has changed.
     const Q3DSPropertyChangeList::Flags cf = Q3DSPropertyChangeList::Flags(changeFlags);
 
     // all actual processing must be deferred to updateSubTreeRecursive()
@@ -3920,6 +3924,12 @@ void Q3DSSceneManager::handlePropertyChange(Q3DSGraphObject *obj, const QSet<QSt
     case Q3DSGraphObject::DefaultMaterial:
     {
         data->dirty |= Q3DSGraphObjectAttached::DefaultMaterialDirty;
+        data->changeFlags |= cf;
+    }
+        break;
+    case Q3DSGraphObject::CustomMaterial:
+    {
+        data->dirty |= Q3DSGraphObjectAttached::CustomMaterialDirty;
         data->changeFlags |= cf;
     }
         break;

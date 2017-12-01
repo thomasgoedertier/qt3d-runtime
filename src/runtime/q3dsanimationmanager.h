@@ -65,6 +65,9 @@ private:
     typedef QHash<QString, Animatable> AnimatableTab;
 
     void gatherAnimatableMeta(const QString &type, AnimatableTab *dst);
+    void gatherDynamicProperties(const QVariantMap *dynProps,
+                                 const QMap<QString, Q3DSMaterial::PropertyElement> &propMeta,
+                                 AnimatableTab *dst);
     template<class AttT, class T> void updateAnimationHelper(const QHash<T *, QVector<const Q3DSAnimationTrack *> > &targets,
                                                              AnimatableTab *animatables,
                                                              Q3DSSlide *animSourceSlide,

@@ -327,7 +327,7 @@ struct Q3DSTextureParameters
     QString subPresId;
 };
 
-// common base class for default and custom material data
+// common base class for default/custom material and effect data
 class Q3DSMaterialAttached : public Q3DSGraphObjectAttached
 {
 public:
@@ -364,6 +364,11 @@ public:
 };
 
 class Q3DSCustomMaterialAttached : public Q3DSMaterialAttached
+{
+public:
+};
+
+class Q3DSEffectAttached : public Q3DSMaterialAttached
 {
 public:
 };
