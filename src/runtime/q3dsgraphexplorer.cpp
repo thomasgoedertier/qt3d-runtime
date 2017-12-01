@@ -274,7 +274,7 @@ Q3DSGraphExplorer::Q3DSGraphExplorer(Q3DSGraphObject *root, QWidget *parent)
             if (props) {
                 s += tr("\n\nThis material has %1 custom properties").arg(props->count());
                 for (auto it = props->cbegin(), ite = props->cend(); it != ite; ++it)
-                    s += tr("\n%1: %2").arg(it.key()).arg(it.value());
+                    s += tr("\n%1: %2").arg(it.key()).arg(varStr(it.value()));
             }
         } else if (obj->type() == Q3DSGraphObject::Effect) {
             Q3DSEffectInstance *mat = static_cast<Q3DSEffectInstance *>(obj);
@@ -282,7 +282,7 @@ Q3DSGraphExplorer::Q3DSGraphExplorer(Q3DSGraphObject *root, QWidget *parent)
             if (props) {
                 s += tr("\n\nThis effect has %1 custom properties").arg(props->count());
                 for (auto it = props->cbegin(), ite = props->cend(); it != ite; ++it)
-                    s += tr("\n%1: %2").arg(it.key()).arg(it.value());
+                    s += tr("\n%1: %2").arg(it.key()).arg(varStr(it.value()));
             }
         } else if (obj->type() == Q3DSGraphObject::Component) {
             Q3DSComponentNode *comp = static_cast<Q3DSComponentNode *>(obj);

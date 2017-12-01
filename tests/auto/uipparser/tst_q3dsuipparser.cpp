@@ -634,9 +634,9 @@ void tst_Q3DSUipParser::customMaterial()
 
     QVERIFY(mat->materialPropertyValues());
     QCOMPARE(mat->materialPropertyValues()->count(), 14);
-    const QMap<QString, QString> *p = mat->materialPropertyValues();
+    const QVariantMap *p = mat->materialPropertyValues();
     QVERIFY(p->contains(QStringLiteral("uEnvironmentTexture")));
-    QCOMPARE(p->value("uEnvironmentTexture"), QStringLiteral(":/data/maps/materials/spherical_checker.png"));
+    QCOMPARE(p->value("uEnvironmentTexture").toString(), QStringLiteral(":/data/maps/materials/spherical_checker.png"));
 }
 
 void tst_Q3DSUipParser::effect()
@@ -651,10 +651,10 @@ void tst_Q3DSUipParser::effect()
     QCOMPARE(eff->parent(), pres->scene()->firstChild());
 
     Q3DSEffectInstance *e = static_cast<Q3DSEffectInstance *>(eff);
-    const QMap<QString, QString> *p = e->effectPropertyValues();
+    const QVariantMap *p = e->effectPropertyValues();
     QVERIFY(p);
     QCOMPARE(p->count(), 5);
-    QCOMPARE(p->value(QStringLiteral("FocusDistance")), QStringLiteral("100"));
+    QCOMPARE(p->value(QStringLiteral("FocusDistance")).toFloat(), 100.0f);
 }
 
 void tst_Q3DSUipParser::primitiveMeshes()

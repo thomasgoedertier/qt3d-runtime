@@ -595,7 +595,7 @@ void Q3DSAnimationManager::updateAnimations(Q3DSSlide *animSourceSlide, Q3DSSlid
         for (auto it = customMatAnims.cbegin(), itEnd = customMatAnims.cend(); it != itEnd; ++it) {
             Q3DSCustomMaterialInstance *mat3DS = it.key();
             // this is the name - value map with the actual (or the default) values for the custom material instance
-            const QMap<QString, QString> *dynProps = mat3DS->materialPropertyValues();
+            const QVariantMap *dynProps = mat3DS->materialPropertyValues();
             // this is the metadata for all the dynamic properties of the custom material
             const QMap<QString, Q3DSMaterial::PropertyElement> &propMeta = mat3DS->material()->properties();
             for (auto propIt = dynProps->cbegin(), propItEnd = dynProps->cend(); propIt != propItEnd; ++propIt) {

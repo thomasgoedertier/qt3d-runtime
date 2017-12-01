@@ -262,6 +262,60 @@ int animatablePropertyTypeToMetaType(Q3DS::PropertyType type)
     }
 }
 
+QVariant convertToVariant(const QString &value, Q3DS::PropertyType type)
+{
+    switch (type) {
+    case StringList:
+    case Slide:
+    case Font:
+    case String:
+    case MultiLineString:
+    case ObjectRef:
+    case Image:
+    case Mesh:
+    case Import:
+    case Texture:
+    case Image2D:
+    case Buffer:
+    case Guid:
+    case StringListOrInt:
+    case Renderable:
+    case PathBuffer:
+    case Enum:
+        return value;
+    case LongRange:
+    case Long:
+        return value.toInt();
+    case FloatRange:
+    case Float:
+    case FontSize:
+        return value.toFloat();
+    case Float2:
+    {
+        QVector2D v;
+        if (convertToVector2D(&value, &v))
+            return v;
+    }
+        break;
+    case Vector:
+    case Scale:
+    case Rotation:
+    case Color:
+    {
+        QVector3D v;
+        if (convertToVector3D(&value, &v))
+            return v;
+    }
+        break;
+    case Boolean:
+        return bool(value.toInt());
+    default:
+        break;
+    }
+
+    return QVariant();
+}
+
 } // namespace Q3DS
 
 Q3DSGraphObjectAttached::~Q3DSGraphObjectAttached()
@@ -1270,7 +1324,7 @@ void Q3DSCustomMaterialInstance::applyPropertyChanges(const Q3DSPropertyChangeLi
 }
 
 static void fillCustomProperties(const QMap<QString, Q3DSMaterial::PropertyElement> &propMeta,
-                                 QMap<QString, QString> *propTab,
+                                 QVariantMap *propTab,
                                  const Q3DSPropertyChangeList &instanceProps,
                                  const Q3DSUipParser &parser)
 {
@@ -1282,21 +1336,22 @@ static void fillCustomProperties(const QMap<QString, Q3DSMaterial::PropertyEleme
         for (auto it = instanceProps.cbegin(), ite = instanceProps.cend(); it != ite; ++it) {
             if (it->nameStr() == propMetaIt.key()) {
                 found = true;
-                propTab->insert(it->nameStr(), it->valueStr());
+                propTab->insert(it->nameStr(), Q3DS::convertToVariant(it->valueStr(), propMetaIt->type));
                 break;
             }
         }
         if (!found)
-            propTab->insert(propMetaIt.key(), propMetaIt->defaultValue);
+            propTab->insert(propMetaIt.key(), Q3DS::convertToVariant(propMetaIt->defaultValue, propMetaIt->type));
     }
 
     // Fix up the filenames to that no further adjustment is necessary from this point on.
     for (auto it = propTab->begin(), ite = propTab->end(); it != ite; ++it) {
-        if (it->isEmpty())
-            continue;
         Q3DS::PropertyType t = propMeta[it.key()].type;
-        if (t == Q3DS::Texture)
-            *it = parser.assetFileName(*it, nullptr);
+        if (t == Q3DS::Texture) {
+            const QString fn = it->toString();
+            if (!fn.isEmpty())
+                *it = parser.assetFileName(fn, nullptr);
+        }
     }
 }
 
