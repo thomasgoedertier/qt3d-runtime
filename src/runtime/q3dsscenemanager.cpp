@@ -3417,6 +3417,8 @@ void Q3DSSceneManager::retagSubMeshes(Q3DSModelNode *model3DS)
     for (Q3DSModelAttached::SubMesh &sm : data->subMeshes) {
         float opacity = data->globalOpacity;
         bool hasTransparency = false;
+        // Note: cannot rely on sm.resolvedMaterial->attached() since it may
+        // not yet be created. This is not a problem in practice.
         if (sm.resolvedMaterial->type() == Q3DSGraphObject::DefaultMaterial) {
             auto defaultMaterial = static_cast<Q3DSDefaultMaterial *>(sm.resolvedMaterial);
             opacity *= defaultMaterial->opacity();
@@ -3428,13 +3430,12 @@ void Q3DSSceneManager::retagSubMeshes(Q3DSModelNode *model3DS)
                                defaultMaterial->translucencyMap() ||
                                defaultMaterial->displacementmap() ||
                                defaultMaterial->blendMode() != Q3DSDefaultMaterial::Normal);
+            sm.hasTransparency = opacity < 1.0f || hasTransparency;
         } else if (sm.resolvedMaterial->type() == Q3DSGraphObject::CustomMaterial) {
-            // ### custom material
             auto customMaterial = static_cast<Q3DSCustomMaterialInstance *>(sm.resolvedMaterial);
-            Q_UNUSED(customMaterial);
+            const Q3DSCustomMaterial *matDesc = customMaterial->material();
+            sm.hasTransparency = matDesc->materialHasTransparency() || matDesc->materialHasRefraction();
         }
-
-        sm.hasTransparency = opacity < 1.0f || hasTransparency;
 
         Qt3DRender::QLayer *newTag = sm.hasTransparency ? layerData->transparentTag : layerData->opaqueTag;
         if (!sm.entity->components().contains(newTag)) {
