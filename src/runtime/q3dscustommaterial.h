@@ -40,10 +40,6 @@
 QT_BEGIN_NAMESPACE
 
 namespace Qt3DRender {
-class QEffect;
-class QTechnique;
-class QParameter;
-class QRenderPass;
 class QShaderProgram;
 }
 
@@ -90,7 +86,6 @@ private:
     Qt3DRender::QShaderProgram *generateShaderProgram(const Q3DSMaterial::Shader &shader,
                                                       const QString &globalSharedCode,
                                                       const QString &shaderPrefixCode) const;
-    QMap<QString, Qt3DRender::QParameter *> generateParameters(QString &shaderPrefix) const;
     QString resolveShaderIncludes(const QString &shaderCode) const;
 
     // MaterialElement

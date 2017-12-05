@@ -366,7 +366,21 @@ public:
 class Q3DSCustomMaterialAttached : public Q3DSMaterialAttached
 {
 public:
+    struct Parameter {
+        Parameter(Qt3DRender::QParameter *param_, const QVariant &value, const Q3DSMaterial::PropertyElement &meta_)
+            : param(param_),
+              inputValue(value),
+              meta(meta_)
+        { }
+        Parameter() { }
+        Qt3DRender::QParameter *param = nullptr;
+        QVariant inputValue; // e.g. Texture: inputValue is a string whereas param->value is a QAbstractTexture*
+        Q3DSMaterial::PropertyElement meta;
+    };
+    QHash<QString, Parameter> params;
 };
+
+Q_DECLARE_TYPEINFO(Q3DSCustomMaterialAttached::Parameter, Q_MOVABLE_TYPE);
 
 class Q3DSEffectAttached : public Q3DSGraphObjectAttached
 {
@@ -386,7 +400,6 @@ class Q3DSImageAttached : public Q3DSGraphObjectAttached
 public:
     Qt3DCore::QEntity *entity = nullptr; // dummy, for animation
     QSet<Q3DSDefaultMaterial *> referencingDefaultMaterials;
-    QSet<Q3DSCustomMaterialInstance *> referencingCustomMaterials;
 };
 
 struct Q3DSSubPresentation
@@ -529,7 +542,8 @@ private:
     void retagSubMeshes(Q3DSModelNode *model3DS);
     void prepareTextureParameters(Q3DSTextureParameters &textureParameters, const QString &name);
     QVector<Qt3DRender::QParameter *> prepareDefaultMaterial(Q3DSDefaultMaterial *m, Q3DSModelNode *model3DS);
-    void prepareCustomMaterial(Q3DSCustomMaterialInstance *m, Q3DSModelNode *model3DS);
+    Qt3DRender::QAbstractTexture *createCustomMaterialTexture(const Q3DSCustomMaterialAttached::Parameter &p);
+    QVector<Qt3DRender::QParameter *> prepareCustomMaterial(Q3DSCustomMaterialInstance *m, Q3DSModelNode *model3DS);
     void setImageTextureFromSubPresentation(Qt3DRender::QParameter *sampler, Q3DSImage *image);
     void updateTextureParameters(Q3DSTextureParameters &textureParameters, Q3DSImage *image);
     void updateDefaultMaterial(Q3DSDefaultMaterial *m);

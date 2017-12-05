@@ -114,9 +114,6 @@ Qt3DRender::QMaterial *Q3DSCustomMaterial::generateMaterial()
 
     QString shaderPrefix = QStringLiteral("#include \"customMaterial.glsllib\"\n");
 
-    // Generate Parameters (before shader program, to also generate complete shader prefix)
-    auto parameters = generateParameters(shaderPrefix);
-
     // Generate completed Shader Code (resolve #includes)
     // Add Shaders to shader program
     for (auto shader: m_shaders) {
@@ -137,8 +134,8 @@ Qt3DRender::QMaterial *Q3DSCustomMaterial::generateMaterial()
     effect->addTechnique(technique);
 
     // Add parameters to effect
-    for (auto parameter : parameters)
-        effect->addParameter(parameter);
+    //for (auto parameter : parameters)
+    //    effect->addParameter(parameter);
 
     // Set the Effect to be active for this material
     material->setEffect(effect);
@@ -184,126 +181,6 @@ Qt3DRender::QShaderProgram* Q3DSCustomMaterial::generateShaderProgram(const Q3DS
     shaderProgram->setVertexShaderCode(vertexShaderCode);
     shaderProgram->setFragmentShaderCode(fragmentShaderCode);
     return shaderProgram;
-}
-
-namespace {
-void appendShaderUniform(const QString &type, const QString &name, QString &shaderPrefix)
-{
-    shaderPrefix.append(QLatin1String("uniform "));
-    shaderPrefix.append(type);
-    shaderPrefix.append(QLatin1String(" "));
-    shaderPrefix.append(name);
-    shaderPrefix.append(QLatin1String(";\n"));
-}
-}
-
-QMap<QString, Qt3DRender::QParameter *> Q3DSCustomMaterial::generateParameters(QString &shaderPrefix) const
-{
-    // We need to Generate Parameters for the effect
-    // and also generate prefixes for the shaders
-    QMap<QString, Qt3DRender::QParameter *> parameters;
-
-    for (auto property : m_properties.values()) {
-        switch (property.type) {
-        case Q3DS::Boolean:
-            appendShaderUniform(QLatin1String("bool"), property.name, shaderPrefix);
-            bool boolValue;
-            Q3DS::convertToBool(&property.defaultValue, &boolValue, "bool");
-            parameters.insert(property.name, new Qt3DRender::QParameter(property.name, boolValue));
-            break;
-        case Q3DS::Long:
-            appendShaderUniform(QLatin1String("int"), property.name, shaderPrefix);
-            int intValue;
-            if (!Q3DS::convertToInt(&property.defaultValue, &intValue, "long value"))
-                intValue = 0;
-            parameters.insert(property.name, new Qt3DRender::QParameter(property.name, intValue));
-            break;
-        case Q3DS::FloatRange:
-        case Q3DS::Float:
-        case Q3DS::FontSize:
-            appendShaderUniform(QLatin1String("float"), property.name, shaderPrefix);
-            float floatValue;
-            if (!Q3DS::convertToFloat(&property.defaultValue, &floatValue, "float value"))
-                floatValue = 0.0f;
-            parameters.insert(property.name, new Qt3DRender::QParameter(property.name, floatValue));
-            break;
-        case Q3DS::Float2:
-        {
-            appendShaderUniform(QLatin1String("vec2"), property.name, shaderPrefix);
-            QVector2D vec2Value;
-            Q3DS::convertToVector2D(&property.defaultValue, &vec2Value, "Vec2 value");
-            parameters.insert(property.name, new Qt3DRender::QParameter(property.name, vec2Value));
-        }
-            break;
-        case Q3DS::Vector:
-        case Q3DS::Scale:
-        case Q3DS::Rotation:
-        case Q3DS::Color:
-        {
-            appendShaderUniform(QLatin1String("vec3"), property.name, shaderPrefix);
-            QVector3D vec3Value;
-            Q3DS::convertToVector3D(&property.defaultValue, &vec3Value, "Vec3 value");
-            parameters.insert(property.name, new Qt3DRender::QParameter(property.name, vec3Value));
-        }
-            break;
-        case Q3DS::Texture:
-            // String takes extra work
-            shaderPrefix.append(QLatin1String("SNAPPER_SAMPLER2D("));
-            shaderPrefix.append(property.name);
-            shaderPrefix.append(QLatin1String(", "));
-            shaderPrefix.append(property.name);
-            shaderPrefix.append(QLatin1String(", "));
-            shaderPrefix.append(Q3DSMaterial::filterTypeToString(property.minFilterType));
-            shaderPrefix.append(QLatin1String(", "));
-            shaderPrefix.append(Q3DSMaterial::clampTypeToString(property.clampType));
-            shaderPrefix.append(QLatin1String(", "));
-            shaderPrefix.append(QLatin1String("false )\n"));
-            break;
-        case Q3DS::StringList:
-            // I dont really understand why, but apparently this is a int uniform ?
-            appendShaderUniform(QLatin1String("int"), property.name, shaderPrefix);
-            break;
-        case Q3DS::Image2D:
-            shaderPrefix.append(QLatin1String("layout("));
-            shaderPrefix.append(property.format);
-            if (!property.binding.isEmpty()) {
-                shaderPrefix.append(QLatin1String(", binding = "));
-                shaderPrefix.append(property.binding);
-            }
-            shaderPrefix.append(QLatin1String(") "));
-            // if we have format layout we cannot set an additional access qualifier
-            if (!property.access.isEmpty() && property.format.isEmpty())
-                shaderPrefix.append(property.access);
-            shaderPrefix.append(QLatin1String(" uniform image2D "));
-            shaderPrefix.append(property.name);
-            shaderPrefix.append(QLatin1String(";\n"));
-            break;
-        case Q3DS::Buffer:
-            // Only storage counters
-            if (property.usageType == Q3DSMaterial::Storage) {
-                shaderPrefix.append(QLatin1String("layout("));
-                shaderPrefix.append(property.align);
-                if (!property.binding.isEmpty()) {
-                    shaderPrefix.append(QLatin1String(", binding = "));
-                    shaderPrefix.append(property.binding);
-                }
-                shaderPrefix.append(QLatin1String(") "));
-
-                shaderPrefix.append(QLatin1String("buffer "));
-                shaderPrefix.append(property.name);
-                shaderPrefix.append(QLatin1String("\n{ \n"));
-                shaderPrefix.append(property.format);
-                shaderPrefix.append(QLatin1String(" "));
-                shaderPrefix.append(property.name);
-                shaderPrefix.append(QLatin1String("_data[]; \n};\n"));
-            }
-            break;
-        default:
-            // Don't know how to handle anything else...yet
-            Q_ASSERT(false);
-        }
-    }
-    return parameters;
 }
 
 QString Q3DSCustomMaterial::resolveShaderIncludes(const QString &shaderCode) const
