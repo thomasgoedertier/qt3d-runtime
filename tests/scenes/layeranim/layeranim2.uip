@@ -30,11 +30,8 @@
 				<State id="Scene-Slide1" name="Slide1" >
 					<Add ref="#Rectangle" name="Rectangle" position="-5.77344 -34.641 0" rotation="53.5 0 0" scale="6.30691 5.36799 1" sourcepath="#Rectangle" />
 					<Add ref="#Material" />
-					<Add ref="#Layer2" name="Layer2" background="SolidColor" backgroundcolor="0.501961 1 0.501961" blendtype="Normal" left="0" >
-						<AnimationTrack property="height" type="EaseInOut" >0 100 100 100 8.949 25 100 100</AnimationTrack>
-						<AnimationTrack property="left" type="EaseInOut" >0 -40 100 100 4.704 40 100 100</AnimationTrack>
-						<AnimationTrack property="top" type="EaseInOut" >0 0 100 100 10 20 100 100</AnimationTrack>
-						<AnimationTrack property="width" type="EaseInOut" >0 100 100 100 7.269 50 100 100</AnimationTrack>
+					<Add ref="#Layer2" name="Layer2" background="SolidColor" backgroundcolor="0.501961 1 0.501961" blendtype="Normal" bottom="50" height="50" horzfields="Left/Right" left="-40" leftunits="percent" right="30" vertfields="Height/Bottom" >
+						<AnimationTrack property="left" type="EaseInOut" >0 -40 100 100 5.671 40 100 100</AnimationTrack>
 					</Add>
 					<Add ref="#Camera_001" />
 					<Add ref="#Light_001" />

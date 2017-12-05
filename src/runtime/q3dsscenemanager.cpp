@@ -823,6 +823,18 @@ static Qt3DRender::QRenderTarget *newLayerRenderTarget(const QSize &layerPixelSi
     return rt;
 }
 
+static QSize safeLayerPixelSize(const QSize &layerSize, int scaleFactor)
+{
+    const QSize layerPixelSize = layerSize * scaleFactor;
+    return QSize(layerPixelSize.width() > 0 ? layerPixelSize.width() : 32,
+                 layerPixelSize.height() > 0 ? layerPixelSize.height() : 32);
+}
+
+static QSize safeLayerPixelSize(Q3DSLayerAttached *data)
+{
+    return safeLayerPixelSize(data->layerSize, data->ssaaScaleFactor);
+}
+
 void Q3DSSceneManager::buildLayer(Q3DSLayerNode *layer3DS,
                                   Qt3DRender::QFrameGraphNode *parent,
                                   const QSize &parentSize)
@@ -864,7 +876,7 @@ void Q3DSSceneManager::buildLayer(Q3DSLayerNode *layer3DS,
 
     // parentSize could well be (0, 0) at this stage still, nevermind that
     const QSize layerSize = calculateLayerSize(layer3DS, parentSize);
-    const QSize layerPixelSize = layerSize * ssaaScaleFactor;
+    const QSize layerPixelSize = safeLayerPixelSize(layerSize, ssaaScaleFactor);
 
     // Create color and depth-stencil buffers for this layer
     Qt3DRender::QAbstractTexture *colorTex;
@@ -1052,16 +1064,17 @@ void Q3DSSceneManager::buildSubPresentationLayer(Q3DSLayerNode *layer3DS, const 
         const QSize sz = data->layerSize;
         if (sz.isEmpty())
             return;
+        const QSize layerPixelSize = safeLayerPixelSize(data);
         auto it = std::find_if(m_subPresentations.cbegin(), m_subPresentations.cend(),
                                [this, layer3DS](const Q3DSSubPresentation &sp) { return sp.id == layer3DS->sourcePath(); });
         if (it != m_subPresentations.cend()) {
             qCDebug(lcScene, "Resizing subpresentation %s for layer %s to %dx%d",
                     qPrintable(layer3DS->sourcePath()), layer3DS->id().constData(), sz.width(), sz.height());
             // Resize the offscreen subpresentation buffers
-            it->colorTex->setWidth(sz.width() * data->ssaaScaleFactor);
-            it->colorTex->setHeight(sz.height() * data->ssaaScaleFactor);
-            it->dsTex->setWidth(sz.width() * data->ssaaScaleFactor);
-            it->dsTex->setHeight(sz.height() * data->ssaaScaleFactor);
+            it->colorTex->setWidth(layerPixelSize.width());
+            it->colorTex->setHeight(layerPixelSize.height());
+            it->dsTex->setWidth(layerPixelSize.width());
+            it->dsTex->setHeight(layerPixelSize.height());
             // and communicate the new size to the subpresentation's renderer
             // (viewport, camera, etc. need to adapt), just like a window would
             // do to an onscreen presentation's scenemanager upon receiving a
@@ -1254,14 +1267,100 @@ void Q3DSSceneManager::markAsMainTechnique(Qt3DRender::QTechnique *technique)
 
 QSize Q3DSSceneManager::calculateLayerSize(Q3DSLayerNode *layer3DS, const QSize &parentSize)
 {
-    return QSize(qRound(layer3DS->widthUnits() == Q3DSLayerNode::Percent ? layer3DS->width() * 0.01f * parentSize.width() : layer3DS->width()),
-                 qRound(layer3DS->heightUnits() == Q3DSLayerNode::Percent ? layer3DS->height() * 0.01f * parentSize.height() : layer3DS->height()));
+    int w = 0;
+    switch (layer3DS->horizontalFields()) {
+    case Q3DSLayerNode::LeftWidth:
+        Q_FALLTHROUGH();
+    case Q3DSLayerNode::WidthRight:
+    {
+        int width = qRound(layer3DS->widthUnits() == Q3DSLayerNode::Percent ? layer3DS->width() * 0.01f * parentSize.width() : layer3DS->width());
+        w = width;
+    }
+        break;
+    case Q3DSLayerNode::LeftRight:
+    {
+        float left = layer3DS->leftUnits() == Q3DSLayerNode::Percent ? layer3DS->left() * 0.01f * parentSize.width() : layer3DS->left();
+        float right = layer3DS->rightUnits() == Q3DSLayerNode::Percent ? parentSize.width() - (layer3DS->right() * 0.01f * parentSize.width()) : layer3DS->right();
+        w = qRound(right - left) + 1;
+    }
+        break;
+    default:
+        Q_UNREACHABLE();
+        break;
+    }
+
+    int h = 0;
+    switch (layer3DS->verticalFields()) {
+    case Q3DSLayerNode::TopHeight:
+        Q_FALLTHROUGH();
+    case Q3DSLayerNode::HeightBottom:
+    {
+        int height = qRound(layer3DS->heightUnits() == Q3DSLayerNode::Percent ? layer3DS->height() * 0.01f * parentSize.height() : layer3DS->height());
+        h = height;
+    }
+        break;
+    case Q3DSLayerNode::TopBottom:
+    {
+        float top = layer3DS->topUnits() == Q3DSLayerNode::Percent ? layer3DS->top() * 0.01f * parentSize.height() : layer3DS->top();
+        float bottom = layer3DS->bottomUnits() == Q3DSLayerNode::Percent ? parentSize.height() - (layer3DS->bottom() * 0.01f * parentSize.height()) : layer3DS->bottom();
+        h = qRound(bottom - top) + 1;
+    }
+        break;
+    default:
+        Q_UNREACHABLE();
+        break;
+    }
+
+    return QSize(qMax(0, w), qMax(0, h));
 }
 
 QPointF Q3DSSceneManager::calculateLayerPos(Q3DSLayerNode *layer3DS, const QSize &parentSize)
 {
-    return QPointF(layer3DS->leftUnits() == Q3DSLayerNode::Percent ? layer3DS->left() * 0.01f * parentSize.width() : layer3DS->left(),
-                   layer3DS->topUnits() == Q3DSLayerNode::Percent ? layer3DS->top() * 0.01f * parentSize.height() : layer3DS->top());
+    float x = 0;
+    switch (layer3DS->horizontalFields()) {
+    case Q3DSLayerNode::LeftWidth:
+        Q_FALLTHROUGH();
+    case Q3DSLayerNode::LeftRight:
+    {
+        float left = layer3DS->leftUnits() == Q3DSLayerNode::Percent ? layer3DS->left() * 0.01f * parentSize.width() : layer3DS->left();
+        x = left;
+    }
+        break;
+    case Q3DSLayerNode::WidthRight:
+    {
+        float right = layer3DS->rightUnits() == Q3DSLayerNode::Percent ? parentSize.width() - (layer3DS->right() * 0.01f * parentSize.width()) : layer3DS->right();
+        float width = layer3DS->widthUnits() == Q3DSLayerNode::Percent ? layer3DS->width() * 0.01f * parentSize.width() : layer3DS->width();
+        x = right - width + 1;
+    }
+        break;
+    default:
+        Q_UNREACHABLE();
+        break;
+    }
+
+    float y = 0;
+    switch (layer3DS->verticalFields()) {
+    case Q3DSLayerNode::TopHeight:
+        Q_FALLTHROUGH();
+    case Q3DSLayerNode::TopBottom:
+    {
+        float top = layer3DS->topUnits() == Q3DSLayerNode::Percent ? layer3DS->top() * 0.01f * parentSize.height() : layer3DS->top();
+        y = top;
+    }
+        break;
+    case Q3DSLayerNode::HeightBottom:
+    {
+        float bottom = layer3DS->bottomUnits() == Q3DSLayerNode::Percent ? parentSize.height() - (layer3DS->bottom() * 0.01f * parentSize.height()) : layer3DS->bottom();
+        float height = layer3DS->heightUnits() == Q3DSLayerNode::Percent ? layer3DS->height() * 0.01f * parentSize.height() : layer3DS->height();
+        y = bottom - height + 1;
+    }
+        break;
+    default:
+        Q_UNREACHABLE();
+        break;
+    }
+
+    return QPointF(x, y);
 }
 
 void Q3DSSceneManager::updateSizesForLayer(Q3DSLayerNode *layer3DS, const QSize &newParentSize)
@@ -1274,7 +1373,6 @@ void Q3DSSceneManager::updateSizesForLayer(Q3DSLayerNode *layer3DS, const QSize 
     Q3DSLayerAttached *data = static_cast<Q3DSLayerAttached *>(layer3DS->attached());
     Q_ASSERT(data);
 
-    // ### only supports Left/Width+Top/Height only for now
     data->layerPos = calculateLayerPos(layer3DS, newParentSize);
     data->layerSize = calculateLayerSize(layer3DS, newParentSize);
     data->parentSize = newParentSize;
@@ -1345,9 +1443,10 @@ void Q3DSSceneManager::setLayerCameraSizeProperties(Q3DSLayerNode *layer3DS)
 void Q3DSSceneManager::setLayerSizeProperties(Q3DSLayerNode *layer3DS)
 {
     Q3DSLayerAttached *data = static_cast<Q3DSLayerAttached *>(layer3DS->attached());
+    const QSize layerPixelSize = safeLayerPixelSize(data);
     for (const Q3DSLayerAttached::SizeManagedTexture &t : data->sizeManagedTextures) {
-        t.texture->setWidth(data->layerSize.width() * data->ssaaScaleFactor);
-        t.texture->setHeight(data->layerSize.height() * data->ssaaScaleFactor);
+        t.texture->setWidth(layerPixelSize.width());
+        t.texture->setHeight(layerPixelSize.height());
         if (t.sizeChangeCallback)
             t.sizeChangeCallback(layer3DS);
     }
@@ -1502,10 +1601,9 @@ static void prepareSizeDependentTexture(Qt3DRender::QAbstractTexture *texture,
 {
     Q3DSLayerAttached *data = static_cast<Q3DSLayerAttached *>(layer3DS->attached());
 
-    const QSize layerPixelSize = data->layerSize * data->ssaaScaleFactor;
-    // may not be available yet, use a temporary size then
-    texture->setWidth(layerPixelSize.width() > 0 ? layerPixelSize.width() : 32);
-    texture->setHeight(layerPixelSize.height() > 0 ? layerPixelSize.height() : 32);
+    const QSize layerPixelSize = safeLayerPixelSize(data);
+    texture->setWidth(layerPixelSize.width());
+    texture->setHeight(layerPixelSize.height());
 
     // the layer will resize the texture automatically
     data->sizeManagedTextures << Q3DSLayerAttached::SizeManagedTexture(texture, callback);
@@ -2267,9 +2365,10 @@ void Q3DSSceneManager::updateProgressiveAA(Q3DSLayerNode *layer3DS)
             camera->setProjectionMatrix(data->progAA.origProjMat);
     }
 
-    const QSize layerPixelSize = data->layerSize * data->ssaaScaleFactor;
-    if (layerPixelSize.isEmpty())
+    if (data->layerSize.isEmpty())
         return;
+
+    const QSize layerPixelSize = safeLayerPixelSize(data);
 
     // Progressive AA kicks in only when "movement has stopped", or rather,
     // when no properties have changed, meaning the frame was not dirty. Reset
@@ -2601,6 +2700,13 @@ void Q3DSSceneManager::buildCompositor(Qt3DRender::QFrameGraphNode *parent, Qt3D
 
         // defer the sizing and positioning
         data->updateCompositorCalculations = [=]() {
+            if (data->layerSize.isEmpty()) {
+                compositorEntity->removeComponent(tag);
+                return;
+            }
+            if (!compositorEntity->components().contains(tag))
+                compositorEntity->addComponent(tag);
+
             mesh->setWidth(2 * data->layerSize.width() / float(data->parentSize.width()));
             mesh->setHeight(2 * data->layerSize.height() / float(data->parentSize.height()));
             const float x = data->layerPos.x() / float(data->parentSize.width()) * 2;
