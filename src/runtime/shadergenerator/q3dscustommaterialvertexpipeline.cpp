@@ -160,6 +160,10 @@ struct ShaderGenerator : public Q3DSCustomMaterialShaderGenerator
 
         fragmentShader << "#define FRAGMENT_SHADER\n\n";
 
+        if (hasLighting) {
+            fragmentShader << "#define QT3DS_ENABLE_CG_LIGHTING 1\n\n";
+        }
+
         if (!srcString.contains(QStringLiteral("void main()")))
             fragmentShader.addInclude("evalLightmaps.glsllib");
 
@@ -203,9 +207,53 @@ struct ShaderGenerator : public Q3DSCustomMaterialShaderGenerator
 //            GenerateLightmapIndirectSetupCode(fragmentShader, lightmapIndirectImage,
 //                                              lightmapRadisoityImage);
 
-//        if (Material().HasLighting()) {
-//            ApplyEmissiveMask(fragmentShader, Material().m_EmissiveMap2);
-//        }
+        // applyEmmisiveMask
+        if (hasLighting) {
+
+            fragmentShader << "\n";
+            fragmentShader << "vec3 computeMaterialEmissiveMask()\n{\n";
+            fragmentShader << "  vec3 emissiveMask = vec3( 1.0, 1.0, 1.0 );\n";
+            // XXX TODO check if there is an emissiveMask on the material
+
+            fragmentShader << "  return emissiveMask;\n";
+            fragmentShader << "}\n\n";
+        }
+
+        // Add Uniforms from material properties
+        for (auto property : m_currentMaterial->properties()) {
+            qDebug() << "property: " << property.name;
+            switch (property.type) {
+            case Q3DS::Boolean:
+                fragmentShader.addUniform(property.name.toLocal8Bit(), "bool");
+                break;
+            case Q3DS::Long:
+                fragmentShader.addUniform(property.name.toLocal8Bit(), "int");
+                break;
+            case Q3DS::FloatRange:
+            case Q3DS::Float:
+            case Q3DS::FontSize:
+                fragmentShader.addUniform(property.name.toLocal8Bit(), "float");
+                break;
+            case Q3DS::Float2:
+                fragmentShader.addUniform(property.name.toLocal8Bit(), "vec2");
+                break;
+            case Q3DS::Vector:
+            case Q3DS::Scale:
+            case Q3DS::Rotation:
+            case Q3DS::Color:
+                fragmentShader.addUniform(property.name.toLocal8Bit(), "vec3");
+                break;
+            case Q3DS::Texture:
+                fragmentShader.addUniform(property.name.toLocal8Bit(), "sampler2D");
+                break;
+            case Q3DS::StringList:
+                fragmentShader.addUniform(property.name.toLocal8Bit(), "int");
+                break;
+            default:
+                break;
+            }
+        }
+
 
         // setup main
         vertexGenerator().beginFragmentGeneration();
@@ -412,9 +460,9 @@ void Q3DSCustomMaterialVertexPipeline::generateUVCoords(quint32 inUVSet)
     Q_ASSERT(inUVSet == 0 || inUVSet == 1);
 
     if (inUVSet == 0)
-        addInterpolationParameter("varTexCoord0", "vec2");
+        addInterpolationParameter("varTexCoord0", "vec3");
     else if (inUVSet == 1)
-        addInterpolationParameter("varTexCoord1", "vec2");
+        addInterpolationParameter("varTexCoord1", "vec3");
 
     doGenerateUVCoords(inUVSet);
 }
@@ -501,7 +549,7 @@ void Q3DSCustomMaterialVertexPipeline::doGenerateObjectNormal()
 void Q3DSCustomMaterialVertexPipeline::doGenerateWorldPosition()
 {
     vertex().append("\tvarObjPos = attr_pos;");
-    vertex().append("\tvec4 worldPos = (model_matrix * vec4(attr_pos, 1.0));");
+    vertex().append("\tvec4 worldPos = (modelMatrix * vec4(attr_pos, 1.0));");
     assignOutput("varWorldPos", "worldPos.xyz");
 }
 
@@ -510,8 +558,8 @@ void Q3DSCustomMaterialVertexPipeline::doGenerateVarTangentAndBinormal()
     vertex().addIncoming("attr_textan", "vec3");
     vertex().addIncoming("attr_binormal", "vec3");
 
-    vertex() << "\tvarTangent = normal_matrix * attr_textan;" << "\n"
-             << "\tvarBinormal = normal_matrix * attr_binormal;" << "\n";
+    vertex() << "\tvarTangent = modelNormalMatrix * attr_textan;" << "\n"
+             << "\tvarBinormal = modelNormalMatrix * attr_binormal;" << "\n";
 
     vertex() << "\tvarObjTangent = attr_textan;\n" <<
                 "\tvarObjBinormal = attr_binormal;\n";

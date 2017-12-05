@@ -29,6 +29,7 @@
 
 #include "q3dsscenemanager.h"
 #include "q3dsdefaultmaterialgenerator.h"
+#include "q3dscustommaterialgenerator.h"
 #include "q3dstextmaterialgenerator.h"
 #include "q3dsanimationmanager.h"
 #include "q3dstextrenderer.h"
@@ -395,6 +396,7 @@ Q_LOGGING_CATEGORY(lcScene, "q3ds.scene")
 Q3DSSceneManager::Q3DSSceneManager(const Q3DSGraphicsLimits &limits)
     : m_gfxLimits(limits),
       m_matGen(new Q3DSDefaultMaterialGenerator),
+      m_customMaterialGen(new Q3DSCustomMaterialGenerator),
       m_textMatGen(new Q3DSTextMaterialGenerator),
       m_animationManager(new Q3DSAnimationManager),
       m_textRenderer(new Q3DSTextRenderer),
@@ -3508,25 +3510,16 @@ void Q3DSSceneManager::buildModelMaterial(Q3DSModelNode *model3DS)
                 layerData->areaLightsParam->setValue(QVariant::fromValue(layerData->areaLightsConstantBuffer));
                 params.append(layerData->areaLightsParam);
 
-                QMap<QString, Qt3DRender::QShaderProgram*> shaderPrograms;
-                int shaderCount = 0;
-                for (auto shader : customMaterial->material()->shaders()) {
-                    QString shaderName = shader.name;
-                    if (shaderName.isEmpty())
-                        shaderName = QString::number(shaderCount);
-                    shaderPrograms.insert(shaderName, Q3DSShaderManager::instance().generateShaderProgram(*customMaterial, layerData->lightNodes, false, Q3DSShaderFeatureSet(), shader.name));
-                    shaderCount++;
-                }
-
                 addShadowSsaoParams(layerData, &params);
 
                 // Like for the default material, be careful with the parent.
                 for (Qt3DRender::QParameter *param : params)
                     param->setParent(sm.entity);
 
-                // ### pass params to generateCustomMaterial
-//                sm.materialComponent = m_matGen->generateMaterial(defaultMaterial, params, layerData->lightNodes, modelData->layer3DS);
-//                sm.entity->addComponent(sm.materialComponent);
+                // ### TODO support more than one pass
+                auto pass = customMaterial->material()->passes().first();
+                sm.materialComponent = m_customMaterialGen->generateMaterial(customMaterial, params, layerData->lightNodes, modelData->layer3DS, pass);
+                sm.entity->addComponent(sm.materialComponent);
             }
         }
     }

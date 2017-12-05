@@ -44,6 +44,7 @@ class Q3DSAnimationManager;
 class Q3DSFrameUpdater;
 class Q3DSTextRenderer;
 class Q3DSDefaultMaterialGenerator;
+class Q3DSCustomMaterialGenerator;
 class Q3DSTextMaterialGenerator;
 class Q3DSProfiler;
 class Q3DSProfileUi;
@@ -587,6 +588,7 @@ private:
     Qt3DCore::QEntity *m_rootEntity;
     Q3DSFrameUpdater *m_frameUpdater = nullptr;
     Q3DSDefaultMaterialGenerator *m_matGen;
+    Q3DSCustomMaterialGenerator *m_customMaterialGen;
     Q3DSTextMaterialGenerator *m_textMatGen;
     Q3DSAnimationManager *m_animationManager;
     Q3DSTextRenderer *m_textRenderer;
