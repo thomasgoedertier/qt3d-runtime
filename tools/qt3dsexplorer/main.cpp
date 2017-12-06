@@ -36,8 +36,9 @@
 
 int main(int argc, char *argv[])
 {
-    QApplication app(argc, argv);
     Q3DStudioWindow::initStaticPreApp();
+    QApplication app(argc, argv);
+
     QCommandLineParser cmdLineParser;
     cmdLineParser.addHelpOption();
     cmdLineParser.addPositionalArgument(QLatin1String("filename"), QObject::tr("UIP or UIA file to open"));
