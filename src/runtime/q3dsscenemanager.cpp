@@ -934,18 +934,24 @@ void Q3DSSceneManager::buildLayer(Q3DSLayerNode *layer3DS,
     depthPreFilter->addMatch(depthFilterKey);
     Qt3DRender::QSortPolicy *depthPreSortPolicy = opaquePassSortPolicy(depthPreFilter);
     Qt3DRender::QLayerFilter *depthPreLayerFilter = new Qt3DRender::QLayerFilter(depthPreSortPolicy);
-    if (!layer3DS->layerFlags().testFlag(Q3DSLayerNode::DisableDepthPrePass))
+    const bool depthPrePassEnabled = !layer3DS->layerFlags().testFlag(Q3DSLayerNode::DisableDepthPrePass)
+            && !layer3DS->layerFlags().testFlag(Q3DSLayerNode::DisableDepthTest);
+    if (depthPrePassEnabled)
         depthPreLayerFilter->addLayer(opaqueTag); // opaque only, transparent objects must not be present
 
+    const bool transparentPassOnly = layer3DS->layerFlags().testFlag(Q3DSLayerNode::DisableDepthTest);
+
     // Opaque pass
-    Qt3DRender::QRenderPassFilter *opaqueFilter = new Qt3DRender::QRenderPassFilter(mainTechniqueSelector);
-    Qt3DRender::QFilterKey *opaqueFilterKey = new Qt3DRender::QFilterKey;
-    opaqueFilterKey->setName(QLatin1String("pass"));
-    opaqueFilterKey->setValue(QLatin1String("opaque"));
-    opaqueFilter->addMatch(opaqueFilterKey);
-    Qt3DRender::QSortPolicy *opaqueSortPolicy = opaquePassSortPolicy(opaqueFilter);
-    Qt3DRender::QLayerFilter *opaqueLayerFilter = new Qt3DRender::QLayerFilter(opaqueSortPolicy);
-    opaqueLayerFilter->addLayer(opaqueTag);
+    if (!transparentPassOnly) {
+        Qt3DRender::QRenderPassFilter *opaqueFilter = new Qt3DRender::QRenderPassFilter(mainTechniqueSelector);
+        Qt3DRender::QFilterKey *opaqueFilterKey = new Qt3DRender::QFilterKey;
+        opaqueFilterKey->setName(QLatin1String("pass"));
+        opaqueFilterKey->setValue(QLatin1String("opaque"));
+        opaqueFilter->addMatch(opaqueFilterKey);
+        Qt3DRender::QSortPolicy *opaqueSortPolicy = opaquePassSortPolicy(opaqueFilter);
+        Qt3DRender::QLayerFilter *opaqueLayerFilter = new Qt3DRender::QLayerFilter(opaqueSortPolicy);
+        opaqueLayerFilter->addLayer(opaqueTag);
+    }
 
     // Transparent pass, sort back to front
     Qt3DRender::QRenderPassFilter *transFilter = new Qt3DRender::QRenderPassFilter(mainTechniqueSelector);
@@ -956,6 +962,8 @@ void Q3DSSceneManager::buildLayer(Q3DSLayerNode *layer3DS,
     Qt3DRender::QSortPolicy *transSortPolicy = transparentPassSortPolicy(transFilter);
     Qt3DRender::QLayerFilter *transLayerFilter = new Qt3DRender::QLayerFilter(transSortPolicy);
     transLayerFilter->addLayer(transparentTag);
+    if (transparentPassOnly)
+        transLayerFilter->addLayer(opaqueTag);
 
     Q3DSLayerAttached *data = new Q3DSLayerAttached;
     data->entity = m_rootEntity; // must set an entity to to make Q3DSLayerNode properties animatable, just use the root
@@ -1200,18 +1208,23 @@ QVector<Qt3DRender::QRenderPass *> Q3DSSceneManager::standardRenderPasses(Qt3DRe
     addNoColorWrite(depthPass);
 
     // Opaque objects.
+    Qt3DRender::QDepthTest::DepthFunction mainPassDepthFunc = !layer3DS->layerFlags().testFlag(Q3DSLayerNode::DisableDepthTest)
+            ? Qt3DRender::QDepthTest::LessOrEqual
+            : Qt3DRender::QDepthTest::Always;
     Qt3DRender::QRenderPass *opaquePass = new Qt3DRender::QRenderPass;
     opaquePass->addFilterKey(opaqueFilterKey);
-    addDepthTest(opaquePass);
+    addDepthTest(opaquePass, mainPassDepthFunc);
     // Depth buffer is already filled when depth prepass is enabled.
     Qt3DRender::QNoDepthMask *opaqueNoDepthWrite = new Qt3DRender::QNoDepthMask;
-    opaqueNoDepthWrite->setEnabled(!layer3DS->layerFlags().testFlag(Q3DSLayerNode::DisableDepthPrePass));
+    const bool depthPrePassEnabled = !layer3DS->layerFlags().testFlag(Q3DSLayerNode::DisableDepthPrePass)
+            && !layer3DS->layerFlags().testFlag(Q3DSLayerNode::DisableDepthTest);
+    opaqueNoDepthWrite->setEnabled(depthPrePassEnabled);
     opaquePass->addRenderState(opaqueNoDepthWrite);
 
     // Transparent objects.
     Qt3DRender::QRenderPass *transPass = new Qt3DRender::QRenderPass;
     transPass->addFilterKey(transFilterKey);
-    addDepthTest(transPass); // ### todo handle layer.flags & DisableDepthTest
+    addDepthTest(transPass, mainPassDepthFunc);
     Qt3DRender::QNoDepthMask *transNoDepthWrite = new Qt3DRender::QNoDepthMask;
     transPass->addRenderState(transNoDepthWrite);
     // blending. the shaders produce non-premultiplied results.

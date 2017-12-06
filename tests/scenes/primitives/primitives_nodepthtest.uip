@@ -53,7 +53,7 @@
 					<Add ref="#Material_002" diffuse="0.215686 0.815686 0.756863" />
 					<Add ref="#Cone" name="Cone" rotation="-47.4815 2.69907 11.9215" sourcepath="#Cone" />
 					<Add ref="#Material_003" diffuse="0.890196 0.341176 0.615686" />
-					<Add ref="#Layer2" name="Layer2" background="Transparent" blendtype="Normal" disabledepthtest="False" />
+					<Add ref="#Layer2" name="Layer2" background="Transparent" blendtype="Normal" disabledepthtest="True" position="497.965 159.673 0" />
 					<Add ref="#Camera_001" />
 					<Add ref="#Light_001" />
 					<Add ref="#Group" name="Group" opacity="50" />
@@ -61,7 +61,7 @@
 					<Add ref="#Material_004" diffuse="0.65098 0.619608 0.533333" />
 					<Add ref="#Cube" name="Cube" position="482.629 -108.253 10" rotation="-12.3559 8.88262 8.26342" sourcepath="#Cube" />
 					<Add ref="#Material_005" />
-					<Add ref="#Cone_001" name="Cone" position="501.573 148.848 10" sourcepath="#Cone" />
+					<Add ref="#Cone_001" name="Cone" position="501.573 148.848 -30" sourcepath="#Cone" />
 					<Add ref="#Material_006" />
 				</State>
 			</State>
