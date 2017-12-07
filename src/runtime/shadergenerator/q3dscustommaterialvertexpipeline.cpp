@@ -129,29 +129,14 @@ struct ShaderGenerator : public Q3DSCustomMaterialShaderGenerator
         // By default all custom materials have lighting enabled
         bool hasLighting = true;
 
-        // XXX TODO handle light maps
-
-//        bool hasLightmaps = false;
-//        SRenderableImage *lightmapShadowImage = NULL;
-//        SRenderableImage *lightmapIndirectImage = NULL;
-//        SRenderableImage *lightmapRadisoityImage = NULL;
-
-//        for (SRenderableImage *img = m_FirstImage; img != NULL; img = img->m_NextImage) {
-//            if (img->m_MapType == ImageMapTypes::LightmapIndirect) {
-//                lightmapIndirectImage = img;
-//                hasLightmaps = true;
-//            } else if (img->m_MapType == ImageMapTypes::LightmapRadiosity) {
-//                lightmapRadisoityImage = img;
-//                hasLightmaps = true;
-//            } else if (img->m_MapType == ImageMapTypes::LightmapShadow) {
-//                lightmapShadowImage = img;
-//            }
-//        }
+        // ### TODO handle light maps
+        // Lightmaps seem to be setable on any material (custom or default),
+        // but we don't actually have handles to any of them
+        bool hasLightmaps = false;
 
         vertexGenerator().generateUVCoords(0);
-        // XXX for lightmaps we expect a second set of uv coordinates
-//        if (hasLightmaps)
-//            vertexGenerator().generateUVCoords(1);
+        if (hasLightmaps)
+            vertexGenerator().generateUVCoords(1);
 
         Q3DSDefaultVertexPipeline &vertexShader(vertexGenerator());
         Q3DSAbstractShaderStageGenerator &fragmentShader(fragmentGenerator());
@@ -209,11 +194,24 @@ struct ShaderGenerator : public Q3DSCustomMaterialShaderGenerator
 
         // applyEmmisiveMask
         if (hasLighting) {
-
             fragmentShader << "\n";
             fragmentShader << "vec3 computeMaterialEmissiveMask()\n{\n";
             fragmentShader << "  vec3 emissiveMask = vec3( 1.0, 1.0, 1.0 );\n";
-            // XXX TODO check if there is an emissiveMask on the material
+            QString emissiveMaskMapName = m_currentMaterial->emissiveMaskMapName();
+            if (!emissiveMaskMapName.isEmpty()) {
+                fragmentShader << "  texture_coordinate_info tci;\n";
+                fragmentShader << "  texture_coordinate_info transformed_tci;\n";
+                fragmentShader << "  tci = textureCoordinateInfo( texCoord0, tangent, binormal );\n";
+                fragmentShader << "  transformed_tci = transformCoordinate( "
+                                    "rotationTranslationScale( vec3( 0.000000, 0.000000, 0.000000 ), ";
+                fragmentShader << "vec3( 0.000000, 0.000000, 0.000000 ), vec3( 1.000000, 1.000000, "
+                                    "1.000000 ) ), tci );\n";
+                fragmentShader << "  emissiveMask = fileTexture( "
+                               << emissiveMaskMapName.toLocal8Bit()
+                               << ", vec3( 0, 0, 0 ), vec3( 1, 1, 1 ), mono_alpha, transformed_tci, ";
+                fragmentShader << "vec2( 0.000000, 1.000000 ), vec2( 0.000000, 1.000000 ), "
+                                    "wrap_repeat, wrap_repeat, gamma_default ).tint;\n";
+            }
 
             fragmentShader << "  return emissiveMask;\n";
             fragmentShader << "}\n\n";

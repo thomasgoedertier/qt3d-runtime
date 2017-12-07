@@ -264,6 +264,15 @@ bool Q3DSCustomMaterial::shaderIsTransmissive() const
     return m_shaderKey & Transmissive;
 }
 
+QString Q3DSCustomMaterial::emissiveMaskMapName() const
+{
+    for (auto property : m_properties) {
+        if (property.usageType == Q3DSMaterial::EmissiveMask)
+            return property.name;
+    }
+    return QString();
+}
+
 bool Q3DSCustomMaterial::materialHasTransparency() const
 {
     return m_hasTransparency;

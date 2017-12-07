@@ -79,6 +79,8 @@ public:
     bool shaderIsVolumetric() const;
     bool shaderIsTransmissive() const;
 
+    QString emissiveMaskMapName() const;
+
     bool materialHasTransparency() const;
     bool materialHasRefraction() const;
 
