@@ -1,3 +1,33 @@
+/****************************************************************************
+**
+** Copyright (C) 2014 NVIDIA Corporation.
+** Copyright (C) 2017 The Qt Company Ltd.
+** Contact: https://www.qt.io/licensing/
+**
+** This file is part of Qt 3D Studio.
+**
+** $QT_BEGIN_LICENSE:GPL$
+** Commercial License Usage
+** Licensees holding valid commercial Qt licenses may use this file in
+** accordance with the commercial license agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and The Qt Company. For licensing terms
+** and conditions see https://www.qt.io/terms-conditions. For further
+** information use the contact form at https://www.qt.io/contact-us.
+**
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License version 3 or (at your option) any later version
+** approved by the KDE Free Qt Foundation. The licenses are as published by
+** the Free Software Foundation and appearing in the file LICENSE.GPL3
+** included in the packaging of this file. Please review the following
+** information to ensure the GNU General Public License requirements will
+** be met: https://www.gnu.org/licenses/gpl-3.0.html.
+**
+** $QT_END_LICENSE$
+**
+****************************************************************************/
+
 // this is entirly phiysical incorrect
 // We just use this to fake distortion when we have no environment available
 // The displacement is calculated on ior
@@ -12,11 +42,11 @@ vec3 refraction( in sampler2D sampler, in float materialIOR )
   vec2 newUV = vec2(gl_FragCoord.xy/texSize);
   if ( xdir > ydir)
   {
-      newUV = ( viewDir.x > 0.0) ? newUV + displace.xy : newUV - displace.xy;
+    newUV = ( viewDir.x > 0.0) ? newUV + displace.xy : newUV - displace.xy;
   }
   else
   {
-      newUV = ( viewDir.y > 0.0) ? newUV - displace.xy : newUV + displace.xy;
+    newUV = ( viewDir.y > 0.0) ? newUV - displace.xy : newUV + displace.xy;
   }
 
   vec3 refractColor = texture( sampler, newUV ).rgb;
@@ -42,15 +72,15 @@ vec3 refractBlur( in sampler2D sampler, in vec3 viewDir, in float materialIOR, i
 
   for (int y = -sz; y <= sz; ++y)
   {
-      for (int x = -sz; x <= sz; ++x)
-      {
-          float wt = float(x*x + y*y) / (blurWidth * 0.5);
-          wt = exp2(-wt);
-          //refractColor += wt * textureOffset( sampler, newUV, ivec2(x, y) ).rgb;
-          vec2 uvOfs = vec2(x, y) * texSize;
-          refractColor += wt * texture( sampler, newUV+uvOfs).rgb;
-          wtsum += wt;
-      }
+    for (int x = -sz; x <= sz; ++x)
+    {
+        float wt = float(x*x + y*y) / (blurWidth * 0.5);
+        wt = exp2(-wt);
+        //refractColor += wt * textureOffset( sampler, newUV, ivec2(x, y) ).rgb;
+        vec2 uvOfs = vec2(x, y) * texSize;
+        refractColor += wt * texture( sampler, newUV+uvOfs).rgb;
+        wtsum += wt;
+    }
   }
 
   return refractColor / wtsum;

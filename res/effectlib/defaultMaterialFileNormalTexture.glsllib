@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2015 NVIDIA Corporation.
+** Copyright (C) 2014 NVIDIA Corporation.
 ** Copyright (C) 2017 The Qt Company Ltd.
 ** Contact: https://www.qt.io/licensing/
 **
@@ -28,15 +28,13 @@
 **
 ****************************************************************************/
 
-vec4 diffuseTransmissionBSDF( in vec3 N, in vec3 L, in vec3 viewDir, in vec3 lightDiffuse, in vec4 transmissiveColor, in float translucentFalloff, float lightWrap )
-{
-  float cosThetaI = max( 0.0f, (dot( N, L ) + lightWrap) / (1.0 + lightWrap) );
-  float factor = cosThetaI;
+#ifndef QT3DS_DEFAULT_MATERIAL_FILE_NORMAL_TEXTURE_GLSLLIB
+#define QT3DS_DEFAULT_MATERIAL_FILE_NORMAL_TEXTURE_GLSLLIB
 
-  float l = 0.2126f * transmissiveColor.r + 0.7152f * transmissiveColor.g + 0.0722f * transmissiveColor.b;
+#ifndef QT3DS_DEFINE_API
+#define QT3DS_DEFINE_API
+#endif
 
-  float translucent_thickness =  l * l;
-  float translucent_thickness_exp = exp( translucent_thickness * translucentFalloff);
+#include "tangentSpaceNormalTexture.glsllib"
 
-  return( translucent_thickness_exp * vec4( factor * lightDiffuse, 1.0f ) );
-}
+#endif

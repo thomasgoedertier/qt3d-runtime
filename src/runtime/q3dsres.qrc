@@ -95,9 +95,9 @@
         <file alias="res/effectlib/tessellationPhongCM.glsllib">../../res/effectlib/tessellationPhongCM.glsllib</file>
         <file alias="res/effectlib/textureCoordinateInfo.glsllib">../../res/effectlib/textureCoordinateInfo.glsllib</file>
         <file alias="res/effectlib/transformCoordinate.glsllib">../../res/effectlib/transformCoordinate.glsllib</file>
-        <file alias="res/effectlib/uicDefaultMaterialFileBumpTexture.glsllib">../../res/effectlib/uicDefaultMaterialFileBumpTexture.glsllib</file>
-        <file alias="res/effectlib/uicDefaultMaterialFileDisplacementTexture.glsllib">../../res/effectlib/uicDefaultMaterialFileDisplacementTexture.glsllib</file>
-        <file alias="res/effectlib/uicDefaultMaterialFileNormalTexture.glsllib">../../res/effectlib/uicDefaultMaterialFileNormalTexture.glsllib</file>
+        <file alias="res/effectlib/defaultMaterialFileBumpTexture.glsllib">../../res/effectlib/defaultMaterialFileBumpTexture.glsllib</file>
+        <file alias="res/effectlib/defaultMaterialFileDisplacementTexture.glsllib">../../res/effectlib/defaultMaterialFileDisplacementTexture.glsllib</file>
+        <file alias="res/effectlib/defaultMaterialFileNormalTexture.glsllib">../../res/effectlib/defaultMaterialFileNormalTexture.glsllib</file>
         <file alias="res/effectlib/vertexFragmentBase.glsllib">../../res/effectlib/vertexFragmentBase.glsllib</file>
         <file alias="res/effectlib/viewProperties.glsllib">../../res/effectlib/viewProperties.glsllib</file>
         <file alias="res/effectlib/weightedLayer.glsllib">../../res/effectlib/weightedLayer.glsllib</file>

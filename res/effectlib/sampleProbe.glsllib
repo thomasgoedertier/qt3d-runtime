@@ -1,3 +1,33 @@
+/****************************************************************************
+**
+** Copyright (C) 2014 NVIDIA Corporation.
+** Copyright (C) 2017 The Qt Company Ltd.
+** Contact: https://www.qt.io/licensing/
+**
+** This file is part of Qt 3D Studio.
+**
+** $QT_BEGIN_LICENSE:GPL$
+** Commercial License Usage
+** Licensees holding valid commercial Qt licenses may use this file in
+** accordance with the commercial license agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and The Qt Company. For licensing terms
+** and conditions see https://www.qt.io/terms-conditions. For further
+** information use the contact form at https://www.qt.io/contact-us.
+**
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License version 3 or (at your option) any later version
+** approved by the KDE Free Qt Foundation. The licenses are as published by
+** the Free Software Foundation and appearing in the file LICENSE.GPL3
+** included in the packaging of this file. Please review the following
+** information to ensure the GNU General Public License requirements will
+** be met: https://www.gnu.org/licenses/gpl-3.0.html.
+**
+** $QT_END_LICENSE$
+**
+****************************************************************************/
+
 #ifndef SAMPLE_PROBE_GLSLLIB
 #define SAMPLE_PROBE_GLSLLIB 1
 
@@ -6,21 +36,12 @@ uniform vec4 light_probe_props;
 uniform vec4 light_probe_rotation;
 uniform vec4 light_probe_offset;    // light_probe_offset.w = number of mipmaps
 
-// GLES preprocessors require everything used in #if to be explicitly defined with a value
-#ifndef UIC_ENABLE_LIGHT_PROBE_2
-#define UIC_ENABLE_LIGHT_PROBE_2 0
-#endif
-
-#if UIC_ENABLE_LIGHT_PROBE_2
+#if QT3DS_ENABLE_LIGHT_PROBE_2
 uniform sampler2D light_probe2;
 uniform vec4 light_probe2_props;
 #endif
 
-#ifndef UIC_ENABLE_IBL_FOV
-#define UIC_ENABLE_IBL_FOV 0
-#endif
-
-#if UIC_ENABLE_IBL_FOV
+#if QT3DS_ENABLE_IBL_FOV
 uniform vec4 light_probe_opts;
 #endif
 
@@ -75,7 +96,7 @@ vec2 getProbeSampleUV( vec3 smpDir, vec4 probeRot, vec2 probeOfs )
 {
     vec2 smpUV;
 
-#if UIC_ENABLE_IBL_FOV
+#if QT3DS_ENABLE_IBL_FOV
     smpUV.x = (2.0 * atan(-smpDir.z, smpDir.x) + 3.14159265358 ) / light_probe_opts.x;
     smpUV.y = (2.0 * atan(-smpDir.z, smpDir.y) + 3.14159265358 ) / light_probe_opts.x;
 #else
@@ -89,7 +110,7 @@ vec2 getProbeSampleUV( vec3 smpDir, vec4 probeRot, vec2 probeOfs )
 
 vec4 getTopLayerSample( vec3 inDir, float lodShift, vec3 lodOffsets )
 {
-#if UIC_ENABLE_LIGHT_PROBE_2
+#if QT3DS_ENABLE_LIGHT_PROBE_2
     if ( light_probe2_props.w < 0.5 )
         return vec4(0.0, 0.0, 0.0, 0.0);
 
@@ -121,7 +142,7 @@ vec3 getProbeWeightedSample( vec3 smpDir, float lodShift, float roughness, vec3 
     vec2 smpUV = getProbeSampleUV( smpDir, light_probe_rotation, light_probe_offset.xy );
     float wt = 1.0;
 
-#if UIC_ENABLE_IBL_FOV
+#if QT3DS_ENABLE_IBL_FOV
     wt = min(wt, smoothstep(roughness * -0.25, roughness * 0.25, smpUV.x));
     wt = min(wt, smoothstep(roughness * -0.25, roughness * 0.25, smpUV.y));
     wt = min(wt, 1.0 - smoothstep(1.0 - roughness*0.25, 1.0 + roughness*0.25, smpUV.x));
@@ -158,7 +179,7 @@ vec3 getProbeWeightedSample( vec3 smpDir, float lodShift, float roughness, vec3 
     retVal += 0.3 * textureLod( light_probe, smpUV , lodShift+lodOffsets.y ).xyz;
     retVal += 0.1 * textureLod( light_probe, smpUV , lodShift+lodOffsets.z ).xyz;
 
-#if UIC_ENABLE_LIGHT_PROBE_2
+#if QT3DS_ENABLE_LIGHT_PROBE_2
     vec4 topSmp = getTopLayerSample( smpDir, lodShift, lodOffsets );
     vec3 tempVal = mix( retVal, topSmp.xyz, topSmp.w );
     retVal = mix( retVal, tempVal, light_probe2_props.z );

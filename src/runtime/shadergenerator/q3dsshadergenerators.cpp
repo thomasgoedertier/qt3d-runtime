@@ -32,7 +32,7 @@
 
 QT_BEGIN_NAMESPACE
 
-#define UIC_RENDER_SUPPORT_DEPTH_TEXTURE 1
+#define Q3DS_RENDER_SUPPORT_DEPTH_TEXTURE 1
 
 Q3DSSubsetMaterialVertexPipeline::Q3DSSubsetMaterialVertexPipeline(Q3DSDefaultMaterialShaderGenerator &inMaterial,
                                                                    Q3DSAbstractShaderProgramGenerator &inProgram,
@@ -175,7 +175,7 @@ void Q3DSSubsetMaterialVertexPipeline::finalizeTessEvaluationShader()
                     Q3DSShaderManager::instance().defaultMaterialShaderGenerator()->getImageVariableNames(QLatin1String("displacementMap"));
             const QByteArray imageSampler = theNames.imageSampler.toUtf8();
             const QByteArray imageFragCoords = theNames.imageFragCoords.toUtf8();
-            tessEvalShader << "\tpos.xyz = uicDefaultMaterialFileDisplacementTexture( "
+            tessEvalShader << "\tpos.xyz = defaultMaterialFileDisplacementTexture( "
                            << imageSampler.constData() << ", displaceAmount, "
                            << imageFragCoords.constData() << outExt;
             tessEvalShader << ", varObjectNormal" << outExt << ", pos.xyz );"
@@ -234,7 +234,7 @@ void Q3DSSubsetMaterialVertexPipeline::beginVertexGeneration(Q3DSImage *displace
             setCode(GenerationFlagValues::WorldPosition);
             vertexShader.addUniform("modelMatrix", "mat4");
 
-            vertexShader.addInclude("uicDefaultMaterialFileDisplacementTexture.glsllib");
+            vertexShader.addInclude("defaultMaterialFileDisplacementTexture.glsllib");
             Q3DSDefaultMaterialShaderGenerator::ImageVariableNames theVarNames =
                     materialGenerator().getImageVariableNames(QLatin1String("displacementMap"));
 
@@ -244,7 +244,7 @@ void Q3DSSubsetMaterialVertexPipeline::beginVertexGeneration(Q3DSImage *displace
             vertexShader.addUniform(imageSampler.constData(), "sampler2D");
 
             vertexShader
-                    << "\tvec3 displacedPos = uicDefaultMaterialFileDisplacementTexture( "
+                    << "\tvec3 displacedPos = defaultMaterialFileDisplacementTexture( "
                     << imageSampler.constData() << ", displaceAmount, "
                     << imageFragCoords.constData() << ", attr_norm, attr_pos );" << "\n";
             addInterpolationParameter("varWorldPos", "vec3");

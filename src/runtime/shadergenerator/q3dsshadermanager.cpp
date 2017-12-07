@@ -148,7 +148,7 @@ Qt3DRender::QShaderProgram *Q3DSShaderManager::getDepthPrepassShader(Qt3DCore::Q
             vertexShader->addUniform("displaceAmount", "float");
             vertexShader->addUniform("displacementMap_rotations", "vec4");
             vertexShader->addUniform("displacementMap_offsets", "vec3");
-            vertexShader->addInclude("uicDefaultMaterialFileDisplacementTexture.glsllib");
+            vertexShader->addInclude("defaultMaterialFileDisplacementTexture.glsllib");
 
             vertexShader->append("    vec3 uTransform = vec3( displacementMap_rotations.x, displacementMap_rotations.y, "
                             "displacementMap_offsets.x );");
@@ -157,7 +157,7 @@ Qt3DRender::QShaderProgram *Q3DSShaderManager::getDepthPrepassShader(Qt3DCore::Q
             vertexShader->addFunction("getTransformedUVCoords");
             vertexShader->append("    vec2 uv_coords = attr_uv0;");
             vertexShader->append("    uv_coords = getTransformedUVCoords( vec3( uv_coords, 1.0), uTransform, vTransform );");
-            vertexShader->append("    vec3 displacedPos = uicDefaultMaterialFileDisplacementTexture( displacementMap_sampler, displaceAmount, uv_coords, attr_norm, attr_pos );");
+            vertexShader->append("    vec3 displacedPos = defaultMaterialFileDisplacementTexture( displacementMap_sampler, displaceAmount, uv_coords, attr_norm, attr_pos );");
             vertexShader->append("    gl_Position = modelViewProjection * vec4(displacedPos, 1.0);");
         } else {
             vertexShader->append("    gl_Position = modelViewProjection * vec4(attr_pos, 1.0);");

@@ -1,21 +1,21 @@
 <Material name="carbon_fiber" version="1.0">
     <MetaData >
-        <Property formalName="Environment Map" name="uEnvironmentTexture" type="Texture" filter="linear" minfilter="linearMipmapLinear" clamp="repeat" usage="environment" default=".\maps\materials\spherical_checker.png" category="Material"/>
-        <Property formalName="Enable Environment" name="uEnvironmentMappingEnabled" type="Boolean" default="True" category="Material"/>
-        <Property formalName="Baked Shadow Map" name="uBakedShadowTexture" type="Texture" filter="linear" minfilter="linearMipmapLinear" clamp="repeat" usage="shadow" default=".\maps\materials\shadow.png" category="Material"/>
-        <Property formalName="Enable Shadow Mapping" name="uShadowMappingEnabled" type="Boolean" default="False" category="Material"/>
+        <Property formalName="Environment Map" name="uEnvironmentTexture" description="Environment texture for the material" type="Texture" filter="linear" minfilter="linearMipmapLinear" clamp="repeat" usage="environment" default="./maps/materials/spherical_checker.png" category="Material"/>
+        <Property formalName="Enable Environment" name="uEnvironmentMappingEnabled" description="Enable environment mapping" type="Boolean" default="True" category="Material"/>
+        <Property formalName="Baked Shadow Map" name="uBakedShadowTexture" description="Baked shadow texture for the material" type="Texture" filter="linear" minfilter="linearMipmapLinear" clamp="repeat" usage="shadow" default="./maps/materials/shadow.png" category="Material"/>
+        <Property formalName="Enable Shadow Mapping" name="uShadowMappingEnabled" description="Enable shadow mapping" type="Boolean" default="False" category="Material"/>
         <Property formalName="Coat ior" name="coat_ior" type="Float" default="1.250000" description="Index of refraction of the coating layer" category="Material"/>
         <Property formalName="Coat Glossy weight" name="coat_weight" type="Float" min="0.000000" max="1.000000" default="1.000000" description="Strength of the coating's glossy reflection.  A value of 0 means no reflection, 1 is maximum reflectivity" category="Material"/>
-        <Property formalName="Coat Roughness" name="coat_roughness" type="Float" min="0.000000" max="1.000000" default="0.000000" description="Roughness of the material.  A value of 0 makes it completely specular, 1 is completely diffuse" category="Material"/>
+        <Property formalName="Coat Roughness" name="coat_roughness" type="Float" min="0.000000" max="1.000000" default="0.000000" description="Roughness of the material. 0 is fully specular, 1 is fully diffuse" category="Material"/>
         <Property formalName="Base ior" name="base_ior" type="Float" default="1.650000" description="Index of refraction of the material" category="Material"/>
         <Property formalName="Glossy Weight" name="base_weight" type="Float" min="0.000000" max="1.000000" default="0.500000" description="Strength of glossy reflection at incident angles.  A value of 0 means no reflection, 1 is maximum reflectivity" category="Material"/>
-        <Property formalName="Roughness" name="base_roughness" type="Float" min="0.000000" max="1.000000" default="0.100000" description="Roughness of the material.  A value of 0 makes it completely specular, 1 is completely diffuse" category="Material"/>
+        <Property formalName="Roughness" name="base_roughness" type="Float" min="0.000000" max="1.000000" default="0.100000" description="Roughness of the material. 0 is fully specular, 1 is fully diffuse" category="Material"/>
         <Property formalName="Anisotropy" name="anisotropy" type="Float" min="0.000000" max="0.999000" default="0.800000" description="The anisotropy of the roughness" category="Material"/>
-        <Property formalName="Anisotropy Transformation Map" name="anisotropy_rotation_texture" type="Texture" filter="linear" minfilter="linear" clamp="repeat" usage="anisotropy" default=".\maps\materials\carbon_fiber_aniso.png" category="Material"/>
+        <Property formalName="Anisotropy Transformation Map" description="Anisotropy transformation texture" name="anisotropy_rotation_texture" type="Texture" filter="linear" minfilter="linear" clamp="repeat" usage="anisotropy" default="./maps/materials/carbon_fiber_aniso.png" category="Material"/>
         <Property formalName="Tiling" name="texture_tiling" type="Float2" default="12 12" description="Scaling of the textures" category="Material"/>
-        <Property formalName="Reflectivity Map" name="reflect_texture" type="Texture" filter="linear" minfilter="linearMipmapLinear" clamp="repeat" usage="specular" default=".\maps\materials\carbon_fiber_spec.png" category="Material"/>
-        <Property formalName="Diffuse Map" name="diffuse_texture" type="Texture" filter="linear" minfilter="linearMipmapLinear" clamp="repeat" usage="diffuse" default=".\maps\materials\carbon_fiber.png" category="Material"/>
-        <Property formalName="Bump Map" name="bump_texture" type="Texture" filter="linear" minfilter="linearMipmapLinear" clamp="repeat" usage="bump" default=".\maps\materials\carbon_fiber_bump.png" category="Material"/>
+        <Property formalName="Reflectivity Map" name="reflect_texture" description="Reflectivity texture for the material" type="Texture" filter="linear" minfilter="linearMipmapLinear" clamp="repeat" usage="specular" default="./maps/materials/carbon_fiber_spec.png" category="Material"/>
+        <Property formalName="Diffuse Map" name="diffuse_texture" description="Diffuse texture of the material" type="Texture" filter="linear" minfilter="linearMipmapLinear" clamp="repeat" usage="diffuse" default="./maps/materials/carbon_fiber.png" category="Material"/>
+        <Property formalName="Bump Map" name="bump_texture" description="Bump texture of the material" type="Texture" filter="linear" minfilter="linearMipmapLinear" clamp="repeat" usage="bump" default="./maps/materials/carbon_fiber_bump.png" category="Material"/>
         <Property formalName="Bump Amount" name="bump_amount" type="Float" default="1.000000" description="Value determining the bumpiness" category="Material"/>
     </MetaData>
     <Shaders type="GLSL" version="330">
@@ -40,10 +40,10 @@
 #define gamma_linear 1
 #define gamma_srgb 2
 
-#define UIC_ENABLE_UV0 1
-#define UIC_ENABLE_WORLD_POSITION 1
-#define UIC_ENABLE_TEXTAN 1
-#define UIC_ENABLE_BINORMAL 1
+#define QT3DS_ENABLE_UV0 1
+#define QT3DS_ENABLE_WORLD_POSITION 1
+#define QT3DS_ENABLE_TEXTAN 1
+#define QT3DS_ENABLE_BINORMAL 1
 
 #include "vertexFragmentBase.glsllib"
 
@@ -130,7 +130,7 @@ vec3 computeFrontMaterialEmissive()
 
 void computeFrontLayerColor( in vec3 normal, in vec3 lightDir, in vec3 viewDir, in vec3 lightDiffuse, in vec3 lightSpecular, in float materialIOR, float aoFactor )
 {
-#if UIC_ENABLE_CG_LIGHTING
+#if QT3DS_ENABLE_CG_LIGHTING
   layers[0].layer += tmpShadowTerm * microfacetBSDF( layers[0].tanFrame, lightDir, viewDir, lightSpecular, materialIOR, coat_roughness, coat_roughness, scatter_reflect );
 
   layers[1].layer += tmpShadowTerm * microfacetBSDF( layers[1].tanFrame, lightDir, viewDir, lightSpecular, materialIOR, ftmp0, ftmp1, scatter_reflect );
@@ -143,7 +143,7 @@ void computeFrontLayerColor( in vec3 normal, in vec3 lightDir, in vec3 viewDir, 
 
 void computeFrontAreaColor( in int lightIdx, in vec4 lightDiffuse, in vec4 lightSpecular )
 {
-#if UIC_ENABLE_CG_LIGHTING
+#if QT3DS_ENABLE_CG_LIGHTING
   layers[0].layer += tmpShadowTerm * lightSpecular * sampleAreaGlossy( layers[0].tanFrame, varWorldPos, lightIdx, viewDir, coat_roughness, coat_roughness );
 
   layers[1].layer += tmpShadowTerm * lightSpecular * sampleAreaGlossy( layers[1].tanFrame, varWorldPos, lightIdx, viewDir, ftmp0, ftmp1 );
@@ -156,7 +156,7 @@ void computeFrontAreaColor( in int lightIdx, in vec4 lightDiffuse, in vec4 light
 
 void computeFrontLayerEnvironment( in vec3 normal, in vec3 viewDir, float aoFactor )
 {
-#if !UIC_ENABLE_LIGHT_PROBE
+#if !QT3DS_ENABLE_LIGHT_PROBE
   layers[0].layer += tmpShadowTerm * microfacetSampledBSDF( layers[0].tanFrame, viewDir, coat_roughness, coat_roughness, scatter_reflect );
 
   layers[1].layer += tmpShadowTerm * microfacetSampledBSDF( layers[1].tanFrame, viewDir, ftmp0, ftmp1, scatter_reflect );
@@ -182,7 +182,7 @@ vec3 computeBackMaterialEmissive()
 
 void computeBackLayerColor( in vec3 normal, in vec3 lightDir, in vec3 viewDir, in vec3 lightDiffuse, in vec3 lightSpecular, in float materialIOR, float aoFactor )
 {
-#if UIC_ENABLE_CG_LIGHTING
+#if QT3DS_ENABLE_CG_LIGHTING
   layers[0].base += vec4( 0.0, 0.0, 0.0, 1.0 );
   layers[0].layer += vec4( 0.0, 0.0, 0.0, 1.0 );
 #endif
@@ -190,7 +190,7 @@ void computeBackLayerColor( in vec3 normal, in vec3 lightDir, in vec3 viewDir, i
 
 void computeBackAreaColor( in int lightIdx, in vec4 lightDiffuse, in vec4 lightSpecular )
 {
-#if UIC_ENABLE_CG_LIGHTING
+#if QT3DS_ENABLE_CG_LIGHTING
   layers[0].base += vec4( 0.0, 0.0, 0.0, 1.0 );
   layers[0].layer += vec4( 0.0, 0.0, 0.0, 1.0 );
 #endif
@@ -198,7 +198,7 @@ void computeBackAreaColor( in int lightIdx, in vec4 lightDiffuse, in vec4 lightS
 
 void computeBackLayerEnvironment( in vec3 normal, in vec3 viewDir, float aoFactor )
 {
-#if !UIC_ENABLE_LIGHT_PROBE
+#if !QT3DS_ENABLE_LIGHT_PROBE
   layers[0].base += vec4( 0.0, 0.0, 0.0, 1.0 );
   layers[0].layer += vec4( 0.0, 0.0, 0.0, 1.0 );
 #else

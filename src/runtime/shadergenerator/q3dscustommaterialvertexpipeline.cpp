@@ -392,7 +392,7 @@ void Q3DSCustomMaterialVertexPipeline::beginVertexGeneration(Q3DSImage *displace
             setCode(GenerationFlagValues::WorldPosition);
             vertexShader.addUniform("modelMatrix", "mat4");
 
-            vertexShader.addInclude("uicDefaultMaterialFileDisplacementTexture.glsllib");
+            vertexShader.addInclude("defaultMaterialFileDisplacementTexture.glsllib");
             Q3DSDefaultMaterialShaderGenerator::ImageVariableNames theVarNames =
                     materialGenerator().getImageVariableNames(QLatin1String("displacementMap"));
 
@@ -402,7 +402,7 @@ void Q3DSCustomMaterialVertexPipeline::beginVertexGeneration(Q3DSImage *displace
             vertexShader.addUniform(imageSampler.constData(), "sampler2D");
 
             vertexShader
-                    << "\tvec3 displacedPos = uicDefaultMaterialFileDisplacementTexture( "
+                    << "\tvec3 displacedPos = defaultMaterialFileDisplacementTexture( "
                     << imageSampler.constData() << ", displaceAmount, "
                     << imageFragCoords.constData() << ", attr_norm, attr_pos );" << "\n";
             addInterpolationParameter("varWorldPos", "vec3");

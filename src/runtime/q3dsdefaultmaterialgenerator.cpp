@@ -104,10 +104,10 @@ Qt3DRender::QMaterial *Q3DSDefaultMaterialGenerator::generateMaterial(Q3DSDefaul
     Q3DSShaderFeatureSet features;
 
     if (!layerData->shadowMapData.shadowCasters.isEmpty())
-        features.append(Q3DSShaderPreprocessorFeature(QLatin1String("UIC_ENABLE_SSM"), true));
+        features.append(Q3DSShaderPreprocessorFeature(QLatin1String("QT3DS_ENABLE_SSM"), true));
 
     if (layerData->ssaoTextureData.enabled)
-        features.append(Q3DSShaderPreprocessorFeature(QLatin1String("UIC_ENABLE_SSAO"), true));
+        features.append(Q3DSShaderPreprocessorFeature(QLatin1String("QT3DS_ENABLE_SSAO"), true));
 
     Qt3DRender::QShaderProgram *shaderProgram = Q3DSShaderManager::instance().generateShaderProgram(*defaultMaterial,
                                                                                                     lights,

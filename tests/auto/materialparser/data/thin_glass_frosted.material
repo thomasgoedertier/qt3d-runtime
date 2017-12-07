@@ -1,26 +1,26 @@
 <Material name="thin_glass_frosted" version="1.0">
     <MetaData >
-        <Property formalName="Environment Map" name="uEnvironmentTexture" type="Texture" filter="linear" minfilter="linearMipmapLinear" clamp="repeat" usage="environment" default=".\maps\materials\spherical_checker.png" category="Material"/>
-        <Property formalName="Enable Environment" name="uEnvironmentMappingEnabled" type="Boolean" default="True" category="Material"/>
-        <Property formalName="Baked Shadow Map" name="uBakedShadowTexture" type="Texture" filter="linear" minfilter="linearMipmapLinear" clamp="repeat" usage="shadow" default=".\maps\materials\shadow.png" category="Material"/>
-        <Property formalName="Enable Shadow Mapping" name="uShadowMappingEnabled" type="Boolean" default="False" category="Material"/>
-        <Property formalName="Fresnel Power" name="uFresnelPower" type="Float" default="1.0" category="Material"/>
-        <Property formalName="Roughness" name="roughness" type="Float" min="0.000000" max="1.000000" default="1.000000" description="surface reflection roughness" category="Material"/>
-        <Property formalName="Reflectivity" name="reflectivity_amount" type="Float" min="0.000000" max="1.000000" default="0.100000" description="reflectivity factor" category="Material"/>
+        <Property formalName="Environment Map" name="uEnvironmentTexture" description="Environment texture for the material" type="Texture" filter="linear" minfilter="linearMipmapLinear" clamp="repeat" usage="environment" default="./maps/materials/spherical_checker.png" category="Material"/>
+        <Property formalName="Enable Environment" name="uEnvironmentMappingEnabled" description="Enable environment mapping" type="Boolean" default="True" category="Material"/>
+        <Property formalName="Baked Shadow Map" name="uBakedShadowTexture" description="Baked shadow texture for the material" type="Texture" filter="linear" minfilter="linearMipmapLinear" clamp="repeat" usage="shadow" default="./maps/materials/shadow.png" category="Material"/>
+        <Property formalName="Enable Shadow Mapping" name="uShadowMappingEnabled" description="Enable shadow mapping" type="Boolean" default="False" category="Material"/>
+        <Property formalName="Fresnel Power" name="uFresnelPower" description="Fresnel power of the material" type="Float" default="1.0" category="Material"/>
+        <Property formalName="Roughness" name="roughness" type="Float" min="0.000000" max="1.000000" default="1.000000" description="Roughness of the material. 0 is fully specular, 1 is fully diffuse" category="Material"/>
+        <Property formalName="Reflectivity" name="reflectivity_amount" type="Float" min="0.000000" max="1.000000" default="0.100000" description="Reflectivity factor" category="Material"/>
         <Property formalName="Glass ior" name="glass_ior" type="Float" default="1.100000" description="Index of refraction of the material" category="Material"/>
         <Property formalName="Glass Color" name="glass_color" type="Color" default="0.9 0.9 0.9" description="Color of the material" category="Material"/>
         <Property formalName="Glass Bump map" name="glass_bump" description="Additional bump map for surface" type="Texture" clamp="repeat" category="Material"/>
         <Property formalName="Glass Bump Factor" name="glass_bfactor" description="Bump map factor" default="0.0" category="Material"/>
         <Property formalName="Glass Bump Inside" name="glass_binside" description="Use bump map for internal lighting only" type="Boolean" default="False" category="Material"/>
         <Property formalName="Blur Width" name="blur_size" type="Float" default="8" min="1" max="50" description="Amount of blurring behind the glass" category="Material"/>
-        <Property formalName="Gradient1D Map" hidden="True" name="randomGradient1D" type="Texture" filter="linear" minfilter="linearMipmapLinear" clamp="repeat" usage="gradient" default=".\maps\materials\randomGradient1D.png"/>
-        <Property formalName="Gradient2D Map" hidden="True" name="randomGradient2D" type="Texture" filter="linear" minfilter="linearMipmapLinear" clamp="repeat" usage="gradient" default=".\maps\materials\randomGradient2D.png"/>
-        <Property formalName="Gradient3D Map" hidden="True" name="randomGradient3D" type="Texture" filter="linear" minfilter="linearMipmapLinear" clamp="repeat" usage="gradient" default=".\maps\materials\randomGradient3D.png"/>
-        <Property formalName="Gradient4D Map" hidden="True" name="randomGradient4D" type="Texture" filter="linear" minfilter="linearMipmapLinear" clamp="repeat" usage="gradient" default=".\maps\materials\randomGradient4D.png"/>
+        <Property formalName="Gradient1D Map" description="Gradient texture of the material" hidden="True" name="randomGradient1D" type="Texture" filter="linear" minfilter="linearMipmapLinear" clamp="repeat" usage="gradient" default="./maps/materials/randomGradient1D.png"/>
+        <Property formalName="Gradient2D Map" description="Gradient texture of the material" hidden="True" name="randomGradient2D" type="Texture" filter="linear" minfilter="linearMipmapLinear" clamp="repeat" usage="gradient" default="./maps/materials/randomGradient2D.png"/>
+        <Property formalName="Gradient3D Map" description="Gradient texture of the material" hidden="True" name="randomGradient3D" type="Texture" filter="linear" minfilter="linearMipmapLinear" clamp="repeat" usage="gradient" default="./maps/materials/randomGradient3D.png"/>
+        <Property formalName="Gradient4D Map" description="Gradient texture of the material" hidden="True" name="randomGradient4D" type="Texture" filter="linear" minfilter="linearMipmapLinear" clamp="repeat" usage="gradient" default="./maps/materials/randomGradient4D.png"/>
         <Property formalName="Refract Depth" name="refract_depth" type="Float" default="5" min="0" max="20" description="Degree of bend from refraction. Allows control of refraction without affecting lighting" category="Refraction"/>
-        <Property name="bumpCoords" type="Vector" default="1 1 1" category="Refraction"/>
-        <Property name="bumpScale" type="Float" min="0.000000" max="5.000000" default="0.500000" category="Refraction"/>
-        <Property name="bumpBands" type="Long" min="1.000000" max="10.000000"  default="1" category="Refraction"/>
+        <Property formalName="Bump Coordinates" name="bumpCoords" description="Bump coordinates of the refraction" type="Vector" default="1 1 1" category="Refraction"/>
+        <Property formalName="Bump Scale" name="bumpScale" description="Scale of the bumps" type="Float" min="0.000000" max="5.000000" default="0.500000" category="Refraction"/>
+        <Property formalName="Bump Bands" name="bumpBands" description="Bump bands of the refraction" type="Long" min="1.000000" max="10.000000"  default="1" category="Refraction"/>
         <Property formalName="Light Position" name="intLightPos" type="Float2" description="Position in UV space of the band-light" default="0.5 0" category="Translucent Lighting"/>
         <Property formalName="Light Color" name="intLightCol" type="Color" description="Color of the band-light" default="0.9 0.9 0.9" category="Translucent Lighting"/>
         <Property formalName="Light Brightness" name="intLightBrt" type="Float" description="Brightness of the band-light" default="0" category="Translucent Lighting"/>
@@ -49,10 +49,10 @@
 #define scatter_transmit 1
 #define scatter_reflect_transmit 2
 
-#define UIC_ENABLE_UV0 1
-#define UIC_ENABLE_WORLD_POSITION 1
-#define UIC_ENABLE_TEXTAN 1
-#define UIC_ENABLE_BINORMAL 0
+#define QT3DS_ENABLE_UV0 1
+#define QT3DS_ENABLE_WORLD_POSITION 1
+#define QT3DS_ENABLE_TEXTAN 1
+#define QT3DS_ENABLE_BINORMAL 0
 
 #include "vertexFragmentBase.glsllib"
 
@@ -132,7 +132,7 @@ vec3 computeFrontMaterialEmissive()
 
 void computeFrontLayerColor( in vec3 normal, in vec3 lightDir, in vec3 viewDir, in vec3 lightDiffuse, in vec3 lightSpecular, in float materialIOR, float aoFactor )
 {
-#if UIC_ENABLE_CG_LIGHTING
+#if QT3DS_ENABLE_CG_LIGHTING
   layers[0].base += tmpShadowTerm * microfacetBSDF( layers[0].tanFrame, lightDir, viewDir, lightSpecular, materialIOR, roughness, roughness, scatter_reflect_transmit );
 
 #endif
@@ -140,7 +140,7 @@ void computeFrontLayerColor( in vec3 normal, in vec3 lightDir, in vec3 viewDir, 
 
 void computeFrontAreaColor( in int lightIdx, in vec4 lightDiffuse, in vec4 lightSpecular )
 {
-#if UIC_ENABLE_CG_LIGHTING
+#if QT3DS_ENABLE_CG_LIGHTING
   layers[0].base += tmpShadowTerm * lightSpecular * sampleAreaGlossy( layers[0].tanFrame, varWorldPos, lightIdx, viewDir, roughness, roughness );
 
 #endif
@@ -148,7 +148,7 @@ void computeFrontAreaColor( in int lightIdx, in vec4 lightDiffuse, in vec4 light
 
 void computeFrontLayerEnvironment( in vec3 normal, in vec3 viewDir, float aoFactor )
 {
-#if !UIC_ENABLE_LIGHT_PROBE
+#if !QT3DS_ENABLE_LIGHT_PROBE
   layers[0].base += tmpShadowTerm * microfacetSampledBSDF( layers[0].tanFrame, viewDir, roughness, roughness, scatter_reflect_transmit );
 
 #else
@@ -164,7 +164,7 @@ vec3 computeBackMaterialEmissive()
 
 void computeBackLayerColor( in vec3 normal, in vec3 lightDir, in vec3 viewDir, in vec3 lightDiffuse, in vec3 lightSpecular, in float materialIOR, float aoFactor )
 {
-#if UIC_ENABLE_CG_LIGHTING
+#if QT3DS_ENABLE_CG_LIGHTING
   layers[0].base += vec4( 0.0, 0.0, 0.0, 1.0 );
   layers[0].layer += vec4( 0.0, 0.0, 0.0, 1.0 );
 #endif
@@ -172,7 +172,7 @@ void computeBackLayerColor( in vec3 normal, in vec3 lightDir, in vec3 viewDir, i
 
 void computeBackAreaColor( in int lightIdx, in vec4 lightDiffuse, in vec4 lightSpecular )
 {
-#if UIC_ENABLE_CG_LIGHTING
+#if QT3DS_ENABLE_CG_LIGHTING
   layers[0].base += vec4( 0.0, 0.0, 0.0, 1.0 );
   layers[0].layer += vec4( 0.0, 0.0, 0.0, 1.0 );
 #endif
@@ -180,7 +180,7 @@ void computeBackAreaColor( in int lightIdx, in vec4 lightDiffuse, in vec4 lightS
 
 void computeBackLayerEnvironment( in vec3 normal, in vec3 viewDir, float aoFactor )
 {
-#if !UIC_ENABLE_LIGHT_PROBE
+#if !QT3DS_ENABLE_LIGHT_PROBE
   layers[0].base += vec4( 0.0, 0.0, 0.0, 1.0 );
   layers[0].layer += vec4( 0.0, 0.0, 0.0, 1.0 );
 #else
@@ -313,9 +313,9 @@ vec4 computeGlass(in vec3 normal, in float materialIOR, in float alpha, in vec4 
 <VertexShader>
 </VertexShader>
 <FragmentShader>
-#define UIC_ENABLE_UV0 1
-#define UIC_ENABLE_WORLD_POSITION 1
-#define UIC_ENABLE_TEXTAN 1
+#define QT3DS_ENABLE_UV0 1
+#define QT3DS_ENABLE_WORLD_POSITION 1
+#define QT3DS_ENABLE_TEXTAN 1
 
 vec3 texCoord0;
 
@@ -332,9 +332,9 @@ void main()
 <VertexShader>
 </VertexShader>
 <FragmentShader>
-#define UIC_ENABLE_UV0 1
-#define UIC_ENABLE_WORLD_POSITION 1
-#define UIC_ENABLE_TEXTAN 1
+#define QT3DS_ENABLE_UV0 1
+#define QT3DS_ENABLE_WORLD_POSITION 1
+#define QT3DS_ENABLE_TEXTAN 1
 
 vec3 texCoord0;
 
@@ -353,11 +353,11 @@ void main()
     {
        for (int iy = -1; iy &lt;= 1; ++iy)
        {
-           float wt = float(ix*ix + iy*iy) * 4.0;
-           wt = exp2( -wt );
-           vec2 texOfs = vec2(ix, iy) * texSize;
-           totSum += wt * texture( OriginBuffer, texCoord0.xy + texOfs );
-           wtSum += wt;
+        float wt = float(ix*ix + iy*iy) * 4.0;
+        wt = exp2( -wt );
+        vec2 texOfs = vec2(ix, iy) * texSize;
+        totSum += wt * texture( OriginBuffer, texCoord0.xy + texOfs );
+        wtSum += wt;
        }
     }
 
@@ -371,9 +371,9 @@ void main()
 <VertexShader>
 </VertexShader>
 <FragmentShader>
-#define UIC_ENABLE_UV0 1
-#define UIC_ENABLE_WORLD_POSITION 1
-#define UIC_ENABLE_TEXTAN 1
+#define QT3DS_ENABLE_UV0 1
+#define QT3DS_ENABLE_WORLD_POSITION 1
+#define QT3DS_ENABLE_TEXTAN 1
 
 vec3 texCoord0;
 
@@ -411,9 +411,9 @@ void main()
 <VertexShader>
 </VertexShader>
 <FragmentShader>
-#define UIC_ENABLE_UV0 1
-#define UIC_ENABLE_WORLD_POSITION 1
-#define UIC_ENABLE_TEXTAN 1
+#define QT3DS_ENABLE_UV0 1
+#define QT3DS_ENABLE_WORLD_POSITION 1
+#define QT3DS_ENABLE_TEXTAN 1
 
 vec3 texCoord0;
 

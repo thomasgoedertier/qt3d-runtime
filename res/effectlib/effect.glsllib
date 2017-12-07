@@ -1,3 +1,33 @@
+/****************************************************************************
+**
+** Copyright (C) 2014 NVIDIA Corporation.
+** Copyright (C) 2017 The Qt Company Ltd.
+** Contact: https://www.qt.io/licensing/
+**
+** This file is part of Qt 3D Studio.
+**
+** $QT_BEGIN_LICENSE:GPL$
+** Commercial License Usage
+** Licensees holding valid commercial Qt licenses may use this file in
+** accordance with the commercial license agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and The Qt Company. For licensing terms
+** and conditions see https://www.qt.io/terms-conditions. For further
+** information use the contact form at https://www.qt.io/contact-us.
+**
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License version 3 or (at your option) any later version
+** approved by the KDE Free Qt Foundation. The licenses are as published by
+** the Free Software Foundation and appearing in the file LICENSE.GPL3
+** included in the packaging of this file. Please review the following
+** information to ensure the GNU General Public License requirements will
+** be met: https://www.gnu.org/licenses/gpl-3.0.html.
+**
+** $QT_END_LICENSE$
+**
+****************************************************************************/
+
 #ifndef EFFECT_GLSLLIB
 #define EFFECT_GLSLLIB 1
 
@@ -37,17 +67,6 @@ vec4 GetTextureValuePreMult( sampler2D sampler, vec2 inUVCoords )
 //texFormat = one of: rgb, rgba, lum, lum_alpha
 //texFilter = one of: nearest, linear
 //texWrap = one of: repeat, clamp
-#define SNAPPER_SAMPLER2D(propName, propNiceName, texFilter, texWrap, showUI )\
-uniform sampler2D propName;                    \
-uniform int flag##propName;                    \
-uniform vec4 propName##Info;                \
-vec4 texture2D_##propName(vec2 uv)                                \
-{                                                                \
-   return GetTextureValue( propName, uv, propName##Info.z );    \
-}
-
-#define SNAPPER_SAMPLER2DWITHDEFAULT(propName, propNiceName, texFilter, texWrap, defaultPath, showUI ) SNAPPER_SAMPLER2D( propName, propNiceName, texFilter, texWrap, showUI );
-#define SNAPPER_SAMPLERCUBE(propName, propNiceName, texFilter, texWrap ) uniform samplerCube propName; uniform vec2 propName##UVRange; uniform int flag##propName; uniform vec2 propName##Size;
 #define SNAPPER_EXTERNAL_PARAMETER(propName, datatype, rangeMin, rangeMax, propNiceName, defaultValue)
 #define SNAPPER_EXTERNAL_ANGLE(propName, propNiceName, defaultValueAsFloat)
 

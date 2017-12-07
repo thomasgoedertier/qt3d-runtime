@@ -1,18 +1,18 @@
 <Material name="powder_coat" version="1.0">
     <MetaData >
-        <Property formalName="Environment Map" name="uEnvironmentTexture" type="Texture" filter="linear" minfilter="linearMipmapLinear" clamp="repeat" usage="environment" default=".\maps\materials\spherical_checker.png" category="Material"/>
-        <Property formalName="Enable Environment" name="uEnvironmentMappingEnabled" type="Boolean" default="True" category="Material"/>
-        <Property formalName="Baked Shadow Map" name="uBakedShadowTexture" type="Texture" filter="linear" minfilter="linearMipmapLinear" clamp="repeat" usage="shadow" default=".\maps\materials\shadow.png" category="Material"/>
-        <Property formalName="Enable Shadow Mapping" name="uShadowMappingEnabled" type="Boolean" default="False" category="Material"/>
-        <Property name="material_ior" type="Float" default="5.000000" category="Material"/>
-        <Property name="glossy_weight" type="Float" default="0.500000" category="Material"/>
-        <Property name="roughness" type="Float" default="0.100000" category="Material"/>
-        <Property name="reflectivity" type="Float" default="0.100000" category="Material"/>
-        <Property name="diffuse_weight" type="Float" default="1.000000" category="Material"/>
-        <Property name="powdercoat_diffuse_color" type="Color" default="0.046 0.046 0.054" category="Material"/>
-        <Property name="powdercoat_bump_texture" type="Texture" filter="linear" minfilter="linearMipmapLinear" clamp="repeat" usage="bump" default=".\maps\materials\powdercoat_bump_01.png" category="Material"/>
-        <Property name="bump_factor" type="Float" default="2.000000" category="Material"/>
-        <Property name="texture_scaling" type="Vector" default="3 3 3" category="Material"/>
+        <Property formalName="Environment Map" name="uEnvironmentTexture" description="Environment texture for the material" type="Texture" filter="linear" minfilter="linearMipmapLinear" clamp="repeat" usage="environment" default="./maps/materials/spherical_checker.png" category="Material"/>
+        <Property formalName="Enable Environment" name="uEnvironmentMappingEnabled" description="Enable environment mapping" type="Boolean" default="True" category="Material"/>
+        <Property formalName="Baked Shadow Map" name="uBakedShadowTexture" description="Baked shadow texture for the material" type="Texture" filter="linear" minfilter="linearMipmapLinear" clamp="repeat" usage="shadow" default="./maps/materials/shadow.png" category="Material"/>
+        <Property formalName="Enable Shadow Mapping" name="uShadowMappingEnabled" description="Enable shadow mapping" type="Boolean" default="False" category="Material"/>
+        <Property formalName="Index of Refraction" name="material_ior" description="Refractive index of the material" type="Float" default="5.000000" category="Material"/>
+        <Property formalName="Glossiness" name="glossy_weight" description="Reflectivity of the material at the incident lighting angles. 1.0 means totally reflective, 0.0 means no reflection" type="Float" default="0.500000" category="Material"/>
+        <Property formalName="Roughness" name="roughness" description="Roughness of the material. 0 is fully specular, 1 is fully diffuse" type="Float" default="0.100000" category="Material"/>
+        <Property formalName="Reflectivity" name="reflectivity" description="Reflectivity of the material" type="Float" default="0.100000" category="Material"/>
+        <Property formalName="Diffuse Weight" name="diffuse_weight" description="Diffuse weight of the material" type="Float" default="1.000000" category="Material"/>
+        <Property formalName="Powdercoat Color" name="powdercoat_diffuse_color" description="Color of the powdercoat" type="Color" default="0.046 0.046 0.054" category="Material"/>
+        <Property formalName="Powdercoat Bump Map" name="powdercoat_bump_texture" description="Bump texture of the powdercoat" type="Texture" filter="linear" minfilter="linearMipmapLinear" clamp="repeat" usage="bump" default="./maps/materials/powdercoat_bump_01.png" category="Material"/>
+        <Property formalName="Bump Amount" name="bump_factor" description="Bumpiness of the material" type="Float" default="2.000000" category="Material"/>
+        <Property formalName="Texture Scale" name="texture_scaling" description="Scaling of the texture" type="Vector" default="3 3 3" category="Material"/>
     </MetaData>
     <Shaders type="GLSL" version="330">
     <Shader>
@@ -33,10 +33,10 @@
 #define scatter_transmit 1
 #define scatter_reflect_transmit 2
 
-#define UIC_ENABLE_UV0 1
-#define UIC_ENABLE_WORLD_POSITION 1
-#define UIC_ENABLE_TEXTAN 1
-#define UIC_ENABLE_BINORMAL 1
+#define QT3DS_ENABLE_UV0 1
+#define QT3DS_ENABLE_WORLD_POSITION 1
+#define QT3DS_ENABLE_TEXTAN 1
+#define QT3DS_ENABLE_BINORMAL 1
 
 #include "vertexFragmentBase.glsllib"
 
@@ -99,7 +99,7 @@ vec3 computeFrontMaterialEmissive()
 
 void computeFrontLayerColor( in vec3 normal, in vec3 lightDir, in vec3 viewDir, in vec3 lightDiffuse, in vec3 lightSpecular, in float materialIOR, float aoFactor )
 {
-#if UIC_ENABLE_CG_LIGHTING
+#if QT3DS_ENABLE_CG_LIGHTING
   layers[0].layer += tmpShadowTerm * microfacetBSDF( layers[0].tanFrame, lightDir, viewDir, lightSpecular, materialIOR, roughness, roughness, scatter_reflect );
 
   layers[1].base += tmpShadowTerm * vec4( 0.0f, 0.0f, 0.0f, 1.0f );
@@ -110,7 +110,7 @@ void computeFrontLayerColor( in vec3 normal, in vec3 lightDir, in vec3 viewDir, 
 
 void computeFrontAreaColor( in int lightIdx, in vec4 lightDiffuse, in vec4 lightSpecular )
 {
-#if UIC_ENABLE_CG_LIGHTING
+#if QT3DS_ENABLE_CG_LIGHTING
   layers[0].layer += tmpShadowTerm * lightSpecular * sampleAreaGlossy( layers[0].tanFrame, varWorldPos, lightIdx, viewDir, roughness, roughness );
 
   layers[1].base += tmpShadowTerm * vec4( 0.0f, 0.0f, 0.0f, 1.0f );
@@ -121,7 +121,7 @@ void computeFrontAreaColor( in int lightIdx, in vec4 lightDiffuse, in vec4 light
 
 void computeFrontLayerEnvironment( in vec3 normal, in vec3 viewDir, float aoFactor )
 {
-#if !UIC_ENABLE_LIGHT_PROBE
+#if !QT3DS_ENABLE_LIGHT_PROBE
   layers[0].layer += tmpShadowTerm * microfacetSampledBSDF( layers[0].tanFrame, viewDir, roughness, roughness, scatter_reflect );
 
   layers[1].base += tmpShadowTerm * vec4( 0.0f, 0.0f, 0.0f, 1.0f );
@@ -143,7 +143,7 @@ vec3 computeBackMaterialEmissive()
 
 void computeBackLayerColor( in vec3 normal, in vec3 lightDir, in vec3 viewDir, in vec3 lightDiffuse, in vec3 lightSpecular, in float materialIOR, float aoFactor )
 {
-#if UIC_ENABLE_CG_LIGHTING
+#if QT3DS_ENABLE_CG_LIGHTING
   layers[0].base += vec4( 0.0, 0.0, 0.0, 1.0 );
   layers[0].layer += vec4( 0.0, 0.0, 0.0, 1.0 );
 #endif
@@ -151,7 +151,7 @@ void computeBackLayerColor( in vec3 normal, in vec3 lightDir, in vec3 viewDir, i
 
 void computeBackAreaColor( in int lightIdx, in vec4 lightDiffuse, in vec4 lightSpecular )
 {
-#if UIC_ENABLE_CG_LIGHTING
+#if QT3DS_ENABLE_CG_LIGHTING
   layers[0].base += vec4( 0.0, 0.0, 0.0, 1.0 );
   layers[0].layer += vec4( 0.0, 0.0, 0.0, 1.0 );
 #endif
@@ -159,7 +159,7 @@ void computeBackAreaColor( in int lightIdx, in vec4 lightDiffuse, in vec4 lightS
 
 void computeBackLayerEnvironment( in vec3 normal, in vec3 viewDir, float aoFactor )
 {
-#if !UIC_ENABLE_LIGHT_PROBE
+#if !QT3DS_ENABLE_LIGHT_PROBE
   layers[0].base += vec4( 0.0, 0.0, 0.0, 1.0 );
   layers[0].layer += vec4( 0.0, 0.0, 0.0, 1.0 );
 #else

@@ -392,7 +392,7 @@ struct ShaderGenerator : public Q3DSDefaultMaterialShaderGenerator
         if (displacementImage) {
             setupImageVariableNames(displacementImageName);
             const QByteArray imageSampler = m_ImageSampler.toUtf8();
-            inGenerator.addInclude("uicDefaultMaterialFileDisplacementTexture.glsllib");
+            inGenerator.addInclude("defaultMaterialFileDisplacementTexture.glsllib");
             inGenerator.addUniform("modelMatrix", "mat4");
             inGenerator.addUniform("eyePosition", "vec3");
             inGenerator.addUniform("displaceAmount", "float");
@@ -457,7 +457,7 @@ struct ShaderGenerator : public Q3DSDefaultMaterialShaderGenerator
         inShader.addUniform("displaceAmount", "float");
         inShader.addUniform("displacementMap_rot", "vec4");
         inShader.addUniform("displacementMap_offset", "vec3");
-        inShader.addInclude("uicDefaultMaterialFileDisplacementTexture.glsllib");
+        inShader.addInclude("defaultMaterialFileDisplacementTexture.glsllib");
 
         inShader.append("\tvec3 uTransform = vec3( displacementMap_rot.x, displacementMap_rot.y, "
                         "displacementMap_offset.x );");
@@ -467,7 +467,7 @@ struct ShaderGenerator : public Q3DSDefaultMaterialShaderGenerator
         inShader.generateUVCoords();
         inShader << "\tvarTexCoord0 = getTransformedUVCoords( vec3( varTexCoord0, 1.0), "
                     "uTransform, vTransform );\n";
-        inShader << "\tvec3 displacedPos = uicDefaultMaterialFileDisplacementTexture( "
+        inShader << "\tvec3 displacedPos = defaultMaterialFileDisplacementTexture( "
                     "displacementSampler , displaceAmount, varTexCoord0 , attr_norm, attr_pos );"
                  << "\n";
         inShader.append("\tgl_Position = modelViewProjection * vec4(displacedPos, 1.0);");
@@ -558,11 +558,11 @@ struct ShaderGenerator : public Q3DSDefaultMaterialShaderGenerator
 
         for (qint32 idx = 0; idx < featureSet().size(); ++idx) {
             const QString name(featureSet()[idx].m_name);
-            if (name == QStringLiteral("UIC_ENABLE_SSAO"))
+            if (name == QStringLiteral("QT3DS_ENABLE_SSAO"))
                 enableSSAO = featureSet()[idx].m_enabled;
-            else if (name == QStringLiteral("UIC_ENABLE_SSDO"))
+            else if (name == QStringLiteral("QT3DS_ENABLE_SSDO"))
                 enableSSDO = featureSet()[idx].m_enabled;
-            else if (name == QStringLiteral("UIC_ENABLE_SSM"))
+            else if (name == QStringLiteral("QT3DS_ENABLE_SSM"))
                 enableShadowMaps = featureSet()[idx].m_enabled;
         }
 
@@ -621,7 +621,7 @@ struct ShaderGenerator : public Q3DSDefaultMaterialShaderGenerator
 
                 fragmentShader.addUniform("bumpAmount", "float");
 
-                fragmentShader.addInclude("uicDefaultMaterialFileBumpTexture.glsllib");
+                fragmentShader.addInclude("defaultMaterialFileBumpTexture.glsllib");
                 // vec3 simplerFileBumpTexture( in sampler2D sampler, in float factor, vec2
                 // texCoord, vec3 tangent, vec3 binormal, vec3 normal )
 
@@ -637,10 +637,10 @@ struct ShaderGenerator : public Q3DSDefaultMaterialShaderGenerator
                 const QByteArray imageSampler = m_ImageSampler.toUtf8();
                 const QByteArray imageFragCoords = m_ImageFragCoords.toUtf8();
 
-                fragmentShader.addInclude("uicDefaultMaterialFileNormalTexture.glsllib");
+                fragmentShader.addInclude("defaultMaterialFileNormalTexture.glsllib");
                 fragmentShader.addUniform("bumpAmount", "float");
 
-                fragmentShader << "\tworld_normal = uicDefaultMaterialFileNormalTexture( "
+                fragmentShader << "\tworld_normal = defaultMaterialFileNormalTexture( "
                                << imageSampler.constData() << ", bumpAmount, " << imageFragCoords.constData()
                                << ", tangent, binormal );" << "\n";
             }

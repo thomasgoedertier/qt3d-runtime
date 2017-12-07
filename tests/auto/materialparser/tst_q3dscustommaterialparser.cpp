@@ -137,7 +137,7 @@ void tst_Q3DSCustomMaterialParser::testValidateData()
     QVERIFY(bumpMapProperty.type == Q3DS::Texture);
     QVERIFY(bumpMapProperty.clampType == Q3DSMaterial::Repeat);
     QVERIFY(bumpMapProperty.usageType == Q3DSMaterial::Bump);
-    QVERIFY(bumpMapProperty.defaultValue == QStringLiteral(".\\maps\\materials\\carbon_fiber_bump.png"));
+    QVERIFY(bumpMapProperty.defaultValue == QStringLiteral("./maps/materials/carbon_fiber_bump.png"));
 
     QVERIFY(material.shaderType() == QStringLiteral("GLSL"));
     QVERIFY(material.shadersVersion() == QStringLiteral("330"));
