@@ -1143,7 +1143,7 @@ static void setMaterialBlending(Qt3DRender::QBlendEquation *blendFunc,
                                 Q3DSDefaultMaterial::BlendMode blendMode)
 {
     switch (blendMode) {
-    case Q3DSLayerNode::Screen:
+    case Q3DSDefaultMaterial::Screen:
         blendFunc->setBlendFunction(Qt3DRender::QBlendEquation::Add);
         blendArgs->setSourceRgb(Qt3DRender::QBlendEquationArguments::SourceAlpha);
         blendArgs->setDestinationRgb(Qt3DRender::QBlendEquationArguments::One);
@@ -1151,7 +1151,7 @@ static void setMaterialBlending(Qt3DRender::QBlendEquation *blendFunc,
         blendArgs->setDestinationAlpha(Qt3DRender::QBlendEquationArguments::One);
         break;
 
-    case Q3DSLayerNode::Multiply:
+    case Q3DSDefaultMaterial::Multiply:
         blendFunc->setBlendFunction(Qt3DRender::QBlendEquation::Add);
         blendArgs->setSourceRgb(Qt3DRender::QBlendEquationArguments::DestinationColor);
         blendArgs->setDestinationRgb(Qt3DRender::QBlendEquationArguments::Zero);
