@@ -35,6 +35,7 @@
 #include <QMenu>
 #include <QMessageBox>
 #include <QFileDialog>
+#include <QFileInfo>
 
 QT_BEGIN_NAMESPACE
 
@@ -51,7 +52,11 @@ Q3DStudioMainWindow::Q3DStudioMainWindow(Q3DStudioWindow *view, QWidget *parent)
 
     QMenu *fileMenu = menuBar()->addMenu(tr("&File"));
     fileMenu->addAction(tr("&Open..."), this, [=] {
-        QString fn = QFileDialog::getOpenFileName(this, tr("Open"), QString(), fileFilter());
+        QString dir;
+        QString prevFilename = view->source();
+        if (!prevFilename.isEmpty())
+            dir = QFileInfo(prevFilename).canonicalPath();
+        QString fn = QFileDialog::getOpenFileName(this, tr("Open"), dir, fileFilter());
         if (!fn.isEmpty())
             view->setSource(fn);
     }, QKeySequence::Open);
