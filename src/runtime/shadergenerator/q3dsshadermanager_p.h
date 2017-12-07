@@ -90,6 +90,10 @@ public:
 
     Qt3DRender::QShaderProgram *getProgAABlendShader(Qt3DCore::QNode *parent);
 
+    Qt3DRender::QShaderProgram *getBlendOverlayShader(Qt3DCore::QNode *parent);
+    Qt3DRender::QShaderProgram *getBlendColorBurnShader(Qt3DCore::QNode *parent);
+    Qt3DRender::QShaderProgram *getBlendColorDodgeShader(Qt3DCore::QNode *parent);
+
 private:
     Q3DSShaderManager();
 
@@ -106,6 +110,9 @@ private:
     Qt3DRender::QShaderProgram *m_ssaoTextureShader = nullptr;
     Qt3DRender::QShaderProgram *m_bsdfMipPreFilterShader = nullptr;
     Qt3DRender::QShaderProgram *m_progAABlendShader = nullptr;
+    Qt3DRender::QShaderProgram *m_blendOverlayShader = nullptr;
+    Qt3DRender::QShaderProgram *m_blendColorBurnShader = nullptr;
+    Qt3DRender::QShaderProgram *m_blendColorDodgeShader = nullptr;
 };
 
 QT_END_NAMESPACE

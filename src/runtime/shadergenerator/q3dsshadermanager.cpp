@@ -694,6 +694,179 @@ Qt3DRender::QShaderProgram *Q3DSShaderManager::getProgAABlendShader(Qt3DCore::QN
     return m_progAABlendShader;
 }
 
+Qt3DRender::QShaderProgram *Q3DSShaderManager::getBlendOverlayShader(Qt3DCore::QNode *parent)
+{
+    if (!m_blendOverlayShader) {
+        m_shaderProgramGenerator->beginProgram();
+        Q3DSAbstractShaderStageGenerator *vertexShader = m_shaderProgramGenerator->getStage(Q3DSShaderGeneratorStages::Vertex);
+        Q3DSAbstractShaderStageGenerator *fragmentShader = m_shaderProgramGenerator->getStage(Q3DSShaderGeneratorStages::Fragment);
+
+        // Use Qt3D attribute names and take modelMatrix into account since the
+        // quad entity may have a transform on it.
+        vertexShader->addIncoming("vertexPosition", "vec3");
+        vertexShader->addIncoming("vertexTexCoord", "vec2");
+        vertexShader->addUniform("modelMatrix", "mat4");
+        vertexShader->addOutgoing("uv_coords", "vec2");
+        vertexShader->append("void main() {");
+        vertexShader->append("    gl_Position = modelMatrix * vec4(vertexPosition, 1.0 );");
+        vertexShader->append("    uv_coords = vertexTexCoord;");
+        vertexShader->append("}");
+
+        fragmentShader->addUniform("base_layer", "sampler2D");
+        fragmentShader->addUniform("blend_layer", "sampler2D");
+        fragmentShader->append("void main() {");
+        fragmentShader->append("    vec4 base = texture2D( base_layer, uv_coords );");
+        fragmentShader->append("    vec4 blend_orig = texture2D( blend_layer, uv_coords );");
+        fragmentShader->append("    vec4 blend = blend_orig * vec4(blend_orig.a);");
+        fragmentShader->append("    vec3 res = vec3(0.0, 0.0, 0.0);");
+
+        // As we are doing per-object pass we need to directly copy the base layer
+        // fragment whenever there is no object in the blend layer (alpha = 0), in order to
+        // preserve already-rendered objects and background-colored pixels.
+        // Fragments with base alpha = 0 indicate fully transparent background
+        // in which case we use blend layer fragments directly.
+        fragmentShader->append("if (blend_orig.a != 0.0 && base.a != 0.0) {");
+        fragmentShader->append(
+                    "    res.r = (base.r < 0.5? (2.0 * base.r * blend.r) : "
+                    "(1.0 - 2.0 * (1.0 - base.r) * (1.0 - blend.r)));");
+        fragmentShader->append(
+                    "    res.g = (base.g < 0.5? (2.0 * base.g * blend.g) : "
+                    "(1.0 - 2.0 * (1.0 - base.g) * (1.0 - blend.g)));");
+        fragmentShader->append(
+                    "    res.b = (base.b < 0.5? (2.0 * base.b * blend.b) : "
+                    "(1.0 - 2.0 * (1.0 - base.b) * (1.0 - blend.b)));");
+        fragmentShader->append("    fragOutput = vec4(res.rgb, blend_orig.a);");
+        fragmentShader->append("} else if (base.a == 0.0 && blend_orig.a == 0.0) {");
+        fragmentShader->append("    fragOutput = vec4(blend.rgb , 0.0);");
+        fragmentShader->append("} else if (base.a == 0.0) {");
+        fragmentShader->append("    fragOutput = vec4(blend.rgb , 1.0);");
+        fragmentShader->append("} else {");
+        fragmentShader->append("    fragOutput = vec4(base.rgb, 1.0);");
+        fragmentShader->append("}");
+        fragmentShader->append("}");
+
+        m_blendOverlayShader = m_shaderProgramGenerator->compileGeneratedShader(
+                    QLatin1String("advanced overlay blend shader"), Q3DSShaderFeatureSet());
+        m_blendOverlayShader->setParent(parent);
+    }
+
+    return m_blendOverlayShader;
+}
+
+Qt3DRender::QShaderProgram *Q3DSShaderManager::getBlendColorBurnShader(Qt3DCore::QNode *parent)
+{
+    if (!m_blendColorBurnShader) {
+        m_shaderProgramGenerator->beginProgram();
+        Q3DSAbstractShaderStageGenerator *vertexShader = m_shaderProgramGenerator->getStage(Q3DSShaderGeneratorStages::Vertex);
+        Q3DSAbstractShaderStageGenerator *fragmentShader = m_shaderProgramGenerator->getStage(Q3DSShaderGeneratorStages::Fragment);
+
+        // Use Qt3D attribute names and take modelMatrix into account since the
+        // quad entity may have a transform on it.
+        vertexShader->addIncoming("vertexPosition", "vec3");
+        vertexShader->addIncoming("vertexTexCoord", "vec2");
+        vertexShader->addUniform("modelMatrix", "mat4");
+        vertexShader->addOutgoing("uv_coords", "vec2");
+        vertexShader->append("void main() {");
+        vertexShader->append("    gl_Position = modelMatrix * vec4(vertexPosition, 1.0 );");
+        vertexShader->append("    uv_coords = vertexTexCoord;");
+        vertexShader->append("}");
+
+        fragmentShader->addUniform("base_layer", "sampler2D");
+        fragmentShader->addUniform("blend_layer", "sampler2D");
+        fragmentShader->append("void main() {");
+        fragmentShader->append("   vec4 base = texture2D( base_layer, uv_coords );");
+        fragmentShader->append("   vec4 blend_orig = texture2D( blend_layer, uv_coords );");
+        fragmentShader->append("   vec4 blend = blend_orig * vec4(blend_orig.a);");
+        fragmentShader->append("   vec3 res = vec3(0.0, 0.0, 0.0);");
+
+        // As we are doing per-object pass we need to directly copy the base layer
+        // fragment whenever there is no object in the blend layer (alpha = 0), in order to
+        // preserve already-rendered objects and background-colored pixels.
+        // Fragments with base alpha = 0 indicate fully transparent background
+        // in which case we use blend layer fragments directly.
+        fragmentShader->append("if (blend_orig.a != 0.0 && base.a != 0.0) {");
+        fragmentShader->append(
+                    "   res.r = ((base.r == 1.0) ? 1.0 : "
+                    "(blend.r == 0.0) ? 0.0 : 1.0 - min(1.0, ((1.0 - base.r) / blend.r)));");
+        fragmentShader->append(
+                    "   res.g = ((base.g == 1.0) ? 1.0 : "
+                    "(blend.g == 0.0) ? 0.0 : 1.0 - min(1.0, ((1.0 - base.g) / blend.g)));");
+        fragmentShader->append(
+                    "   res.b = ((base.b == 1.0) ? 1.0 : "
+                    "(blend.b == 0.0) ? 0.0 : 1.0 - min(1.0, ((1.0 - base.b) / blend.b)));");
+        fragmentShader->append("   fragOutput =  vec4(res.rgb, blend_orig.a);");
+        fragmentShader->append("} else if (base.a == 0.0) {");
+        fragmentShader->append("   fragOutput = blend;");
+        fragmentShader->append("} else {");
+        fragmentShader->append("   fragOutput = base;");
+        fragmentShader->append("}");
+        fragmentShader->append("}");
+
+        m_blendColorBurnShader = m_shaderProgramGenerator->compileGeneratedShader(
+                    QLatin1String("advanced color burn blend shader"), Q3DSShaderFeatureSet());
+        m_blendColorBurnShader->setParent(parent);
+    }
+
+    return m_blendColorBurnShader;
+}
+
+Qt3DRender::QShaderProgram *Q3DSShaderManager::getBlendColorDodgeShader(Qt3DCore::QNode *parent)
+{
+    if (!m_blendColorDodgeShader) {
+        m_shaderProgramGenerator->beginProgram();
+        Q3DSAbstractShaderStageGenerator *vertexShader = m_shaderProgramGenerator->getStage(Q3DSShaderGeneratorStages::Vertex);
+        Q3DSAbstractShaderStageGenerator *fragmentShader = m_shaderProgramGenerator->getStage(Q3DSShaderGeneratorStages::Fragment);
+
+        // Use Qt3D attribute names and take modelMatrix into account since the
+        // quad entity may have a transform on it.
+        vertexShader->addIncoming("vertexPosition", "vec3");
+        vertexShader->addIncoming("vertexTexCoord", "vec2");
+        vertexShader->addUniform("modelMatrix", "mat4");
+        vertexShader->addOutgoing("uv_coords", "vec2");
+        vertexShader->append("void main() {");
+        vertexShader->append("    gl_Position = modelMatrix * vec4(vertexPosition, 1.0 );");
+        vertexShader->append("    uv_coords = vertexTexCoord;");
+        vertexShader->append("}");
+
+        fragmentShader->addUniform("base_layer", "sampler2D");
+        fragmentShader->addUniform("blend_layer", "sampler2D");
+        fragmentShader->append("void main() {");
+        fragmentShader->append("   vec4 base = texture2D( base_layer, uv_coords );");
+        fragmentShader->append("   vec4 blend_orig = texture2D( blend_layer, uv_coords );");
+        fragmentShader->append("   vec4 blend = blend_orig * vec4(blend_orig.a);");
+        fragmentShader->append("   vec3 res = vec3(0.0, 0.0, 0.0);");
+
+        // As we are doing per-object pass we need to directly copy the base layer
+        // fragment whenever there is no object in the blend layer (alpha = 0), in order to
+        // preserve already-rendered objects and background-colored pixels.
+        // Fragments with base alpha = 0 indicate fully transparent background
+        // in which case we use blend layer fragments directly.
+        fragmentShader->append("if (blend_orig.a != 0.0 && base.a != 0.0) {");
+        fragmentShader->append(
+                    "   res.r = ((base.r == 0.0) ? 0.0 : "
+                    "(blend.r == 1.0) ? 1.0 : min(base.r / (1.0 - blend.r), 1.0));");
+        fragmentShader->append(
+                    "   res.g = ((base.g == 0.0) ? 0.0 : "
+                    "(blend.g == 1.0) ? 1.0 : min(base.g / (1.0 - blend.g), 1.0));");
+        fragmentShader->append(
+                    "   res.b = ((base.b == 0.0) ? 0.0 : "
+                    "(blend.b == 1.0) ? 1.0 : min(base.b / (1.0 - blend.b), 1.0));");
+        fragmentShader->append("   fragOutput =  vec4(res.rgb, blend_orig.a);");
+        fragmentShader->append("} else if (base.a == 0.0) {");
+        fragmentShader->append("   fragOutput = blend;");
+        fragmentShader->append("} else {");
+        fragmentShader->append("   fragOutput = base;");
+        fragmentShader->append("}");
+        fragmentShader->append("}");
+
+        m_blendColorDodgeShader = m_shaderProgramGenerator->compileGeneratedShader(
+                    QLatin1String("advanced color dodge blend shader"), Q3DSShaderFeatureSet());
+        m_blendColorDodgeShader->setParent(parent);
+    }
+
+    return m_blendColorDodgeShader;
+}
+
 Q3DSShaderManager::Q3DSShaderManager()
     : m_materialShaderGenerator(&Q3DSDefaultMaterialShaderGenerator::createDefaultMaterialShaderGenerator())
     , m_customMaterialShaderGenerator(&Q3DSCustomMaterialShaderGenerator::createCustomMaterialShaderGenerator())
@@ -713,6 +886,9 @@ void Q3DSShaderManager::invalidate()
     m_ssaoTextureShader = nullptr;
     m_bsdfMipPreFilterShader = nullptr;
     m_progAABlendShader = nullptr;
+    m_blendOverlayShader = nullptr;
+    m_blendColorBurnShader = nullptr;
+    m_blendColorDodgeShader = nullptr;
 
     m_shaderProgramGenerator->invalidate();
 }
