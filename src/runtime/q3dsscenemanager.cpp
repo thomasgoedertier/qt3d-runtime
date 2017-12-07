@@ -1136,10 +1136,9 @@ static void addNoColorWrite(Qt3DRender::QRenderPass *pass)
     pass->addRenderState(noColorWrite);
 }
 
-// This is for materials (as opposed to layers)
-static void setBlending(Qt3DRender::QBlendEquation *blendFunc,
-                        Qt3DRender::QBlendEquationArguments *blendArgs,
-                        Q3DSDefaultMaterial::BlendMode blendMode)
+static void setMaterialBlending(Qt3DRender::QBlendEquation *blendFunc,
+                                Qt3DRender::QBlendEquationArguments *blendArgs,
+                                Q3DSDefaultMaterial::BlendMode blendMode)
 {
     switch (blendMode) {
     case Q3DSLayerNode::Screen:
@@ -1230,7 +1229,7 @@ QVector<Qt3DRender::QRenderPass *> Q3DSSceneManager::standardRenderPasses(Qt3DRe
     // blending. the shaders produce non-premultiplied results.
     auto blendFunc = new Qt3DRender::QBlendEquation;
     auto blendArgs = new Qt3DRender::QBlendEquationArguments;
-    setBlending(blendFunc, blendArgs, blendMode);
+    setMaterialBlending(blendFunc, blendArgs, blendMode);
 
     transPass->addRenderState(blendFunc);
     transPass->addRenderState(blendArgs);
@@ -2603,9 +2602,9 @@ void Q3DSSceneManager::updateProgressiveAA(Q3DSLayerNode *layer3DS)
     ++data->progAA.pass;
 }
 
-static void setBlending(Qt3DRender::QBlendEquation *blendFunc,
-                        Qt3DRender::QBlendEquationArguments *blendArgs,
-                        Q3DSLayerNode *layer3DS)
+static void setLayerBlending(Qt3DRender::QBlendEquation *blendFunc,
+                             Qt3DRender::QBlendEquationArguments *blendArgs,
+                             Q3DSLayerNode *layer3DS)
 {
     switch (layer3DS->blendType()) {
     case Q3DSLayerNode::Screen:
@@ -2741,12 +2740,14 @@ void Q3DSSceneManager::buildCompositor(Qt3DRender::QFrameGraphNode *parent, Qt3D
 
         Qt3DRender::QBlendEquation *blendFunc = new Qt3DRender::QBlendEquation;
         Qt3DRender::QBlendEquationArguments *blendArgs = new Qt3DRender::QBlendEquationArguments;
-        setBlending(blendFunc, blendArgs, layer3DS);
+        setLayerBlending(blendFunc, blendArgs, layer3DS);
         renderPass->addRenderState(blendFunc);
         renderPass->addRenderState(blendArgs);
         Qt3DRender::QDepthTest *depthTest = new Qt3DRender::QDepthTest;
         depthTest->setDepthFunction(Qt3DRender::QDepthTest::Always);
         renderPass->addRenderState(depthTest);
+        Qt3DRender::QNoDepthMask *noDepthWrite = new Qt3DRender::QNoDepthMask;
+        renderPass->addRenderState(noDepthWrite);
 
         Qt3DRender::QShaderProgram *shaderProgram = new Qt3DRender::QShaderProgram;
         QString vertSuffix;
