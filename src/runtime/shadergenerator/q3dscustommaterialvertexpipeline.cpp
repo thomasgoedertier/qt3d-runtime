@@ -221,7 +221,6 @@ struct ShaderGenerator : public Q3DSCustomMaterialShaderGenerator
 
         // Add Uniforms from material properties
         for (auto property : m_currentMaterial->properties()) {
-            qDebug() << "property: " << property.name;
             switch (property.type) {
             case Q3DS::Boolean:
                 fragmentShader.addUniform(property.name.toLocal8Bit(), "bool");
