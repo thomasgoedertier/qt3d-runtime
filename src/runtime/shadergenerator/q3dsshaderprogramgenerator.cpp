@@ -505,6 +505,9 @@ struct ShaderGeneratedProgramOutput
     }
 };
 
+const QString CopyrightHeaderStart = QStringLiteral("/****************************************************************************");
+const QString CopyrightHeaderEnd = QStringLiteral("****************************************************************************/");
+
 QString resolveShaderIncludes(const QString &shaderCode)
 {
     QString output;
@@ -514,13 +517,23 @@ QString resolveShaderIncludes(const QString &shaderCode)
         // Check if starts with #include
         auto trimmedLine = currentLine.trimmed();
         if (trimmedLine.startsWith(QStringLiteral("#include"))) {
-            QString fileName = currentLine.split('"', QString::SkipEmptyParts).last();
-            fileName.prepend(Q3DSUtils::resourcePrefix() + QLatin1String("res/effectlib/"));
+            QString includeName = currentLine.split('"', QString::SkipEmptyParts).last();
+            QString fileName = QString(Q3DSUtils::resourcePrefix() + QLatin1String("res/effectlib/")) + includeName;
             QFile file(fileName);
-            if (!file.open(QIODevice::ReadOnly))
+            if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
                 qWarning() << QObject::tr("Could not open glsllib '%1'").arg(fileName);
-            else
-                output.append(resolveShaderIncludes(QString::fromUtf8(file.readAll())));
+            } else {
+                // strip copyright header
+                QString content = QString::fromUtf8(file.readAll());
+                if (content.startsWith(CopyrightHeaderStart)) {
+                    int clipPos = content.indexOf(CopyrightHeaderEnd) ;
+                    if (clipPos >= 0)
+                        content.remove(0, clipPos + CopyrightHeaderEnd.count());
+                }
+                output.append(QStringLiteral("\n// begin \"") + includeName + "\"\n");
+                output.append(resolveShaderIncludes(content));
+                output.append(QStringLiteral("\n// end \"" ) + includeName + "\"\n");
+            }
             file.close();
             output.append(QLatin1String("\n"));
         } else {
