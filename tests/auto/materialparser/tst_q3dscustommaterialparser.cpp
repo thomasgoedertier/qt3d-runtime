@@ -45,7 +45,6 @@ private Q_SLOTS:
     void testInvalid();
     void testRepeatedLoad();
     void testValidateData();
-    void testMaterialGeneration();
     void testCommands();
     void testBuffers();
 };
@@ -150,19 +149,6 @@ void tst_Q3DSCustomMaterialParser::testValidateData()
     // shaderKey of 5 means Diffuse + Glossy
     QVERIFY(material.shaderIsDielectric());
     QVERIFY(material.shaderIsGlossy());
-}
-
-void tst_Q3DSCustomMaterialParser::testMaterialGeneration()
-{
-    Q3DSCustomMaterialParser parser;
-    bool ok = false;
-    auto customMaterial = parser.parse(QStringLiteral(":/data/carbon_fiber.material"), &ok);
-    QVERIFY(ok);
-
-    auto material = customMaterial.generateMaterial();
-    QVERIFY(material != nullptr);
-
-    delete material;
 }
 
 void tst_Q3DSCustomMaterialParser::testCommands()

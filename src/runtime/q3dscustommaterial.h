@@ -47,7 +47,6 @@ class Q3DSV_EXPORT Q3DSCustomMaterial
 {
 public:
     Q3DSCustomMaterial();
-    ~Q3DSCustomMaterial();
 
     QString name() const;
     QString description() const;
@@ -62,8 +61,6 @@ public:
     const QVector<Q3DSMaterial::Shader> &shaders() const;
     const QVector<Q3DSMaterial::Pass> &passes() const;
     const QHash<QString, Q3DSMaterial::Buffer> &buffers() const;
-
-    Qt3DRender::QMaterial *generateMaterial();
 
     bool isAlwaysDirty() const;
 
@@ -85,11 +82,6 @@ public:
     bool materialHasRefraction() const;
 
 private:
-    Qt3DRender::QShaderProgram *generateShaderProgram(const Q3DSMaterial::Shader &shader,
-                                                      const QString &globalSharedCode,
-                                                      const QString &shaderPrefixCode) const;
-    QString resolveShaderIncludes(const QString &shaderCode) const;
-
     // MaterialElement
     QString m_name;
     QString m_description;

@@ -50,10 +50,6 @@ Q3DSCustomMaterial::Q3DSCustomMaterial()
 {
 }
 
-Q3DSCustomMaterial::~Q3DSCustomMaterial()
-{
-}
-
 QString Q3DSCustomMaterial::name() const
 {
     return m_name;
@@ -102,111 +98,6 @@ const QVector<Q3DSMaterial::Pass> &Q3DSCustomMaterial::passes() const
 const QHash<QString, Q3DSMaterial::Buffer> &Q3DSCustomMaterial::buffers() const
 {
     return m_buffers;
-}
-
-Qt3DRender::QMaterial *Q3DSCustomMaterial::generateMaterial()
-{
-    auto material = new Qt3DRender::QMaterial();
-    auto *effect = new Qt3DRender::QEffect();
-    auto *technique = new Qt3DRender::QTechnique();
-    QVector<Qt3DRender::QRenderPass *> renderPasses;
-    QVector<Qt3DRender::QShaderProgram *> shaderPrograms;
-
-    QString shaderPrefix = QStringLiteral("#include \"customMaterial.glsllib\"\n");
-
-    // Generate completed Shader Code (resolve #includes)
-    // Add Shaders to shader program
-    for (auto shader: m_shaders) {
-        shaderPrograms.append(generateShaderProgram(shader, m_shadersSharedCode, shaderPrefix));
-    }
-
-    // TODO: Create A RenderPasses for each pass
-
-    // TODO: Add Shader program to each Render pass as needed (1 : 1)
-
-
-    // Add Renderpasses to technique
-    for (auto renderpass : renderPasses) {
-        technique->addRenderPass(renderpass);
-    }
-
-    // Add Technique to Effect
-    effect->addTechnique(technique);
-
-    // Add parameters to effect
-    //for (auto parameter : parameters)
-    //    effect->addParameter(parameter);
-
-    // Set the Effect to be active for this material
-    material->setEffect(effect);
-
-    return material;
-}
-
-Qt3DRender::QShaderProgram* Q3DSCustomMaterial::generateShaderProgram(const Q3DSMaterial::Shader &shader, const QString &globalSharedCode, const QString &shaderPrefixCode) const
-{
-    QString shaderPrefix = resolveShaderIncludes(shaderPrefixCode);
-    QString globalShared = resolveShaderIncludes(globalSharedCode);
-    QString shared = resolveShaderIncludes(shader.shared);
-    QString vertexShader = resolveShaderIncludes(shader.vertexShader);
-    QString fragmentShader = resolveShaderIncludes(shader.fragmentShader);
-
-    // Initialize
-    if (vertexShader.isEmpty())
-        vertexShader.append(QLatin1String("void vert(){}"));
-
-    if (fragmentShader.isEmpty())
-        fragmentShader.append(QLatin1String("void frag(){}"));
-
-    // Assemble
-    QByteArray vertexShaderCode;
-    QByteArray fragmentShaderCode;
-    // Vertex
-    vertexShaderCode.append(shaderPrefix.toUtf8());
-    vertexShaderCode.append(globalShared.toUtf8());
-    vertexShaderCode.append(shared.toUtf8());
-    vertexShaderCode.append(QByteArrayLiteral("\n#ifdef VERTEX_SHADER\n"));
-    vertexShaderCode.append(vertexShader.toUtf8());
-    vertexShaderCode.append(QByteArrayLiteral("\n#endif\n"));
-
-    // Fragment
-    fragmentShaderCode.append(shaderPrefix.toUtf8());
-    fragmentShaderCode.append(globalShared.toUtf8());
-    fragmentShaderCode.append(shared.toUtf8());
-    fragmentShaderCode.append(QByteArrayLiteral("\n#ifdef FRAGMENT_SHADER\n"));
-    fragmentShaderCode.append(fragmentShader.toUtf8());
-    fragmentShaderCode.append(QByteArrayLiteral("\n#endif\n"));
-
-    auto shaderProgram = new Qt3DRender::QShaderProgram();
-    shaderProgram->setVertexShaderCode(vertexShaderCode);
-    shaderProgram->setFragmentShaderCode(fragmentShaderCode);
-    return shaderProgram;
-}
-
-QString Q3DSCustomMaterial::resolveShaderIncludes(const QString &shaderCode) const
-{
-    QString output;
-    QTextStream inputStream(const_cast<QString*>(&shaderCode), QIODevice::ReadOnly);
-    QString currentLine;
-    while (inputStream.readLineInto(&currentLine)) {
-        // Check if starts with #include
-        currentLine = currentLine.trimmed();
-        if (currentLine.startsWith(QStringLiteral("#include"))) {
-            QString fileName = currentLine.split('"', QString::SkipEmptyParts).last();
-            fileName.prepend(Q3DSUtils::resourcePrefix() + QLatin1String("res/effectlib/"));
-            QFile file(fileName);
-            if (!file.open(QIODevice::ReadOnly))
-                qWarning() << QObject::tr("Could not open glsllib '%1'").arg(fileName);
-            else
-                output.append(QString::fromUtf8(file.readAll()));
-            file.close();
-            output.append(QLatin1String("\n"));
-        } else {
-            output.append(currentLine);
-            output.append(QLatin1String("\n"));
-        }
-    }
-    return output;
 }
 
 int Q3DSCustomMaterial::layerCount() const
