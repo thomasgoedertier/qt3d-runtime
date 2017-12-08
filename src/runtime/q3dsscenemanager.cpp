@@ -2740,11 +2740,14 @@ void Q3DSSceneManager::buildCompositor(Qt3DRender::QFrameGraphNode *parent, Qt3D
 
         Qt3DRender::QRenderPass *renderPass = new Qt3DRender::QRenderPass;
 
-        Qt3DRender::QBlendEquation *blendFunc = new Qt3DRender::QBlendEquation;
-        Qt3DRender::QBlendEquationArguments *blendArgs = new Qt3DRender::QBlendEquationArguments;
-        setLayerBlending(blendFunc, blendArgs, layer3DS);
-        renderPass->addRenderState(blendFunc);
-        renderPass->addRenderState(blendArgs);
+        if (layer3DS->layerBackground() == Q3DSLayerNode::Transparent) {
+            Qt3DRender::QBlendEquation *blendFunc = new Qt3DRender::QBlendEquation;
+            Qt3DRender::QBlendEquationArguments *blendArgs = new Qt3DRender::QBlendEquationArguments;
+            setLayerBlending(blendFunc, blendArgs, layer3DS);
+            renderPass->addRenderState(blendFunc);
+            renderPass->addRenderState(blendArgs);
+        }
+
         Qt3DRender::QDepthTest *depthTest = new Qt3DRender::QDepthTest;
         depthTest->setDepthFunction(Qt3DRender::QDepthTest::Always);
         renderPass->addRenderState(depthTest);
