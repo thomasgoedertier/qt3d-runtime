@@ -166,16 +166,22 @@ public:
     Qt3DRender::QCameraSelector *cameraSelector = nullptr;
     Qt3DRender::QClearBuffers *clearBuffers = nullptr;
     Qt3DRender::QRenderTargetSelector *rtSelector = nullptr;
+    typedef std::function<void(Q3DSLayerNode *)> SizeChangeCallback;
     struct SizeManagedTexture {
-        typedef std::function<void(Q3DSLayerNode *)> SizeChangeCallback;
+        enum Flag {
+            IgnoreSSAA = 0x01
+        };
+        Q_DECLARE_FLAGS(Flags, Flag)
         SizeManagedTexture() { }
-        SizeManagedTexture(Qt3DRender::QAbstractTexture *t, SizeChangeCallback c = nullptr)
-            : texture(t), sizeChangeCallback(c)
+        SizeManagedTexture(Qt3DRender::QAbstractTexture *t, SizeChangeCallback c = nullptr, Flags f = Flags())
+            : texture(t), sizeChangeCallback(c), flags(f)
         { }
         Qt3DRender::QAbstractTexture *texture = nullptr;
         SizeChangeCallback sizeChangeCallback = nullptr;
+        Flags flags;
     };
     QVector<SizeManagedTexture> sizeManagedTextures;
+    QVector<SizeChangeCallback> layerSizeChangeCallbacks;
     Qt3DRender::QAbstractTexture *layerTexture = nullptr;
     Qt3DRender::QAbstractTexture *layerDS = nullptr;
     Qt3DRender::QParameter *compositorSourceParam = nullptr;
@@ -263,10 +269,17 @@ public:
         Qt3DRender::QParameter *blendFactorsParam = nullptr;
         Qt3DRender::QLayerFilter *layerFilter = nullptr;
     } progAA;
+
+    struct AdvBlendData {
+        Qt3DRender::QTexture2D *tempTexture = nullptr;
+        Qt3DRender::QRenderTarget *tempRt = nullptr;
+    } advBlend;
 };
 
+Q_DECLARE_OPERATORS_FOR_FLAGS(Q3DSLayerAttached::SizeManagedTexture::Flags)
 Q_DECLARE_TYPEINFO(Q3DSLayerAttached::SizeManagedTexture, Q_MOVABLE_TYPE);
 Q_DECLARE_TYPEINFO(Q3DSLayerAttached::PerLightShadowMapData, Q_MOVABLE_TYPE);
+Q_DECLARE_TYPEINFO(Q3DSLayerAttached::ProgAAData, Q_MOVABLE_TYPE);
 
 class Q3DSCameraAttached : public Q3DSNodeAttached
 {
@@ -477,6 +490,12 @@ public:
     };
     Q_DECLARE_FLAGS(UpdateGlobalFlags, UpdateGlobalFlag)
 
+    enum BuildLayerQuadFlag {
+        LayerQuadBlend = 0x01,
+        LayerQuadCustomShader = 0x02
+    };
+    Q_DECLARE_FLAGS(BuildLayerQuadFlags, BuildLayerQuadFlag)
+
     static QVector<Qt3DRender::QRenderPass *> standardRenderPasses(Qt3DRender::QShaderProgram *program,
                                                                    Q3DSLayerNode *layer3DS,
                                                                    Q3DSDefaultMaterial::BlendMode blendMode = Q3DSDefaultMaterial::Normal,
@@ -554,6 +573,8 @@ private:
     void updateLightsBuffer(const QVector<Q3DSLightSource> &lights, Qt3DRender::QBuffer *uniformBuffer);
     void updateModel(Q3DSModelNode *model3DS);
 
+    void buildLayerQuadEntity(Q3DSLayerNode *layer3DS, Qt3DCore::QEntity *parentEntity, Qt3DRender::QLayer *tag,
+                              BuildLayerQuadFlags flags, Qt3DRender::QRenderPass **renderPass);
     void buildCompositor(Qt3DRender::QFrameGraphNode *parent, Qt3DCore::QEntity *parentEntity);
     void buildGuiPass(Qt3DRender::QFrameGraphNode *parent, Qt3DCore::QEntity *parentEntity);
 
@@ -605,6 +626,8 @@ private:
     Q3DSProfiler *m_profiler = nullptr;
     Q3DSGuiData m_guiData;
     Q3DSProfileUi *m_profileUi = nullptr;
+    QSize m_outputPixelSize;
+    QVector<std::function<void()> > m_compositorOutputSizeChangeCallbacks;
 
     friend class Q3DSFrameUpdater;
     friend class Q3DSProfiler;
@@ -613,6 +636,7 @@ private:
 Q_DECLARE_OPERATORS_FOR_FLAGS(Q3DSSceneManager::SceneBuilderFlags)
 Q_DECLARE_OPERATORS_FOR_FLAGS(Q3DSSceneManager::SetNodePropFlags)
 Q_DECLARE_OPERATORS_FOR_FLAGS(Q3DSSceneManager::UpdateGlobalFlags)
+Q_DECLARE_OPERATORS_FOR_FLAGS(Q3DSSceneManager::BuildLayerQuadFlags)
 
 class Q3DSFrameUpdater : public QObject
 {

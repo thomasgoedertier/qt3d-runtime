@@ -78,6 +78,7 @@
 #include <Qt3DRender/QColorMask>
 #include <Qt3DRender/QShaderProgram>
 #include <Qt3DRender/QBuffer>
+#include <Qt3DRender/QBlitFramebuffer>
 
 #include <Qt3DAnimation/QClipAnimator>
 
@@ -436,27 +437,30 @@ void Q3DSSceneManager::updateSizes(const QSize &size, qreal dpr)
 
     qCDebug(lcScene) << "Size" << size << "DPR" << dpr;
 
-    const QSize outputPixelSize = size * dpr;
+    m_outputPixelSize = size * dpr;
     m_guiData.outputSize = size;
     m_guiData.outputDpr = dpr;
 
     if (m_guiData.camera) {
-        m_guiData.camera->setRight(outputPixelSize.width());
-        m_guiData.camera->setBottom(outputPixelSize.height());
+        m_guiData.camera->setRight(m_outputPixelSize.width());
+        m_guiData.camera->setBottom(m_outputPixelSize.height());
     }
+
+    for (auto callback : m_compositorOutputSizeChangeCallbacks)
+        callback();
 
     Q3DSPresentation::forAllLayers(m_scene, [=](Q3DSLayerNode *layer3DS) {
         Q3DSLayerAttached *data = static_cast<Q3DSLayerAttached *>(layer3DS->attached());
         if (data) {
             // do it right away if there was no size set yet
             if (data->parentSize.isEmpty()) {
-                updateSizesForLayer(layer3DS, outputPixelSize);
+                updateSizesForLayer(layer3DS, m_outputPixelSize);
             } else {
                 // Defer otherwise, like it is done for other property changes.
                 // This is not merely an optimization, it is required to defer
                 // everything that affects the logic for - for example -
                 // progressive AA to prepareNextFrame().
-                data->parentSize = outputPixelSize;
+                data->parentSize = m_outputPixelSize;
                 data->dirty |= Q3DSGraphObjectAttached::LayerDirty;
             }
         }
@@ -609,7 +613,7 @@ Q3DSSceneManager::Scene Q3DSSceneManager::buildScene(Q3DSPresentation *presentat
         Q_ASSERT(frameGraphRoot);
     }
 
-    const QSize outputPixelSize = params.outputSize * params.outputDpr;
+    m_outputPixelSize = params.outputSize * params.outputDpr;
     m_guiData.outputSize = params.outputSize;
     m_guiData.outputDpr = params.outputDpr;
 
@@ -632,9 +636,9 @@ Q3DSSceneManager::Scene Q3DSSceneManager::buildScene(Q3DSPresentation *presentat
     // Build the (offscreen) Qt3D scene
     Q3DSPresentation::forAllLayers(m_scene, [=](Q3DSLayerNode *layer3DS) {
         if (layer3DS->sourcePath().isEmpty())
-            buildLayer(layer3DS, frameGraphRoot, outputPixelSize);
+            buildLayer(layer3DS, frameGraphRoot, m_outputPixelSize);
         else
-            buildSubPresentationLayer(layer3DS, outputPixelSize);
+            buildSubPresentationLayer(layer3DS, m_outputPixelSize);
     });
 
     // Onscreen (or not) compositor (still offscreen when this is a subpresentation)
@@ -1458,9 +1462,15 @@ void Q3DSSceneManager::setLayerSizeProperties(Q3DSLayerNode *layer3DS)
 {
     Q3DSLayerAttached *data = static_cast<Q3DSLayerAttached *>(layer3DS->attached());
     const QSize layerPixelSize = safeLayerPixelSize(data);
+    const QSize layerSize = safeLayerPixelSize(data->layerSize, 1); // for when SSAA is to be ignored
     for (const Q3DSLayerAttached::SizeManagedTexture &t : data->sizeManagedTextures) {
-        t.texture->setWidth(layerPixelSize.width());
-        t.texture->setHeight(layerPixelSize.height());
+        if (!t.flags.testFlag(Q3DSLayerAttached::SizeManagedTexture::IgnoreSSAA)) {
+            t.texture->setWidth(layerPixelSize.width());
+            t.texture->setHeight(layerPixelSize.height());
+        } else {
+            t.texture->setWidth(layerSize.width());
+            t.texture->setHeight(layerSize.height());
+        }
         if (t.sizeChangeCallback)
             t.sizeChangeCallback(layer3DS);
     }
@@ -1468,6 +1478,8 @@ void Q3DSSceneManager::setLayerSizeProperties(Q3DSLayerNode *layer3DS)
         data->updateCompositorCalculations();
     if (data->updateSubPresentationSize)
         data->updateSubPresentationSize();
+    for (Q3DSLayerAttached::SizeChangeCallback callback : qAsConst(data->layerSizeChangeCallbacks))
+        callback(layer3DS);
 }
 
 static void setClearColorForClearBuffers(Qt3DRender::QClearBuffers *clearBuffers, Q3DSLayerNode *layer3DS)
@@ -1611,7 +1623,7 @@ void Q3DSSceneManager::setCameraProperties(Q3DSCameraNode *camNode, int changeFl
 
 static void prepareSizeDependentTexture(Qt3DRender::QAbstractTexture *texture,
                                         Q3DSLayerNode *layer3DS,
-                                        Q3DSLayerAttached::SizeManagedTexture::SizeChangeCallback callback = nullptr)
+                                        Q3DSLayerAttached::SizeChangeCallback callback = nullptr)
 {
     Q3DSLayerAttached *data = static_cast<Q3DSLayerAttached *>(layer3DS->attached());
 
@@ -2653,107 +2665,71 @@ static void setLayerBlending(Qt3DRender::QBlendEquation *blendFunc,
     }
 }
 
-void Q3DSSceneManager::buildCompositor(Qt3DRender::QFrameGraphNode *parent, Qt3DCore::QEntity *parentEntity)
+void Q3DSSceneManager::buildLayerQuadEntity(Q3DSLayerNode *layer3DS, Qt3DCore::QEntity *parentEntity,
+                                            Qt3DRender::QLayer *tag, BuildLayerQuadFlags flags,
+                                            Qt3DRender::QRenderPass **outRenderPass)
 {
-    Qt3DRender::QCamera *camera = new Qt3DRender::QCamera;
-    camera->setObjectName(QObject::tr("compositor camera"));
-    camera->setProjectionType(Qt3DRender::QCameraLens::OrthographicProjection);
-    camera->setLeft(-1);
-    camera->setRight(1);
-    camera->setTop(1);
-    camera->setBottom(-1);
-    camera->setPosition(QVector3D(0, 0, 1));
-    camera->setViewCenter(QVector3D(0, 0, 0));
+    Q3DSLayerAttached *data = static_cast<Q3DSLayerAttached *>(layer3DS->attached());
+    Q_ASSERT(data);
+    Qt3DCore::QEntity *layerQuadEntity = new Qt3DCore::QEntity(parentEntity);
+    layerQuadEntity->setObjectName(QObject::tr("compositor for %1").arg(QString::fromUtf8(layer3DS->id())));
+    data->compositorEntity = layerQuadEntity;
+    if (!layer3DS->flags().testFlag(Q3DSNode::Active))
+        layerQuadEntity->setEnabled(false);
 
-    Qt3DRender::QLayerFilter *layerFilter = new Qt3DRender::QLayerFilter(parent);
+    // QPlaneMesh works here because the compositor shader is provided by
+    // us, not imported from 3DS, and so the VS uses the Qt3D attribute names.
+    Qt3DExtras::QPlaneMesh *mesh = new Qt3DExtras::QPlaneMesh;
+    mesh->setWidth(2);
+    mesh->setHeight(2);
+    mesh->setMirrored(true);
+    Qt3DCore::QTransform *transform = new Qt3DCore::QTransform;
+    transform->setRotationX(90);
 
-    Qt3DRender::QLayer *tag = new Qt3DRender::QLayer;
-    layerFilter->addLayer(tag);
-
-    Qt3DRender::QViewport *viewport = new Qt3DRender::QViewport(layerFilter);
-    viewport->setNormalizedRect(QRectF(0, 0, 1, 1));
-
-    Qt3DRender::QCameraSelector *cameraSelector = new Qt3DRender::QCameraSelector(viewport);
-    cameraSelector->setCamera(camera);
-
-    Qt3DRender::QClearBuffers *clearBuffers = new Qt3DRender::QClearBuffers(cameraSelector);
-
-    if (m_scene->useClearColor() || m_flags.testFlag(SubPresentation)) {
-        clearBuffers->setBuffers(Qt3DRender::QClearBuffers::ColorDepthStencilBuffer);
-        QColor clearColor;
-        if (m_scene->useClearColor()) {
-            // Alpha is 1 here even for subpresentations. Otherwise there would
-            // be no way to get the background visible when used as a texture later on.
-            clearColor = m_scene->clearColor();
-        } else {
-            float alpha = m_flags.testFlag(SubPresentation) ? 0.0f : 1.0f;
-            clearColor = QColor::fromRgbF(0.0f, 0.0f, 0.0f, alpha);
+    // defer the sizing and positioning
+    data->updateCompositorCalculations = [data, layerQuadEntity, tag, mesh, transform]() {
+        if (data->layerSize.isEmpty()) {
+            layerQuadEntity->removeComponent(tag);
+            return;
         }
-        clearBuffers->setClearColor(clearColor);
-    } else {
-        clearBuffers->setBuffers(Qt3DRender::QClearBuffers::DepthStencilBuffer);
+        if (!layerQuadEntity->components().contains(tag))
+            layerQuadEntity->addComponent(tag);
+
+        mesh->setWidth(2 * data->layerSize.width() / float(data->parentSize.width()));
+        mesh->setHeight(2 * data->layerSize.height() / float(data->parentSize.height()));
+        const float x = data->layerPos.x() / float(data->parentSize.width()) * 2;
+        const float y = -data->layerPos.y() / float(data->parentSize.height()) * 2;
+        transform->setTranslation(QVector3D(-(2.0f - mesh->width()) / 2 + x,
+                                            (2.0f - mesh->height()) / 2 + y,
+                                            0));
+    };
+
+    Qt3DRender::QMaterial *material = new Qt3DRender::QMaterial;
+    Qt3DRender::QEffect *effect = new Qt3DRender::QEffect;
+    Qt3DRender::QTechnique *technique = new Qt3DRender::QTechnique;
+    bool isGLES = false;
+    Q3DSDefaultMaterialGenerator::addDefaultApiFilter(technique, &isGLES);
+
+    Qt3DRender::QRenderPass *renderPass = new Qt3DRender::QRenderPass;
+
+    if (flags.testFlag(LayerQuadBlend)) {
+        Qt3DRender::QBlendEquation *blendFunc = new Qt3DRender::QBlendEquation;
+        Qt3DRender::QBlendEquationArguments *blendArgs = new Qt3DRender::QBlendEquationArguments;
+        setLayerBlending(blendFunc, blendArgs, layer3DS);
+        renderPass->addRenderState(blendFunc);
+        renderPass->addRenderState(blendArgs);
     }
 
-    Q3DSPresentation::forAllLayers(m_scene, [=](Q3DSLayerNode *layer3DS) {
-        Q3DSLayerAttached *data = static_cast<Q3DSLayerAttached *>(layer3DS->attached());
-        Q_ASSERT(data);
-        Qt3DCore::QEntity *compositorEntity = new Qt3DCore::QEntity(parentEntity);
-        compositorEntity->setObjectName(QObject::tr("compositor for %1").arg(QString::fromUtf8(layer3DS->id())));
-        data->compositorEntity = compositorEntity;
-        if (!layer3DS->flags().testFlag(Q3DSNode::Active))
-            compositorEntity->setEnabled(false);
+    Qt3DRender::QDepthTest *depthTest = new Qt3DRender::QDepthTest;
+    depthTest->setDepthFunction(Qt3DRender::QDepthTest::Always);
+    renderPass->addRenderState(depthTest);
+    Qt3DRender::QNoDepthMask *noDepthWrite = new Qt3DRender::QNoDepthMask;
+    renderPass->addRenderState(noDepthWrite);
 
-        // QPlaneMesh works here because the compositor shader is provided by
-        // us, not imported from 3DS, and so the VS uses the Qt3D attribute names.
-        Qt3DExtras::QPlaneMesh *mesh = new Qt3DExtras::QPlaneMesh;
-        mesh->setWidth(2);
-        mesh->setHeight(2);
-        mesh->setMirrored(true);
-        Qt3DCore::QTransform *transform = new Qt3DCore::QTransform;
-        transform->setRotationX(90);
+    if (outRenderPass)
+        *outRenderPass = renderPass;
 
-        // defer the sizing and positioning
-        data->updateCompositorCalculations = [=]() {
-            if (data->layerSize.isEmpty()) {
-                compositorEntity->removeComponent(tag);
-                return;
-            }
-            if (!compositorEntity->components().contains(tag))
-                compositorEntity->addComponent(tag);
-
-            mesh->setWidth(2 * data->layerSize.width() / float(data->parentSize.width()));
-            mesh->setHeight(2 * data->layerSize.height() / float(data->parentSize.height()));
-            const float x = data->layerPos.x() / float(data->parentSize.width()) * 2;
-            const float y = -data->layerPos.y() / float(data->parentSize.height()) * 2;
-            transform->setTranslation(QVector3D(-(2.0f - mesh->width()) / 2 + x,
-                                                (2.0f - mesh->height()) / 2 + y,
-                                                0));
-        };
-
-        Qt3DRender::QMaterial *material = new Qt3DRender::QMaterial;
-        material->addParameter(data->compositorSourceParam);
-
-        Qt3DRender::QEffect *effect = new Qt3DRender::QEffect;
-        Qt3DRender::QTechnique *technique = new Qt3DRender::QTechnique;
-        bool isGLES = false;
-        Q3DSDefaultMaterialGenerator::addDefaultApiFilter(technique, &isGLES);
-
-        Qt3DRender::QRenderPass *renderPass = new Qt3DRender::QRenderPass;
-
-        if (layer3DS->layerBackground() == Q3DSLayerNode::Transparent) {
-            Qt3DRender::QBlendEquation *blendFunc = new Qt3DRender::QBlendEquation;
-            Qt3DRender::QBlendEquationArguments *blendArgs = new Qt3DRender::QBlendEquationArguments;
-            setLayerBlending(blendFunc, blendArgs, layer3DS);
-            renderPass->addRenderState(blendFunc);
-            renderPass->addRenderState(blendArgs);
-        }
-
-        Qt3DRender::QDepthTest *depthTest = new Qt3DRender::QDepthTest;
-        depthTest->setDepthFunction(Qt3DRender::QDepthTest::Always);
-        renderPass->addRenderState(depthTest);
-        Qt3DRender::QNoDepthMask *noDepthWrite = new Qt3DRender::QNoDepthMask;
-        renderPass->addRenderState(noDepthWrite);
-
+    if (!flags.testFlag(LayerQuadCustomShader)) {
         Qt3DRender::QShaderProgram *shaderProgram = new Qt3DRender::QShaderProgram;
         QString vertSuffix;
         QString fragSuffix;
@@ -2770,16 +2746,202 @@ void Q3DSSceneManager::buildCompositor(Qt3DRender::QFrameGraphNode *parent, Qt3D
             fragSrc = QLatin1String("qrc:/q3ds/shaders/compositor_ms") + QString::number(data->msaaSampleCount) + fragSuffix;
         shaderProgram->setFragmentShaderCode(Qt3DRender::QShaderProgram::loadSource(QUrl(fragSrc)));
         renderPass->setShaderProgram(shaderProgram);
+        renderPass->addParameter(data->compositorSourceParam);
+    }
 
-        technique->addRenderPass(renderPass);
-        effect->addTechnique(technique);
-        material->setEffect(effect);
+    technique->addRenderPass(renderPass);
+    effect->addTechnique(technique);
+    material->setEffect(effect);
 
-        compositorEntity->addComponent(tag);
-        compositorEntity->addComponent(mesh);
-        compositorEntity->addComponent(transform);
-        compositorEntity->addComponent(material);
+    layerQuadEntity->addComponent(tag);
+    layerQuadEntity->addComponent(mesh);
+    layerQuadEntity->addComponent(transform);
+    layerQuadEntity->addComponent(material);
+}
+
+void Q3DSSceneManager::buildCompositor(Qt3DRender::QFrameGraphNode *parent, Qt3DCore::QEntity *parentEntity)
+{
+    // Simplified view (excluding advanced blending-specific nodes):
+    // Viewport - CameraSelector - ClearBuffers - NoDraw
+    //                           - LayerFilter for layer quad entity 0
+    //                           - LayerFilter for layer quad entity 1
+    //                             ...
+    // With standard blend modes only this is simplified to a single LayerFilter and QLayer tag.
+
+    Qt3DRender::QViewport *viewport = new Qt3DRender::QViewport(parent);
+    viewport->setNormalizedRect(QRectF(0, 0, 1, 1));
+
+    Qt3DRender::QCamera *camera = new Qt3DRender::QCamera;
+    camera->setObjectName(QObject::tr("compositor camera"));
+    camera->setProjectionType(Qt3DRender::QCameraLens::OrthographicProjection);
+    camera->setLeft(-1);
+    camera->setRight(1);
+    camera->setTop(1);
+    camera->setBottom(-1);
+    camera->setPosition(QVector3D(0, 0, 1));
+    camera->setViewCenter(QVector3D(0, 0, 0));
+
+    Qt3DRender::QCameraSelector *cameraSelector = new Qt3DRender::QCameraSelector(viewport);
+    cameraSelector->setCamera(camera);
+
+    Qt3DRender::QClearBuffers *clearBuffers = new Qt3DRender::QClearBuffers(cameraSelector);
+    clearBuffers->setBuffers(Qt3DRender::QClearBuffers::ColorDepthStencilBuffer);
+    QColor clearColor = Qt::transparent;
+    if (m_scene->useClearColor()) {
+        // Alpha is 1 here even for subpresentations. Otherwise there would
+        // be no way to get the background visible when used as a texture later on.
+        clearColor = m_scene->clearColor();
+    }
+    clearBuffers->setClearColor(clearColor);
+
+    new Qt3DRender::QNoDraw(clearBuffers);
+
+    QVarLengthArray<Q3DSLayerNode *, 16> layers;
+    Q3DSPresentation::forAllLayers(m_scene, [&layers](Q3DSLayerNode *layer3DS) {
+        layers.append(layer3DS);
     }, true); // process layers in reverse order
+
+    auto layerNeedsAdvancedBlending = [](Q3DSLayerNode *layer3DS) {
+        return layer3DS->layerBackground() == Q3DSLayerNode::Transparent
+                && (layer3DS->blendType() == Q3DSLayerNode::Overlay
+                    || layer3DS->blendType() == Q3DSLayerNode::ColorBurn
+                    || layer3DS->blendType() == Q3DSLayerNode::ColorDodge);
+    };
+
+    bool needsAdvanced = false;
+    for (Q3DSLayerNode *layer3DS : layers) {
+        if (layerNeedsAdvancedBlending(layer3DS)) {
+            needsAdvanced = true;
+            break;
+        }
+    }
+
+    if (!needsAdvanced) {
+        Qt3DRender::QLayerFilter *layerFilter = new Qt3DRender::QLayerFilter(cameraSelector);
+        Qt3DRender::QLayer *tag = new Qt3DRender::QLayer;
+        layerFilter->addLayer(tag);
+
+        for (Q3DSLayerNode *layer3DS : layers) {
+            BuildLayerQuadFlags flags = 0;
+            if (layer3DS->layerBackground() == Q3DSLayerNode::Transparent)
+                flags |= LayerQuadBlend;
+
+            buildLayerQuadEntity(layer3DS, parentEntity, tag, flags, nullptr);
+        }
+    } else {
+        // ### the blend shader step below does not support MSAA layers
+        /*
+            1. get a fullscreen texture (screen_texture), clear it either to (0, 0, 0, 0) or (scene.clearColor, 1)
+            2. for each layer:
+                  if uses advanced blend mode:
+                    - get a temp_texture matching the layer size
+                    - blit with screen_texture into temp_texture (only the area covered by the layer in question)
+                    - draw a quad into screen_texture with the appropriate blend shader with base_layer=temp_texture and blend_layer=layer_texture
+                  else:
+                    - draw a quad into screen_texture with layer_texture (with normal blending)
+            3. fullscreen blit with screen_texture
+
+            Now, the fullscreen texture is not normally needed since we can
+            just the backbuffer (or the subpresentation's target texture), as
+            long as the blits are performed via blitFramebuffer. (would not
+            work with a draw quad)
+         */
+
+        for (Q3DSLayerNode *layer3DS : layers) {
+            if (layerNeedsAdvancedBlending(layer3DS)) {
+                Q3DSLayerAttached *data = static_cast<Q3DSLayerAttached *>(layer3DS->attached());
+                Q_ASSERT(data);
+                if (!data->advBlend.tempTexture) {
+                    data->advBlend.tempTexture = new Qt3DRender::QTexture2D(data->entity);
+                    data->advBlend.tempTexture->setFormat(Qt3DRender::QAbstractTexture::RGBA8_UNorm);
+                    data->advBlend.tempTexture->setMinificationFilter(Qt3DRender::QAbstractTexture::Linear);
+                    data->advBlend.tempTexture->setMagnificationFilter(Qt3DRender::QAbstractTexture::Linear);
+                    const QSize sz = safeLayerPixelSize(data);
+                    data->advBlend.tempTexture->setWidth(sz.width());
+                    data->advBlend.tempTexture->setHeight(sz.height());
+                    // must track layer size, but without the SSAA scale
+                    Q3DSLayerAttached::SizeManagedTexture st(data->advBlend.tempTexture,
+                                                             nullptr,
+                                                             Q3DSLayerAttached::SizeManagedTexture::IgnoreSSAA);
+                    data->sizeManagedTextures.append(st);
+                }
+
+                if (!data->advBlend.tempRt) {
+                    // this assumes QTBUG-65080 is fixed
+                    data->advBlend.tempRt = new Qt3DRender::QRenderTarget(data->entity);
+                    Qt3DRender::QRenderTargetOutput *tempTexOutput = new Qt3DRender::QRenderTargetOutput;
+                    tempTexOutput->setAttachmentPoint(Qt3DRender::QRenderTargetOutput::Color0);
+                    tempTexOutput->setTexture(data->advBlend.tempTexture);
+                    data->advBlend.tempRt->addOutput(tempTexOutput);
+                }
+
+                Qt3DRender::QBlitFramebuffer *bgBlit = new Qt3DRender::QBlitFramebuffer(cameraSelector);
+                bgBlit->setDestination(data->advBlend.tempRt);
+                new Qt3DRender::QNoDraw(bgBlit);
+
+                // Layer size dependent properties have to be updated dynamically.
+                auto setSizeDependentValues = [this, bgBlit, layer3DS, data](Q3DSLayerNode *changedLayer) {
+                    if (changedLayer != layer3DS)
+                        return;
+
+                    if (data->layerSize.isEmpty())
+                        return;
+
+                    // this assumes QTBUG-65123 is fixed
+                    QRectF srcRect(data->layerPos, data->layerSize);
+                    bgBlit->setSourceRect(srcRect);
+                    QRectF dstRect(QPointF(0, 0), data->layerSize);
+                    bgBlit->setDestinationRect(dstRect);
+                };
+                data->layerSizeChangeCallbacks.append(setSizeDependentValues);
+                // Set some initial sizes.
+                setSizeDependentValues(layer3DS);
+
+                Qt3DRender::QLayerFilter *layerFilter = new Qt3DRender::QLayerFilter(cameraSelector);
+                Qt3DRender::QLayer *tag = new Qt3DRender::QLayer;
+                layerFilter->addLayer(tag);
+
+                // Now we do not need normal blending and will provide a custom shader program.
+                Qt3DRender::QRenderPass *renderPass;
+                BuildLayerQuadFlags flags = LayerQuadCustomShader;
+                buildLayerQuadEntity(layer3DS, parentEntity, tag, flags, &renderPass);
+
+                switch (layer3DS->blendType()) {
+                case Q3DSLayerNode::Overlay:
+                    renderPass->setShaderProgram(Q3DSShaderManager::instance().getBlendOverlayShader(data->entity));
+                    break;
+                case Q3DSLayerNode::ColorBurn:
+                    renderPass->setShaderProgram(Q3DSShaderManager::instance().getBlendColorBurnShader(data->entity));
+                    break;
+                case Q3DSLayerNode::ColorDodge:
+                    renderPass->setShaderProgram(Q3DSShaderManager::instance().getBlendColorDodgeShader(data->entity));
+                    break;
+                default:
+                    Q_UNREACHABLE();
+                    break;
+                }
+
+                Qt3DRender::QParameter *baseLayerParam = new Qt3DRender::QParameter;
+                baseLayerParam->setName(QLatin1String("base_layer"));
+                baseLayerParam->setValue(QVariant::fromValue(data->advBlend.tempTexture));
+                Qt3DRender::QParameter *blendLayerParam = new Qt3DRender::QParameter;
+                blendLayerParam->setName(QLatin1String("blend_layer"));
+                blendLayerParam->setValue(QVariant::fromValue(data->layerTexture));
+                renderPass->addParameter(baseLayerParam);
+                renderPass->addParameter(blendLayerParam);
+            } else {
+                Qt3DRender::QLayerFilter *layerFilter = new Qt3DRender::QLayerFilter(cameraSelector);
+                Qt3DRender::QLayer *tag = new Qt3DRender::QLayer;
+                layerFilter->addLayer(tag);
+
+                BuildLayerQuadFlags flags = 0;
+                if (layer3DS->layerBackground() == Q3DSLayerNode::Transparent)
+                    flags |= LayerQuadBlend;
+
+                buildLayerQuadEntity(layer3DS, parentEntity, tag, flags, nullptr);
+            }
+        }
+    }
 }
 
 void Q3DSSceneManager::buildGuiPass(Qt3DRender::QFrameGraphNode *parent, Qt3DCore::QEntity *parentEntity)

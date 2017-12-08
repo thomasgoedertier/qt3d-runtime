@@ -726,14 +726,15 @@ Qt3DRender::QShaderProgram *Q3DSShaderManager::getBlendOverlayShader(Qt3DCore::Q
         // Fragments with base alpha = 0 indicate fully transparent background
         // in which case we use blend layer fragments directly.
         fragmentShader->append("if (blend_orig.a != 0.0 && base.a != 0.0) {");
+        // overlay = 2 * bottom * top if bottom < 0.5, 1 - 2 * (1 - bottom) * (1 - top) otherwise
         fragmentShader->append(
-                    "    res.r = (base.r < 0.5? (2.0 * base.r * blend.r) : "
+                    "    res.r = (base.r < 0.5 ? (2.0 * base.r * blend.r) : "
                     "(1.0 - 2.0 * (1.0 - base.r) * (1.0 - blend.r)));");
         fragmentShader->append(
-                    "    res.g = (base.g < 0.5? (2.0 * base.g * blend.g) : "
+                    "    res.g = (base.g < 0.5 ? (2.0 * base.g * blend.g) : "
                     "(1.0 - 2.0 * (1.0 - base.g) * (1.0 - blend.g)));");
         fragmentShader->append(
-                    "    res.b = (base.b < 0.5? (2.0 * base.b * blend.b) : "
+                    "    res.b = (base.b < 0.5 ? (2.0 * base.b * blend.b) : "
                     "(1.0 - 2.0 * (1.0 - base.b) * (1.0 - blend.b)));");
         fragmentShader->append("    fragOutput = vec4(res.rgb, blend_orig.a);");
         fragmentShader->append("} else if (base.a == 0.0 && blend_orig.a == 0.0) {");
@@ -785,6 +786,7 @@ Qt3DRender::QShaderProgram *Q3DSShaderManager::getBlendColorBurnShader(Qt3DCore:
         // Fragments with base alpha = 0 indicate fully transparent background
         // in which case we use blend layer fragments directly.
         fragmentShader->append("if (blend_orig.a != 0.0 && base.a != 0.0) {");
+        // color burn = invert the bottom layer, divide it by the top layer, then invert
         fragmentShader->append(
                     "   res.r = ((base.r == 1.0) ? 1.0 : "
                     "(blend.r == 0.0) ? 0.0 : 1.0 - min(1.0, ((1.0 - base.r) / blend.r)));");
@@ -842,6 +844,7 @@ Qt3DRender::QShaderProgram *Q3DSShaderManager::getBlendColorDodgeShader(Qt3DCore
         // Fragments with base alpha = 0 indicate fully transparent background
         // in which case we use blend layer fragments directly.
         fragmentShader->append("if (blend_orig.a != 0.0 && base.a != 0.0) {");
+        // color dodge = divide bottom layer by inverted top layer
         fragmentShader->append(
                     "   res.r = ((base.r == 0.0) ? 0.0 : "
                     "(blend.r == 1.0) ? 1.0 : min(base.r / (1.0 - blend.r), 1.0));");
