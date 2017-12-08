@@ -10,5 +10,10 @@ void main()
 {
     ivec2 tc = ivec2(floor(textureSize(tex) * texCoord));
     vec4 c = texelFetch(tex, tc, 0) + texelFetch(tex, tc, 1) + texelFetch(tex, tc, 2) + texelFetch(tex, tc, 3);
-    fragColor = c / 4.0;
+    c /= 4.0;
+    // This discard, while not necessarily ideal for some GPUs, is necessary to
+    // get correct results with certain layer blend modes for example.
+    if (c.a == 0.0)
+        discard;
+    fragColor = c;
 }
