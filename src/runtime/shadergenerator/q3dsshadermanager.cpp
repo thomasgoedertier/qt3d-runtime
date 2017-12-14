@@ -712,38 +712,27 @@ Qt3DRender::QShaderProgram *Q3DSShaderManager::getBlendOverlayShader(Qt3DCore::Q
         vertexShader->append("    uv_coords = vertexTexCoord;");
         vertexShader->append("}");
 
+        // This deviates from the original 3DS1 shader.
+        // Below is based on https://www.khronos.org/registry/OpenGL/extensions/KHR/KHR_blend_equation_advanced.txt
+        // with proper handling of premultiplied alpha:
         fragmentShader->addUniform("base_layer", "sampler2D");
         fragmentShader->addUniform("blend_layer", "sampler2D");
         fragmentShader->append("void main() {");
         fragmentShader->append("    vec4 base = texture2D( base_layer, uv_coords );");
-        fragmentShader->append("    vec4 blend_orig = texture2D( blend_layer, uv_coords );");
-        fragmentShader->append("    vec4 blend = blend_orig * vec4(blend_orig.a);");
-        fragmentShader->append("    vec3 res = vec3(0.0, 0.0, 0.0);");
-
-        // As we are doing per-object pass we need to directly copy the base layer
-        // fragment whenever there is no object in the blend layer (alpha = 0), in order to
-        // preserve already-rendered objects and background-colored pixels.
-        // Fragments with base alpha = 0 indicate fully transparent background
-        // in which case we use blend layer fragments directly.
-        fragmentShader->append("if (blend_orig.a != 0.0 && base.a != 0.0) {");
+        fragmentShader->append("    if (base.a != 0.0) base.rgb /= base.a; else base = vec4(0.0);");
+        fragmentShader->append("    vec4 blend = texture2D( blend_layer, uv_coords );");
+        fragmentShader->append("    if (blend.a != 0.0) blend.rgb /= blend.a; else blend = vec4(0.0);");
+        fragmentShader->append("    vec4 res = vec4(0.0);");
+        fragmentShader->append("    float p0 = base.a * blend.a; float p1 = base.a * (1 - blend.a); float p2 = blend.a * (1 - base.a);");
+        fragmentShader->append("    res.a = p0 + p1 + p2;");
         // overlay = 2 * bottom * top if bottom < 0.5, 1 - 2 * (1 - bottom) * (1 - top) otherwise
-        fragmentShader->append(
-                    "    res.r = (base.r < 0.5 ? (2.0 * base.r * blend.r) : "
-                    "(1.0 - 2.0 * (1.0 - base.r) * (1.0 - blend.r)));");
-        fragmentShader->append(
-                    "    res.g = (base.g < 0.5 ? (2.0 * base.g * blend.g) : "
-                    "(1.0 - 2.0 * (1.0 - base.g) * (1.0 - blend.g)));");
-        fragmentShader->append(
-                    "    res.b = (base.b < 0.5 ? (2.0 * base.b * blend.b) : "
-                    "(1.0 - 2.0 * (1.0 - base.b) * (1.0 - blend.b)));");
-        fragmentShader->append("    fragOutput = vec4(res.rgb, blend_orig.a);");
-        fragmentShader->append("} else if (base.a == 0.0 && blend_orig.a == 0.0) {");
-        fragmentShader->append("    fragOutput = vec4(blend.rgb , 0.0);");
-        fragmentShader->append("} else if (base.a == 0.0) {");
-        fragmentShader->append("    fragOutput = vec4(blend.rgb , 1.0);");
-        fragmentShader->append("} else {");
-        fragmentShader->append("    fragOutput = vec4(base.rgb, 1.0);");
-        fragmentShader->append("}");
+        fragmentShader->append("    float f_rs_rd = (base.r < 0.5 ? (2.0 * base.r * blend.r) : (1.0 - 2.0 * (1.0 - base.r) * (1.0 - blend.r)));");
+        fragmentShader->append("    float f_gs_gd = (base.g < 0.5 ? (2.0 * base.g * blend.g) : (1.0 - 2.0 * (1.0 - base.g) * (1.0 - blend.g)));");
+        fragmentShader->append("    float f_bs_bd = (base.b < 0.5 ? (2.0 * base.b * blend.b) : (1.0 - 2.0 * (1.0 - base.b) * (1.0 - blend.b)));");
+        fragmentShader->append("    res.r = f_rs_rd * p0 + base.r * p1 + blend.r * p2;");
+        fragmentShader->append("    res.g = f_gs_gd * p0 + base.g * p1 + blend.g * p2;");
+        fragmentShader->append("    res.b = f_bs_bd * p0 + base.b * p1 + blend.b * p2;");
+        fragmentShader->append("    fragOutput = vec4(res.rgb * res.a, res.a);");
         fragmentShader->append("}");
 
         m_blendOverlayShader = m_shaderProgramGenerator->compileGeneratedShader(
@@ -772,36 +761,27 @@ Qt3DRender::QShaderProgram *Q3DSShaderManager::getBlendColorBurnShader(Qt3DCore:
         vertexShader->append("    uv_coords = vertexTexCoord;");
         vertexShader->append("}");
 
+        // This deviates from the original 3DS1 shader.
+        // Below is based on https://www.khronos.org/registry/OpenGL/extensions/KHR/KHR_blend_equation_advanced.txt
+        // with proper handling of premultiplied alpha:
         fragmentShader->addUniform("base_layer", "sampler2D");
         fragmentShader->addUniform("blend_layer", "sampler2D");
         fragmentShader->append("void main() {");
-        fragmentShader->append("   vec4 base = texture2D( base_layer, uv_coords );");
-        fragmentShader->append("   vec4 blend_orig = texture2D( blend_layer, uv_coords );");
-        fragmentShader->append("   vec4 blend = blend_orig * vec4(blend_orig.a);");
-        fragmentShader->append("   vec3 res = vec3(0.0, 0.0, 0.0);");
-
-        // As we are doing per-object pass we need to directly copy the base layer
-        // fragment whenever there is no object in the blend layer (alpha = 0), in order to
-        // preserve already-rendered objects and background-colored pixels.
-        // Fragments with base alpha = 0 indicate fully transparent background
-        // in which case we use blend layer fragments directly.
-        fragmentShader->append("if (blend_orig.a != 0.0 && base.a != 0.0) {");
+        fragmentShader->append("    vec4 base = texture2D( base_layer, uv_coords );");
+        fragmentShader->append("    if (base.a != 0.0) base.rgb /= base.a; else base = vec4(0.0);");
+        fragmentShader->append("    vec4 blend = texture2D( blend_layer, uv_coords );");
+        fragmentShader->append("    if (blend.a != 0.0) blend.rgb /= blend.a; else blend = vec4(0.0);");
+        fragmentShader->append("    vec4 res = vec4(0.0);");
+        fragmentShader->append("    float p0 = base.a * blend.a; float p1 = base.a * (1 - blend.a); float p2 = blend.a * (1 - base.a);");
+        fragmentShader->append("    res.a = p0 + p1 + p2;");
         // color burn = invert the bottom layer, divide it by the top layer, then invert
-        fragmentShader->append(
-                    "   res.r = ((base.r == 1.0) ? 1.0 : "
-                    "(blend.r == 0.0) ? 0.0 : 1.0 - min(1.0, ((1.0 - base.r) / blend.r)));");
-        fragmentShader->append(
-                    "   res.g = ((base.g == 1.0) ? 1.0 : "
-                    "(blend.g == 0.0) ? 0.0 : 1.0 - min(1.0, ((1.0 - base.g) / blend.g)));");
-        fragmentShader->append(
-                    "   res.b = ((base.b == 1.0) ? 1.0 : "
-                    "(blend.b == 0.0) ? 0.0 : 1.0 - min(1.0, ((1.0 - base.b) / blend.b)));");
-        fragmentShader->append("   fragOutput =  vec4(res.rgb, blend_orig.a);");
-        fragmentShader->append("} else if (base.a == 0.0) {");
-        fragmentShader->append("   fragOutput = blend;");
-        fragmentShader->append("} else {");
-        fragmentShader->append("   fragOutput = base;");
-        fragmentShader->append("}");
+        fragmentShader->append("    float f_rs_rd = ((base.r == 1.0) ? 1.0 : (blend.r == 0.0) ? 0.0 : 1.0 - min(1.0, ((1.0 - base.r) / blend.r)));");
+        fragmentShader->append("    float f_gs_gd = ((base.g == 1.0) ? 1.0 : (blend.g == 0.0) ? 0.0 : 1.0 - min(1.0, ((1.0 - base.g) / blend.g)));");
+        fragmentShader->append("    float f_bs_bd = ((base.b == 1.0) ? 1.0 : (blend.b == 0.0) ? 0.0 : 1.0 - min(1.0, ((1.0 - base.b) / blend.b)));");
+        fragmentShader->append("    res.r = f_rs_rd * p0 + base.r * p1 + blend.r * p2;");
+        fragmentShader->append("    res.g = f_gs_gd * p0 + base.g * p1 + blend.g * p2;");
+        fragmentShader->append("    res.b = f_bs_bd * p0 + base.b * p1 + blend.b * p2;");
+        fragmentShader->append("    fragOutput = vec4(res.rgb * res.a, res.a);");
         fragmentShader->append("}");
 
         m_blendColorBurnShader = m_shaderProgramGenerator->compileGeneratedShader(
@@ -830,36 +810,27 @@ Qt3DRender::QShaderProgram *Q3DSShaderManager::getBlendColorDodgeShader(Qt3DCore
         vertexShader->append("    uv_coords = vertexTexCoord;");
         vertexShader->append("}");
 
+        // This deviates from the original 3DS1 shader.
+        // Below is based on https://www.khronos.org/registry/OpenGL/extensions/KHR/KHR_blend_equation_advanced.txt
+        // with proper handling of premultiplied alpha:
         fragmentShader->addUniform("base_layer", "sampler2D");
         fragmentShader->addUniform("blend_layer", "sampler2D");
         fragmentShader->append("void main() {");
-        fragmentShader->append("   vec4 base = texture2D( base_layer, uv_coords );");
-        fragmentShader->append("   vec4 blend_orig = texture2D( blend_layer, uv_coords );");
-        fragmentShader->append("   vec4 blend = blend_orig * vec4(blend_orig.a);");
-        fragmentShader->append("   vec3 res = vec3(0.0, 0.0, 0.0);");
-
-        // As we are doing per-object pass we need to directly copy the base layer
-        // fragment whenever there is no object in the blend layer (alpha = 0), in order to
-        // preserve already-rendered objects and background-colored pixels.
-        // Fragments with base alpha = 0 indicate fully transparent background
-        // in which case we use blend layer fragments directly.
-        fragmentShader->append("if (blend_orig.a != 0.0 && base.a != 0.0) {");
+        fragmentShader->append("    vec4 base = texture2D( base_layer, uv_coords );");
+        fragmentShader->append("    if (base.a != 0.0) base.rgb /= base.a; else base = vec4(0.0);");
+        fragmentShader->append("    vec4 blend = texture2D( blend_layer, uv_coords );");
+        fragmentShader->append("    if (blend.a != 0.0) blend.rgb /= blend.a; else blend = vec4(0.0);");
+        fragmentShader->append("    vec4 res = vec4(0.0);");
+        fragmentShader->append("    float p0 = base.a * blend.a; float p1 = base.a * (1 - blend.a); float p2 = blend.a * (1 - base.a);");
+        fragmentShader->append("    res.a = p0 + p1 + p2;");
         // color dodge = divide bottom layer by inverted top layer
-        fragmentShader->append(
-                    "   res.r = ((base.r == 0.0) ? 0.0 : "
-                    "(blend.r == 1.0) ? 1.0 : min(base.r / (1.0 - blend.r), 1.0));");
-        fragmentShader->append(
-                    "   res.g = ((base.g == 0.0) ? 0.0 : "
-                    "(blend.g == 1.0) ? 1.0 : min(base.g / (1.0 - blend.g), 1.0));");
-        fragmentShader->append(
-                    "   res.b = ((base.b == 0.0) ? 0.0 : "
-                    "(blend.b == 1.0) ? 1.0 : min(base.b / (1.0 - blend.b), 1.0));");
-        fragmentShader->append("   fragOutput =  vec4(res.rgb, blend_orig.a);");
-        fragmentShader->append("} else if (base.a == 0.0) {");
-        fragmentShader->append("   fragOutput = blend;");
-        fragmentShader->append("} else {");
-        fragmentShader->append("   fragOutput = base;");
-        fragmentShader->append("}");
+        fragmentShader->append("    float f_rs_rd = ((base.r == 0.0) ? 0.0 : (blend.r == 1.0) ? 1.0 : min(base.r / (1.0 - blend.r), 1.0));");
+        fragmentShader->append("    float f_gs_gd = ((base.g == 0.0) ? 0.0 : (blend.g == 1.0) ? 1.0 : min(base.g / (1.0 - blend.g), 1.0));");
+        fragmentShader->append("    float f_bs_bd = ((base.b == 0.0) ? 0.0 : (blend.b == 1.0) ? 1.0 : min(base.b / (1.0 - blend.b), 1.0));");
+        fragmentShader->append("    res.r = f_rs_rd * p0 + base.r * p1 + blend.r * p2;");
+        fragmentShader->append("    res.g = f_gs_gd * p0 + base.g * p1 + blend.g * p2;");
+        fragmentShader->append("    res.b = f_bs_bd * p0 + base.b * p1 + blend.b * p2;");
+        fragmentShader->append("    fragOutput = vec4(res.rgb * res.a, res.a);");
         fragmentShader->append("}");
 
         m_blendColorDodgeShader = m_shaderProgramGenerator->compileGeneratedShader(
