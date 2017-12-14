@@ -425,20 +425,6 @@ bool Q3DStudioWindow::loadSubPresentation(Presentation *pres)
     return true;
 }
 
-int Q3DStudioWindow::presentationCount() const
-{
-    return m_presentations.count();
-}
-
-int Q3DStudioWindow::indexOfSubPresentation(const QString &id) const
-{
-    for (int i = 0; i < m_presentations.count(); ++i) {
-        if (m_presentations[i].subPres.id == id)
-            return i;
-    }
-    return -1;
-}
-
 QString Q3DStudioWindow::uipFileName(int index) const
 {
     return (index >= 0 && index < m_presentations.count()) ? m_presentations[index].uipFileName : QString();

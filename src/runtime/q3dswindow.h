@@ -56,8 +56,6 @@ public:
     bool setSource(const QString &uipOrUiaFileName);
     QString source() const;
 
-    int presentationCount() const;
-    int indexOfSubPresentation(const QString &id) const;
     QString uipFileName(int index = 0) const;
     Q3DSUipDocument *uipDocument(int index = 0) const;
     Q3DSSceneManager *sceneManager(int index = 0) const;
