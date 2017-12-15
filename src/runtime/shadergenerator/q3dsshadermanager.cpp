@@ -694,9 +694,43 @@ Qt3DRender::QShaderProgram *Q3DSShaderManager::getProgAABlendShader(Qt3DCore::QN
     return m_progAABlendShader;
 }
 
-Qt3DRender::QShaderProgram *Q3DSShaderManager::getBlendOverlayShader(Qt3DCore::QNode *parent)
+static void addBlendShaderPreamble(Q3DSAbstractShaderStageGenerator *fragmentShader, int msaaSampleCount)
 {
-    if (!m_blendOverlayShader) {
+    Q_UNUSED(msaaSampleCount);
+    fragmentShader->addUniform("base_layer", "sampler2D");
+    if (msaaSampleCount <= 1)
+        fragmentShader->addUniform("blend_layer", "sampler2D");
+    else
+        fragmentShader->addUniform("blend_layer", "sampler2DMS");
+
+    fragmentShader->append("void main() {");
+    fragmentShader->append("    vec4 base = texture2D( base_layer, uv_coords );");
+    fragmentShader->append("    if (base.a != 0.0) base.rgb /= base.a; else base = vec4(0.0);");
+    if (msaaSampleCount <= 1) {
+        fragmentShader->append("    vec4 blend = texture2D( blend_layer, uv_coords );");
+    } else {
+        fragmentShader->append("    ivec2 tc = ivec2(floor(textureSize(blend_layer) * uv_coords));");
+        switch (msaaSampleCount) {
+        case 2:
+            fragmentShader->append("    vec4 blend = texelFetch(blend_layer, tc, 0) + texelFetch(blend_layer, tc, 1);");
+            fragmentShader->append("    blend /= 2.0;");
+            break;
+        default:
+            fragmentShader->append("    vec4 blend = texelFetch(blend_layer, tc, 0) + texelFetch(blend_layer, tc, 1) + texelFetch(blend_layer, tc, 2) + texelFetch(blend_layer, tc, 3);");
+            fragmentShader->append("    blend /= 4.0;");
+            break;
+        }
+    }
+    fragmentShader->append("    if (blend.a != 0.0) blend.rgb /= blend.a; else blend = vec4(0.0);");
+    fragmentShader->append("    vec4 res = vec4(0.0);");
+    fragmentShader->append("    float p0 = base.a * blend.a; float p1 = base.a * (1 - blend.a); float p2 = blend.a * (1 - base.a);");
+    fragmentShader->append("    res.a = p0 + p1 + p2;");
+}
+
+Qt3DRender::QShaderProgram *Q3DSShaderManager::getBlendOverlayShader(Qt3DCore::QNode *parent, int msaaSampleCount)
+{
+    Qt3DRender::QShaderProgram *&prog = m_blendOverlayShader[msaaSampleCount];
+    if (!prog) {
         m_shaderProgramGenerator->beginProgram();
         Q3DSAbstractShaderStageGenerator *vertexShader = m_shaderProgramGenerator->getStage(Q3DSShaderGeneratorStages::Vertex);
         Q3DSAbstractShaderStageGenerator *fragmentShader = m_shaderProgramGenerator->getStage(Q3DSShaderGeneratorStages::Fragment);
@@ -715,16 +749,7 @@ Qt3DRender::QShaderProgram *Q3DSShaderManager::getBlendOverlayShader(Qt3DCore::Q
         // This deviates from the original 3DS1 shader.
         // Below is based on https://www.khronos.org/registry/OpenGL/extensions/KHR/KHR_blend_equation_advanced.txt
         // with proper handling of premultiplied alpha:
-        fragmentShader->addUniform("base_layer", "sampler2D");
-        fragmentShader->addUniform("blend_layer", "sampler2D");
-        fragmentShader->append("void main() {");
-        fragmentShader->append("    vec4 base = texture2D( base_layer, uv_coords );");
-        fragmentShader->append("    if (base.a != 0.0) base.rgb /= base.a; else base = vec4(0.0);");
-        fragmentShader->append("    vec4 blend = texture2D( blend_layer, uv_coords );");
-        fragmentShader->append("    if (blend.a != 0.0) blend.rgb /= blend.a; else blend = vec4(0.0);");
-        fragmentShader->append("    vec4 res = vec4(0.0);");
-        fragmentShader->append("    float p0 = base.a * blend.a; float p1 = base.a * (1 - blend.a); float p2 = blend.a * (1 - base.a);");
-        fragmentShader->append("    res.a = p0 + p1 + p2;");
+        addBlendShaderPreamble(fragmentShader, msaaSampleCount);
         // overlay = 2 * bottom * top if bottom < 0.5, 1 - 2 * (1 - bottom) * (1 - top) otherwise
         fragmentShader->append("    float f_rs_rd = (base.r < 0.5 ? (2.0 * base.r * blend.r) : (1.0 - 2.0 * (1.0 - base.r) * (1.0 - blend.r)));");
         fragmentShader->append("    float f_gs_gd = (base.g < 0.5 ? (2.0 * base.g * blend.g) : (1.0 - 2.0 * (1.0 - base.g) * (1.0 - blend.g)));");
@@ -735,17 +760,18 @@ Qt3DRender::QShaderProgram *Q3DSShaderManager::getBlendOverlayShader(Qt3DCore::Q
         fragmentShader->append("    fragOutput = vec4(res.rgb * res.a, res.a);");
         fragmentShader->append("}");
 
-        m_blendOverlayShader = m_shaderProgramGenerator->compileGeneratedShader(
+        prog = m_shaderProgramGenerator->compileGeneratedShader(
                     QLatin1String("advanced overlay blend shader"), Q3DSShaderFeatureSet());
-        m_blendOverlayShader->setParent(parent);
+        prog->setParent(parent);
     }
 
-    return m_blendOverlayShader;
+    return prog;
 }
 
-Qt3DRender::QShaderProgram *Q3DSShaderManager::getBlendColorBurnShader(Qt3DCore::QNode *parent)
+Qt3DRender::QShaderProgram *Q3DSShaderManager::getBlendColorBurnShader(Qt3DCore::QNode *parent, int msaaSampleCount)
 {
-    if (!m_blendColorBurnShader) {
+    Qt3DRender::QShaderProgram *&prog = m_blendColorBurnShader[msaaSampleCount];
+    if (!prog) {
         m_shaderProgramGenerator->beginProgram();
         Q3DSAbstractShaderStageGenerator *vertexShader = m_shaderProgramGenerator->getStage(Q3DSShaderGeneratorStages::Vertex);
         Q3DSAbstractShaderStageGenerator *fragmentShader = m_shaderProgramGenerator->getStage(Q3DSShaderGeneratorStages::Fragment);
@@ -764,16 +790,7 @@ Qt3DRender::QShaderProgram *Q3DSShaderManager::getBlendColorBurnShader(Qt3DCore:
         // This deviates from the original 3DS1 shader.
         // Below is based on https://www.khronos.org/registry/OpenGL/extensions/KHR/KHR_blend_equation_advanced.txt
         // with proper handling of premultiplied alpha:
-        fragmentShader->addUniform("base_layer", "sampler2D");
-        fragmentShader->addUniform("blend_layer", "sampler2D");
-        fragmentShader->append("void main() {");
-        fragmentShader->append("    vec4 base = texture2D( base_layer, uv_coords );");
-        fragmentShader->append("    if (base.a != 0.0) base.rgb /= base.a; else base = vec4(0.0);");
-        fragmentShader->append("    vec4 blend = texture2D( blend_layer, uv_coords );");
-        fragmentShader->append("    if (blend.a != 0.0) blend.rgb /= blend.a; else blend = vec4(0.0);");
-        fragmentShader->append("    vec4 res = vec4(0.0);");
-        fragmentShader->append("    float p0 = base.a * blend.a; float p1 = base.a * (1 - blend.a); float p2 = blend.a * (1 - base.a);");
-        fragmentShader->append("    res.a = p0 + p1 + p2;");
+        addBlendShaderPreamble(fragmentShader, msaaSampleCount);
         // color burn = invert the bottom layer, divide it by the top layer, then invert
         fragmentShader->append("    float f_rs_rd = ((base.r == 1.0) ? 1.0 : (blend.r == 0.0) ? 0.0 : 1.0 - min(1.0, ((1.0 - base.r) / blend.r)));");
         fragmentShader->append("    float f_gs_gd = ((base.g == 1.0) ? 1.0 : (blend.g == 0.0) ? 0.0 : 1.0 - min(1.0, ((1.0 - base.g) / blend.g)));");
@@ -784,17 +801,18 @@ Qt3DRender::QShaderProgram *Q3DSShaderManager::getBlendColorBurnShader(Qt3DCore:
         fragmentShader->append("    fragOutput = vec4(res.rgb * res.a, res.a);");
         fragmentShader->append("}");
 
-        m_blendColorBurnShader = m_shaderProgramGenerator->compileGeneratedShader(
+        prog = m_shaderProgramGenerator->compileGeneratedShader(
                     QLatin1String("advanced color burn blend shader"), Q3DSShaderFeatureSet());
-        m_blendColorBurnShader->setParent(parent);
+        prog->setParent(parent);
     }
 
-    return m_blendColorBurnShader;
+    return prog;
 }
 
-Qt3DRender::QShaderProgram *Q3DSShaderManager::getBlendColorDodgeShader(Qt3DCore::QNode *parent)
+Qt3DRender::QShaderProgram *Q3DSShaderManager::getBlendColorDodgeShader(Qt3DCore::QNode *parent, int msaaSampleCount)
 {
-    if (!m_blendColorDodgeShader) {
+    Qt3DRender::QShaderProgram *&prog = m_blendColorDodgeShader[msaaSampleCount];
+    if (!prog) {
         m_shaderProgramGenerator->beginProgram();
         Q3DSAbstractShaderStageGenerator *vertexShader = m_shaderProgramGenerator->getStage(Q3DSShaderGeneratorStages::Vertex);
         Q3DSAbstractShaderStageGenerator *fragmentShader = m_shaderProgramGenerator->getStage(Q3DSShaderGeneratorStages::Fragment);
@@ -813,16 +831,7 @@ Qt3DRender::QShaderProgram *Q3DSShaderManager::getBlendColorDodgeShader(Qt3DCore
         // This deviates from the original 3DS1 shader.
         // Below is based on https://www.khronos.org/registry/OpenGL/extensions/KHR/KHR_blend_equation_advanced.txt
         // with proper handling of premultiplied alpha:
-        fragmentShader->addUniform("base_layer", "sampler2D");
-        fragmentShader->addUniform("blend_layer", "sampler2D");
-        fragmentShader->append("void main() {");
-        fragmentShader->append("    vec4 base = texture2D( base_layer, uv_coords );");
-        fragmentShader->append("    if (base.a != 0.0) base.rgb /= base.a; else base = vec4(0.0);");
-        fragmentShader->append("    vec4 blend = texture2D( blend_layer, uv_coords );");
-        fragmentShader->append("    if (blend.a != 0.0) blend.rgb /= blend.a; else blend = vec4(0.0);");
-        fragmentShader->append("    vec4 res = vec4(0.0);");
-        fragmentShader->append("    float p0 = base.a * blend.a; float p1 = base.a * (1 - blend.a); float p2 = blend.a * (1 - base.a);");
-        fragmentShader->append("    res.a = p0 + p1 + p2;");
+        addBlendShaderPreamble(fragmentShader, msaaSampleCount);
         // color dodge = divide bottom layer by inverted top layer
         fragmentShader->append("    float f_rs_rd = ((base.r == 0.0) ? 0.0 : (blend.r == 1.0) ? 1.0 : min(base.r / (1.0 - blend.r), 1.0));");
         fragmentShader->append("    float f_gs_gd = ((base.g == 0.0) ? 0.0 : (blend.g == 1.0) ? 1.0 : min(base.g / (1.0 - blend.g), 1.0));");
@@ -833,12 +842,12 @@ Qt3DRender::QShaderProgram *Q3DSShaderManager::getBlendColorDodgeShader(Qt3DCore
         fragmentShader->append("    fragOutput = vec4(res.rgb * res.a, res.a);");
         fragmentShader->append("}");
 
-        m_blendColorDodgeShader = m_shaderProgramGenerator->compileGeneratedShader(
+        prog = m_shaderProgramGenerator->compileGeneratedShader(
                     QLatin1String("advanced color dodge blend shader"), Q3DSShaderFeatureSet());
-        m_blendColorDodgeShader->setParent(parent);
+        prog->setParent(parent);
     }
 
-    return m_blendColorDodgeShader;
+    return prog;
 }
 
 Q3DSShaderManager::Q3DSShaderManager()
@@ -860,9 +869,9 @@ void Q3DSShaderManager::invalidate()
     m_ssaoTextureShader = nullptr;
     m_bsdfMipPreFilterShader = nullptr;
     m_progAABlendShader = nullptr;
-    m_blendOverlayShader = nullptr;
-    m_blendColorBurnShader = nullptr;
-    m_blendColorDodgeShader = nullptr;
+    m_blendOverlayShader.clear();
+    m_blendColorBurnShader.clear();
+    m_blendColorDodgeShader.clear();
 
     m_shaderProgramGenerator->invalidate();
 }

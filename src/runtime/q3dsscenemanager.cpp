@@ -2829,7 +2829,6 @@ void Q3DSSceneManager::buildCompositor(Qt3DRender::QFrameGraphNode *parent, Qt3D
             buildLayerQuadEntity(layer3DS, parentEntity, tag, flags, nullptr);
         }
     } else {
-        // ### the blend shader step below does not support MSAA layers
         /*
             1. get a fullscreen texture (screen_texture), clear it either to (0, 0, 0, 0) or (scene.clearColor, 1)
             2. for each layer:
@@ -2908,13 +2907,13 @@ void Q3DSSceneManager::buildCompositor(Qt3DRender::QFrameGraphNode *parent, Qt3D
 
                 switch (layer3DS->blendType()) {
                 case Q3DSLayerNode::Overlay:
-                    renderPass->setShaderProgram(Q3DSShaderManager::instance().getBlendOverlayShader(data->entity));
+                    renderPass->setShaderProgram(Q3DSShaderManager::instance().getBlendOverlayShader(data->entity, data->msaaSampleCount));
                     break;
                 case Q3DSLayerNode::ColorBurn:
-                    renderPass->setShaderProgram(Q3DSShaderManager::instance().getBlendColorBurnShader(data->entity));
+                    renderPass->setShaderProgram(Q3DSShaderManager::instance().getBlendColorBurnShader(data->entity, data->msaaSampleCount));
                     break;
                 case Q3DSLayerNode::ColorDodge:
-                    renderPass->setShaderProgram(Q3DSShaderManager::instance().getBlendColorDodgeShader(data->entity));
+                    renderPass->setShaderProgram(Q3DSShaderManager::instance().getBlendColorDodgeShader(data->entity, data->msaaSampleCount));
                     break;
                 default:
                     Q_UNREACHABLE();
