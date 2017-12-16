@@ -48,9 +48,21 @@ Q3DSProfiler::Q3DSProfiler(const Q3DSGraphicsLimits &limits)
     m_frameData.reserve(64 * 1024);
 }
 
+Q3DSProfiler::~Q3DSProfiler()
+{
+    for (auto c : m_objectDestroyConnections)
+        QObject::disconnect(c);
+}
+
 void Q3DSProfiler::resetForNewScene(Q3DSSceneManager *sceneManager)
 {
+    for (auto c : m_objectDestroyConnections)
+        QObject::disconnect(c);
+
     m_frameData.clear();
+    m_objectData.clear();
+    m_objectDestroyConnections.clear();
+
     m_sceneManager = sceneManager;
     m_presentation = m_sceneManager->m_presentation;
     Q_ASSERT(m_presentation);
@@ -83,6 +95,23 @@ void Q3DSProfiler::updateFrameStats(qint64 globalFrameCounter)
     FrameData &d(m_frameData.last());
     d.globalFrameCounter = globalFrameCounter;
     d.wasDirty = m_sceneManager->m_wasDirty;
+}
+
+void Q3DSProfiler::trackNewObject(QObject *obj, ObjectType type, const char *info, ...)
+{
+    if (!m_enabled)
+        return;
+
+    ObjectData objd(obj, type);
+    va_list ap;
+    va_start(ap, info);
+    objd.info = QString::vasprintf(info, ap);
+    va_end(ap);
+    m_objectData.insert(type, objd);
+
+    m_objectDestroyConnections.append(QObject::connect(obj, &QObject::destroyed, [this, obj, type]() {
+        m_objectData.remove(type, ObjectData(obj, type));
+    }));
 }
 
 float Q3DSProfiler::cpuLoadForCurrentProcess()

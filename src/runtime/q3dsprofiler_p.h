@@ -43,6 +43,8 @@
 
 #include <QVector>
 #include <QElapsedTimer>
+#include <QMultiMap>
+#include <QObject>
 #include "q3dsgraphicslimits.h"
 
 QT_BEGIN_NAMESPACE
@@ -54,6 +56,7 @@ class Q3DSProfiler
 {
 public:
     Q3DSProfiler(const Q3DSGraphicsLimits &limits);
+    ~Q3DSProfiler();
     void resetForNewScene(Q3DSSceneManager *sceneManager);
 
     bool isEnabled() const { return m_enabled; }
@@ -62,6 +65,14 @@ public:
     void reportNewFrame(float deltaMs);
     void updateFrameStats(qint64 globalFrameCounter);
 
+    enum ObjectType {
+        UnknownObject,
+        RenderTargetObject,
+        Texture2DObject,
+        TextureCubeObject
+    };
+    void trackNewObject(QObject *obj, ObjectType type, const char *info, ...);
+
     struct FrameData {
         float deltaMs = 0;
         qint64 globalFrameCounter = 0;
@@ -69,7 +80,21 @@ public:
     };
 
     const QVector<FrameData> *frameData() const { return &m_frameData; }
+
+    struct ObjectData {
+        ObjectData() { }
+        ObjectData(QObject *obj_, ObjectType type_)
+            : obj(obj_), type(type_)
+        { }
+        QObject *obj = nullptr;
+        ObjectType type = UnknownObject;
+        QString info;
+    };
+
+    const QMultiMap<ObjectType, ObjectData> *objectData() const { return &m_objectData; }
+
     const Q3DSGraphicsLimits *graphicsLimits() const { return &m_gfxLimits; }
+
     const Q3DSPresentation *presentation() const { return m_presentation; }
     Q3DSPresentation *presentation() { return m_presentation; }
 
@@ -80,6 +105,8 @@ private:
     bool m_enabled = false; // disabled by default, profiling is opt-in
     Q3DSGraphicsLimits m_gfxLimits;
     QVector<FrameData> m_frameData;
+    QMultiMap<ObjectType, ObjectData> m_objectData;
+    QVector<QMetaObject::Connection> m_objectDestroyConnections;
     Q3DSSceneManager *m_sceneManager = nullptr;
     Q3DSPresentation *m_presentation = nullptr;
 
@@ -101,6 +128,17 @@ private:
 };
 
 Q_DECLARE_TYPEINFO(Q3DSProfiler::FrameData, Q_MOVABLE_TYPE);
+Q_DECLARE_TYPEINFO(Q3DSProfiler::ObjectData, Q_MOVABLE_TYPE);
+
+inline bool operator==(const Q3DSProfiler::ObjectData &lhs, const Q3DSProfiler::ObjectData &rhs) Q_DECL_NOTHROW
+{
+    return lhs.type == rhs.type && lhs.obj == rhs.obj;
+}
+
+inline bool operator!=(const Q3DSProfiler::ObjectData &lhs, const Q3DSProfiler::ObjectData &rhs) Q_DECL_NOTHROW
+{
+    return !(lhs == rhs);
+}
 
 QT_END_NAMESPACE
 

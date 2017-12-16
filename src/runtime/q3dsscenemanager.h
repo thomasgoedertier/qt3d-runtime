@@ -440,7 +440,8 @@ class Q3DSV_EXPORT Q3DSSceneManager
 public:
     enum SceneBuilderFlag {
         Force4xMSAA = 0x01,
-        SubPresentation = 0x02
+        SubPresentation = 0x02,
+        EnableProfiling = 0x04
     };
     Q_DECLARE_FLAGS(SceneBuilderFlags, SceneBuilderFlag)
 
@@ -518,6 +519,9 @@ private:
 
     void buildLayer(Q3DSLayerNode *layer3DS, Qt3DRender::QFrameGraphNode *parent, const QSize &parentSize);
     void buildSubPresentationLayer(Q3DSLayerNode *layer3DS, const QSize &parentSize);
+    Qt3DRender::QRenderTarget *newLayerRenderTarget(const QSize &layerPixelSize, int msaaSampleCount,
+                                                    Qt3DRender::QAbstractTexture **colorTex, Qt3DRender::QAbstractTexture **dsTexOrRb,
+                                                    Qt3DCore::QNode *textureParentNode, Q3DSLayerNode *layer3DS);
     QSize calculateLayerSize(Q3DSLayerNode *layer3DS, const QSize &parentSize);
     QPointF calculateLayerPos(Q3DSLayerNode *layer3DS, const QSize &parentSize);
     void updateSizesForLayer(Q3DSLayerNode *layer3DS, const QSize &newParentSize);
@@ -533,11 +537,11 @@ private:
     void updateCubeShadowMapParams(Q3DSLayerAttached::PerLightShadowMapData *d, Q3DSLightNode *light3DS, const QString &lightIndexStr);
     void updateCubeShadowCam(Q3DSLayerAttached::PerLightShadowMapData *d, int faceIdx, Q3DSLightNode *light3DS);
     void genCubeBlurPassFg(Q3DSLayerAttached::PerLightShadowMapData *d, Qt3DRender::QAbstractTexture *inTex,
-                           Qt3DRender::QAbstractTexture *outTex, const QString &passName);
+                           Qt3DRender::QAbstractTexture *outTex, const QString &passName, Q3DSLightNode *light3DS);
     void updateOrthoShadowMapParams(Q3DSLayerAttached::PerLightShadowMapData *d, Q3DSLightNode *light3DS, const QString &lightIndexStr);
     void updateOrthoShadowCam(Q3DSLayerAttached::PerLightShadowMapData *d, Q3DSLightNode *light3DS, Q3DSLayerAttached *layerData);
     void genOrthoBlurPassFg(Q3DSLayerAttached::PerLightShadowMapData *d, Qt3DRender::QAbstractTexture *inTex,
-                            Qt3DRender::QAbstractTexture *outTex, const QString &passName);
+                            Qt3DRender::QAbstractTexture *outTex, const QString &passName, Q3DSLightNode *light3DS);
     void updateProgressiveAA(Q3DSLayerNode *layer3DS);
 
     Q3DSCameraNode *chooseLayerCamera(Q3DSLayerNode *layer3DS, Qt3DRender::QCamera **camera);
@@ -560,7 +564,7 @@ private:
     Qt3DCore::QEntity *buildModel(Q3DSModelNode *model3DS, Q3DSLayerNode *layer3DS, Qt3DCore::QEntity *parent);
     void buildModelMaterial(Q3DSModelNode *model3DS);
     void retagSubMeshes(Q3DSModelNode *model3DS);
-    void prepareTextureParameters(Q3DSTextureParameters &textureParameters, const QString &name);
+    void prepareTextureParameters(Q3DSTextureParameters &textureParameters, const QString &name, Q3DSImage *image3DS);
     QVector<Qt3DRender::QParameter *> prepareDefaultMaterial(Q3DSDefaultMaterial *m, Q3DSModelNode *model3DS);
     Qt3DRender::QAbstractTexture *createCustomMaterialTexture(const Q3DSCustomMaterialAttached::Parameter &p);
     QVector<Qt3DRender::QParameter *> prepareCustomMaterial(Q3DSCustomMaterialInstance *m, Q3DSModelNode *model3DS);

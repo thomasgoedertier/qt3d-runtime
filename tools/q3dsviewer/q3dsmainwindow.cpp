@@ -51,7 +51,7 @@ Q3DStudioMainWindow::Q3DStudioMainWindow(Q3DStudioWindow *view, QWidget *parent)
     setCentralWidget(wrapper);
 
     QMenu *fileMenu = menuBar()->addMenu(tr("&File"));
-    fileMenu->addAction(tr("&Open..."), this, [=] {
+    auto open = [=]() {
         QString dir;
         QString prevFilename = view->source();
         if (!prevFilename.isEmpty())
@@ -59,7 +59,15 @@ Q3DStudioMainWindow::Q3DStudioMainWindow(Q3DStudioWindow *view, QWidget *parent)
         QString fn = QFileDialog::getOpenFileName(this, tr("Open"), dir, fileFilter());
         if (!fn.isEmpty())
             view->setSource(fn);
-    }, QKeySequence::Open);
+    };
+    fileMenu->addAction(tr("&Open..."), this, [=] {
+        view->setFlag(Q3DStudioWindow::EnableProfiling, false);
+        open();
+    } , QKeySequence::Open);
+    fileMenu->addAction(tr("Open with &profiling..."), this, [=] {
+        view->setFlag(Q3DStudioWindow::EnableProfiling, true);
+        open();
+    });
     fileMenu->addAction(tr("&Reload"), this, [=] {
         view->setSource(view->source());
     }, QKeySequence::Refresh);

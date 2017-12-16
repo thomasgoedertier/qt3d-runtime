@@ -111,7 +111,7 @@ private:
 tst_Q3DSSlides::tst_Q3DSSlides()
 {
     Q3DStudioWindow::initStaticPreApp();
-    Q3DStudioWindow::initStaticPostApp(0);
+    Q3DStudioWindow::initStaticPostApp();
     m_view = new Q3DStudioWindow();
     m_view->resize(640, 480);
 }

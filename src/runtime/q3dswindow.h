@@ -45,13 +45,18 @@ public:
     Q3DStudioWindow();
     ~Q3DStudioWindow();
 
-    enum InitFlag {
-        Force4xMSAA = 0x01
+    enum Flag {
+        Force4xMSAA = 0x01,
+        EnableProfiling = 0x02
     };
-    Q_DECLARE_FLAGS(InitFlags, InitFlag)
+    Q_DECLARE_FLAGS(Flags, Flag)
 
     static void initStaticPreApp();
-    static void initStaticPostApp(InitFlags flags);
+    static void initStaticPostApp();
+
+    Flags flags() const { return m_flags; }
+    void setFlags(Flags flags);
+    void setFlag(Flag flag, bool enabled);
 
     bool setSource(const QString &uipOrUiaFileName);
     QString source() const;
@@ -85,6 +90,7 @@ private:
     bool loadPresentation(Presentation *pres);
     bool loadSubPresentation(Presentation *pres);
 
+    Flags m_flags;
     QString m_source; // uip or uia file
     QVector<Presentation> m_presentations;
 
@@ -93,7 +99,7 @@ private:
     QElapsedTimer m_profilerActivateTimer;
 };
 
-Q_DECLARE_OPERATORS_FOR_FLAGS(Q3DStudioWindow::InitFlags)
+Q_DECLARE_OPERATORS_FOR_FLAGS(Q3DStudioWindow::Flags)
 
 QT_END_NAMESPACE
 

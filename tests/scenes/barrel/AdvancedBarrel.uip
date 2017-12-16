@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<UIP version="3" >
+	<Project >
+		<ProjectSettings author="" company="" presentationWidth="800" presentationHeight="480" maintainAspect="False" >
+			<CustomColors count="16" >#ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff</CustomColors>
+		</ProjectSettings>
+		<Graph >
+			<Scene id="Scene" backgroundcolor="0.0156863 0.247059 0.403922" >
+				<Layer id="Layer2" >
+					<Camera id="Camera_001" />
+					<Light id="Light_001" />
+					<Model id="Cylinder" >
+						<Material id="Default_002" name="Default" />
+					</Model>
+				</Layer>
+				<Layer id="Layer" >
+					<Camera id="Camera" />
+					<Light id="Light" />
+					<Model id="Barrel" >
+						<Material id="Material" >
+							<Image id="Material_diffusemap" />
+							<Image id="Material_normalmap" />
+							<Image id="Material_emissivemap" />
+							<Image id="Material_specularmap" />
+						</Material>
+					</Model>
+					<Text id="Text" />
+					<Model id="Sphere" >
+						<Material id="Default" name="Default" >
+							<Image id="Default_specularreflection" />
+							<Image id="Default_diffusemap" />
+						</Material>
+					</Model>
+					<Light id="shadowlight" />
+					<Model id="Rectangle" >
+						<Material id="Default_001" name="Default" />
+					</Model>
+				</Layer>
+			</Scene>
+		</Graph>
+		<Logic >
+			<State name="Master Slide" component="#Scene" >
+				<Add ref="#Layer" aobias="0" aosamplerate="2" aosoftness="50" aostrength="54" multisampleaa="4x" />
+				<Add ref="#Camera" />
+				<Add ref="#Light" />
+				<State id="Scene-Slide1" name="Slide1" playmode="Looping" >
+					<Add ref="#Layer2" name="Layer2" background="Transparent" backgroundcolor="0.101961 0.607843 0.0470588" blendtype="*Overlay" height="20" horzfields="Left/Right" left="80" top="75" width="20" />
+					<Add ref="#Camera_001" />
+					<Add ref="#Light_001" />
+					<Add ref="#Cylinder" name="Cylinder" rotation="-29.7852 21.5676 0.421284" scale="2 2 2" sourcepath="#Cylinder" >
+						<AnimationTrack property="rotation.x" type="EaseInOut" >0 -29.7852 100 100 10 -29.785 100 100</AnimationTrack>
+						<AnimationTrack property="rotation.y" type="EaseInOut" >0 21.5676 100 100 10 360 100 100</AnimationTrack>
+						<AnimationTrack property="rotation.z" type="EaseInOut" >0 0.421284 100 100 10 0.421 100 100</AnimationTrack>
+					</Add>
+					<Add ref="#Default_002" diffuse="1 0.447059 0.309804" />
+					<Add ref="#Barrel" name="Barrel" position="-28.0162 -40.195 -465.74" rotation="90 0 0" scale="100 100 100" sourcepath=".\barrel\meshes\Barrel.mesh#1" >
+						<AnimationTrack property="opacity" type="EaseInOut" />
+						<AnimationTrack property="rotation.x" type="EaseInOut" >0 90 100 100 5 64 100 100 10 90 100 100</AnimationTrack>
+						<AnimationTrack property="rotation.y" type="EaseInOut" >0 0 100 100 5 -302 100 100 10 0 100 100</AnimationTrack>
+						<AnimationTrack property="rotation.z" type="EaseInOut" >0 0 100 100 5 0 100 100 10 0 100 100</AnimationTrack>
+					</Add>
+					<Add ref="#Material" bumpamount="0" diffusemap="#Material_diffusemap" emissivemap="#Material_emissivemap" fresnelPower="25" normalmap="#Material_normalmap" specularamount="4" specularmap="#Material_specularmap" specularmodel="Default" specularroughness="0.001" >
+						<AnimationTrack property="bumpamount" type="EaseInOut" >0 0 100 100 5 1 100 100</AnimationTrack>
+					</Add>
+					<Add ref="#Material_diffusemap" sourcepath=".\maps\barrel_barrel_Diffuse.png" />
+					<Add ref="#Material_normalmap" sourcepath=".\maps\barrel_barrel_Normal.png" />
+					<Add ref="#Material_emissivemap" sourcepath=".\maps\barrel_barrel_Emissive.png" />
+					<Add ref="#Material_specularmap" sourcepath=".\maps\barrel_barrel_Specular.png" />
+					<Add ref="#Text" name="Text" font="Arimo-Regular" position="-486.418 297.128 50.5569" textcolor="0 1 0" textstring="Barrel!" tracking="0" >
+						<AnimationTrack property="opacity" type="EaseInOut" >0 100 100 100 5.009 43.75 100 100 10 100 100 100</AnimationTrack>
+						<AnimationTrack property="rotation.x" type="EaseInOut" >0 0 100 100 4.997 0 100 100 5.009 0 100 100 10 0 100 100</AnimationTrack>
+						<AnimationTrack property="rotation.y" type="EaseInOut" >0 0 100 100 4.997 0 100 100 5.009 0 100 100 10 360 100 100</AnimationTrack>
+						<AnimationTrack property="rotation.z" type="EaseInOut" >0 0 100 100 4.997 0 100 100 5.009 0 100 100 10 0 100 100</AnimationTrack>
+						<AnimationTrack property="textcolor.x" type="EaseInOut" >0 0 100 100 5.009 0.501961 100 100 10 0 100 100</AnimationTrack>
+						<AnimationTrack property="textcolor.y" type="EaseInOut" >0 1 100 100 5.009 0.235294 100 100 10 1 100 100</AnimationTrack>
+						<AnimationTrack property="textcolor.z" type="EaseInOut" >0 0 100 100 5.009 0.333333 100 100 10 0 100 100</AnimationTrack>
+					</Add>
+					<Add ref="#Sphere" name="Sphere" position="349.297 141.451 0" scale="2 2 2" sourcepath="#Sphere" >
+						<AnimationTrack property="rotation.x" type="EaseInOut" >0 0 100 100 10 0 100 100</AnimationTrack>
+						<AnimationTrack property="rotation.y" type="EaseInOut" >0 0 100 100 10 360 100 100</AnimationTrack>
+						<AnimationTrack property="rotation.z" type="EaseInOut" >0 0 100 100 10 0 100 100</AnimationTrack>
+					</Add>
+					<Add ref="#Default" diffusemap="#Default_diffusemap" specularreflection="#Default_specularreflection" specularroughness="0.001" speculartint="0.768627 0.65098 0.172549" />
+					<Add ref="#Default_specularreflection" mappingmode="Environmental Mapping" sourcepath="maps/Gold_01.jpg" />
+					<Add ref="#Default_diffusemap" sourcepath="maps/Metal_Oxydized.png" />
+					<Add ref="#shadowlight" name="shadowlight" castshadow="True" expfade="20" lighttype="Point" position="522.393 336.358 -55.5317" shdwfactor="8.92" shdwmapres="9" />
+					<Add ref="#Rectangle" name="Rectangle" position="15.8771 -164.545 0" rotation="45 0 0" scale="9.02985 3.34375 1" sourcepath="#Rectangle" />
+					<Add ref="#Default_001" diffuse="0.0666667 0.478431 0.627451" specularroughness="0.03097" />
+				</State>
+			</State>
+		</Logic>
+	</Project>
+</UIP>

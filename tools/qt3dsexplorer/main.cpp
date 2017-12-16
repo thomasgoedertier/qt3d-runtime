@@ -38,18 +38,16 @@ int main(int argc, char *argv[])
 {
     Q3DStudioWindow::initStaticPreApp();
     QApplication app(argc, argv);
+    Q3DStudioWindow::initStaticPostApp();
 
     QCommandLineParser cmdLineParser;
     cmdLineParser.addHelpOption();
     cmdLineParser.addPositionalArgument(QLatin1String("filename"), QObject::tr("UIP or UIA file to open"));
     QCommandLineOption msaaOption({ "m", "multisample" }, QObject::tr("Force 4x MSAA"));
     cmdLineParser.addOption(msaaOption);
+    QCommandLineOption profOption({ "p", "profile" }, QObject::tr("Open scene with profiling enabled"));
+    cmdLineParser.addOption(profOption);
     cmdLineParser.process(app);
-
-    Q3DStudioWindow::InitFlags initFlags = 0;
-    if (cmdLineParser.isSet(msaaOption))
-        initFlags |= Q3DStudioWindow::Force4xMSAA;
-    Q3DStudioWindow::initStaticPostApp(initFlags);
 
     QStringList fn = cmdLineParser.positionalArguments();
     if (fn.isEmpty()) {
@@ -63,6 +61,12 @@ int main(int argc, char *argv[])
         Q3DSUtils::showMessage(QObject::tr("No file specified."));
         return 0;
     }
+
+    Q3DStudioWindow::Flags flags = 0;
+    if (cmdLineParser.isSet(msaaOption))
+        flags |= Q3DStudioWindow::Force4xMSAA;
+    if (cmdLineParser.isSet(profOption))
+        flags |= Q3DStudioWindow::EnableProfiling;
 
     QScopedPointer<Q3DStudioWindow> view;
     view.reset(new Q3DStudioWindow);

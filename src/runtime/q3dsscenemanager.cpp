@@ -567,6 +567,8 @@ Q3DSSceneManager::Scene Q3DSSceneManager::buildScene(Q3DSPresentation *presentat
     m_subPresentations.clear();
     m_profiler->resetForNewScene(this);
 
+    m_profiler->setEnabled(m_flags.testFlag(EnableProfiling));
+
     // Enter the first slide. (apply property changes from master+first)
     if (!m_masterSlide) {
         qWarning("Q3DSSceneBuilder: No master slide?");
@@ -805,21 +807,25 @@ static Qt3DRender::QAbstractTexture *newDepthStencilBuffer(const QSize &layerPix
     return dsTexOrRb;
 }
 
-static Qt3DRender::QRenderTarget *newLayerRenderTarget(const QSize &layerPixelSize, int msaaSampleCount,
-                                                       Qt3DRender::QAbstractTexture **colorTex, Qt3DRender::QAbstractTexture **dsTexOrRb,
-                                                       Qt3DCore::QNode *textureParentNode)
+Qt3DRender::QRenderTarget *Q3DSSceneManager::newLayerRenderTarget(const QSize &layerPixelSize, int msaaSampleCount,
+                                                                  Qt3DRender::QAbstractTexture **colorTex, Qt3DRender::QAbstractTexture **dsTexOrRb,
+                                                                  Qt3DCore::QNode *textureParentNode, Q3DSLayerNode *layer3DS)
 {
     Qt3DRender::QRenderTarget *rt = new Qt3DRender::QRenderTarget;
 
     Qt3DRender::QRenderTargetOutput *color = new Qt3DRender::QRenderTargetOutput;
     color->setAttachmentPoint(Qt3DRender::QRenderTargetOutput::Color0);
     *colorTex = newColorBuffer(layerPixelSize, msaaSampleCount);
+    m_profiler->trackNewObject(*colorTex, Q3DSProfiler::Texture2DObject,
+                               "Color buffer for layer %s", layer3DS->id().constData());
     (*colorTex)->setParent(textureParentNode);
     color->setTexture(*colorTex);
 
     Qt3DRender::QRenderTargetOutput *ds = new Qt3DRender::QRenderTargetOutput;
     ds->setAttachmentPoint(Qt3DRender::QRenderTargetOutput::DepthStencil);
     *dsTexOrRb = newDepthStencilBuffer(layerPixelSize, msaaSampleCount);
+    m_profiler->trackNewObject(*dsTexOrRb, Q3DSProfiler::Texture2DObject,
+                               "Depth-stencil buffer for layer %s", layer3DS->id().constData());
     (*dsTexOrRb)->setParent(textureParentNode);
     ds->setTexture(*dsTexOrRb);
 
@@ -887,7 +893,9 @@ void Q3DSSceneManager::buildLayer(Q3DSLayerNode *layer3DS,
     // Create color and depth-stencil buffers for this layer
     Qt3DRender::QAbstractTexture *colorTex;
     Qt3DRender::QAbstractTexture *dsTexOrRb;
-    Qt3DRender::QRenderTarget *rt = newLayerRenderTarget(layerPixelSize, msaaSampleCount, &colorTex, &dsTexOrRb, layerFgRoot);
+    Qt3DRender::QRenderTarget *rt = newLayerRenderTarget(layerPixelSize, msaaSampleCount, &colorTex, &dsTexOrRb, layerFgRoot, layer3DS);
+    m_profiler->trackNewObject(rt, Q3DSProfiler::RenderTargetObject,
+                               "RT for layer %s", layer3DS->id().constData());
     rtSelector->setTarget(rt);
 
     Qt3DRender::QViewport *viewport = new Qt3DRender::QViewport(rtSelector);
@@ -1054,6 +1062,7 @@ Qt3DRender::QTexture2D *Q3DSSceneManager::dummyTexture()
         m_dummyTex->setFormat(Qt3DRender::QAbstractTexture::RGBA8_UNorm);
         m_dummyTex->setWidth(64);
         m_dummyTex->setHeight(64);
+        m_profiler->trackNewObject(m_dummyTex, Q3DSProfiler::Texture2DObject, "dummy");
     }
     return m_dummyTex;
 }
@@ -1647,6 +1656,8 @@ void Q3DSSceneManager::setDepthTextureEnabled(Q3DSLayerNode *layer3DS, bool enab
     if (enabled) {
         if (!data->depthTextureData.depthTexture) {
             Qt3DRender::QTexture2D *depthTex = new Qt3DRender::QTexture2D;
+            m_profiler->trackNewObject(depthTex, Q3DSProfiler::Texture2DObject,
+                                       "Depth texture for layer %s", layer3DS->id().constData());
             depthTex->setFormat(Qt3DRender::QAbstractTexture::DepthFormat);
             depthTex->setMinificationFilter(Qt3DRender::QAbstractTexture::Linear);
             depthTex->setMagnificationFilter(Qt3DRender::QAbstractTexture::Linear);
@@ -1654,6 +1665,8 @@ void Q3DSSceneManager::setDepthTextureEnabled(Q3DSLayerNode *layer3DS, bool enab
             data->depthTextureData.depthTexture = depthTex;
 
             Qt3DRender::QRenderTarget *depthRt = new Qt3DRender::QRenderTarget;
+            m_profiler->trackNewObject(depthRt, Q3DSProfiler::RenderTargetObject,
+                                       "Depth texture RT for layer %s", layer3DS->id().constData());
             Qt3DRender::QRenderTargetOutput *depthRtOutput = new Qt3DRender::QRenderTargetOutput;
             depthRtOutput->setAttachmentPoint(Qt3DRender::QRenderTargetOutput::Depth);
             depthRtOutput->setTexture(data->depthTextureData.depthTexture);
@@ -1703,6 +1716,8 @@ void Q3DSSceneManager::setSsaoTextureEnabled(Q3DSLayerNode *layer3DS, bool enabl
 
         if (!data->ssaoTextureData.ssaoTexture) {
             Qt3DRender::QTexture2D *ssaoTex = new Qt3DRender::QTexture2D;
+            m_profiler->trackNewObject(ssaoTex, Q3DSProfiler::Texture2DObject,
+                                       "SSAO texture for layer %s", layer3DS->id().constData());
             ssaoTex->setFormat(Qt3DRender::QAbstractTexture::RGBA8_UNorm);
             ssaoTex->setMinificationFilter(Qt3DRender::QAbstractTexture::Linear);
             ssaoTex->setMagnificationFilter(Qt3DRender::QAbstractTexture::Linear);
@@ -1713,6 +1728,8 @@ void Q3DSSceneManager::setSsaoTextureEnabled(Q3DSLayerNode *layer3DS, bool enabl
             data->ssaoTextureData.ssaoTexture = ssaoTex;
 
             Qt3DRender::QRenderTarget *rt = new Qt3DRender::QRenderTarget;
+            m_profiler->trackNewObject(rt, Q3DSProfiler::RenderTargetObject,
+                                       "SSAO texture RT for layer %s", layer3DS->id().constData());
             Qt3DRender::QRenderTargetOutput *rtOutput = new Qt3DRender::QRenderTargetOutput;
             rtOutput->setAttachmentPoint(Qt3DRender::QRenderTargetOutput::Color0);
             rtOutput->setTexture(data->ssaoTextureData.ssaoTexture);
@@ -1898,10 +1915,12 @@ void Q3DSSceneManager::updateCubeShadowCam(Q3DSLayerAttached::PerLightShadowMapD
 }
 
 void Q3DSSceneManager::genCubeBlurPassFg(Q3DSLayerAttached::PerLightShadowMapData *d, Qt3DRender::QAbstractTexture *inTex,
-                                         Qt3DRender::QAbstractTexture *outTex, const QString &passName)
+                                         Qt3DRender::QAbstractTexture *outTex, const QString &passName, Q3DSLightNode *light3DS)
 {
     Qt3DRender::QRenderTargetSelector *rtSelector = new Qt3DRender::QRenderTargetSelector(d->subTreeRoot);
     Qt3DRender::QRenderTarget *rt = new Qt3DRender::QRenderTarget;
+    m_profiler->trackNewObject(rt, Q3DSProfiler::RenderTargetObject,
+                               "Shadow cube blur RT for light %s", light3DS->id().constData());
     for (int faceIdx = 0; faceIdx < 6; ++faceIdx) {
         Qt3DRender::QRenderTargetOutput *rtOutput = new Qt3DRender::QRenderTargetOutput;
         rtOutput->setAttachmentPoint(Qt3DRender::QRenderTargetOutput::AttachmentPoint(Qt3DRender::QRenderTargetOutput::Color0 + faceIdx));
@@ -2040,10 +2059,12 @@ void Q3DSSceneManager::updateOrthoShadowCam(Q3DSLayerAttached::PerLightShadowMap
 }
 
 void Q3DSSceneManager::genOrthoBlurPassFg(Q3DSLayerAttached::PerLightShadowMapData *d, Qt3DRender::QAbstractTexture *inTex,
-                                          Qt3DRender::QAbstractTexture *outTex, const QString &passName)
+                                          Qt3DRender::QAbstractTexture *outTex, const QString &passName, Q3DSLightNode *light3DS)
 {
     Qt3DRender::QRenderTargetSelector *rtSelector = new Qt3DRender::QRenderTargetSelector(d->subTreeRoot);
     Qt3DRender::QRenderTarget *rt = new Qt3DRender::QRenderTarget;
+    m_profiler->trackNewObject(rt, Q3DSProfiler::RenderTargetObject,
+                               "Shadow ortho blur RT for light %s", light3DS->id().constData());
     Qt3DRender::QRenderTargetOutput *rtOutput = new Qt3DRender::QRenderTargetOutput;
     rtOutput->setAttachmentPoint(Qt3DRender::QRenderTargetOutput::Color0);
     rtOutput->setTexture(outTex);
@@ -2130,8 +2151,9 @@ void Q3DSSceneManager::updateShadowMapStatus(Q3DSLayerNode *layer3DS, bool *smDi
 
             Qt3DCore::QNode *texParent = d->subTreeRoot;
             if (!d->shadowDS) {
-                auto createDepthStencil = [size]() {
+                auto createDepthStencil = [size, this]() {
                     Qt3DRender::QTexture2D *dsTexOrRb = new Qt3DRender::QTexture2D;
+                    m_profiler->trackNewObject(dsTexOrRb, Q3DSProfiler::Texture2DObject, "Shadow map depth");
                     dsTexOrRb->setFormat(Qt3DRender::QAbstractTexture::D24S8);
                     dsTexOrRb->setWidth(size);
                     dsTexOrRb->setHeight(size);
@@ -2167,10 +2189,18 @@ void Q3DSSceneManager::updateShadowMapStatus(Q3DSLayerNode *layer3DS, bool *smDi
             if (!d->shadowMapTexture) {
                 if (isCube) {
                     d->shadowMapTexture = new Qt3DRender::QTextureCubeMap(texParent);
+                    m_profiler->trackNewObject(d->shadowMapTexture, Q3DSProfiler::TextureCubeObject,
+                                               "Shadow map for light %s", light3DS->id().constData());
                     d->shadowMapTextureTemp = new Qt3DRender::QTextureCubeMap(texParent);
+                    m_profiler->trackNewObject(d->shadowMapTexture, Q3DSProfiler::TextureCubeObject,
+                                               "Shadow map temp buffer for light %s", light3DS->id().constData());
                 } else {
                     d->shadowMapTexture = new Qt3DRender::QTexture2D(texParent);
+                    m_profiler->trackNewObject(d->shadowMapTexture, Q3DSProfiler::Texture2DObject,
+                                               "Shadow map for light %s", light3DS->id().constData());
                     d->shadowMapTextureTemp = new Qt3DRender::QTexture2D(texParent);
+                    m_profiler->trackNewObject(d->shadowMapTexture, Q3DSProfiler::Texture2DObject,
+                                               "Shadow map temp buffer for light %s", light3DS->id().constData());
                 }
 
                 d->shadowMapTexture->setFormat(Qt3DRender::QAbstractTexture::R16_UNorm);
@@ -2216,6 +2246,8 @@ void Q3DSSceneManager::updateShadowMapStatus(Q3DSLayerNode *layer3DS, bool *smDi
                     for (int faceIdx = 0; faceIdx < 6; ++faceIdx) {
                         Qt3DRender::QRenderTargetSelector *shadowRtSelector = new Qt3DRender::QRenderTargetSelector(d->subTreeRoot);
                         Qt3DRender::QRenderTarget *shadowRt = new Qt3DRender::QRenderTarget;
+                        m_profiler->trackNewObject(shadowRt, Q3DSProfiler::RenderTargetObject,
+                                                   "Shadow cube RT for light %s face %d", light3DS->id().constData(), faceIdx);
                         Qt3DRender::QRenderTargetOutput *shadowRtOutput = new Qt3DRender::QRenderTargetOutput;
                         shadowRtOutput->setAttachmentPoint(Qt3DRender::QRenderTargetOutput::Color0);
                         shadowRtOutput->setTexture(d->shadowMapTexture);
@@ -2267,8 +2299,8 @@ void Q3DSSceneManager::updateShadowMapStatus(Q3DSLayerNode *layer3DS, bool *smDi
                     // Now two blur passes that output to the final texture, play ping pong.
                     if (m_gfxLimits.maxDrawBuffers >= 6) { // ###
                         // Draws a fullscreen quad into the 6 faces of the cubemap texture (COLOR0..5), with the other texture as input.
-                        genCubeBlurPassFg(d, d->shadowMapTexture, d->shadowMapTextureTemp, QLatin1String("shadowCubeBlurX"));
-                        genCubeBlurPassFg(d, d->shadowMapTextureTemp, d->shadowMapTexture, QLatin1String("shadowCubeBlurY"));
+                        genCubeBlurPassFg(d, d->shadowMapTexture, d->shadowMapTextureTemp, QLatin1String("shadowCubeBlurX"), light3DS);
+                        genCubeBlurPassFg(d, d->shadowMapTextureTemp, d->shadowMapTexture, QLatin1String("shadowCubeBlurY"), light3DS);
                     }
 
                     // set QParameter names and values
@@ -2276,6 +2308,8 @@ void Q3DSSceneManager::updateShadowMapStatus(Q3DSLayerNode *layer3DS, bool *smDi
                 } else {
                     Qt3DRender::QRenderTargetSelector *shadowRtSelector = new Qt3DRender::QRenderTargetSelector(d->subTreeRoot);
                     Qt3DRender::QRenderTarget *shadowRt = new Qt3DRender::QRenderTarget;
+                    m_profiler->trackNewObject(shadowRt, Q3DSProfiler::RenderTargetObject,
+                                               "Shadow ortho RT for light %s", light3DS->id().constData());
                     Qt3DRender::QRenderTargetOutput *shadowRtOutput = new Qt3DRender::QRenderTargetOutput;
                     shadowRtOutput->setAttachmentPoint(Qt3DRender::QRenderTargetOutput::Color0);
                     shadowRtOutput->setTexture(d->shadowMapTexture);
@@ -2318,8 +2352,8 @@ void Q3DSSceneManager::updateShadowMapStatus(Q3DSLayerNode *layer3DS, bool *smDi
                     layerFilterTransparent->addLayer(layerData->transparentTag);
 
                     // 2 blur passes
-                    genOrthoBlurPassFg(d, d->shadowMapTexture, d->shadowMapTextureTemp, QLatin1String("shadowOrthoBlurX"));
-                    genOrthoBlurPassFg(d, d->shadowMapTextureTemp, d->shadowMapTexture, QLatin1String("shadowOrthoBlurY"));
+                    genOrthoBlurPassFg(d, d->shadowMapTexture, d->shadowMapTextureTemp, QLatin1String("shadowOrthoBlurX"), light3DS);
+                    genOrthoBlurPassFg(d, d->shadowMapTextureTemp, d->shadowMapTexture, QLatin1String("shadowOrthoBlurY"), light3DS);
 
                     // set QParameter names and values
                     updateOrthoShadowMapParams(d, light3DS, lightIndexStr);
@@ -2508,6 +2542,8 @@ void Q3DSSceneManager::updateProgressiveAA(Q3DSLayerNode *layer3DS)
 
     if (!data->progAA.outputTex) {
         data->progAA.outputTex = new Qt3DRender::QTexture2D(data->layerFgRoot);
+        m_profiler->trackNewObject(data->progAA.outputTex, Q3DSProfiler::Texture2DObject,
+                                   "Progressive AA texture for layer %s", layer3DS->id().constData());
         data->progAA.outputTex->setFormat(Qt3DRender::QAbstractTexture::RGBA8_UNorm);
         data->progAA.outputTex->setMinificationFilter(Qt3DRender::QAbstractTexture::Linear);
         data->progAA.outputTex->setMagnificationFilter(Qt3DRender::QAbstractTexture::Linear);
@@ -2530,7 +2566,7 @@ void Q3DSSceneManager::updateProgressiveAA(Q3DSLayerNode *layer3DS)
         Qt3DRender::QAbstractTexture *colorTex;
         Qt3DRender::QAbstractTexture *dsTexOrRb;
         Qt3DRender::QRenderTarget *rt = newLayerRenderTarget(layerPixelSize, msaaSampleCount,
-                                                             &colorTex, &dsTexOrRb, data->layerFgRoot);
+                                                             &colorTex, &dsTexOrRb, data->layerFgRoot, layer3DS);
         Qt3DRender::QRenderTarget *oldRt = data->rtSelector->target();
         data->rtSelector->setTarget(rt);
         delete oldRt;
@@ -2560,6 +2596,8 @@ void Q3DSSceneManager::updateProgressiveAA(Q3DSLayerNode *layer3DS)
             rtOutput->setAttachmentPoint(Qt3DRender::QRenderTargetOutput::Color0);
             rtOutput->setTexture(t);
             Qt3DRender::QRenderTarget *rt = new Qt3DRender::QRenderTarget;
+            m_profiler->trackNewObject(rt, Q3DSProfiler::RenderTargetObject,
+                                       "Progressive AA RT for layer %s", layer3DS->id().constData());
             rt->addOutput(rtOutput);
             data->progAA.rts[data->progAA.curTarget++] = rt;
         }
@@ -2852,6 +2890,8 @@ void Q3DSSceneManager::buildCompositor(Qt3DRender::QFrameGraphNode *parent, Qt3D
                 Q_ASSERT(data);
                 if (!data->advBlend.tempTexture) {
                     data->advBlend.tempTexture = new Qt3DRender::QTexture2D(data->entity);
+                    m_profiler->trackNewObject(data->advBlend.tempTexture, Q3DSProfiler::Texture2DObject,
+                                               "Advanced blend texture for layer %s", layer3DS->id().constData());
                     data->advBlend.tempTexture->setFormat(Qt3DRender::QAbstractTexture::RGBA8_UNorm);
                     data->advBlend.tempTexture->setMinificationFilter(Qt3DRender::QAbstractTexture::Linear);
                     data->advBlend.tempTexture->setMagnificationFilter(Qt3DRender::QAbstractTexture::Linear);
@@ -2868,6 +2908,8 @@ void Q3DSSceneManager::buildCompositor(Qt3DRender::QFrameGraphNode *parent, Qt3D
                 if (!data->advBlend.tempRt) {
                     // this assumes QTBUG-65080 is fixed
                     data->advBlend.tempRt = new Qt3DRender::QRenderTarget(data->entity);
+                    m_profiler->trackNewObject(data->advBlend.tempRt, Q3DSProfiler::RenderTargetObject,
+                                               "Advanced blend RT for layer %s", layer3DS->id().constData());
                     Qt3DRender::QRenderTargetOutput *tempTexOutput = new Qt3DRender::QRenderTargetOutput;
                     tempTexOutput->setAttachmentPoint(Qt3DRender::QRenderTargetOutput::Color0);
                     tempTexOutput->setTexture(data->advBlend.tempTexture);
@@ -3339,6 +3381,8 @@ Qt3DCore::QEntity *Q3DSSceneManager::buildText(Q3DSTextNode *text3DS, Q3DSLayerN
     data->colorParam->setValue(text3DS->color());
 
     data->texture = new Qt3DRender::QTexture2D;
+    m_profiler->trackNewObject(data->texture, Q3DSProfiler::Texture2DObject,
+                               "Texture for text item %s", text3DS->id().constData());
     data->textureImage = new Q3DSTextImage(text3DS, m_textRenderer);
     data->textureImage->setSize(sz);
     data->texture->addTextureImage(data->textureImage);
@@ -3746,7 +3790,7 @@ void Q3DSSceneManager::retagSubMeshes(Q3DSModelNode *model3DS)
     }
 }
 
-void Q3DSSceneManager::prepareTextureParameters(Q3DSTextureParameters &textureParameters, const QString &name)
+void Q3DSSceneManager::prepareTextureParameters(Q3DSTextureParameters &textureParameters, const QString &name, Q3DSImage *image3DS)
 {
     textureParameters.sampler = new Qt3DRender::QParameter;
     textureParameters.sampler->setName(name + QLatin1String("_sampler"));
@@ -3758,6 +3802,8 @@ void Q3DSSceneManager::prepareTextureParameters(Q3DSTextureParameters &texturePa
     textureParameters.rotations->setName(name + QLatin1String("_rotations"));
 
     textureParameters.texture = new Qt3DRender::QTexture2D(m_rootEntity);
+    m_profiler->trackNewObject(textureParameters.texture, Q3DSProfiler::Texture2DObject,
+                               "Texture for image %s", image3DS->id().constData());
     textureParameters.textureImage = new Qt3DRender::QTextureImage;
     textureParameters.texture->addTextureImage(textureParameters.textureImage);
 }
@@ -3905,73 +3951,73 @@ QVector<Qt3DRender::QParameter *> Q3DSSceneManager::prepareDefaultMaterial(Q3DSD
     params.append(data->displaceAmountParam);
 
     if (m->diffuseMap()) {
-        prepareTextureParameters(data->diffuseMapParams, QLatin1String("diffuseMap"));
+        prepareTextureParameters(data->diffuseMapParams, QLatin1String("diffuseMap"), m->diffuseMap());
         params.append(data->diffuseMapParams.parameters());
         static_cast<Q3DSImageAttached *>(m->diffuseMap()->attached())->referencingDefaultMaterials.insert(m);
     }
 
     if (m->diffuseMap2()) {
-        prepareTextureParameters(data->diffuseMap2Params, QLatin1String("diffuseMap2"));
+        prepareTextureParameters(data->diffuseMap2Params, QLatin1String("diffuseMap2"), m->diffuseMap2());
         params.append(data->diffuseMap2Params.parameters());
         static_cast<Q3DSImageAttached *>(m->diffuseMap2()->attached())->referencingDefaultMaterials.insert(m);
     }
 
     if (m->diffuseMap3()) {
-        prepareTextureParameters(data->diffuseMap3Params, QLatin1String("diffuseMap3"));
+        prepareTextureParameters(data->diffuseMap3Params, QLatin1String("diffuseMap3"), m->diffuseMap3());
         params.append(data->diffuseMap3Params.parameters());
         static_cast<Q3DSImageAttached *>(m->diffuseMap3()->attached())->referencingDefaultMaterials.insert(m);
     }
 
     if (m->specularReflection()) {
-        prepareTextureParameters(data->specularReflectionParams, QLatin1String("specularreflection"));
+        prepareTextureParameters(data->specularReflectionParams, QLatin1String("specularreflection"), m->specularReflection());
         params.append(data->specularReflectionParams.parameters());
         static_cast<Q3DSImageAttached *>(m->specularReflection()->attached())->referencingDefaultMaterials.insert(m);
     }
 
     if (m->specularMap()) {
-        prepareTextureParameters(data->specularMapParams, QLatin1String("specularMap"));
+        prepareTextureParameters(data->specularMapParams, QLatin1String("specularMap"), m->specularMap());
         params.append(data->specularMapParams.parameters());
         static_cast<Q3DSImageAttached *>(m->specularMap()->attached())->referencingDefaultMaterials.insert(m);
     }
 
     if (m->bumpMap()) {
-        prepareTextureParameters(data->bumpMapParams, QLatin1String("bumpMap"));
+        prepareTextureParameters(data->bumpMapParams, QLatin1String("bumpMap"), m->bumpMap());
         params.append(data->bumpMapParams.parameters());
         static_cast<Q3DSImageAttached *>(m->bumpMap()->attached())->referencingDefaultMaterials.insert(m);
     }
 
     if (m->normalMap()) {
-        prepareTextureParameters(data->normalMapParams, QLatin1String("normalMap"));
+        prepareTextureParameters(data->normalMapParams, QLatin1String("normalMap"), m->normalMap());
         params.append(data->normalMapParams.parameters());
         static_cast<Q3DSImageAttached *>(m->normalMap()->attached())->referencingDefaultMaterials.insert(m);
     }
 
     if (m->displacementmap()) {
-        prepareTextureParameters(data->displacementMapParams, QLatin1String("displacementMap"));
+        prepareTextureParameters(data->displacementMapParams, QLatin1String("displacementMap"), m->displacementmap());
         params.append(data->displacementMapParams.parameters());
         static_cast<Q3DSImageAttached *>(m->displacementmap()->attached())->referencingDefaultMaterials.insert(m);
     }
 
     if (m->opacityMap()) {
-        prepareTextureParameters(data->opacityMapParams, QLatin1String("opacityMap"));
+        prepareTextureParameters(data->opacityMapParams, QLatin1String("opacityMap"), m->opacityMap());
         params.append(data->opacityMapParams.parameters());
         static_cast<Q3DSImageAttached *>(m->opacityMap()->attached())->referencingDefaultMaterials.insert(m);
     }
 
     if (m->emissiveMap()) {
-        prepareTextureParameters(data->emissiveMapParams, QLatin1String("emissiveMap"));
+        prepareTextureParameters(data->emissiveMapParams, QLatin1String("emissiveMap"), m->emissiveMap());
         params.append(data->emissiveMapParams.parameters());
         static_cast<Q3DSImageAttached *>(m->emissiveMap()->attached())->referencingDefaultMaterials.insert(m);
     }
 
     if (m->emissiveMap2()) {
-        prepareTextureParameters(data->emissiveMap2Params, QLatin1String("emissiveMap2"));
+        prepareTextureParameters(data->emissiveMap2Params, QLatin1String("emissiveMap2"), m->emissiveMap2());
         params.append(data->emissiveMap2Params.parameters());
         static_cast<Q3DSImageAttached *>(m->emissiveMap2()->attached())->referencingDefaultMaterials.insert(m);
     }
 
     if (m->translucencyMap()) {
-        prepareTextureParameters(data->translucencyMapParams, QLatin1String("translucencyMap"));
+        prepareTextureParameters(data->translucencyMapParams, QLatin1String("translucencyMap"), m->translucencyMap());
         params.append(data->translucencyMapParams.parameters());
         static_cast<Q3DSImageAttached *>(m->translucencyMap()->attached())->referencingDefaultMaterials.insert(m);
     }
@@ -4075,7 +4121,8 @@ Qt3DRender::QAbstractTexture *Q3DSSceneManager::createCustomMaterialTexture(cons
     const QString source = p.inputValue.toString();
     qCDebug(lcScene, "Creating custom material texture %s", qPrintable(source));
     Qt3DRender::QTexture2D *texture = new Qt3DRender::QTexture2D(m_rootEntity);
-
+    m_profiler->trackNewObject(texture, Q3DSProfiler::Texture2DObject,
+                               "Custom material texture %s", qPrintable(source));
     Qt3DRender::QTextureImage *textureImage = new Qt3DRender::QTextureImage;
     textureImage->setSource(QUrl::fromLocalFile(source));
     texture->addTextureImage(textureImage);

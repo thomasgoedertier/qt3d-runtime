@@ -39,6 +39,7 @@ int main(int argc, char *argv[])
 {
     Q3DStudioWindow::initStaticPreApp();
     QApplication app(argc, argv);
+    Q3DStudioWindow::initStaticPostApp();
 
     QCommandLineParser cmdLineParser;
     cmdLineParser.addHelpOption();
@@ -47,14 +48,11 @@ int main(int argc, char *argv[])
     cmdLineParser.addOption(noMainWindowOption);
     QCommandLineOption fullScreenOption({ "f", "fullscreen" }, QObject::tr("Shows in fullscreen"));
     cmdLineParser.addOption(fullScreenOption);
-    QCommandLineOption msaaOption({ "m", "multisample" }, QObject::tr("Force 4x MSAA"));
+    QCommandLineOption msaaOption({ "m", "multisample" }, QObject::tr("Forces 4x MSAA"));
     cmdLineParser.addOption(msaaOption);
+    QCommandLineOption profOption({ "p", "profile" }, QObject::tr("Opens presentation with profiling enabled"));
+    cmdLineParser.addOption(profOption);
     cmdLineParser.process(app);
-
-    Q3DStudioWindow::InitFlags initFlags = 0;
-    if (cmdLineParser.isSet(msaaOption))
-        initFlags |= Q3DStudioWindow::Force4xMSAA;
-    Q3DStudioWindow::initStaticPostApp(initFlags);
 
 #if !defined(Q_OS_ANDROID) && !defined(Q_OS_IOS)
     const bool noWidgets = cmdLineParser.isSet(noMainWindowOption);
@@ -89,8 +87,15 @@ int main(int argc, char *argv[])
         return 0;
     }
 
+    Q3DStudioWindow::Flags flags = 0;
+    if (cmdLineParser.isSet(msaaOption))
+        flags |= Q3DStudioWindow::Force4xMSAA;
+    if (cmdLineParser.isSet(profOption))
+        flags |= Q3DStudioWindow::EnableProfiling;
+
     QScopedPointer<Q3DStudioWindow> view;
     view.reset(new Q3DStudioWindow);
+    view->setFlags(flags);
     if (!view->setSource(fn.first()))
         return 0;
 

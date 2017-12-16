@@ -32,6 +32,8 @@
 #include "q3dsprofiler_p.h"
 #include "q3dspresentation.h"
 #include <QLoggingCategory>
+#include <Qt3DRender/QTexture>
+#include <Qt3DRender/QPaintedTextureImage>
 
 #include <imgui.h>
 
@@ -59,6 +61,9 @@ private:
     float m_frameDeltaPlotMax = 100; // top 100 ms
 
     QVector<Q3DSLightNode *> m_disabledShadowCasters;
+
+    bool m_qt3dObjectsWindowOpen = false;
+    bool m_layerWindowOpen = false;
 };
 
 static void addTip(const char *s)
@@ -76,8 +81,7 @@ static void addTip(const char *s)
 
 void Q3DSProfileView::frame()
 {
-    ImGuiWindowFlags wflags = ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings;
-    ImGui::Begin("Profile", nullptr, wflags);
+    ImGui::Begin("Profile", nullptr, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings);
 
     if (!m_profiler->isEnabled()) {
         if (ImGui::Button("Enable profiling")) {
@@ -90,6 +94,9 @@ void Q3DSProfileView::frame()
             m_profiler->setEnabled(false);
         }
     }
+    addTip("Toggles profiling. Note that some features, like Qt 3D object statistics, "
+           "need profiling enabled upon opening the presentation and will give "
+           "partial results only when enabled afterwards at runtime.");
 
     if (ImGui::CollapsingHeader("System load")) {
         ImGui::Text("Current process");
@@ -165,10 +172,177 @@ void Q3DSProfileView::frame()
         ImGui::Text("Layer count: %d Visible: %d Dirty: %d", totalLayerCount, visibleLayerCount, dirtyLayerCount);
     }
 
+    if (ImGui::CollapsingHeader("Qt 3D objects")) {
+        if (ImGui::Button("Qt 3D object list"))
+            m_qt3dObjectsWindowOpen = !m_qt3dObjectsWindowOpen;
+    }
+
+    if (ImGui::CollapsingHeader("Scene objects")) {
+        if (ImGui::Button("Layer list"))
+            m_layerWindowOpen = !m_layerWindowOpen;
+    }
+
     if (ImGui::CollapsingHeader("Alter scene"))
         addAlterSceneStuff();
 
     ImGui::End();
+
+    if (m_qt3dObjectsWindowOpen) {
+        const QMultiMap<Q3DSProfiler::ObjectType, Q3DSProfiler::ObjectData> *objs = m_profiler->objectData();
+
+        ImGui::SetNextWindowSize(ImVec2(700, 400), ImGuiCond_FirstUseEver);
+        ImGui::Begin("Qt 3D objects", &m_qt3dObjectsWindowOpen, ImGuiWindowFlags_NoSavedSettings);
+
+        auto tex2d = objs->values(Q3DSProfiler::Texture2DObject);
+        ImGui::Text("2D textures: %d", tex2d.count());
+        if (ImGui::TreeNodeEx("2D texture details", tex2d.isEmpty() ? 0 : ImGuiTreeNodeFlags_DefaultOpen)) {
+            ImGui::Columns(6, "tex2dcols");
+            ImGui::Separator();
+            ImGui::Text("Index"); ImGui::SetColumnWidth(-1, 50); ImGui::NextColumn();
+            ImGui::Text("Description"); ImGui::NextColumn();
+            ImGui::Text("Size (pixels)"); ImGui::NextColumn();
+            ImGui::Text("Format"); ImGui::NextColumn();
+            ImGui::Text("Source"); ImGui::NextColumn();
+            ImGui::Text("Samples"); ImGui::NextColumn();
+            ImGui::Separator();
+            int idx = 0;
+            for (const Q3DSProfiler::ObjectData &objd : tex2d) {
+                ImGui::Text("%d", idx);
+                ++idx;
+                ImGui::NextColumn();
+                const QByteArray info = objd.info.toUtf8();
+                ImGui::Text("%s", info.constData());
+                ImGui::NextColumn();
+                if (auto t = qobject_cast<Qt3DRender::QAbstractTexture *>(objd.obj)) {
+                    const QVector<Qt3DRender::QAbstractTextureImage *> textureImages = t->textureImages();
+                    if (textureImages.isEmpty()) {
+                        ImGui::Text("%dx%d", t->width(), t->height());
+                        ImGui::NextColumn();
+                        ImGui::Text("0x%x", t->format());
+                        ImGui::NextColumn();
+                        ImGui::NextColumn();
+                        ImGui::Text("%d", t->samples());
+                        ImGui::NextColumn();
+                    } else {
+                        if (auto ti = qobject_cast<Qt3DRender::QTextureImage *>(textureImages[0])) {
+                            ImGui::NextColumn();
+                            ImGui::NextColumn();
+                            const QByteArray src = ti->source().toLocalFile().toUtf8();
+                            ImGui::TextWrapped("%s", src.constData());
+                            ImGui::NextColumn();
+                            ImGui::NextColumn();
+                        } else if (auto ti = qobject_cast<Qt3DRender::QPaintedTextureImage *>(textureImages[0])) {
+                            ImGui::Text("%dx%d", ti->width(), ti->height());
+                            ImGui::NextColumn();
+                            ImGui::NextColumn();
+                            ImGui::NextColumn();
+                            ImGui::NextColumn();
+                        } else {
+                            ImGui::NextColumn();
+                            ImGui::NextColumn();
+                            ImGui::NextColumn();
+                            ImGui::NextColumn();
+                        }
+                    }
+                } else {
+                    ImGui::NextColumn();
+                    ImGui::NextColumn();
+                    ImGui::NextColumn();
+                }
+            }
+            ImGui::Columns(1);
+            ImGui::Separator();
+            ImGui::TreePop();
+        }
+
+        auto texcube = objs->values(Q3DSProfiler::TextureCubeObject);
+        ImGui::Text("Cube textures: %d", texcube.count());
+        if (ImGui::TreeNodeEx("Cube texture details", texcube.isEmpty() ? 0 : ImGuiTreeNodeFlags_DefaultOpen)) {
+            ImGui::Columns(3, "texcubecols");
+            ImGui::Separator();
+            ImGui::Text("Index"); ImGui::SetColumnWidth(-1, 50); ImGui::NextColumn();
+            ImGui::Text("Description"); ImGui::NextColumn();
+            ImGui::Text("Size"); ImGui::NextColumn();
+            ImGui::Separator();
+            int idx = 0;
+            for (const Q3DSProfiler::ObjectData &objd : texcube) {
+                ImGui::Text("%d", idx);
+                ++idx;
+                ImGui::NextColumn();
+                const QByteArray info = objd.info.toUtf8();
+                ImGui::Text("%s", info.constData());
+                ImGui::NextColumn();
+                if (auto t = qobject_cast<Qt3DRender::QAbstractTexture *>(objd.obj)) {
+                    const QVector<Qt3DRender::QAbstractTextureImage *> textureImages = t->textureImages();
+                    if (textureImages.isEmpty()) {
+                        ImGui::Text("%dx%dx%d", t->width(), t->height(), t->depth());
+                        ImGui::NextColumn();
+                    } else {
+                        ImGui::NextColumn();
+                    }
+                }
+            }
+            ImGui::Columns(1);
+            ImGui::Separator();
+            ImGui::TreePop();
+        }
+
+        auto rts = objs->values(Q3DSProfiler::RenderTargetObject);
+        ImGui::Text("Render targets (FBOs): %d", rts.count());
+        if (ImGui::TreeNodeEx("Render target details", rts.isEmpty() ? 0 : ImGuiTreeNodeFlags_DefaultOpen)) {
+            ImGui::Columns(2, "rtcols");
+            ImGui::Separator();
+            ImGui::Text("Index"); ImGui::SetColumnWidth(-1, 50); ImGui::NextColumn();
+            ImGui::Text("Description"); ImGui::NextColumn();
+            ImGui::Separator();
+            int idx = 0;
+            for (const Q3DSProfiler::ObjectData &objd : rts) {
+                ImGui::Text("%d", idx);
+                ++idx;
+                ImGui::NextColumn();
+                const QByteArray info = objd.info.toUtf8();
+                ImGui::Text("%s", info.constData());
+                ImGui::NextColumn();
+            }
+            ImGui::Columns(1);
+            ImGui::Separator();
+            ImGui::TreePop();
+        }
+
+        ImGui::End();
+    }
+
+    if (m_layerWindowOpen) {
+        ImGui::SetNextWindowSize(ImVec2(500, 200), ImGuiCond_FirstUseEver);
+        ImGui::Begin("Layers", &m_layerWindowOpen, ImGuiWindowFlags_NoSavedSettings);
+
+        ImGui::Text("Layers");
+        ImGui::Columns(4, "layercols");
+        ImGui::Separator();
+        ImGui::Text("ID"); ImGui::NextColumn();
+        ImGui::Text("Visible"); ImGui::NextColumn();
+        ImGui::Text("Size"); ImGui::NextColumn();
+        ImGui::Text("Dirty"); ImGui::NextColumn();
+        ImGui::Separator();
+        Q3DSPresentation::forAllLayers(m_profiler->presentation()->scene(), [&](Q3DSLayerNode *layer3DS) {
+            Q3DSLayerAttached *data = static_cast<Q3DSLayerAttached *>(layer3DS->attached());
+            ImGui::Text("%s", layer3DS->id().constData());
+            ImGui::NextColumn();
+            ImGui::Text("%s", layer3DS->flags().testFlag(Q3DSNode::Active) ? "true" : "false");
+            ImGui::NextColumn();
+            if (data)
+                ImGui::Text("%dx%d", data->layerSize.width(), data->layerSize.height());
+            else
+                ImGui::Text("unknown");
+            ImGui::NextColumn();
+            ImGui::Text("%s", data->wasDirty ? "true" : "false");
+            ImGui::NextColumn();
+        });
+        ImGui::Columns(1);
+        ImGui::Separator();
+
+        ImGui::End();
+    }
 }
 
 static void changeProperty(Q3DSGraphObject *obj, const QString &name, const QString &value)

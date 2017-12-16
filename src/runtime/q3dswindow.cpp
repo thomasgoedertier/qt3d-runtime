@@ -71,7 +71,6 @@ QT_BEGIN_NAMESPACE
 Q_DECLARE_LOGGING_CATEGORY(lcUip)
 
 static Q3DSGraphicsLimits gfxLimits;
-static Q3DStudioWindow::InitFlags initFlags;
 
 Q3DStudioWindow::Q3DStudioWindow()
 {
@@ -190,10 +189,8 @@ void Q3DStudioWindow::initStaticPreApp()
     initResources();
 }
 
-void Q3DStudioWindow::initStaticPostApp(InitFlags flags)
+void Q3DStudioWindow::initStaticPostApp()
 {
-    initFlags = flags;
-
     QSurfaceFormat fmt;
     if (QOpenGLContext::openGLModuleType() == QOpenGLContext::LibGL) { // works in dynamic gl builds too because there's a qguiapp already
         fmt = findIdealGLVersion();
@@ -218,6 +215,18 @@ void Q3DStudioWindow::createAspectEngine()
 QString Q3DStudioWindow::source() const
 {
     return m_source;
+}
+
+void Q3DStudioWindow::setFlags(Flags flags)
+{
+    // applies to the next setSource()
+    m_flags = flags;
+}
+
+void Q3DStudioWindow::setFlag(Flag flag, bool enabled)
+{
+    // applies to the next setSource()
+    m_flags.setFlag(flag, enabled);
 }
 
 bool Q3DStudioWindow::setSource(const QString &uipOrUiaFileName)
@@ -322,8 +331,10 @@ bool Q3DStudioWindow::loadPresentation(Presentation *pres)
     // Presentation is ready. Build the Qt3D scene. This will also activate the first sub-slide.
     Q3DSSceneManager::SceneBuilderParams params;
     params.flags = 0;
-    if (initFlags.testFlag(Force4xMSAA))
+    if (m_flags.testFlag(Force4xMSAA))
         params.flags |= Q3DSSceneManager::Force4xMSAA;
+    if (m_flags.testFlag(EnableProfiling))
+        params.flags |= Q3DSSceneManager::EnableProfiling;
 
     params.outputSize = size();
     params.outputDpr = devicePixelRatio();
@@ -377,6 +388,8 @@ bool Q3DStudioWindow::loadSubPresentation(Presentation *pres)
 
     Q3DSSceneManager::SceneBuilderParams params;
     params.flags = Q3DSSceneManager::SubPresentation;
+    if (m_flags.testFlag(EnableProfiling))
+        params.flags |= Q3DSSceneManager::EnableProfiling;
 
     Q3DSPresentation *pres3DS = pres->uipDocument->presentation();
     params.outputSize = QSize(pres3DS->presentationWidth(), pres3DS->presentationHeight());
