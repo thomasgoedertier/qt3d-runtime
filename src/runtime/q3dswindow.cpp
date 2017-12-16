@@ -465,7 +465,7 @@ void Q3DStudioWindow::setOnDemandRendering(bool enabled)
 void Q3DStudioWindow::keyPressEvent(QKeyEvent *e)
 {
     // not ideal since the window needs focus which it often won't have. also no keyboard on embedded/mobile.
-    if (e->key() == Qt::Key_F12 && !m_presentations.isEmpty()) {
+    if (e->key() == Qt::Key_F10 && !m_presentations.isEmpty()) {
         auto m = m_presentations[0].sceneManager;
         m->setProfileUiVisible(!m->isProfileUiVisible());
     }
