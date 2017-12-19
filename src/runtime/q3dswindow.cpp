@@ -356,12 +356,17 @@ bool Q3DStudioWindow::loadPresentation(Presentation *pres)
     // Input (profiling UI).
     pres->sceneManager->setProfileUiInputEventSource(this);
 
-    // Try sizing the window to the presentation.
-    Q3DSPresentation *pres3DS = pres->uipDocument->presentation();
-    QSize winSize(pres3DS->presentationWidth(), pres3DS->presentationHeight());
-    if (winSize.isEmpty())
-        winSize = QSize(800, 480);
-    resize(winSize);
+    if (size().isEmpty()) {
+        // Try sizing the window to the presentation at first.
+        Q3DSPresentation *pres3DS = pres->uipDocument->presentation();
+        QSize winSize(pres3DS->presentationWidth(), pres3DS->presentationHeight());
+        if (winSize.isEmpty())
+            winSize = QSize(800, 480);
+        resize(winSize);
+    }
+
+    // Once the window has a size, follow it with the presentation.
+    m_presentations[0].sceneManager->updateSizes(size(), devicePixelRatio());
 
     // Expose update signal
     connect(pres->q3dscene.frameAction, &Qt3DLogic::QFrameAction::triggered, this, &Q3DStudioWindow::sceneUpdated);

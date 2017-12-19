@@ -77,7 +77,7 @@ Q3DStudioMainWindow::Q3DStudioMainWindow(Q3DStudioWindow *view, QWidget *parent)
     QAction *forcePresSize = viewMenu->addAction(tr("&Force design size"));
     forcePresSize->setCheckable(true);
     forcePresSize->setChecked(false);
-    const QSize designSize = view->size();
+    const QSize designSize = view->size(); // because Q3DSWindow::setSource() set this already
     connect(forcePresSize, &QAction::toggled, [=]() {
         if (forcePresSize->isChecked()) {
             wrapper->setMinimumSize(designSize);
@@ -179,9 +179,12 @@ Q3DStudioMainWindow::Q3DStudioMainWindow(Q3DStudioWindow *view, QWidget *parent)
     });
     helpMenu->addAction(tr("About &Qt"), qApp, &QApplication::aboutQt);
 
-    // The view already has a desired size at this point, take it into account.
-    // This won't be fully correct, use View->Force design size to get the real thing.
-    resize(designSize + QSize(0, menuBar()->height()));
+    // Initial size for the main window. We are sizing the main window, not the
+    // embedded one (view), so add some extra height to be closer to the design
+    // size. ### This should be made more accurate at some point. Note that by
+    // default we are not required to strictly follow the design size, that's
+    // what Force Design Size is for.
+    resize(designSize + QSize(0, 40));
 }
 
 QT_END_NAMESPACE
