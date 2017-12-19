@@ -113,6 +113,11 @@ Q3DStudioMainWindow::Q3DStudioMainWindow(Q3DStudioWindow *view, QWidget *parent)
         setWindowState(s);
     });
 
+    viewMenu->addAction(tr("Toggle in-scene &debug view"), this, [view] {
+        Q3DSSceneManager *sm = view->sceneManager();
+        sm->setProfileUiVisible(!sm->isProfileUiVisible());
+    });
+
     QMenu *debugMenu = menuBar()->addMenu(tr("&Debug"));
     debugMenu->addAction(tr("&Object graph..."), [=]() {
         Q3DSUtils::showObjectGraph(view->uipDocument()->presentation()->scene());
