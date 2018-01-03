@@ -1,0 +1,28 @@
+From 57e7e85ac6909f8898b68f82d44521082b37db0d Mon Sep 17 00:00:00 2001
+From: Laszlo Agocs <laszlo.agocs@qt.io>
+Date: Wed, 3 Jan 2018 08:31:53 +0100
+Subject: [PATCH] imgui/stb_truetype: Include the standard string.h
+
+...instead of the non-standard memory.h
+
+Change-Id: I641b3712e17613ffbceb5f0f060f4a757bf950cb
+---
+ src/3rdparty/imgui/stb_truetype.h | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/src/3rdparty/imgui/stb_truetype.h b/src/3rdparty/imgui/stb_truetype.h
+index 92b9a87..e59481e 100644
+--- a/src/3rdparty/imgui/stb_truetype.h
++++ b/src/3rdparty/imgui/stb_truetype.h
+@@ -431,7 +431,7 @@ int main(int arg, char **argv)
+    #endif
+ 
+    #ifndef STBTT_memcpy
+-   #include <memory.h>
++   #include <string.h>
+    #define STBTT_memcpy       memcpy
+    #define STBTT_memset       memset
+    #endif
+-- 
+2.9.3.windows.2
+
