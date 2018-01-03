@@ -18,6 +18,9 @@
 #include "imgui_internal.h"
 
 #include <stdio.h>      // vsnprintf, sscanf, printf
+#ifdef Q_OS_INTEGRITY
+#define NO_ALLOCA
+#else
 #if !defined(alloca)
 #ifdef _WIN32
 #include <malloc.h>     // alloca
@@ -25,6 +28,7 @@
 #include <alloca.h>     // alloca
 #else
 #include <stdlib.h>     // alloca
+#endif
 #endif
 #endif
 
@@ -441,7 +445,11 @@ void ImDrawList::AddPolyline(const ImVec2* points, const int points_count, ImU32
         PrimReserve(idx_count, vtx_count);
 
         // Temporary buffer
+#ifndef NO_ALLOCA
         ImVec2* temp_normals = (ImVec2*)alloca(points_count * (thick_line ? 5 : 3) * sizeof(ImVec2));
+#else
+        ImVec2* temp_normals = (ImVec2*)malloc(points_count * (thick_line ? 5 : 3) * sizeof(ImVec2));
+#endif
         ImVec2* temp_points = temp_normals + points_count;
 
         for (int i1 = 0; i1 < count; i1++)
@@ -565,6 +573,9 @@ void ImDrawList::AddPolyline(const ImVec2* points, const int points_count, ImU32
             }
         }
         _VtxCurrentIdx += (ImDrawIdx)vtx_count;
+#ifdef NO_ALLOCA
+        free(temp_normals);
+#endif
     }
     else
     {
@@ -622,7 +633,11 @@ void ImDrawList::AddConvexPolyFilled(const ImVec2* points, const int points_coun
         }
 
         // Compute normals
+#ifndef NO_ALLOCA
         ImVec2* temp_normals = (ImVec2*)alloca(points_count * sizeof(ImVec2));
+#else
+        ImVec2* temp_normals = (ImVec2*)malloc(points_count * sizeof(ImVec2));
+#endif
         for (int i0 = points_count-1, i1 = 0; i1 < points_count; i0 = i1++)
         {
             const ImVec2& p0 = points[i0];
@@ -659,6 +674,9 @@ void ImDrawList::AddConvexPolyFilled(const ImVec2* points, const int points_coun
             _IdxWritePtr += 6;
         }
         _VtxCurrentIdx += (ImDrawIdx)vtx_count;
+#ifdef NO_ALLOCA
+        free(temp_normals);
+#endif
     }
     else
     {
