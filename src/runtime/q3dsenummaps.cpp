@@ -178,7 +178,6 @@ static Q3DSEnumNameMap g_layerNodeBlendType[] = {
     { Q3DSLayerNode::Overlay, "*Overlay" },
     { Q3DSLayerNode::ColorBurn, "*ColorBurn" },
     { Q3DSLayerNode::ColorDodge, "*ColorDodge" },
-    { Q3DSLayerNode::VividLight, "*VividLight" },
     { 0, nullptr }
 };
 
@@ -320,7 +319,6 @@ static Q3DSEnumNameMap g_MaterialNodeblendmode[] = {
     { Q3DSDefaultMaterial::Overlay, "*Overlay" },
     { Q3DSDefaultMaterial::ColorBurn, "*ColorBurn" },
     { Q3DSDefaultMaterial::ColorDodge, "*ColorDodge" },
-    { Q3DSDefaultMaterial::VividLight, "*VividLight" },
     { 0, nullptr }
 };
 

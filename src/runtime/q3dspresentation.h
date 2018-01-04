@@ -610,8 +610,7 @@ public:
         Subtract,
         Overlay,
         ColorBurn,
-        ColorDodge,
-        VividLight
+        ColorDodge
     };
 
     enum HorizontalFields {
@@ -1102,8 +1101,7 @@ public:
         Multiply,
         Overlay,
         ColorBurn,
-        ColorDodge,
-        VividLight
+        ColorDodge
     };
 
     enum SpecularModel {
