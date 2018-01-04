@@ -3443,7 +3443,11 @@ void Q3DSSceneManager::setLightProperties(Q3DSLightNode *light3DS, bool forceUpd
         if (!ls->positionParam)
             ls->positionParam = new Qt3DRender::QParameter;
         ls->positionParam->setName(QLatin1String("position"));
-        ls->positionParam->setValue(data->globalTransform.column(3).toVector3D());
+        // the w field of position is used to determine the difference between direction and point lights
+        float w = 0.0f;
+        if (light3DS->lightType() == Q3DSLightNode::Point)
+            w = 1.0;
+        ls->positionParam->setValue(QVector4D(data->globalTransform.column(3).toVector3D(), w));
 
         if (!ls->directionParam)
             ls->directionParam = new Qt3DRender::QParameter;
@@ -3524,15 +3528,23 @@ void Q3DSSceneManager::setLightProperties(Q3DSLightNode *light3DS, bool forceUpd
     ls->quadraticAttenuationParam->setName(QLatin1String("quadraticAttenuation"));
     ls->quadraticAttenuationParam->setValue(qBound(0.0f, light3DS->expFade(), 1000.0f) * 0.0000001f);
 
+    // having non-zero values in either width or hight properties
+    // determines that this is an area light in shader logic
     if (!ls->widthParam)
         ls->widthParam = new Qt3DRender::QParameter;
     ls->widthParam->setName(QLatin1String("width"));
-    ls->widthParam->setValue(light3DS->areaWidth());
+    if (light3DS->lightType() == Q3DSLightNode::Area)
+        ls->widthParam->setValue(light3DS->areaWidth());
+    else
+        ls->widthParam->setValue(0.0f);
 
     if (!ls->heightParam)
         ls->heightParam = new Qt3DRender::QParameter;
     ls->heightParam->setName(QLatin1String("height"));
-    ls->heightParam->setValue(light3DS->areaHeight());
+    if (light3DS->lightType() == Q3DSLightNode::Area)
+        ls->heightParam->setValue(light3DS->areaHeight());
+    else
+        ls->heightParam->setValue(0.0f);
 
     // is this shadow stuff for lightmaps?
     const float shadowDist = 5000.0f; // camera->clipFar() ### FIXME later
@@ -4279,7 +4291,7 @@ void Q3DSSceneManager::updateLightsBuffer(const QVector<Q3DSLightSource> &lights
     // Set the lightData
     Q3DSLightSourceData *lightData = reinterpret_cast<Q3DSLightSourceData *>(lightBufferData.data() + (4 * sizeof(qint32)));
     for (int i = 0; i < lights.count(); ++i) {
-        lightData[i].m_position = lights[i].positionParam->value().value<QVector3D>().toVector4D();
+        lightData[i].m_position = lights[i].positionParam->value().value<QVector4D>();
         lightData[i].m_direction = lights[i].directionParam->value().value<QVector3D>().toVector4D();
         lightData[i].m_up = lights[i].upParam->value().value<QVector4D>();
         lightData[i].m_right = lights[i].rightParam->value().value<QVector4D>();
