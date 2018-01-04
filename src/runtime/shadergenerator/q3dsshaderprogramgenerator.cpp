@@ -371,7 +371,15 @@ public:
         QString output;
 
         // TODO: Find a way to query extensions (without creating lots of contexts)
-
+#if 0
+        output.append(QLatin1String("#extension GL_ARB_gpu_shader5 : enable\n"));
+        output.append(QLatin1String("#extension GL_ARB_shader_image_load_store : enable\n"));
+        output.append(QLatin1String("#extension GL_ARB_shading_language_420pack : enable\n"));
+        output.append(QLatin1String("#extension GL_ARB_shader_image_load_store : enable\n"));
+        output.append(QLatin1String("#extension GL_ARB_shader_atomic_counters : enable\n"));
+        output.append(QLatin1String("#extension GL_ARB_shader_storage_buffer_object : enable\n"));
+        output.append(QLatin1String("#extension GL_KHR_blend_equation_advanced : enable\n"));
+#endif
         return output;
     }
 
@@ -390,7 +398,9 @@ public:
 
             // TODO: check if we have support for advanceBlendSupport
             //            if (m_RenderContext.IsAdvancedBlendSupportedKHR())
-            //                output += "layout(blend_support_all_equations) out;\n ";
+#if 0
+            output += QLatin1String("layout(blend_support_all_equations) out;\n ");
+#endif
             output += QLatin1String("out vec4 fragOutput;\n");
         }
         return output;

@@ -61,12 +61,13 @@ Qt3DRender::QMaterial *Q3DSCustomMaterialGenerator::generateMaterial(Q3DSCustomM
     Q_ASSERT(layerData);
 
     Q3DSShaderFeatureSet features;
-
-    if (!layerData->shadowMapData.shadowCasters.isEmpty())
-        features.append(Q3DSShaderPreprocessorFeature(QLatin1String("QT3DS_ENABLE_SSM"), true));
-
-    if (layerData->ssaoTextureData.enabled)
-        features.append(Q3DSShaderPreprocessorFeature(QLatin1String("QT3DS_ENABLE_SSAO"), true));
+    features.append(Q3DSShaderPreprocessorFeature(QLatin1String("QT3DS_ENABLE_CG_LIGHTING"), true));
+    features.append(Q3DSShaderPreprocessorFeature(QLatin1String("QT3DS_ENABLE_IBL_FOV"), false));
+    features.append(Q3DSShaderPreprocessorFeature(QLatin1String("QT3DS_ENABLE_LIGHT_PROBE"), false));
+    features.append(Q3DSShaderPreprocessorFeature(QLatin1String("QT3DS_ENABLE_LIGHT_PROBE_2"), false));
+    features.append(Q3DSShaderPreprocessorFeature(QLatin1String("QT3DS_ENABLE_SSDO"), false));
+    features.append(Q3DSShaderPreprocessorFeature(QLatin1String("QT3DS_ENABLE_SSM"), !layerData->shadowMapData.shadowCasters.isEmpty()));
+    features.append(Q3DSShaderPreprocessorFeature(QLatin1String("QT3DS_ENABLE_SSAO"), layerData->ssaoTextureData.enabled));
 
     Qt3DRender::QShaderProgram *shaderProgram = Q3DSShaderManager::instance().generateShaderProgram(*customMaterial,
                                                                                                     lights,

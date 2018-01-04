@@ -145,10 +145,6 @@ struct ShaderGenerator : public Q3DSCustomMaterialShaderGenerator
 
         fragmentShader << "#define FRAGMENT_SHADER\n\n";
 
-        if (hasLighting) {
-            fragmentShader << "#define QT3DS_ENABLE_CG_LIGHTING 1\n\n";
-        }
-
         if (!srcString.contains(QStringLiteral("void main()")))
             fragmentShader.addInclude("evalLightmaps.glsllib");
 
