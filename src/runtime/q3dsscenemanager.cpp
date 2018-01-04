@@ -3427,14 +3427,6 @@ Qt3DCore::QEntity *Q3DSSceneManager::buildLight(Q3DSLightNode *light3DS, Q3DSLay
     return entity;
 }
 
-static inline QColor mulColor(const QColor &c, float f)
-{
-    float r = qBound<float>(0.0f, c.redF() * f, 1.0f);
-    float g = qBound<float>(0.0f, c.greenF() * f, 1.0f);
-    float b = qBound<float>(0.0f, c.blueF() * f, 1.0f);
-    return QColor::fromRgbF(r, g, b);
-}
-
 void Q3DSSceneManager::setLightProperties(Q3DSLightNode *light3DS, bool forceUpdate)
 {
     // only parameter setup, the uniform buffer is handled separately elsewhere
@@ -3482,17 +3474,29 @@ void Q3DSSceneManager::setLightProperties(Q3DSLightNode *light3DS, bool forceUpd
     if (!ls->diffuseParam)
         ls->diffuseParam = new Qt3DRender::QParameter;
     ls->diffuseParam->setName(QLatin1String("diffuse"));
-    ls->diffuseParam->setValue(mulColor(light3DS->diffuse(), normalizedBrightness));
+    auto diffuseColor = QVector4D(float(light3DS->diffuse().redF()) * normalizedBrightness,
+                                  float(light3DS->diffuse().greenF()) * normalizedBrightness,
+                                  float(light3DS->diffuse().blueF()) * normalizedBrightness,
+                                  float(light3DS->diffuse().alphaF()));
+    ls->diffuseParam->setValue(diffuseColor);
 
     if (!ls->ambientParam)
         ls->ambientParam = new Qt3DRender::QParameter;
     ls->ambientParam->setName(QLatin1String("ambient"));
-    ls->ambientParam->setValue(light3DS->ambient());
+    auto ambientColor = QVector4D(float(light3DS->ambient().redF()),
+                                  float(light3DS->ambient().greenF()),
+                                  float(light3DS->ambient().blueF()),
+                                  float(light3DS->ambient().alphaF()));
+    ls->ambientParam->setValue(ambientColor);
 
     if (!ls->specularParam)
         ls->specularParam = new Qt3DRender::QParameter;
     ls->specularParam->setName(QLatin1String("specular"));
-    ls->specularParam->setValue(mulColor(light3DS->specular(), normalizedBrightness));
+    auto specularColor = QVector4D(float(light3DS->specular().redF()) * normalizedBrightness,
+                                   float(light3DS->specular().greenF()) * normalizedBrightness,
+                                   float(light3DS->specular().blueF()) * normalizedBrightness,
+                                   float(light3DS->specular().alphaF()));
+    ls->specularParam->setValue(specularColor);
 
 /*
     if (!ls->spotExponentParam)
@@ -4288,14 +4292,11 @@ void Q3DSSceneManager::updateLightsBuffer(const QVector<Q3DSLightSource> &lights
         //                                               materialDiffuseColor.greenF() * lightDiffuseColor.greenF(),
         //                                               materialDiffuseColor.blueF() * lightDiffuseColor.blueF(),
         //                                               1.0f);
-        auto diffuseColor = lights[i].diffuseParam->value().value<QColor>();
-        lightData[i].m_diffuse = QVector4D(diffuseColor.redF(), diffuseColor.greenF(), diffuseColor.blueF(), diffuseColor.alphaF());
+        lightData[i].m_diffuse = lights[i].diffuseParam->value().value<QVector4D>();
         // ambient
-        auto ambientColor = lights[i].ambientParam->value().value<QColor>();
-        lightData[i].m_ambient = QVector4D(ambientColor.redF(), ambientColor.greenF(), ambientColor.blueF(), ambientColor.alphaF());
+        lightData[i].m_ambient = lights[i].ambientParam->value().value<QVector4D>();
         // specular
-        auto specularColor = lights[i].specularParam->value().value<QColor>();
-        lightData[i].m_specular = QVector4D(specularColor.redF(), specularColor.greenF(), specularColor.blueF(), specularColor.alphaF());
+        lightData[i].m_specular = lights[i].specularParam->value().value<QVector4D>();
         // spotExponent
         // TODO spotExponent
         // spotCutoff
