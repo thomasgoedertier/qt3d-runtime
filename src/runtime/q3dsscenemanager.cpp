@@ -3443,11 +3443,16 @@ void Q3DSSceneManager::setLightProperties(Q3DSLightNode *light3DS, bool forceUpd
         if (!ls->positionParam)
             ls->positionParam = new Qt3DRender::QParameter;
         ls->positionParam->setName(QLatin1String("position"));
-        // the w field of position is used to determine the difference between direction and point lights
-        float w = 0.0f;
-        if (light3DS->lightType() == Q3DSLightNode::Point)
-            w = 1.0;
-        ls->positionParam->setValue(QVector4D(data->globalTransform.column(3).toVector3D(), w));
+
+        if (light3DS->lightType() == Q3DSLightNode::Directional) {
+            // directional lights have a w value of 0 in position
+            // position is used for direction in the custom material shader
+            // custom material shader also wants the inverse handedness
+            ls->positionParam->setValue(QVector4D(directionFromTransform(data->globalTransform, !leftHanded), 0.0f));
+        } else {
+            // point and area lights have w value of not-zero in position
+            ls->positionParam->setValue(QVector4D(data->globalTransform.column(3).toVector3D(), 1.0f));
+        }
 
         if (!ls->directionParam)
             ls->directionParam = new Qt3DRender::QParameter;
