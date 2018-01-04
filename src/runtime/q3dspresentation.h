@@ -108,7 +108,8 @@ public:
         NodeOpacityChanges = 0x02,
         EyeballChanges = 0x04,
         TextTextureImageDepChanges = 0x08,
-        AoOrShadowChanges = 0x10
+        AoOrShadowChanges = 0x10,
+        BlendModeChanges = 0x20
     };
     Q_DECLARE_FLAGS(Flags, Flag)
 

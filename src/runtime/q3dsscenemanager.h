@@ -618,6 +618,7 @@ private:
     Q3DSAnimationManager *m_animationManager;
     Q3DSTextRenderer *m_textRenderer;
     QSet<Q3DSLayerNode *> m_layersWithDirtyLights;
+    QSet<Q3DSDefaultMaterial *> m_pendingDefMatRebuild;
     QSet<Q3DSNode *> m_pendingNodeShow;
     QSet<Q3DSNode *> m_pendingNodeHide;
     Qt3DRender::QLayer *m_fsQuadTag = nullptr;

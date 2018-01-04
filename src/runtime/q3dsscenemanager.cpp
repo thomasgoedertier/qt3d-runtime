@@ -4436,6 +4436,7 @@ void Q3DSSceneManager::handlePropertyChange(Q3DSGraphObject *obj, const QSet<QSt
 void Q3DSSceneManager::updateSubTree(Q3DSGraphObject *obj)
 {
     m_layersWithDirtyLights.clear();
+    m_pendingDefMatRebuild.clear();
 
     updateSubTreeRecursive(obj);
 
@@ -4452,6 +4453,11 @@ void Q3DSSceneManager::updateSubTree(Q3DSGraphObject *obj)
                                            [this](Q3DSModelNode *model3DS) { rebuildModelMaterial(model3DS); },
                                            true); // include hidden ones too
         }
+    }
+
+    for (Q3DSDefaultMaterial *mat3DS : m_pendingDefMatRebuild) {
+        if (Q3DSDefaultMaterialAttached *matData = static_cast<Q3DSDefaultMaterialAttached *>(mat3DS->attached()))
+            rebuildModelMaterial(matData->model3DS);
     }
 
     if (!m_pendingNodeHide.isEmpty()) {
@@ -4700,6 +4706,8 @@ void Q3DSSceneManager::updateSubTreeRecursive(Q3DSGraphObject *obj)
             updateDefaultMaterial(mat3DS);
             m_wasDirty = true;
             markLayerForObjectDirty(mat3DS);
+            if (data->changeFlags.testFlag(Q3DSPropertyChangeList::BlendModeChanges))
+                m_pendingDefMatRebuild.insert(mat3DS);
         }
     }
         break;

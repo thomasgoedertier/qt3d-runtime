@@ -877,6 +877,9 @@ void Q3DSPropertyChangeList::append(const Q3DSPropertyChange &change)
                || change.nameStr().startsWith(QStringLiteral("shadow")))
     {
         m_flags |= AoOrShadowChanges;
+    } else if (change.nameStr() == QStringLiteral("blendmode"))
+    {
+        m_flags |= BlendModeChanges;
     }
 }
 
