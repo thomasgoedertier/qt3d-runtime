@@ -56,7 +56,10 @@ enum UsageType {
     EmissiveMask,
     Anisotropy,
     Gradient,
-    Storage
+    Storage,
+    Brush,
+    Cutout,
+    Transmission
 };
 
 enum FilterType {

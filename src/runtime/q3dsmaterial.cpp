@@ -73,6 +73,15 @@ bool convertToUsageType(const QStringRef &value, UsageType *type, const char *de
     } else if (value == QStringLiteral("storage")) {
         ok = true;
         *type = Q3DSMaterial::Storage;
+    } else if (value == QStringLiteral("brush")) {
+        ok = true;
+        *type = Q3DSMaterial::Brush;
+    } else if (value == QStringLiteral("cutout")) {
+        ok = true;
+        *type = Q3DSMaterial::Cutout;
+    } else if (value == QStringLiteral("transmission")) {
+        ok = true;
+        *type = Q3DSMaterial::Transmission;
     } else {
         if (reader)
             reader->raiseError(QObject::tr("Invalid %1 \"%2\"").arg(QString::fromUtf8(desc)).arg(value.toString()));
