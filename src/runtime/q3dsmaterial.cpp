@@ -331,11 +331,20 @@ Shader parserShaderElement(QXmlStreamReader *r)
         } else if (r->name() == QStringLiteral("VertexShader")) {
             if ( r->readNext() == QXmlStreamReader::Characters) {
                 shader.vertexShader = r->text().toString().trimmed();
+                if (shader.vertexShader.isEmpty())
+                    shader.vertexShader = QLatin1String("void vert(){}\n");
                 r->skipCurrentElement();
             }
         } else if (r->name() == QStringLiteral("FragmentShader")) {
             if ( r->readNext() == QXmlStreamReader::Characters) {
                 shader.fragmentShader = r->text().toString().trimmed();
+                if (shader.fragmentShader.isEmpty())
+                    shader.fragmentShader = QLatin1String("void frag(){}\n");
+                r->skipCurrentElement();
+            }
+        } else if (r->name() == QStringLiteral("GeometryShader")) {
+            if (r->readNext() == QXmlStreamReader::Characters) {
+                qWarning("Custom material/effect: Geometry shaders are not supported; ignored");
                 r->skipCurrentElement();
             }
         } else {
@@ -343,6 +352,32 @@ Shader parserShaderElement(QXmlStreamReader *r)
         }
     }
     return shader;
+}
+
+void combineShaderCode(Shader *shader,
+                       const QString &sharedShaderCode,
+                       const QString &sharedVertexShaderCode,
+                       const QString &sharedFragmentShaderCode)
+{
+    // Prepare the final vertex and fragment shader strings
+    // The order is: global shared, local shared, ifdef, global type-specific shared, local code, endif
+    // The "shaderPrefix" of 3DS1 is not handled in the parser, it is added later on.
+
+    if (!shader->vertexShader.isEmpty()) {
+        shader->vertexShader.append(QLatin1String("\n#endif\n"));
+        shader->vertexShader.prepend(sharedVertexShaderCode);
+        shader->vertexShader.prepend(QLatin1String("\n#ifdef VERTEX_SHADER\n"));
+        shader->vertexShader.prepend(shader->shared);
+        shader->vertexShader.prepend(sharedShaderCode);
+    }
+
+    if (!shader->fragmentShader.isEmpty()) {
+        shader->fragmentShader.append(QLatin1String("\n#endif\n"));
+        shader->fragmentShader.prepend(sharedFragmentShaderCode);
+        shader->fragmentShader.prepend(QLatin1String("\n#ifdef FRAGMENT_SHADER\n"));
+        shader->fragmentShader.prepend(shader->shared);
+        shader->fragmentShader.prepend(sharedShaderCode);
+    }
 }
 
 Buffer parseBuffer(QXmlStreamReader *r)

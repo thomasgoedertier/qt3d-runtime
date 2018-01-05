@@ -122,7 +122,7 @@ struct ShaderGenerator : public Q3DSCustomMaterialShaderGenerator
             m_currentMaterial->shaders().count() == 1) {
             // fallback to first shader
             auto shader = m_currentMaterial->shaders().first();
-            fragSource = shader.shared + shader.fragmentShader;
+            fragSource = shader.fragmentShader;
         }
         Q_ASSERT(!fragSource.isEmpty());
 

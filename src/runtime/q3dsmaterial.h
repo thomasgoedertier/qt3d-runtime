@@ -161,6 +161,7 @@ struct Q3DSV_EXPORT Shader // or rather, program
 {
     QString name;
     QString shared;
+    // the vertex/fragment shaders already include both 'shared' and the global preambles
     QString vertexShader;
     QString fragmentShader;
 };
@@ -345,6 +346,10 @@ struct Q3DSV_EXPORT Pass
 // parsing code common between custom materials and effects
 PropertyElement parsePropertyElement(QXmlStreamReader *r);
 Shader parserShaderElement(QXmlStreamReader *r);
+void combineShaderCode(Shader *shader,
+                       const QString &sharedShaderCode,
+                       const QString &sharedVertexShaderCode,
+                       const QString &sharedFragmentShaderCode);
 Buffer parseBuffer(QXmlStreamReader *r);
 
 bool convertToUsageType(const QStringRef &value, Q3DSMaterial::UsageType *type, const char *desc, QXmlStreamReader *reader = nullptr);

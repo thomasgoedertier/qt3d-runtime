@@ -140,7 +140,8 @@ void tst_Q3DSCustomMaterialParser::testValidateData()
 
     QVERIFY(material.shaderType() == QStringLiteral("GLSL"));
     QVERIFY(material.shadersVersion() == QStringLiteral("330"));
-    QVERIFY(material.shaders().first().vertexShader.isEmpty());
+    QVERIFY(!material.shaders().first().vertexShader.isEmpty());
+    QVERIFY(material.shaders().first().vertexShader.startsWith(QStringLiteral("\n#ifdef VERTEX_SHADER\nvoid vert(){}")));
     QVERIFY(!material.shaders().first().fragmentShader.isEmpty());
 
     // Pass Data

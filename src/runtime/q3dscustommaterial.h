@@ -57,7 +57,6 @@ public:
 
     QString shaderType() const;
     QString shadersVersion() const;
-    QString shadersSharedCode() const;
     const QVector<Q3DSMaterial::Shader> &shaders() const;
     const QVector<Q3DSMaterial::Pass> &passes() const;
     const QHash<QString, Q3DSMaterial::Buffer> &buffers() const;
@@ -96,7 +95,6 @@ private:
     //Shaders
     QString m_shaderType;
     QString m_shadersVersion;
-    QString m_shadersSharedCode; //Shared between all shaders
     QVector<Q3DSMaterial::Shader> m_shaders;
 
     // Passes

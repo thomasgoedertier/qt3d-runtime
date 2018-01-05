@@ -80,11 +80,6 @@ QString Q3DSCustomMaterial::shadersVersion() const
     return m_shadersVersion;
 }
 
-QString Q3DSCustomMaterial::shadersSharedCode() const
-{
-    return m_shadersSharedCode;
-}
-
 const QVector<Q3DSMaterial::Shader> &Q3DSCustomMaterial::shaders() const
 {
     return m_shaders;
@@ -260,6 +255,10 @@ void Q3DSCustomMaterialParser::parseMetaData()
 
 void Q3DSCustomMaterialParser::parseShaders()
 {
+    QString sharedShaderCode;
+    QString sharedVertexShaderCode;
+    QString sharedFragmentShaderCode;
+
     QXmlStreamReader *r = reader();
     for (auto attribute : r->attributes()) {
         if (attribute.name() == QStringLiteral("type"))
@@ -271,9 +270,26 @@ void Q3DSCustomMaterialParser::parseShaders()
     int shaderCount = 0;
     while (r->readNextStartElement()) {
         if (r->name() == QStringLiteral("Shared")) {
-            if (r->readNext() == QXmlStreamReader::Characters)
-                m_material.m_shadersSharedCode = r->text().toString().trimmed();
-            r->skipCurrentElement();
+            if (r->readNext() == QXmlStreamReader::Characters) {
+                sharedShaderCode = r->text().toString().trimmed();
+                if (!sharedShaderCode.isEmpty())
+                    sharedShaderCode.append(QLatin1Char('\n'));
+                r->skipCurrentElement();
+            }
+        } else if (r->name() == QStringLiteral("VertexShaderShared")) {
+            if (r->readNext() == QXmlStreamReader::Characters) {
+                sharedVertexShaderCode = r->text().toString().trimmed();
+                if (!sharedVertexShaderCode.isEmpty())
+                    sharedVertexShaderCode.append(QLatin1Char('\n'));
+                r->skipCurrentElement();
+            }
+        } else if (r->name() == QStringLiteral("FragmentShaderShared")) {
+            if (r->readNext() == QXmlStreamReader::Characters) {
+                sharedFragmentShaderCode = r->text().toString().trimmed();
+                if (!sharedFragmentShaderCode.isEmpty())
+                    sharedFragmentShaderCode.append(QLatin1Char('\n'));
+                r->skipCurrentElement();
+            }
         } else if (r->name() == QStringLiteral("Shader")) {
             parseShader();
             shaderCount++;
@@ -283,6 +299,9 @@ void Q3DSCustomMaterialParser::parseShaders()
     }
     if (shaderCount == 0)
         r->raiseError(QObject::tr("At least one Shader is required for a valid Material"));
+
+    for (Q3DSMaterial::Shader &shader : m_material.m_shaders)
+        combineShaderCode(&shader, sharedShaderCode, sharedVertexShaderCode, sharedFragmentShaderCode);
 }
 
 void Q3DSCustomMaterialParser::parseProperty()

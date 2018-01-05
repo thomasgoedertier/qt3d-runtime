@@ -45,6 +45,7 @@ private Q_SLOTS:
     void testEmpty();
     void testRepeatedLoad();
     void testValidateData();
+    void testGlobalSharedShaderSnippet();
 };
 
 tst_Q3DSEffectParser::tst_Q3DSEffectParser()
@@ -130,7 +131,6 @@ void tst_Q3DSEffectParser::testValidateData()
 
     // Shaders
     QVERIFY(dofEffect.shaders().count() == 6);
-    QVERIFY(!dofEffect.sharedShaderCode().isEmpty());
     QVERIFY(!dofEffect.shaders().value("BOKEH_RENDER").vertexShader.isEmpty());
 
     // Buffers
@@ -156,6 +156,25 @@ void tst_Q3DSEffectParser::testValidateData()
     QVERIFY(imageInputCmd.data()->param == "BokehSampler");
     QVERIFY(imageInputCmd.data()->usage == "texture");
     QVERIFY(imageInputCmd.data()->sync);
+}
+
+void tst_Q3DSEffectParser::testGlobalSharedShaderSnippet()
+{
+    Q3DSEffectParser parser;
+    bool ok = false;
+    Q3DSEffect effect = parser.parse(QStringLiteral(":/data/Bloom.effect"), &ok);
+    QVERIFY(ok);
+    QVERIFY(!effect.isNull());
+
+    QCOMPARE(effect.shaders().count(), 5);
+
+    const QString globalSharedCode = QStringLiteral("#include \"blur.glsllib\"\nvarying float range;\n");
+    for (const Q3DSMaterial::Shader &shader : effect.shaders()) {
+        if (!shader.vertexShader.isEmpty())
+            QVERIFY(shader.vertexShader.startsWith(globalSharedCode));
+        if (!shader.fragmentShader.isEmpty())
+            QVERIFY(shader.fragmentShader.startsWith(globalSharedCode));
+    }
 }
 
 QTEST_APPLESS_MAIN(tst_Q3DSEffectParser)

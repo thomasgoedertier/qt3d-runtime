@@ -42,7 +42,6 @@ public:
     bool isNull();
 
     const QMap<QString, Q3DSMaterial::PropertyElement>& properties() const;
-    const QString &sharedShaderCode() const;
     const QMap<QString, Q3DSMaterial::Shader>& shaders() const;
     const QMap<QString, Q3DSMaterial::PassBuffer>& buffers() const;
     const QVector<Q3DSMaterial::Pass> &passes() const;
@@ -50,7 +49,6 @@ public:
 private:
     QMap<QString, Q3DSMaterial::PropertyElement> m_properties;
 
-    QString m_sharedShaderCode;
     QMap<QString, Q3DSMaterial::Shader> m_shaders;
     QMap<QString, Q3DSMaterial::PassBuffer> m_buffers; // value type is the base class, subclasses have no data
     QVector<Q3DSMaterial::Pass> m_passes;
@@ -74,7 +72,6 @@ private:
     void parseDataBuffer(Q3DSEffect &effect);
 
     bool isPropertyNameUnique(const QString &name, const Q3DSEffect &effect);
-
 };
 
 QT_END_NAMESPACE

@@ -34,7 +34,6 @@ QT_BEGIN_NAMESPACE
 
 Q3DSEffect::Q3DSEffect()
 {
-    //TODO: Reminder to append shader prefix "#include \"effect.glsllib\"\n" to all effects shaders
 }
 
 bool Q3DSEffect::isNull()
@@ -46,11 +45,6 @@ bool Q3DSEffect::isNull()
 const QMap<QString, Q3DSMaterial::PropertyElement> &Q3DSEffect::properties() const
 {
     return m_properties;
-}
-
-const QString &Q3DSEffect::sharedShaderCode() const
-{
-    return m_sharedShaderCode;
 }
 
 const QMap<QString, Q3DSMaterial::Shader> &Q3DSEffect::shaders() const
@@ -136,23 +130,50 @@ void Q3DSEffectParser::parseProperties(Q3DSEffect &effect)
 
 void Q3DSEffectParser::parseShaders(Q3DSEffect &effect)
 {
+    QString sharedShaderCode;
+    QString sharedVertexShaderCode;
+    QString sharedFragmentShaderCode;
+
     int shaderCount = 0;
     QXmlStreamReader *r = reader();
     while (r->readNextStartElement()) {
         if (r->name() == QStringLiteral("Shared")) {
-            if ( r->readNext() == QXmlStreamReader::Characters) {
-                effect.m_sharedShaderCode = r->text().toString().trimmed();
+            if (r->readNext() == QXmlStreamReader::Characters) {
+                sharedShaderCode = r->text().toString().trimmed();
+                if (!sharedShaderCode.isEmpty())
+                    sharedShaderCode.append(QLatin1Char('\n'));
+                r->skipCurrentElement();
+            }
+        } else if (r->name() == QStringLiteral("VertexShaderShared")) {
+            if (r->readNext() == QXmlStreamReader::Characters) {
+                sharedVertexShaderCode = r->text().toString().trimmed();
+                if (!sharedVertexShaderCode.isEmpty())
+                    sharedVertexShaderCode.append(QLatin1Char('\n'));
+                r->skipCurrentElement();
+            }
+        } else if (r->name() == QStringLiteral("FragmentShaderShared")) {
+            if (r->readNext() == QXmlStreamReader::Characters) {
+                sharedFragmentShaderCode = r->text().toString().trimmed();
+                if (!sharedFragmentShaderCode.isEmpty())
+                    sharedFragmentShaderCode.append(QLatin1Char('\n'));
                 r->skipCurrentElement();
             }
         } else if (r->name() == QStringLiteral("Shader")) {
             parseShader(effect);
             shaderCount++;
+        } else if (r->name() == QStringLiteral("ComputeShader")) {
+            qWarning("Effects: Compute shaders not supported; ignored");
+            r->skipCurrentElement();
         } else {
             r->skipCurrentElement();
         }
     }
+
     if (shaderCount == 0)
         r->raiseError(QObject::tr("At least one Shader is required for a valid Material"));
+
+    for (Q3DSMaterial::Shader &shader : effect.m_shaders)
+        combineShaderCode(&shader, sharedShaderCode, sharedVertexShaderCode, sharedFragmentShaderCode);
 }
 
 void Q3DSEffectParser::parsePasses(Q3DSEffect &effect)
@@ -185,7 +206,7 @@ void Q3DSEffectParser::parseShader(Q3DSEffect &effect)
 
 void Q3DSEffectParser::parsePass(Q3DSEffect &effect)
 {
-    Q3DSMaterial::Pass pass;
+    Q3DSMaterial::Pass pass; // sets defaults like [source], [dest], RGBA8, ...
     QXmlStreamReader *r = reader();
     for (auto attribute : r->attributes()) {
         if (attribute.name() == QStringLiteral("shader")) {
@@ -420,9 +441,8 @@ void Q3DSEffectParser::parseDataBuffer(Q3DSEffect &effect)
 
     // Adjust Size
     dataBuffer.setSize(dataBuffer.size() * getTypeSize(dataBuffer.format()));
-    if (dataBuffer.size() < 0)
+    if (dataBuffer.size() <= 0)
         dataBuffer.setSize(1.0f);
-
 
     // Make sure wrapName and name are not empty
     if (dataBuffer.wrapName().isEmpty() || dataBuffer.name().isEmpty())

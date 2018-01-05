@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<UIP version="3" >
+	<Project >
+		<ProjectSettings author="" company="" presentationWidth="1280" presentationHeight="720" maintainAspect="False" >
+			<CustomColors count="16" >#ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff</CustomColors>
+		</ProjectSettings>
+		<Classes >
+			<Effect id="Bloom" name="Bloom" sourcepath="Bloom.effect" />
+		</Classes>
+		<Graph >
+			<Scene id="Scene" >
+				<Layer id="Layer" >
+					<Camera id="Camera" />
+					<Light id="Light" />
+					<Model id="Cube" >
+						<Material id="Default" name="Default" />
+					</Model>
+					<Model id="Sphere" >
+						<Material id="Default_001" name="Default" />
+					</Model>
+					<Effect id="Bloom_001" class="#Bloom" />
+				</Layer>
+			</Scene>
+		</Graph>
+		<Logic >
+			<State name="Master Slide" component="#Scene" >
+				<Add ref="#Layer" />
+				<Add ref="#Camera" />
+				<Add ref="#Light" />
+				<State id="Scene-Slide1" name="Slide1" >
+					<Add ref="#Cube" name="Cube" position="-343.203 96.5458 0" rotation="-22.9052 -70.9856 10.3556" sourcepath="#Cube" >
+						<AnimationTrack property="rotation.x" type="EaseInOut" >0 -22.9052 100 100 10 -22.905 100 100</AnimationTrack>
+						<AnimationTrack property="rotation.y" type="EaseInOut" >0 -70.9856 100 100 10 200 100 100</AnimationTrack>
+						<AnimationTrack property="rotation.z" type="EaseInOut" >0 10.3556 100 100 10 10.356 100 100</AnimationTrack>
+					</Add>
+					<Add ref="#Default" />
+					<Add ref="#Sphere" name="Sphere" position="182.186 -32.7165 0" rotation="71.3254 -100.135 -168.32" scale="2.45138 1 1.78719" sourcepath="#Sphere" >
+						<AnimationTrack property="rotation.x" type="EaseInOut" >0 71.3254 100 100 10 71.325 100 100</AnimationTrack>
+						<AnimationTrack property="rotation.y" type="EaseInOut" >0 -100.135 100 100 10 300 100 100</AnimationTrack>
+						<AnimationTrack property="rotation.z" type="EaseInOut" >0 -168.32 100 100 10 -168.32 100 100</AnimationTrack>
+					</Add>
+					<Add ref="#Default_001" />
+					<Add ref="#Bloom_001" name="Bloom" Threshold="0.8" >
+						<AnimationTrack property="Threshold" type="EaseInOut" >0 0.8 100 100 5.58 0.1 100 100</AnimationTrack>
+					</Add>
+				</State>
+			</State>
+		</Logic>
+	</Project>
+</UIP>
