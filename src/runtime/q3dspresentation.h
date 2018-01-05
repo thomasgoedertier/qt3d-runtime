@@ -234,8 +234,10 @@ public:
     int addPropertyChangeObserver(PropertyChangeCallback callback);
     void removePropertyChangeObserver(int callbackId);
 
-    Q3DSGraphObjectAttached *attached() { return m_attached; }
-    const Q3DSGraphObjectAttached *attached() const { return m_attached; }
+    template <typename T = Q3DSGraphObjectAttached>
+    const T *attached() const { return static_cast<const T *>(m_attached); }
+    template <typename T = Q3DSGraphObjectAttached>
+    T *attached() { return static_cast<T *>(m_attached); }
     void setAttached(Q3DSGraphObjectAttached *attached_) { m_attached = attached_; }
 
     // for the built-in graph explorer
