@@ -274,6 +274,8 @@ public:
         Qt3DRender::QTexture2D *tempTexture = nullptr;
         Qt3DRender::QRenderTarget *tempRt = nullptr;
     } advBlend;
+
+    QVector<Q3DSEffectInstance *> effects;
 };
 
 Q_DECLARE_OPERATORS_FOR_FLAGS(Q3DSLayerAttached::SizeManagedTexture::Flags)
@@ -399,7 +401,7 @@ Q_DECLARE_TYPEINFO(Q3DSCustomMaterialAttached::Parameter, Q_MOVABLE_TYPE);
 class Q3DSEffectAttached : public Q3DSGraphObjectAttached
 {
 public:
-    Qt3DCore::QEntity *entity = nullptr;
+    Qt3DCore::QEntity *entity = nullptr; // for animations
 };
 
 class Q3DSSlideAttached : public Q3DSGraphObjectAttached
@@ -576,6 +578,8 @@ private:
                       QVector<Q3DSLightSource> *areaLights, QVector<Q3DSLightNode *> *lightNodes);
     void updateLightsBuffer(const QVector<Q3DSLightSource> &lights, Qt3DRender::QBuffer *uniformBuffer);
     void updateModel(Q3DSModelNode *model3DS);
+
+    void buildEffect(Q3DSEffectInstance *eff3DS, Q3DSLayerNode *layer3DS);
 
     void buildLayerQuadEntity(Q3DSLayerNode *layer3DS, Qt3DCore::QEntity *parentEntity, Qt3DRender::QLayer *tag,
                               BuildLayerQuadFlags flags, Qt3DRender::QRenderPass **renderPass);

@@ -2654,6 +2654,15 @@ void Q3DSSceneManager::updateProgressiveAA(Q3DSLayerNode *layer3DS)
     ++data->progAA.pass;
 }
 
+void Q3DSSceneManager::buildEffect(Q3DSEffectInstance *eff3DS, Q3DSLayerNode *layer3DS)
+{
+    Q3DSLayerAttached *layerData = static_cast<Q3DSLayerAttached *>(layer3DS->attached());
+    Q3DSEffectAttached *effData = new Q3DSEffectAttached;
+    effData->entity = layerData->entity;
+    eff3DS->setAttached(effData);
+    layerData->effects.append(eff3DS);
+}
+
 static void setLayerBlending(Qt3DRender::QBlendEquation *blendFunc,
                              Qt3DRender::QBlendEquationArguments *blendArgs,
                              Q3DSLayerNode *layer3DS)
@@ -3086,6 +3095,10 @@ void Q3DSSceneManager::buildLayerScene(Q3DSGraphObject *obj, Q3DSLayerNode *laye
     if (!obj->isNode()) {
         obj->addPropertyChangeObserver(std::bind(&Q3DSSceneManager::handlePropertyChange, this,
                                                  std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
+
+        if (obj->type() == Q3DSGraphObject::Effect)
+            buildEffect(static_cast<Q3DSEffectInstance *>(obj), layer3DS);
+
         return;
     }
 
