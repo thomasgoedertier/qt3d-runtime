@@ -331,15 +331,11 @@ Shader parserShaderElement(QXmlStreamReader *r)
         } else if (r->name() == QStringLiteral("VertexShader")) {
             if ( r->readNext() == QXmlStreamReader::Characters) {
                 shader.vertexShader = r->text().toString().trimmed();
-                if (shader.vertexShader.isEmpty())
-                    shader.vertexShader = QLatin1String("void vert(){}\n");
                 r->skipCurrentElement();
             }
         } else if (r->name() == QStringLiteral("FragmentShader")) {
             if ( r->readNext() == QXmlStreamReader::Characters) {
                 shader.fragmentShader = r->text().toString().trimmed();
-                if (shader.fragmentShader.isEmpty())
-                    shader.fragmentShader = QLatin1String("void frag(){}\n");
                 r->skipCurrentElement();
             }
         } else if (r->name() == QStringLiteral("GeometryShader")) {
@@ -351,6 +347,13 @@ Shader parserShaderElement(QXmlStreamReader *r)
             r->skipCurrentElement();
         }
     }
+
+    if (shader.vertexShader.isEmpty())
+        shader.vertexShader = QLatin1String("void vert(){}\n");
+
+    if (shader.fragmentShader.isEmpty())
+        shader.fragmentShader = QLatin1String("void frag(){}\n");
+
     return shader;
 }
 

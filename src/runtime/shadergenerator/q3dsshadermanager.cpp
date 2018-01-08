@@ -850,6 +850,28 @@ Qt3DRender::QShaderProgram *Q3DSShaderManager::getBlendColorDodgeShader(Qt3DCore
     return prog;
 }
 
+Qt3DRender::QShaderProgram *Q3DSShaderManager::getEffectShader(Qt3DCore::QNode *parent,
+                                                               const QString &name,
+                                                               const QString &vertexShaderSrc,
+                                                               const QString &fragmentShaderSrc)
+{
+    // No cache on this level. m_shaderProgramGenerator has one.
+
+    m_shaderProgramGenerator->beginProgram();
+    Q3DSAbstractShaderStageGenerator *vertexShader = m_shaderProgramGenerator->getStage(Q3DSShaderGeneratorStages::Vertex);
+    Q3DSAbstractShaderStageGenerator *fragmentShader = m_shaderProgramGenerator->getStage(Q3DSShaderGeneratorStages::Fragment);
+
+    vertexShader->append("\n#define VERTEX_SHADER\n#include \"effect.glsllib\"\n");
+    vertexShader->append(vertexShaderSrc.toUtf8().constData());
+
+    fragmentShader->append("\n#define FRAGMENT_SHADER\n#include \"effect.glsllib\"\n");
+    fragmentShader->append(fragmentShaderSrc.toUtf8().constData());
+
+    Qt3DRender::QShaderProgram *prog = m_shaderProgramGenerator->compileGeneratedShader(name, Q3DSShaderFeatureSet());
+    prog->setParent(parent);
+    return prog;
+}
+
 Q3DSShaderManager::Q3DSShaderManager()
     : m_materialShaderGenerator(&Q3DSDefaultMaterialShaderGenerator::createDefaultMaterialShaderGenerator())
     , m_customMaterialShaderGenerator(&Q3DSCustomMaterialShaderGenerator::createCustomMaterialShaderGenerator())

@@ -183,6 +183,7 @@ public:
     QVector<SizeManagedTexture> sizeManagedTextures;
     QVector<SizeChangeCallback> layerSizeChangeCallbacks;
     Qt3DRender::QAbstractTexture *layerTexture = nullptr;
+    Qt3DRender::QAbstractTexture *effLayerTexture = nullptr;
     Qt3DRender::QAbstractTexture *layerDS = nullptr;
     Qt3DRender::QParameter *compositorSourceParam = nullptr;
     std::function<void()> updateCompositorCalculations = nullptr;
@@ -275,7 +276,10 @@ public:
         Qt3DRender::QRenderTarget *tempRt = nullptr;
     } advBlend;
 
-    QVector<Q3DSEffectInstance *> effects;
+    struct EffectData {
+        Qt3DRender::QFrameGraphNode *effectRoot = nullptr;
+        QVector<Q3DSEffectInstance *> effects;
+    } effectData;
 };
 
 Q_DECLARE_OPERATORS_FOR_FLAGS(Q3DSLayerAttached::SizeManagedTexture::Flags)
@@ -379,29 +383,37 @@ public:
     Q3DSTextureParameters translucencyMapParams;
 };
 
+struct Q3DSCustomPropertyParameter {
+    Q3DSCustomPropertyParameter(Qt3DRender::QParameter *param_, const QVariant &value, const Q3DSMaterial::PropertyElement &meta_)
+        : param(param_),
+          inputValue(value),
+          meta(meta_)
+    { }
+    Q3DSCustomPropertyParameter() { }
+    Qt3DRender::QParameter *param = nullptr;
+    QVariant inputValue; // e.g. Texture: inputValue is a string whereas param->value is a QAbstractTexture*
+    Q3DSMaterial::PropertyElement meta;
+};
+
+Q_DECLARE_TYPEINFO(Q3DSCustomPropertyParameter, Q_MOVABLE_TYPE);
+
 class Q3DSCustomMaterialAttached : public Q3DSMaterialAttached
 {
 public:
-    struct Parameter {
-        Parameter(Qt3DRender::QParameter *param_, const QVariant &value, const Q3DSMaterial::PropertyElement &meta_)
-            : param(param_),
-              inputValue(value),
-              meta(meta_)
-        { }
-        Parameter() { }
-        Qt3DRender::QParameter *param = nullptr;
-        QVariant inputValue; // e.g. Texture: inputValue is a string whereas param->value is a QAbstractTexture*
-        Q3DSMaterial::PropertyElement meta;
-    };
-    QHash<QString, Parameter> params;
+    QHash<QString, Q3DSCustomPropertyParameter> params;
 };
-
-Q_DECLARE_TYPEINFO(Q3DSCustomMaterialAttached::Parameter, Q_MOVABLE_TYPE);
 
 class Q3DSEffectAttached : public Q3DSGraphObjectAttached
 {
 public:
     Qt3DCore::QEntity *entity = nullptr; // for animations
+    Q3DSLayerNode *layer3DS = nullptr;
+    Qt3DRender::QLayer *quadEntityTag = nullptr;
+    QHash<QString, Q3DSCustomPropertyParameter> params;
+    Qt3DRender::QParameter *texture0Param = nullptr;
+    Qt3DRender::QParameter *texture0InfoParam = nullptr;
+    Qt3DRender::QParameter *fragColorAlphaParam = nullptr;
+    Qt3DRender::QParameter *destSizeParam = nullptr;
 };
 
 class Q3DSSlideAttached : public Q3DSGraphObjectAttached
@@ -568,18 +580,19 @@ private:
     void retagSubMeshes(Q3DSModelNode *model3DS);
     void prepareTextureParameters(Q3DSTextureParameters &textureParameters, const QString &name, Q3DSImage *image3DS);
     QVector<Qt3DRender::QParameter *> prepareDefaultMaterial(Q3DSDefaultMaterial *m, Q3DSModelNode *model3DS);
-    Qt3DRender::QAbstractTexture *createCustomMaterialTexture(const Q3DSCustomMaterialAttached::Parameter &p);
+    Qt3DRender::QAbstractTexture *createCustomPropertyTexture(const Q3DSCustomPropertyParameter &p);
     QVector<Qt3DRender::QParameter *> prepareCustomMaterial(Q3DSCustomMaterialInstance *m, Q3DSModelNode *model3DS);
     void setImageTextureFromSubPresentation(Qt3DRender::QParameter *sampler, Q3DSImage *image);
     void updateTextureParameters(Q3DSTextureParameters &textureParameters, Q3DSImage *image);
     void updateDefaultMaterial(Q3DSDefaultMaterial *m);
     void updateCustomMaterial(Q3DSCustomMaterialInstance *m);
+    void buildEffect(Q3DSEffectInstance *eff3DS, Q3DSLayerNode *layer3DS);
+    void finalizeEffects(Q3DSLayerNode *layer3DS);
+    void updateEffect(Q3DSEffectInstance *eff3DS);
     void gatherLights(Q3DSGraphObject *root, QVector<Q3DSLightSource> *allLights, QVector<Q3DSLightSource> *nonAreaLights,
                       QVector<Q3DSLightSource> *areaLights, QVector<Q3DSLightNode *> *lightNodes);
     void updateLightsBuffer(const QVector<Q3DSLightSource> &lights, Qt3DRender::QBuffer *uniformBuffer);
     void updateModel(Q3DSModelNode *model3DS);
-
-    void buildEffect(Q3DSEffectInstance *eff3DS, Q3DSLayerNode *layer3DS);
 
     void buildLayerQuadEntity(Q3DSLayerNode *layer3DS, Qt3DCore::QEntity *parentEntity, Qt3DRender::QLayer *tag,
                               BuildLayerQuadFlags flags, Qt3DRender::QRenderPass **renderPass);
@@ -589,7 +602,8 @@ private:
     void buildFsQuad(Qt3DCore::QEntity *parentEntity,
                      const QStringList &passNames,
                      const QVector<Qt3DRender::QShaderProgram *> &passProgs,
-                     Qt3DRender::QLayer *tag);
+                     Qt3DRender::QLayer *tag,
+                     const QVector<Qt3DRender::QParameter *> &params);
 
     void handlePropertyChange(Q3DSGraphObject *obj, const QSet<QString> &keys, int changeFlags);
     void updateNodeFromChangeFlags(Q3DSNode *node, Qt3DCore::QTransform *transform, int changeFlags);

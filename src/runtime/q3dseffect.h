@@ -46,6 +46,8 @@ public:
     const QMap<QString, Q3DSMaterial::PassBuffer>& buffers() const;
     const QVector<Q3DSMaterial::Pass> &passes() const;
 
+    QString addPropertyUniforms(const QString &shaderSrc) const;
+
 private:
     QMap<QString, Q3DSMaterial::PropertyElement> m_properties;
 

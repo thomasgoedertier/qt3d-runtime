@@ -79,11 +79,12 @@ vec4 GetTextureValuePreMult( sampler2D sampler, vec2 inUVCoords )
 
 #ifdef VERTEX_SHADER
 // Attributes and uniforms used throughout the system.
-attribute vec3 attr_pos;
-attribute vec2 attr_uv;
+// NB! Matches Qt3D.
+attribute vec3 vertexPosition;
+attribute vec2 vertexTexCoord;
+uniform mat4 modelMatrix;
 #endif
 
-uniform mat4 ModelViewProjectionMatrix;
 //x holds the texture width, y holds the texture height
 //z holds 0,1 value if it should be premultiplied
 uniform vec4 Texture0Info;
@@ -92,11 +93,6 @@ uniform sampler2D Texture0;
 varying vec2 TexCoord;
 uniform vec2 FragColorAlphaSettings; //x > 0.0 premultiply result, y is an alpha multiplier (opacity setting)
 
-vec4 Transform( mat4 ModelViewProjectionMatrix, vec2 inDestSize, vec4 inVertex )
-{
-    vec4 temp = ModelViewProjectionMatrix * vec4( inDestSize.x * .5 * inVertex.x, inDestSize.y * .5  * inVertex.y, inVertex.z, inVertex.w );
-    return temp;
-}
 ////////////////////////////////////////////////////////////
 // provide the texture lookup functions for the default
 // texture (Texture0).
@@ -127,8 +123,8 @@ void colorOutput(vec4 c)
 void vert();
 void main()
 {
-    gl_Position = Transform( ModelViewProjectionMatrix, DestSize, vec4(attr_pos, 1.0) );
-    TexCoord = attr_uv;
+    gl_Position = modelMatrix * vec4(vertexPosition, 1.0);
+    TexCoord = vertexTexCoord;
     vert();
 }
 

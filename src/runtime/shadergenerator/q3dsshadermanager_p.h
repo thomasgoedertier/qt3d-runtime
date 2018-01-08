@@ -95,6 +95,11 @@ public:
     Qt3DRender::QShaderProgram *getBlendColorBurnShader(Qt3DCore::QNode *parent, int msaaSampleCount);
     Qt3DRender::QShaderProgram *getBlendColorDodgeShader(Qt3DCore::QNode *parent, int msaaSampleCount);
 
+    Qt3DRender::QShaderProgram *getEffectShader(Qt3DCore::QNode *parent,
+                                                const QString &name,
+                                                const QString &vertexShaderSrc,
+                                                const QString &fragmentShaderSrc);
+
 private:
     Q3DSShaderManager();
 

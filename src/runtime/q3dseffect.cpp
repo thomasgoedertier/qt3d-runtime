@@ -62,6 +62,50 @@ const QVector<Q3DSMaterial::Pass> &Q3DSEffect::passes() const
     return m_passes;
 }
 
+QString Q3DSEffect::addPropertyUniforms(const QString &shaderSrc) const
+{
+    QString s;
+
+    auto addUniform = [&s](const char *type, const QString &name) {
+        s += QLatin1String("uniform ") + QString::fromUtf8(type) + QLatin1Char(' ') + name + QLatin1String(";\n");
+    };
+
+    for (const Q3DSMaterial::PropertyElement &prop : m_properties) {
+        switch (prop.type) {
+        case Q3DS::Float:
+            addUniform("float", prop.name);
+            break;
+        case Q3DS::Boolean:
+            addUniform("bool", prop.name);
+            break;
+        case Q3DS::Long:
+            addUniform("int", prop.name);
+            break;
+        case Q3DS::Float2:
+            addUniform("vec2", prop.name);
+            break;
+        case Q3DS::Vector:
+        case Q3DS::Scale:
+        case Q3DS::Rotation:
+        case Q3DS::Color:
+            addUniform("vec3", prop.name);
+            break;
+        case Q3DS::Texture:
+            addUniform("sampler2D", prop.name);
+            break;
+
+        // ### there could be more that needs handling here (Buffer?)
+
+        default:
+            qWarning("Effect property %s has unsupported type; ignored", qPrintable(prop.name));
+            break;
+        }
+    }
+
+    s += shaderSrc;
+    return s;
+}
+
 Q3DSEffect Q3DSEffectParser::parse(const QString &filename, bool *ok)
 {
     if (!setSource(filename)) {
