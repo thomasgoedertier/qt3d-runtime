@@ -751,29 +751,6 @@ void Q3DSSceneManager::finalizeMainScene(const QVector<Q3DSSubPresentation> &sub
         setImageTextureFromSubPresentation(p.first, p.second);
 }
 
-// layers use the first Active (eyeball on) camera for rendering
-static Q3DSCameraNode *findFirstCamera(Q3DSLayerNode *layer3DS)
-{
-    // Pick the first active camera encountered when walking depth-first.
-    std::function<Q3DSCameraNode *(Q3DSGraphObject *)> f;
-    f = [&f](Q3DSGraphObject *obj) -> Q3DSCameraNode* {
-        while (obj) {
-            if (obj->type() == Q3DSGraphObject::Camera) {
-                Q3DSCameraNode *cam = static_cast<Q3DSCameraNode *>(obj);
-                // ### should use globalVisibility (which is only set in buildLayerCamera first...)
-                const bool active = cam->flags().testFlag(Q3DSNode::Active);
-                if (active)
-                    return cam;
-            }
-            if (Q3DSCameraNode *c = f(obj->firstChild()))
-                return c;
-            obj = obj->nextSibling();
-        }
-        return nullptr;
-    };
-    return f(layer3DS->firstChild());
-}
-
 static Qt3DRender::QSortPolicy *opaquePassSortPolicy(Qt3DCore::QNode *parent = nullptr)
 {
     Qt3DRender::QSortPolicy *sortPolicy = new Qt3DRender::QSortPolicy(parent);
@@ -929,11 +906,6 @@ void Q3DSSceneManager::buildLayer(Q3DSLayerNode *layer3DS,
     viewport->setNormalizedRect(QRectF(0, 0, 1, 1));
 
     Qt3DRender::QCameraSelector *cameraSelector = new Qt3DRender::QCameraSelector(viewport);
-    // pick and build the camera; will insert the new QCamera into the entity hierarchy later
-    Qt3DRender::QCamera *camera = nullptr;
-    Q3DSCameraNode *cam3DS = chooseLayerCamera(layer3DS, &camera);
-    cameraSelector->setCamera(camera);
-
     Qt3DRender::QTechniqueFilter *mainTechniqueSelector = new Qt3DRender::QTechniqueFilter(cameraSelector);
     Qt3DRender::QFilterKey *techniqueFilterKey = new Qt3DRender::QFilterKey;
     techniqueFilterKey->setName(QLatin1String("type"));
@@ -1010,47 +982,32 @@ void Q3DSSceneManager::buildLayer(Q3DSLayerNode *layer3DS,
     Qt3DRender::QFrameGraphNode *effectRoot = new Qt3DRender::QFrameGraphNode(mainTechniqueSelector);
     new Qt3DRender::QNoDraw(effectRoot);
 
-    Q3DSLayerAttached *data = new Q3DSLayerAttached;
-    data->entity = m_rootEntity; // must set an entity to to make Q3DSLayerNode properties animatable, just use the root
-    data->layer3DS = layer3DS;
-    data->layerFgRoot = layerFgRoot;
-    data->cam3DS = cam3DS;
-    data->cameraSelector = cameraSelector;
-    data->clearBuffers = clearBuffers;
-    data->rtSelector = rtSelector;
-    data->layerTexture = colorTex;
-    data->layerDS = dsTexOrRb;
-    data->compositorSourceParam = new Qt3DRender::QParameter(QLatin1String("tex"), data->layerTexture);
-    data->layerSize = layerSize;
-    data->parentSize = parentSize;
-    data->msaaSampleCount = msaaSampleCount;
-    data->ssaaScaleFactor = ssaaScaleFactor;
-    data->opaqueTag = opaqueTag;
-    data->transparentTag = transparentTag;
-    data->cameraPropertiesParam = new Qt3DRender::QParameter(QLatin1String("camera_properties"), QVector2D(10, 5000), m_rootEntity);
-    if (cam3DS)
-        data->cameraPropertiesParam->setValue(QVector2D(cam3DS->clipNear(), cam3DS->clipFar()));
-
-    data->depthTextureData.rtSelector = depthRtSelector;
-    data->ssaoTextureData.rtSelector = ssaoRtSelector;
-    data->shadowMapData.shadowRoot = shadowRoot;
-    data->effectData.effectRoot = effectRoot;
+    Q3DSLayerAttached *layerData = new Q3DSLayerAttached;
+    layerData->entity = m_rootEntity; // must set an entity to to make Q3DSLayerNode properties animatable, just use the root
+    layerData->layer3DS = layer3DS;
+    layerData->layerFgRoot = layerFgRoot;
+    layerData->cameraSelector = cameraSelector;
+    layerData->clearBuffers = clearBuffers;
+    layerData->rtSelector = rtSelector;
+    layerData->layerTexture = colorTex;
+    layerData->layerDS = dsTexOrRb;
+    layerData->compositorSourceParam = new Qt3DRender::QParameter(QLatin1String("tex"), layerData->layerTexture);
+    layerData->layerSize = layerSize;
+    layerData->parentSize = parentSize;
+    layerData->msaaSampleCount = msaaSampleCount;
+    layerData->ssaaScaleFactor = ssaaScaleFactor;
+    layerData->opaqueTag = opaqueTag;
+    layerData->transparentTag = transparentTag;
+    layerData->cameraPropertiesParam = new Qt3DRender::QParameter(QLatin1String("camera_properties"), QVector2D(10, 5000), m_rootEntity);
+    layerData->depthTextureData.rtSelector = depthRtSelector;
+    layerData->ssaoTextureData.rtSelector = ssaoRtSelector;
+    layerData->shadowMapData.shadowRoot = shadowRoot;
+    layerData->effectData.effectRoot = effectRoot;
 
     // textures that are resized automatically to match the layer's dimensions
-    data->sizeManagedTextures << colorTex << dsTexOrRb;
+    layerData->sizeManagedTextures << colorTex << dsTexOrRb;
 
-    layer3DS->setAttached(data);
-
-    // may not have a valid size yet
-    if (!data->layerSize.isEmpty()) {
-        setLayerCameraSizeProperties(layer3DS);
-        setLayerSizeProperties(layer3DS);
-    }
-
-    setLayerProperties(layer3DS);
-
-    layer3DS->addPropertyChangeObserver(std::bind(&Q3DSSceneManager::handlePropertyChange, this,
-                                                  std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
+    layer3DS->setAttached(layerData);
 
     // Now add the scene contents.
     Q3DSGraphObject *obj = layer3DS->firstChild();
@@ -1066,12 +1023,20 @@ void Q3DSSceneManager::buildLayer(Q3DSLayerNode *layer3DS,
         obj = obj->nextSibling();
     }
 
+    // Find the active camera for this layer and set it up
+    setActiveLayerCamera(findFirstCamera(layer3DS), layer3DS);
+
+    setLayerProperties(layer3DS);
+
+    layer3DS->addPropertyChangeObserver(std::bind(&Q3DSSceneManager::handlePropertyChange, this,
+                                                  std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
+
     // Phase 2: deferred stuff
 
     // Gather lights for this layer.
-    gatherLights(layer3DS, &data->allLights, &data->nonAreaLights, &data->areaLights, &data->lightNodes);
+    gatherLights(layer3DS, &layerData->allLights, &layerData->nonAreaLights, &layerData->areaLights, &layerData->lightNodes);
     qCDebug(lcScene, "Layer %s has %d lights in total (%d non-area, %d area)", layer3DS->id().constData(),
-            data->allLights.count(), data->nonAreaLights.count(), data->areaLights.count());
+            layerData->allLights.count(), layerData->nonAreaLights.count(), layerData->areaLights.count());
     updateShadowMapStatus(layer3DS); // must be done before generating materials below
 
     // Enable SSAO (and depth texture generation) when needed. Must be done
@@ -1085,9 +1050,6 @@ void Q3DSSceneManager::buildLayer(Q3DSLayerNode *layer3DS,
 
     // Set up effects.
     finalizeEffects(layer3DS);
-
-    // Make sure the QCamera we will use is parented correctly.
-    reparentCamera(layer3DS);
 }
 
 Qt3DRender::QTexture2D *Q3DSSceneManager::dummyTexture()
@@ -1147,29 +1109,6 @@ void Q3DSSceneManager::buildSubPresentationLayer(Q3DSLayerNode *layer3DS, const 
     layer3DS->setAttached(data);
 
     setLayerProperties(layer3DS);
-}
-
-void Q3DSSceneManager::reparentCamera(Q3DSLayerNode *layer3DS)
-{
-    // Insert the active QCamera into the hierarchy. This matters when the
-    // Q3DSCameraNode is a child and so the QCamera' viewMatrix is expected to
-    // get multiplied with the parent's worldTransform. Qt 3D handles this, but
-    // for that we have to parent the QCamera correctly.
-    //
-    // (NB! applying a rotation on a parent node is not the same as rotating
-    // the camera itself via its rotation property since the former multiplies
-    // the lookAt matrix with a rotation matrix whereas the latter recalculates
-    // the lookAt transform with new parameters)
-
-    Q3DSLayerAttached *layerData = static_cast<Q3DSLayerAttached *>(layer3DS->attached());
-    if (layerData->cam3DS && layerData->cam3DS->parent()) {
-        Q3DSGraphObject *obj = layerData->cam3DS->parent();
-        if (obj->isNode()) {
-            Q3DSNodeAttached *data = static_cast<Q3DSNodeAttached *>(obj->attached());
-            if (data && data->entity)
-                layerData->cameraSelector->camera()->setParent(data->entity);
-        }
-    }
 }
 
 static void addDepthTest(Qt3DRender::QRenderPass *pass, Qt3DRender::QDepthTest::DepthFunction depthFunction = Qt3DRender::QDepthTest::LessOrEqual)
@@ -1559,39 +1498,20 @@ void Q3DSSceneManager::setLayerProperties(Q3DSLayerNode *layer3DS)
         data->compositorEntity->setEnabled(layer3DS->flags().testFlag(Q3DSNode::Active));
 }
 
-Q3DSCameraNode *Q3DSSceneManager::chooseLayerCamera(Q3DSLayerNode *layer3DS, Qt3DRender::QCamera **camera)
+Qt3DRender::QCamera *Q3DSSceneManager::buildCamera(Q3DSCameraNode *cam3DS, Q3DSLayerNode *layer3DS, Qt3DCore::QEntity *parent)
 {
-    Q3DSCameraNode *cam3DS = findFirstCamera(layer3DS);
-    qCDebug(lcScene, "Layer %s uses camera %s", layer3DS->id().constData(), cam3DS ? cam3DS->id().constData() : "null");
-    *camera = buildLayerCamera(layer3DS, cam3DS);
-    return cam3DS;
-}
-
-Qt3DRender::QCamera *Q3DSSceneManager::buildLayerCamera(Q3DSLayerNode *layer3DS, Q3DSCameraNode *camNode)
-{
-    Qt3DRender::QCamera *camera = new Qt3DRender::QCamera;
-    // do not set aspect ratio yet
-    if (camNode) {
-        camera->setObjectName(QObject::tr("camera %1 for %2").arg(QString::fromUtf8(camNode->id())).arg(QString::fromUtf8(layer3DS->id())));
-        Q3DSCameraAttached *data = new Q3DSCameraAttached;
-        data->transform = new Qt3DCore::QTransform;
-        data->camera = camera;
-        data->layer3DS = layer3DS;
-        camNode->setAttached(data);
-        // make sure data->entity, globalTransform, etc. are usable
-        setNodeProperties(camNode, camera, data->transform, NodePropUpdateAttached);
-        setCameraProperties(camNode, Q3DSPropertyChangeList::ALL_CHANGE_FLAGS);
-        camNode->addPropertyChangeObserver(std::bind(&Q3DSSceneManager::handlePropertyChange, this,
-                                                     std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
-    } else {
-        camera->setProjectionType(Qt3DRender::QCameraLens::PerspectiveProjection);
-        camera->setFieldOfView(60);
-        camera->setPosition(QVector3D(0, 0, -600));
-        camera->setViewCenter(QVector3D(0, 0, 0));
-        camera->setNearPlane(10);
-        camera->setFarPlane(5000);
-    }
-
+    Qt3DRender::QCamera *camera = new Qt3DRender::QCamera(parent);
+    camera->setObjectName(QObject::tr("camera %1 for %2").arg(QString::fromUtf8(cam3DS->id())).arg(QString::fromUtf8(layer3DS->id())));
+    Q3DSCameraAttached *data = new Q3DSCameraAttached;
+    data->transform = new Qt3DCore::QTransform;
+    data->camera = camera;
+    data->layer3DS = layer3DS;
+    cam3DS->setAttached(data);
+    // make sure data->entity, globalTransform, etc. are usable
+    setNodeProperties(cam3DS, camera, data->transform, NodePropUpdateAttached);
+    setCameraProperties(cam3DS, Q3DSPropertyChangeList::ALL_CHANGE_FLAGS);
+    cam3DS->addPropertyChangeObserver(std::bind(&Q3DSSceneManager::handlePropertyChange, this,
+                                                 std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
     return camera;
 }
 
@@ -1668,6 +1588,83 @@ void Q3DSSceneManager::setCameraProperties(Q3DSCameraNode *camNode, int changeFl
     rotZ.rotate(camNode->rotation().z(), 0, 0, -lhFactor);
     upVec = rotZ * upVec;
     camera->setUpVector(upVec);
+}
+
+// Returns true if the camera actually changed
+bool Q3DSSceneManager::setActiveLayerCamera(Q3DSCameraNode *camara3DS, Q3DSLayerNode *layer3DS)
+{
+    Q3DSLayerAttached *layerData = static_cast<Q3DSLayerAttached *>(layer3DS->attached());
+    if (layerData->cam3DS != camara3DS) {
+        layerData->cam3DS = camara3DS;
+        if (camara3DS) {
+            Q3DSCameraAttached *activeCameraData = static_cast<Q3DSCameraAttached *>(camara3DS->attached());
+            layerData->cameraSelector->setCamera(activeCameraData->camera);
+        } else {
+            layerData->cameraSelector->setCamera(nullptr);
+        }
+
+        if (camara3DS) {
+            setCameraProperties(camara3DS, Q3DSPropertyChangeList::ALL_CHANGE_FLAGS);
+            layerData->cameraPropertiesParam->setValue(QVector2D(camara3DS->clipNear(), camara3DS->clipFar()));
+        }
+
+
+        // may not have a valid size yet
+        if (!layerData->layerSize.isEmpty()) {
+            setLayerCameraSizeProperties(layer3DS);
+            setLayerSizeProperties(layer3DS);
+        }
+
+        layerData->wasDirty = true;
+
+        qCDebug(lcScene, "Layer %s uses camera %s", layer3DS->id().constData(), camara3DS ? camara3DS->id().constData() : "null");
+        return true;
+    }
+    return false;
+}
+
+void Q3DSSceneManager::updateLayerCamera(Q3DSLayerNode *layer3DS)
+{
+    if (setActiveLayerCamera(findFirstCamera(layer3DS), layer3DS)) {
+        // Camera has changed -> trigger a property value update
+        // for effects since they may rely on the camera clip range.
+        auto layerData = static_cast<Q3DSLayerAttached *>(layer3DS->attached());
+        for (Q3DSEffectInstance *eff3DS : layerData->effectData.effects)
+            updateEffect(eff3DS);
+    }
+}
+
+// layers use the first Active (eyeball on) camera for rendering
+Q3DSCameraNode *Q3DSSceneManager::findFirstCamera(Q3DSLayerNode *layer3DS)
+{
+    // Pick the first active camera encountered when walking depth-first.
+    std::function<Q3DSCameraNode *(Q3DSGraphObject *)> f;
+    f = [&f,this](Q3DSGraphObject *obj) -> Q3DSCameraNode* {
+        while (obj) {
+            if (obj->type() == Q3DSGraphObject::Camera) {
+                Q3DSCameraNode *cam = static_cast<Q3DSCameraNode *>(obj);
+                // ### should use globalVisibility (which is only set in buildLayerCamera first...)
+                const bool active = cam->flags().testFlag(Q3DSNode::Active);;
+                if (active) {
+                    // Check if camera is on the current slide
+                    Q3DSNodeAttached *nodeData = static_cast<Q3DSNodeAttached *>(obj->attached());
+                    Q3DSComponentNode *component = nullptr;
+                    if (nodeData && nodeData->component)
+                        component = nodeData->component;
+                    // Check that object exists current slide scope (master + current)
+                    Q3DSSlide *master = component ? component->masterSlide () : m_masterSlide;
+                    Q3DSSlide *currentSlide = component ? component->currentSlide() : m_currentSlide;
+                    if ((master->objects()->contains(cam) || currentSlide->objects()->contains(cam)) && isComponentVisible(component))
+                        return cam;
+                }
+            }
+            if (Q3DSCameraNode *c = f(obj->firstChild()))
+                return c;
+            obj = obj->nextSibling();
+        }
+        return nullptr;
+    };
+    return f(layer3DS->firstChild());
 }
 
 static void prepareSizeDependentTexture(Qt3DRender::QAbstractTexture *texture,
@@ -3189,8 +3186,11 @@ void Q3DSSceneManager::buildLayerScene(Q3DSGraphObject *obj, Q3DSLayerNode *laye
         m_componentNodeStack.pop();
     }
         break;
-
-    default: // ignore Camera here
+    case Q3DSGraphObject::Camera:
+        newEntity = buildCamera(static_cast<Q3DSCameraNode *>(obj), layer3DS, parent);
+        addChildren(obj, newEntity);
+        break;
+    default:
         break;
     }
     auto nodeData = static_cast<Q3DSNodeAttached*>(obj->attached());
@@ -3311,7 +3311,6 @@ void Q3DSSceneManager::updateGlobals(Q3DSNode *node, UpdateGlobalFlags flags)
     Q3DSNodeAttached *data = static_cast<Q3DSNodeAttached *>(node->attached());
     if (!data)
         return;
-
     Q3DSNodeAttached *parentData = node->parent()->isNode()
             ? static_cast<Q3DSNodeAttached *>(node->parent()->attached()) : nullptr;
 
@@ -5487,16 +5486,9 @@ void Q3DSSceneManager::updateSubTreeRecursive(Q3DSGraphObject *obj)
         if (data) {
             updateNodeFromChangeFlags(cam3DS, data->transform, data->changeFlags);
             if (data->dirty & Q3DSGraphObjectAttached::CameraDirty) {
+                // Change the camera if necessary
                 if (data->changeFlags.testFlag(Q3DSPropertyChangeList::EyeballChanges)) {
-                    cam3DS = chooseLayerCamera(data->layer3DS, &data->camera);
-                    Q3DSLayerAttached *layerData = static_cast<Q3DSLayerAttached *>(data->layer3DS->attached());
-                    layerData->cam3DS = cam3DS;
-                    layerData->cameraSelector->setCamera(data->camera);
-                    reparentCamera(data->layer3DS);
-                    // Camera has changed -> trigger a property value update
-                    // for effects since they may rely on the camera clip range.
-                    for (Q3DSEffectInstance *eff3DS : layerData->effectData.effects)
-                        updateEffect(eff3DS);
+                    updateLayerCamera(data->layer3DS);
                 }
                 setCameraProperties(cam3DS, data->changeFlags); // handles both Node- and Camera-level properties
                 setLayerCameraSizeProperties(data->layer3DS);

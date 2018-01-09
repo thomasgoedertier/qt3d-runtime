@@ -1,0 +1,154 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<UIP version="3" >
+	<Project >
+		<ProjectSettings author="" company="" presentationWidth="1920" presentationHeight="1080" maintainAspect="False" >
+			<CustomColors count="16" >#ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff</CustomColors>
+		</ProjectSettings>
+		<Graph >
+			<Scene id="Scene" >
+				<Layer id="Layer" >
+					<Camera id="Camera" >
+						<Model id="Sphere" >
+							<Material id="Default_008" name="Default" />
+							<Model id="moon" >
+								<Material id="Default_009" name="Default" />
+							</Model>
+						</Model>
+					</Camera>
+					<Light id="Light" />
+					<Group id="ArrowUp" >
+						<Model id="Cone" >
+							<Material id="Default" name="Default" />
+						</Model>
+						<Model id="Cylinder" >
+							<Material id="Default_001" name="Default" />
+						</Model>
+						<Camera id="Camera_001" />
+					</Group>
+					<Group id="ArrowForward" >
+						<Model id="Cone_001" >
+							<Material id="Default_002" name="Default" />
+						</Model>
+						<Model id="Cylinder_001" >
+							<Material id="Default_003" name="Default" />
+						</Model>
+					</Group>
+					<Group id="ArrowDown" >
+						<Model id="Cone_002" >
+							<Material id="Default_004" name="Default" />
+						</Model>
+						<Model id="Cylinder_002" >
+							<Material id="Default_005" name="Default" />
+						</Model>
+					</Group>
+					<Group id="ArrowBackwards" >
+						<Model id="Cone_003" >
+							<Material id="Default_006" name="Default" />
+						</Model>
+						<Model id="Cylinder_003" >
+							<Material id="Default_007" name="Default" />
+						</Model>
+					</Group>
+					<Light id="Light2" />
+					<Group id="Orbiter" >
+						<Camera id="Camera_002" />
+					</Group>
+					<Group id="Orbitor2" >
+						<Model id="Cube" >
+							<Material id="Default_010" name="Default" />
+							<Camera id="Camera_003" >
+								<Model id="CameraMoon" >
+									<Material id="Default_011" name="Default" />
+								</Model>
+							</Camera>
+						</Model>
+					</Group>
+					<Component id="Component" >
+						<Camera id="Camera_004" />
+					</Component>
+				</Layer>
+			</Scene>
+		</Graph>
+		<Logic >
+			<State name="Master Slide" component="#Scene" >
+				<Add ref="#Layer" />
+				<Add ref="#Camera" name="CameraForward" />
+				<Add ref="#Light" name="Light1" lightambient="0.168627 0.164706 0.160784" lightdiffuse="1 1 0.964706" />
+				<Add ref="#ArrowUp" name="ArrowUp" position="-393.171 121.883 0" />
+				<Add ref="#Cone" name="Cone" position="0 0 0" sourcepath="#Cone" />
+				<Add ref="#Default" diffuse="0 1 0" />
+				<Add ref="#Cylinder" name="Cylinder" position="0 -97.5005 0" scale="0.5 2 0.5" sourcepath="#Cylinder" />
+				<Add ref="#Default_001" diffuse="0 1 0" />
+				<Add ref="#Camera_001" name="ChildCamera" position="0 98.234 0" rotation="26 90 0" />
+				<Add ref="#ArrowForward" name="ArrowForward" position="-138.558 0 0" rotation="90 0 0" />
+				<Add ref="#Cone_001" name="Cone" position="0 0 0" sourcepath="#Cone" />
+				<Add ref="#Default_002" diffuse="1 0 0" />
+				<Add ref="#Cylinder_001" name="Cylinder" position="0 -97.5005 0" scale="0.5 2 0.5" sourcepath="#Cylinder" />
+				<Add ref="#Default_003" diffuse="1 0 0" />
+				<Add ref="#ArrowDown" name="ArrowDown" position="91.1513 0 0" rotation="180 0 0" />
+				<Add ref="#Cone_002" name="Cone" position="0 0 0" sourcepath="#Cone" />
+				<Add ref="#Default_004" diffuse="0.333333 1 1" />
+				<Add ref="#Cylinder_002" name="Cylinder" position="0 -97.5005 0" scale="0.5 2 0.5" sourcepath="#Cylinder" />
+				<Add ref="#Default_005" diffuse="0.333333 1 1" />
+				<Add ref="#ArrowBackwards" name="ArrowBackwards" position="312.117 0 0" rotation="-90 0 0" />
+				<Add ref="#Cone_003" name="Cone" position="0 0 0" sourcepath="#Cone" />
+				<Add ref="#Default_006" />
+				<Add ref="#Cylinder_003" name="Cylinder" position="0 -97.5005 0" scale="0.5 2 0.5" sourcepath="#Cylinder" />
+				<Add ref="#Default_007" />
+				<Add ref="#Light2" name="Light2" lightdiffuse="1 0.988235 0.882353" rotation="180 90 0" />
+				<State id="Scene-DefaultCamera" name="DefaultCamera" initialplaystate="Play" playmode="Play Through To..." playthroughto="#Scene-ComponentCamera" />
+				<State id="Scene-ChildCamera" name="ChildCamera" playthroughto="Previous" >
+					<Set ref="#Camera" eyeball="False" />
+				</State>
+				<State id="Scene-CameraChildTransforms" name="CameraChildTransforms" initialplaystate="Play" playmode="Stop at end" playthroughto="Previous" >
+					<Add ref="#Sphere" name="Sphere" position="0 0 203" sourcepath="#Sphere" >
+						<AnimationTrack property="rotation.x" type="EaseInOut" >0 0 100 100 10 0 100 100</AnimationTrack>
+						<AnimationTrack property="rotation.y" type="EaseInOut" >0 0 100 100 10 360 100 100</AnimationTrack>
+						<AnimationTrack property="rotation.z" type="EaseInOut" >0 0 100 100 10 0 100 100</AnimationTrack>
+					</Add>
+					<Add ref="#Default_008" />
+					<Add ref="#moon" name="moon" position="72.9504 0 0" scale="0.1 0.1 0.1" sourcepath="#Sphere" />
+					<Add ref="#Default_009" />
+				</State>
+				<State id="Scene-Orbit Camera" name="Orbit Camera" initialplaystate="Play" playmode="Stop at end" playthroughto="Previous" >
+					<Set ref="#Camera" eyeball="False" />
+					<Set ref="#Camera_001" eyeball="False" />
+					<Add ref="#Orbiter" name="Orbiter" >
+						<AnimationTrack property="rotation.x" type="EaseInOut" >0 0 100 100 10 0 100 100</AnimationTrack>
+						<AnimationTrack property="rotation.y" type="EaseInOut" >0 0 100 100 10 360 100 100</AnimationTrack>
+						<AnimationTrack property="rotation.z" type="EaseInOut" >0 0 100 100 10 0 100 100</AnimationTrack>
+					</Add>
+					<Add ref="#Camera_002" name="OrbitCamera" />
+				</State>
+				<State id="Scene-UltimateCamera" name="UltimateCamera" initialplaystate="Play" playmode="Looping" playthroughto="Previous" >
+					<Set ref="#Camera" eyeball="False" />
+					<Set ref="#Camera_001" eyeball="False" />
+					<Add ref="#Orbitor2" name="Orbitor2" >
+						<AnimationTrack property="rotation.x" type="EaseInOut" >0 0 100 100 10 0 100 100</AnimationTrack>
+						<AnimationTrack property="rotation.y" type="EaseInOut" >0 0 100 100 10 360 100 100</AnimationTrack>
+						<AnimationTrack property="rotation.z" type="EaseInOut" >0 0 100 100 10 0 100 100</AnimationTrack>
+					</Add>
+					<Add ref="#Cube" name="Cube" position="0 0 600" sourcepath="#Cube" />
+					<Add ref="#Default_010" />
+					<Add ref="#Camera_003" name="NiceCamera" />
+					<Add ref="#CameraMoon" name="CameraMoon" position="0 0 100" scale="0.1 0.1 0.1" sourcepath="#Sphere" />
+					<Add ref="#Default_011" diffuse="1 0 0" />
+				</State>
+				<State id="Scene-ComponentCamera" name="ComponentCamera" playmode="Stop at end" playthroughto="#Scene-ComponentCamera" >
+					<Set ref="#Camera" eyeball="False" />
+					<Set ref="#Camera_001" eyeball="False" />
+					<Add ref="#Component" name="Component" position="12 -3 0" rotation="0 0 0" >
+						<AnimationTrack property="rotation.x" type="EaseInOut" >0 0 100 100 10 0 100 100</AnimationTrack>
+						<AnimationTrack property="rotation.y" type="EaseInOut" >0 0 100 100 10 360 100 100</AnimationTrack>
+						<AnimationTrack property="rotation.z" type="EaseInOut" >0 0 100 100 10 0 100 100</AnimationTrack>
+					</Add>
+				</State>
+			</State>
+			<State name="Master Slide" component="#Component" >
+				<State id="Component-Slide1" name="Slide1" >
+					<Add ref="#Camera_004" name="Camera" position="2.3094 -2.3094 2.3094" rotation="12 -291 0" scale="1 1 -0.6" />
+				</State>
+			</State>
+		</Logic>
+	</Project>
+</UIP>

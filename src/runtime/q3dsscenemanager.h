@@ -564,7 +564,6 @@ private:
     void setLayerSizeProperties(Q3DSLayerNode *layer3DS);
     void setLayerProperties(Q3DSLayerNode *layer3DS);
     void buildLayerScene(Q3DSGraphObject *obj, Q3DSLayerNode *layer3DS, Qt3DCore::QEntity *parent);
-    void reparentCamera(Q3DSLayerNode *layer3DS);
     void setSsaoTextureEnabled(Q3DSLayerNode *layer3DS, bool enabled);
     void updateAoParameters(Q3DSLayerNode *layer3DS);
     void updateSsaoStatus(Q3DSLayerNode *layer3DS, bool *aoDidChange = nullptr);
@@ -579,9 +578,11 @@ private:
                             Qt3DRender::QAbstractTexture *outTex, const QString &passName, Q3DSLightNode *light3DS);
     void updateProgressiveAA(Q3DSLayerNode *layer3DS);
 
-    Q3DSCameraNode *chooseLayerCamera(Q3DSLayerNode *layer3DS, Qt3DRender::QCamera **camera);
-    Qt3DRender::QCamera *buildLayerCamera(Q3DSLayerNode *layer3DS, Q3DSCameraNode *camNode);
+    Qt3DRender::QCamera *buildCamera(Q3DSCameraNode *cam3DS, Q3DSLayerNode *layer3DS, Qt3DCore::QEntity *parent);
     void setCameraProperties(Q3DSCameraNode *camNode, int changeFlags);
+    bool setActiveLayerCamera(Q3DSCameraNode *cam3DS, Q3DSLayerNode *layer3DS);
+    void updateLayerCamera(Q3DSLayerNode *layer3DS);
+    Q3DSCameraNode *findFirstCamera(Q3DSLayerNode *layer3DS);
 
     Qt3DCore::QTransform *initEntityForNode(Qt3DCore::QEntity *entity, Q3DSNode *node, Q3DSLayerNode *layer3DS);
     void setNodeProperties(Q3DSNode *node, Qt3DCore::QEntity *entity, Qt3DCore::QTransform *transform, SetNodePropFlags flags = SetNodePropFlags());
