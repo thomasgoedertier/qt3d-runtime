@@ -169,7 +169,8 @@ public:
     typedef std::function<void(Q3DSLayerNode *)> SizeChangeCallback;
     struct SizeManagedTexture {
         enum Flag {
-            IgnoreSSAA = 0x01
+            IgnoreSSAA = 0x01,
+            CustomSizeCalculation = 0x02
         };
         Q_DECLARE_FLAGS(Flags, Flag)
         SizeManagedTexture() { }
@@ -393,6 +394,7 @@ struct Q3DSCustomPropertyParameter {
     Qt3DRender::QParameter *param = nullptr;
     QVariant inputValue; // e.g. Texture: inputValue is a string whereas param->value is a QAbstractTexture*
     Q3DSMaterial::PropertyElement meta;
+    Qt3DRender::QParameter *infoParam = nullptr;
 };
 
 Q_DECLARE_TYPEINFO(Q3DSCustomPropertyParameter, Q_MOVABLE_TYPE);
@@ -410,10 +412,23 @@ public:
     Q3DSLayerNode *layer3DS = nullptr;
     Qt3DRender::QLayer *quadEntityTag = nullptr;
     QHash<QString, Q3DSCustomPropertyParameter> params;
-    Qt3DRender::QParameter *texture0Param = nullptr;
-    Qt3DRender::QParameter *texture0InfoParam = nullptr;
-    Qt3DRender::QParameter *fragColorAlphaParam = nullptr;
-    Qt3DRender::QParameter *destSizeParam = nullptr;
+    Qt3DRender::QParameter *appFrameParam = nullptr;
+    Qt3DRender::QParameter *fpsParam = nullptr;
+    Qt3DRender::QParameter *cameraClipRangeParam = nullptr;
+    struct TextureBuffer {
+        Qt3DRender::QAbstractTexture *texture = nullptr;
+        QVector<Qt3DRender::QParameter *> textureInfoParams;
+        bool hasSceneLifetime = false;
+    };
+    QHash<QString, TextureBuffer> textureBuffers;
+    struct PassData {
+        Qt3DRender::QAbstractTexture *passInput = nullptr;
+        Qt3DRender::QParameter *texture0InfoParam = nullptr;
+        Qt3DRender::QAbstractTexture *passOutput = nullptr;
+        Qt3DRender::QParameter *destSizeParam = nullptr;
+    };
+    QVector<PassData> passData;
+    QVector<Qt3DRender::QParameter *> sourceDepTextureInfoParams;
 };
 
 class Q3DSSlideAttached : public Q3DSGraphObjectAttached
@@ -588,7 +603,10 @@ private:
     void updateCustomMaterial(Q3DSCustomMaterialInstance *m);
     void buildEffect(Q3DSEffectInstance *eff3DS, Q3DSLayerNode *layer3DS);
     void finalizeEffects(Q3DSLayerNode *layer3DS);
+    void setupEffectTextureBuffer(Q3DSEffectAttached::TextureBuffer *tb, const Q3DSMaterial::PassBuffer &bufDesc, Q3DSLayerNode *layer3DS);
+    void createEffectBuffers(Q3DSEffectInstance *eff3DS);
     void updateEffect(Q3DSEffectInstance *eff3DS);
+    void updateEffectForNextFrame(Q3DSEffectInstance *eff3DS, qint64 nextFrameNo);
     void gatherLights(Q3DSGraphObject *root, QVector<Q3DSLightSource> *allLights, QVector<Q3DSLightSource> *nonAreaLights,
                       QVector<Q3DSLightSource> *areaLights, QVector<Q3DSLightNode *> *lightNodes);
     void updateLightsBuffer(const QVector<Q3DSLightSource> &lights, Qt3DRender::QBuffer *uniformBuffer);
@@ -667,9 +685,11 @@ public:
     Q3DSFrameUpdater(Q3DSSceneManager *manager) : m_sceneManager(manager) { }
 
     void frameAction(float dt);
+    qint64 frameCounter() const { return m_frameCounter; }
 
 private:
     Q3DSSceneManager *m_sceneManager;
+    qint64 m_frameCounter = 0;
 };
 
 Q3DSV_EXPORT QDebug operator<<(QDebug dbg, const Q3DSSceneManager::SceneBuilderParams &p);

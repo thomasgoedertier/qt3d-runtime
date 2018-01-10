@@ -1501,12 +1501,14 @@ void Q3DSSceneManager::setLayerSizeProperties(Q3DSLayerNode *layer3DS)
     const QSize layerPixelSize = safeLayerPixelSize(data);
     const QSize layerSize = safeLayerPixelSize(data->layerSize, 1); // for when SSAA is to be ignored
     for (const Q3DSLayerAttached::SizeManagedTexture &t : data->sizeManagedTextures) {
-        if (!t.flags.testFlag(Q3DSLayerAttached::SizeManagedTexture::IgnoreSSAA)) {
-            t.texture->setWidth(layerPixelSize.width());
-            t.texture->setHeight(layerPixelSize.height());
-        } else {
-            t.texture->setWidth(layerSize.width());
-            t.texture->setHeight(layerSize.height());
+        if (!t.flags.testFlag(Q3DSLayerAttached::SizeManagedTexture::CustomSizeCalculation)) {
+            if (!t.flags.testFlag(Q3DSLayerAttached::SizeManagedTexture::IgnoreSSAA)) {
+                t.texture->setWidth(layerPixelSize.width());
+                t.texture->setHeight(layerPixelSize.height());
+            } else {
+                t.texture->setWidth(layerSize.width());
+                t.texture->setHeight(layerSize.height());
+            }
         }
         if (t.sizeChangeCallback)
             t.sizeChangeCallback(layer3DS);
@@ -1660,7 +1662,8 @@ void Q3DSSceneManager::setCameraProperties(Q3DSCameraNode *camNode, int changeFl
 
 static void prepareSizeDependentTexture(Qt3DRender::QAbstractTexture *texture,
                                         Q3DSLayerNode *layer3DS,
-                                        Q3DSLayerAttached::SizeChangeCallback callback = nullptr)
+                                        Q3DSLayerAttached::SizeChangeCallback callback = nullptr,
+                                        Q3DSLayerAttached::SizeManagedTexture::Flags flags = 0)
 {
     Q3DSLayerAttached *data = static_cast<Q3DSLayerAttached *>(layer3DS->attached());
 
@@ -1669,7 +1672,7 @@ static void prepareSizeDependentTexture(Qt3DRender::QAbstractTexture *texture,
     texture->setHeight(layerPixelSize.height());
 
     // the layer will resize the texture automatically
-    data->sizeManagedTextures << Q3DSLayerAttached::SizeManagedTexture(texture, callback);
+    data->sizeManagedTextures << Q3DSLayerAttached::SizeManagedTexture(texture, callback, flags);
 }
 
 void Q3DSSceneManager::setDepthTextureEnabled(Q3DSLayerNode *layer3DS, bool enabled)
@@ -4189,17 +4192,13 @@ Qt3DRender::QAbstractTexture *Q3DSSceneManager::createCustomPropertyTexture(cons
 {
     const QString source = p.inputValue.toString();
     Qt3DRender::QTexture2D *texture = new Qt3DRender::QTexture2D(m_rootEntity);
+    m_profiler->trackNewObject(texture, Q3DSProfiler::Texture2DObject,
+                               "Custom property texture %s", qPrintable(source));
     if (!source.isEmpty()) {
         qCDebug(lcScene, "Creating custom property texture %s", qPrintable(source));
-        m_profiler->trackNewObject(texture, Q3DSProfiler::Texture2DObject,
-                                   "Custom property texture %s", qPrintable(source));
         Qt3DRender::QTextureImage *textureImage = new Qt3DRender::QTextureImage;
         textureImage->setSource(QUrl::fromLocalFile(source));
         texture->addTextureImage(textureImage);
-    } else {
-        qCDebug(lcScene, "Creating intermediate custom property texture for property %s", qPrintable(p.meta.name));
-        m_profiler->trackNewObject(texture, Q3DSProfiler::Texture2DObject,
-                                   "Intermediate texture for custom property %s", qPrintable(p.meta.name));
     }
 
     switch (p.meta.magFilterType) {
@@ -4343,41 +4342,55 @@ void Q3DSSceneManager::finalizeEffects(Q3DSLayerNode *layer3DS)
             continue;
         }
 
-        QVector<Qt3DRender::QParameter *> paramList;
+        // Set up textures for Buffers
+        createEffectBuffers(eff3DS);
+
+        QVector<Qt3DRender::QParameter *> commonParamList;
 
         // Create QParameters for built-in uniforms (see effect.glsllib).
-        effData->texture0Param = new Qt3DRender::QParameter;
-        effData->texture0Param->setName(QLatin1String("Texture0"));
-        paramList.append(effData->texture0Param);
+        // Texture0 and friends depend on the input so those are per pass.
+        effData->appFrameParam = new Qt3DRender::QParameter;
+        effData->appFrameParam->setName(QLatin1String("AppFrame"));
+        commonParamList.append(effData->appFrameParam);
 
-        effData->texture0InfoParam = new Qt3DRender::QParameter;
-        effData->texture0InfoParam->setName(QLatin1String("Texture0Info"));
-        paramList.append(effData->texture0InfoParam);
+        effData->fpsParam = new Qt3DRender::QParameter;
+        effData->fpsParam->setName(QLatin1String("FPS"));
+        commonParamList.append(effData->fpsParam);
 
-        effData->fragColorAlphaParam = new Qt3DRender::QParameter;
-        effData->fragColorAlphaParam->setName(QLatin1String("FragColorAlphaSettings"));
-        paramList.append(effData->fragColorAlphaParam);
-
-        effData->destSizeParam = new Qt3DRender::QParameter;
-        effData->destSizeParam->setName(QLatin1String("DestSize"));
-        paramList.append(effData->destSizeParam);
+        effData->cameraClipRangeParam = new Qt3DRender::QParameter;
+        effData->cameraClipRangeParam->setName(QLatin1String("CameraClipRange"));
+        commonParamList.append(effData->cameraClipRangeParam);
 
         // Create QParameters for custom properties.
-        forAllCustomProperties(eff3DS, [&paramList, effData](const QString &propKey, const QVariant &, const Q3DSMaterial::PropertyElement &propMeta) {
+        forAllCustomProperties(eff3DS, [&commonParamList, effData](const QString &propKey, const QVariant &propValue, const Q3DSMaterial::PropertyElement &propMeta) {
+            // textures with no filename are effectively samplers (to be used in a BufferInput f.ex.)
+            if (propMeta.type == Q3DS::Texture && propValue.toString().isEmpty())
+                return;
+
             Qt3DRender::QParameter *param = new Qt3DRender::QParameter;
             param->setName(propKey);
-            paramList.append(param);
-            effData->params.insert(propKey, Q3DSCustomPropertyParameter(param, QVariant(), propMeta));
+            commonParamList.append(param);
+            Qt3DRender::QParameter *infoParam = nullptr;
+            // textures do not just get a sampler uniform but also an additional vec4
+            if (propMeta.type == Q3DS::Texture) {
+                infoParam = new Qt3DRender::QParameter;
+                infoParam->setName(propKey + QLatin1String("Info"));
+                commonParamList.append(infoParam);
+            }
+            Q3DSCustomPropertyParameter pp(param, QVariant(), propMeta);
+            pp.infoParam = infoParam;
+            effData->params.insert(propKey, pp);
         });
 
-        // Update QParameter values.
+        // Set initial QParameter (uniform) values.
         updateEffect(eff3DS);
 
         const QMap<QString, Q3DSMaterial::Shader> &shaderPrograms = effDesc->shaders();
-        const QMap<QString, Q3DSMaterial::PassBuffer> &buffers = effDesc->buffers();
 
         // Each pass leads to creating a new framegraph subtree parented to effectRoot.
-        for (const Q3DSMaterial::Pass &pass : effDesc->passes()) {
+        auto passes = effDesc->passes();
+        for (int passIdx = 0; passIdx < passes.count(); ++passIdx) {
+            const Q3DSMaterial::Pass &pass(passes[passIdx]);
             if (!shaderPrograms.contains(pass.shaderName)) {
                 qWarning("Effect %s: Unknown shader program %s; pass ignored",
                          eff3DS->id().constData(), qPrintable(pass.shaderName));
@@ -4385,49 +4398,100 @@ void Q3DSSceneManager::finalizeEffects(Q3DSLayerNode *layer3DS)
             }
             qCDebug(lcScene, "  Registered pass with shader program %s input %s output %s %d extra commands",
                     qPrintable(pass.shaderName), qPrintable(pass.input), qPrintable(pass.output), pass.commands.count());
+
+            QVector<Qt3DRender::QParameter *> paramList;
+            paramList << commonParamList;
+
             for (const Q3DSMaterial::PassCommand &cmd : pass.commands) {
                 switch (cmd.type()) {
                 case Q3DSMaterial::PassCommand::BufferInputType:
                 {
                     const QString bufferName = cmd.data()->value;
-                    if (buffers.contains(bufferName)) {
-                        // ###
+                    if (bufferName == QStringLiteral("[source]")) {
+                        Qt3DRender::QParameter *texParam = new Qt3DRender::QParameter;
+                        texParam->setName(cmd.data()->param);
+                        texParam->setValue(QVariant::fromValue(layerData->layerTexture));
+                        paramList.append(texParam);
+                        Qt3DRender::QParameter *texInfoParam = new Qt3DRender::QParameter;
+                        texInfoParam->setName(cmd.data()->param + QLatin1String("Info"));
+                        texInfoParam->setValue(QVector4D(layerData->layerTexture->width(), layerData->layerTexture->height(), 0, 0)); // ### 3rd value is isPremultiplied, is that correct?
+                        effData->sourceDepTextureInfoParams.append(texInfoParam);
+                        paramList.append(texInfoParam);
+                    } else if (effData->textureBuffers.contains(bufferName)) {
+                        Q3DSEffectAttached::TextureBuffer &tb(effData->textureBuffers[bufferName]);
+                        Qt3DRender::QParameter *texParam = new Qt3DRender::QParameter;
+                        texParam->setName(cmd.data()->param);
+                        texParam->setValue(QVariant::fromValue(tb.texture));
+                        paramList.append(texParam);
+                        Qt3DRender::QParameter *texInfoParam = new Qt3DRender::QParameter;
+                        texInfoParam->setName(cmd.data()->param + QLatin1String("Info"));
+                        texInfoParam->setValue(QVector4D(tb.texture->width(), tb.texture->height(), 0, 0)); // ### 3rd value is isPremultiplied, is that correct?
+                        tb.textureInfoParams.append(texInfoParam);
+                        paramList.append(texInfoParam);
                     } else {
                         qWarning("Effect %s: Unknown buffer %s", eff3DS->id().constData(), qPrintable(bufferName));
                     }
                 }
                     break;
-                // ###
                 default:
                     break;
                 }
             }
 
             Qt3DRender::QAbstractTexture *passInput = nullptr;
-            Qt3DRender::QAbstractTexture *passOutput = nullptr;
             if (pass.input == QStringLiteral("[source]")) {
                 passInput = layerData->layerTexture;
             } else {
-                if (buffers.contains(pass.input)) {
-                    // ###
+                if (effData->textureBuffers.contains(pass.input)) {
+                    passInput = effData->textureBuffers.value(pass.input).texture;
                 } else {
                     qWarning("Effect %s: Unknown input buffer %s; pass ignored",
                              eff3DS->id().constData(), qPrintable(pass.input));
                     continue;
                 }
             }
+
+            bool outputNeedsClear = false;
+            Qt3DRender::QAbstractTexture *passOutput = nullptr;
             if (pass.output == QStringLiteral("[dest]")) {
                 passOutput = layerData->effLayerTexture;
+                outputNeedsClear = true;
             } else {
-                if (buffers.contains(pass.output)) {
-                    // ###
+                if (effData->textureBuffers.contains(pass.output)) {
+                    auto tb = effData->textureBuffers.value(pass.output);
+                    passOutput = tb.texture;
+                    outputNeedsClear = tb.hasSceneLifetime;
                 } else {
                     qWarning("Effect %s: Unknown output buffer %s; pass ignored",
                              eff3DS->id().constData(), qPrintable(pass.output));
                     continue;
                 }
             }
-            Q_ASSERT(passInput && passOutput);
+
+            Qt3DRender::QParameter *texture0Param = new Qt3DRender::QParameter;
+            texture0Param->setName(QLatin1String("Texture0"));
+            texture0Param->setValue(QVariant::fromValue(passInput));
+            paramList.append(texture0Param);
+
+            Qt3DRender::QParameter *texture0InfoParam = new Qt3DRender::QParameter;
+            texture0InfoParam->setName(QLatin1String("Texture0Info"));
+            paramList.append(texture0InfoParam);
+
+            Qt3DRender::QParameter *fragColorAlphaParam = new Qt3DRender::QParameter;
+            fragColorAlphaParam->setName(QLatin1String("FragColorAlphaSettings"));
+            fragColorAlphaParam->setValue(QVector2D(1.0f, 0.0f));
+            paramList.append(fragColorAlphaParam);
+
+            Qt3DRender::QParameter *destSizeParam = new Qt3DRender::QParameter;
+            destSizeParam->setName(QLatin1String("DestSize"));
+            paramList.append(destSizeParam);
+
+            Q3DSEffectAttached::PassData pd;
+            pd.passInput = passInput;
+            pd.texture0InfoParam = texture0InfoParam;
+            pd.passOutput = passOutput;
+            pd.destSizeParam = destSizeParam;
+            effData->passData.append(pd);
 
             const Q3DSMaterial::Shader &shaderProgram(shaderPrograms.value(pass.shaderName));
             const QString decoratedShaderName = QString::fromUtf8(eff3DS->id()) + QLatin1Char('_') + pass.shaderName;
@@ -4445,35 +4509,145 @@ void Q3DSSceneManager::finalizeEffects(Q3DSLayerNode *layer3DS)
             Qt3DRender::QRenderTarget *rt = new Qt3DRender::QRenderTarget;
             Qt3DRender::QRenderTargetOutput *color = new Qt3DRender::QRenderTargetOutput;
             color->setAttachmentPoint(Qt3DRender::QRenderTargetOutput::Color0);
-            color->setTexture(layerData->effLayerTexture);
+            color->setTexture(passOutput);
             rt->addOutput(color);
             rtSel->setTarget(rt);
 
             Qt3DRender::QClearBuffers *clearBuf = new Qt3DRender::QClearBuffers(rtSel);
-            clearBuf->setBuffers(Qt3DRender::QClearBuffers::ColorBuffer);
+            clearBuf->setClearColor(Qt::transparent);
+            clearBuf->setBuffers(outputNeedsClear ? Qt3DRender::QClearBuffers::ColorBuffer : Qt3DRender::QClearBuffers::None);
 
             Qt3DRender::QLayerFilter *layerFilter = new Qt3DRender::QLayerFilter(clearBuf);
             layerFilter->addLayer(effData->quadEntityTag);
         }
+
+        // set initial values for per-frame uniforms
+        // (or the ones that depend on pass input/output size and are easier to handle this way)
+        updateEffectForNextFrame(eff3DS, 0);
     }
 
     // The layer compositor must use the output of the effect passes from now on.
     layerData->compositorSourceParam->setValue(QVariant::fromValue(layerData->effLayerTexture));
 }
 
+void Q3DSSceneManager::setupEffectTextureBuffer(Q3DSEffectAttached::TextureBuffer *tb,
+                                                const Q3DSMaterial::PassBuffer &bufDesc,
+                                                Q3DSLayerNode *layer3DS)
+{
+    Qt3DRender::QAbstractTexture *texture = new Qt3DRender::QTexture2D(m_rootEntity);
+    tb->texture = texture;
+
+    switch (bufDesc.filter()) {
+    case Q3DSMaterial::Nearest:
+        texture->setMinificationFilter(Qt3DRender::QAbstractTexture::Nearest);
+        texture->setMagnificationFilter(Qt3DRender::QAbstractTexture::Nearest);
+        break;
+    default:
+        texture->setMinificationFilter(Qt3DRender::QAbstractTexture::Linear);
+        texture->setMagnificationFilter(Qt3DRender::QAbstractTexture::Linear);
+        break;
+    }
+
+    Qt3DRender::QTextureWrapMode wrapMode;
+    switch (bufDesc.wrap()) {
+    case Q3DSMaterial::Repeat:
+        wrapMode.setX(Qt3DRender::QTextureWrapMode::Repeat);
+        wrapMode.setY(Qt3DRender::QTextureWrapMode::Repeat);
+        break;
+    default:
+        wrapMode.setX(Qt3DRender::QTextureWrapMode::ClampToEdge);
+        wrapMode.setY(Qt3DRender::QTextureWrapMode::ClampToEdge);
+        break;
+    }
+    texture->setWrapMode(wrapMode);
+
+    switch (bufDesc.textureFormat()) {
+    case Q3DSMaterial::Depth24Stencil8:
+        texture->setFormat(Qt3DRender::QAbstractTexture::D24S8);
+        break;
+    case Q3DSMaterial::RGB8:
+        texture->setFormat(Qt3DRender::QAbstractTexture::RGB8_UNorm);
+        break;
+    case Q3DSMaterial::Alpha8:
+        texture->setFormat(Qt3DRender::QAbstractTexture::AlphaFormat);
+        break;
+    case Q3DSMaterial::Luminance8:
+        texture->setFormat(Qt3DRender::QAbstractTexture::LuminanceFormat);
+        break;
+    case Q3DSMaterial::LuminanceAlpha8:
+        texture->setFormat(Qt3DRender::QAbstractTexture::LuminanceAlphaFormat);
+        break;
+    case Q3DSMaterial::RG8:
+        texture->setFormat(Qt3DRender::QAbstractTexture::RG8_UNorm);
+        break;
+    case Q3DSMaterial::RGB565:
+        texture->setFormat(Qt3DRender::QAbstractTexture::R5G6B5);
+        break;
+    case Q3DSMaterial::RGBA5551:
+        texture->setFormat(Qt3DRender::QAbstractTexture::RGB5A1);
+        break;
+    case Q3DSMaterial::RGBA16F:
+        texture->setFormat(Qt3DRender::QAbstractTexture::RGBA16F);
+        break;
+    case Q3DSMaterial::RG16F:
+        texture->setFormat(Qt3DRender::QAbstractTexture::RG16F);
+        break;
+    case Q3DSMaterial::RGBA32F:
+        texture->setFormat(Qt3DRender::QAbstractTexture::RGBA32F);
+        break;
+    case Q3DSMaterial::RG32F:
+        texture->setFormat(Qt3DRender::QAbstractTexture::RG32F);
+        break;
+    default: // incl. Unknown that is set for "source"
+        texture->setFormat(Qt3DRender::QAbstractTexture::RGBA8_UNorm);
+        break;
+    }
+
+    Q3DSLayerAttached *layerData = static_cast<Q3DSLayerAttached *>(layer3DS->attached());
+    float sizeMultiplier = bufDesc.size();
+    auto sizeCalc = [texture, layerData, sizeMultiplier](Q3DSLayerNode*) {
+        const QSize sz = safeLayerPixelSize(layerData);
+        texture->setWidth(int(sz.width() * sizeMultiplier));
+        texture->setHeight(int(sz.height() * sizeMultiplier));
+    };
+    prepareSizeDependentTexture(texture, layer3DS, sizeCalc, Q3DSLayerAttached::SizeManagedTexture::CustomSizeCalculation);
+    sizeCalc(layer3DS);
+}
+
+void Q3DSSceneManager::createEffectBuffers(Q3DSEffectInstance *eff3DS)
+{
+    Q3DSEffectAttached *effData = static_cast<Q3DSEffectAttached *>(eff3DS->attached());
+    const Q3DSEffect *effDesc = eff3DS->effect();
+    const QMap<QString, Q3DSMaterial::PassBuffer> &bufDescs = effDesc->buffers();
+    for (const Q3DSMaterial::PassBuffer &bufDesc : bufDescs) {
+        if (bufDesc.passBufferType() == Q3DSMaterial::BufferType) {
+            if (effData->textureBuffers.contains(bufDesc.name())) {
+                qWarning("Texture Buffer name %s reused", qPrintable(bufDesc.name()));
+                continue;
+            }
+            Q3DSEffectAttached::TextureBuffer tb;
+            tb.hasSceneLifetime = bufDesc.hasSceneLifetime();
+            setupEffectTextureBuffer(&tb, bufDesc, effData->layer3DS);
+            effData->textureBuffers.insert(bufDesc.name(), tb);
+        } else {
+            // ###
+            qWarning("Effect %s: Unsupported buffer type", eff3DS->id().constData());
+        }
+    }
+}
+
+// called once on load from finalizeEffect, and then every time an effect property has changed
 void Q3DSSceneManager::updateEffect(Q3DSEffectInstance *eff3DS)
 {
     Q3DSEffectAttached *effData = static_cast<Q3DSEffectAttached *>(eff3DS->attached());
     Q3DSLayerAttached *layerData = static_cast<Q3DSLayerAttached *>(effData->layer3DS->attached());
 
-    effData->texture0Param->setValue(QVariant::fromValue(layerData->layerTexture));
-    effData->texture0InfoParam->setValue(QVector4D(layerData->layerTexture->width(),
-                                                   layerData->layerTexture->height(),
-                                                   0, // ### isPremultiplied?
-                                                   0));
-    effData->fragColorAlphaParam->setValue(QVector2D(1.0f, 0.0f));
-    effData->destSizeParam->setValue(QVector2D(layerData->effLayerTexture->width(),
-                                               layerData->effLayerTexture->height()));
+    QVector2D cameraClipRange(0, 5000);
+    if (layerData->cam3DS) {
+        cameraClipRange.setX(layerData->cam3DS->clipNear());
+        cameraClipRange.setY(layerData->cam3DS->clipFar());
+    }
+    effData->cameraClipRangeParam->setValue(cameraClipRange);
 
     forAllCustomProperties(eff3DS, [effData, this](const QString &propKey, const QVariant &propValue, const Q3DSMaterial::PropertyElement &) {
         if (!effData->params.contains(propKey))
@@ -4487,7 +4661,11 @@ void Q3DSSceneManager::updateEffect(Q3DSEffectInstance *eff3DS)
 
         switch (p.meta.type) {
         case Q3DS::Texture:
-            p.param->setValue(QVariant::fromValue(createCustomPropertyTexture(p)));
+        {
+            Qt3DRender::QAbstractTexture *tex = createCustomPropertyTexture(p);
+            p.param->setValue(QVariant::fromValue(tex));
+            p.infoParam->setValue(QVector4D(tex->width(), tex->height(), 0, 0)); // ### 3rd value is isPremultiplied, is that correct?
+        }
             break;
 
         // ### others?
@@ -4497,6 +4675,29 @@ void Q3DSSceneManager::updateEffect(Q3DSEffectInstance *eff3DS)
             break;
         }
     });
+}
+
+// called after each frame
+void Q3DSSceneManager::updateEffectForNextFrame(Q3DSEffectInstance *eff3DS, qint64 nextFrameNo)
+{
+    Q3DSEffectAttached *effData = static_cast<Q3DSEffectAttached *>(eff3DS->attached());
+    Q3DSLayerAttached *layerData = static_cast<Q3DSLayerAttached *>(effData->layer3DS->attached());
+
+    effData->appFrameParam->setValue(float(nextFrameNo));
+    effData->fpsParam->setValue(60.0f); // heh
+    for (const auto &pd : effData->passData) {
+        pd.texture0InfoParam->setValue(QVector4D(pd.passInput->width(),
+                                                 pd.passInput->height(),
+                                                 0, // ### isPremultiplied?
+                                                 0));
+        pd.destSizeParam->setValue(QVector2D(pd.passOutput->width(), pd.passOutput->height()));
+    }
+    for (const auto &tb : effData->textureBuffers) {
+        for (Qt3DRender::QParameter *param : tb.textureInfoParams)
+            param->setValue(QVector4D(tb.texture->width(), tb.texture->height(), 0, 0)); // ### 3rd value is isPremultiplied, is that correct?
+    }
+    for (Qt3DRender::QParameter *param : effData->sourceDepTextureInfoParams)
+        param->setValue(QVector4D(layerData->layerTexture->width(), layerData->layerTexture->height(), 0, 0)); // ### 3rd value is isPremultiplied, is that correct?
 }
 
 void Q3DSSceneManager::gatherLights(Q3DSGraphObject *root,
@@ -4810,10 +5011,18 @@ void Q3DSSceneManager::prepareNextFrame()
 
     updateSubTree(m_scene);
 
-    // Dirty flags now up-to-date -> update progressive AA status
-    Q3DSPresentation::forAllLayers(m_scene, [this](Q3DSLayerNode *layer3DS) {
+    qint64 nextFrameNo = m_frameUpdater->frameCounter() + 1;
+    Q3DSPresentation::forAllLayers(m_scene, [this, nextFrameNo](Q3DSLayerNode *layer3DS) {
+        // Dirty flags now up-to-date -> update progressive AA status
         if (layer3DS->progressiveAA() != Q3DSLayerNode::NoPAA)
             updateProgressiveAA(layer3DS);
+
+        // Post-processing effects have uniforms that need to be updated on every frame.
+        Q3DSLayerAttached *layerData = static_cast<Q3DSLayerAttached *>(layer3DS->attached());
+        if (layerData) {
+            for (Q3DSEffectInstance *eff3DS : qAsConst(layerData->effectData.effects))
+                updateEffectForNextFrame(eff3DS, nextFrameNo);
+        }
     });
 }
 
@@ -4938,6 +5147,10 @@ void Q3DSSceneManager::updateSubTreeRecursive(Q3DSGraphObject *obj)
                     layerData->cam3DS = cam3DS;
                     layerData->cameraSelector->setCamera(data->camera);
                     reparentCamera(data->layer3DS);
+                    // Camera has changed -> trigger a property value update
+                    // for effects since they may rely on the camera clip range.
+                    for (Q3DSEffectInstance *eff3DS : layerData->effectData.effects)
+                        updateEffect(eff3DS);
                 }
                 setCameraProperties(cam3DS, data->changeFlags); // handles both Node- and Camera-level properties
                 setLayerCameraSizeProperties(data->layer3DS);
@@ -5194,10 +5407,9 @@ void Q3DSSceneManager::setAnimationsRunning(Q3DSSlide *slide, bool running)
 
 void Q3DSFrameUpdater::frameAction(float dt)
 {
-    static qint64 frameCounter = 0;
     static const bool animDebug = qEnvironmentVariableIntValue("Q3DS_DEBUG") >= 3;
     if (Q_UNLIKELY(animDebug))
-        qDebug().nospace() << "frame action " << frameCounter << ", delta=" << dt << ", applying animations and updating nodes";
+        qDebug().nospace() << "frame action " << m_frameCounter << ", delta=" << dt << ", applying animations and updating nodes";
 
     // Record new frame event.
     m_sceneManager->profiler()->reportNewFrame(dt * 1000.0f);
@@ -5207,8 +5419,8 @@ void Q3DSFrameUpdater::frameAction(float dt)
     // pending visibility changes, update light cbuffers, etc.
     m_sceneManager->prepareNextFrame();
     // Update profiling statistics for this frame.
-    m_sceneManager->profiler()->updateFrameStats(frameCounter);
-    ++frameCounter;
+    m_sceneManager->profiler()->updateFrameStats(m_frameCounter);
+    ++m_frameCounter;
 }
 
 void Q3DSSceneManager::setProfileUiVisible(bool visible)
