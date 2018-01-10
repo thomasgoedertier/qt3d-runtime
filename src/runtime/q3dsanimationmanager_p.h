@@ -49,7 +49,9 @@ QT_BEGIN_NAMESPACE
 class Q3DSAnimationManager
 {
 public:
-    void updateAnimations(Q3DSSlide *animSourceSlide, Q3DSSlide *prevAnimSourceSlide, Q3DSSlide *playModeSourceSlide);
+    void updateAnimations(Q3DSSlide *animSourceSlide,
+                          Q3DSSlide *prevAnimSourceSlide,
+                          Q3DSSlide *playModeSourceSlide);
     void applyChanges();
     void clearPendingChanges();
 
@@ -74,16 +76,20 @@ public:
 
 private:
     typedef QHash<QString, Animatable> AnimatableTab;
+    template <typename T>
+    using AnimationTrackListMap = QHash<T, QVector<const Q3DSAnimationTrack *>>;
+
 
     void gatherAnimatableMeta(const QString &type, AnimatableTab *dst);
     void gatherDynamicProperties(const QVariantMap *dynProps,
                                  const QMap<QString, Q3DSMaterial::PropertyElement> &propMeta,
                                  AnimatableTab *dst);
-    template<class AttT, class T> void updateAnimationHelper(const QHash<T *, QVector<const Q3DSAnimationTrack *> > &targets,
-                                                             AnimatableTab *animatables,
-                                                             Q3DSSlide *animSourceSlide,
-                                                             Q3DSSlide *prevAnimSourceSlide,
-                                                             Q3DSSlide *playModeSourceSlide);
+    template<class T>
+    void updateAnimationHelper(const AnimationTrackListMap<T *> &targets,
+                               AnimatableTab *animatables,
+                               Q3DSSlide *animSourceSlide,
+                               Q3DSSlide *prevAnimSourceSlide,
+                               Q3DSSlide *playModeSourceSlide);
 
     AnimatableTab m_defaultMaterialAnimatables;
     AnimatableTab m_cameraAnimatables;

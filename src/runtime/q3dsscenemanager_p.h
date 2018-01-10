@@ -369,7 +369,6 @@ struct Q3DSTextureParameters
 class Q3DSMaterialAttached : public Q3DSGraphObjectAttached
 {
 public:
-    Qt3DCore::QEntity *entity = nullptr; // model3DS->attached->entity, req'd separately here for templated animation stuff
     Q3DSModelNode *model3DS = nullptr;
     float opacity = 1.0f;
 };
@@ -426,7 +425,6 @@ public:
 class Q3DSEffectAttached : public Q3DSGraphObjectAttached
 {
 public:
-    Qt3DCore::QEntity *entity = nullptr; // for animations
     Q3DSLayerNode *layer3DS = nullptr;
     Qt3DRender::QLayer *quadEntityTag = nullptr;
     QHash<QString, Q3DSCustomPropertyParameter> params;
@@ -460,7 +458,6 @@ public:
 class Q3DSImageAttached : public Q3DSGraphObjectAttached
 {
 public:
-    Qt3DCore::QEntity *entity = nullptr; // dummy, for animation
     QSet<Q3DSDefaultMaterial *> referencingDefaultMaterials;
 };
 

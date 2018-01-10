@@ -151,6 +151,7 @@ public:
         QVector<Qt3DAnimation::QAnimationCallback *> animationCallbacks;
     };
     QHash<Q3DSSlide *, AnimationData *> animationDataMap;
+    Qt3DCore::QEntity *entity = nullptr;
 
     struct AnimatedValueRollbackData {
         Q3DSGraphObject *obj;
@@ -498,7 +499,6 @@ class Q3DSComponentNode;
 class Q3DSV_PRIVATE_EXPORT Q3DSNodeAttached : public Q3DSGraphObjectAttached
 {
 public:
-    Qt3DCore::QEntity *entity = nullptr;
     Qt3DCore::QTransform *transform = nullptr;
     QMatrix4x4 globalTransform;
     float globalOpacity = 1;

@@ -131,8 +131,10 @@ static struct AnimatableExtraMeta {
     // but they need to be discovered on demand, when the target object is known.
 };
 
-template<class T>
-void initAnimator(T *data, Q3DSSlide *slide, Q3DSSlide *previousSlide, Q3DSAnimationManager *manager)
+void initAnimator(Q3DSGraphObjectAttached *data,
+                  Q3DSSlide *slide,
+                  Q3DSSlide *previousSlide,
+                  Q3DSAnimationManager *manager)
 {
     static const bool animDebug = qEnvironmentVariableIntValue("Q3DS_DEBUG") >= 2;
     if (animDebug)
@@ -210,7 +212,10 @@ void initAnimator(T *data, Q3DSSlide *slide, Q3DSSlide *previousSlide, Q3DSAnima
 }
 
 template<class T>
-void finalizeAnimator(T *data, Qt3DAnimation::QClipAnimator *animator, Qt3DAnimation::QAnimationClip *clip, Q3DSSlide *playModeSourceSlide)
+void finalizeAnimator(T *data,
+                      Qt3DAnimation::QClipAnimator *animator,
+                      Qt3DAnimation::QAnimationClip *clip,
+                      Q3DSSlide *playModeSourceSlide)
 {
     animator->setClip(clip);
 
@@ -351,15 +356,16 @@ static int componentSuffixToIndex(const QString &s)
     return -1;
 }
 
-template<class AttT, class T> void Q3DSAnimationManager::updateAnimationHelper(const QHash<T *, QVector<const Q3DSAnimationTrack *> > &targets,
-                                                                               AnimatableTab *animatables,
-                                                                               Q3DSSlide *animSourceSlide,
-                                                                               Q3DSSlide *prevAnimSourceSlide,
-                                                                               Q3DSSlide *playModeSourceSlide)
+template<class T>
+void Q3DSAnimationManager::updateAnimationHelper(const AnimationTrackListMap<T *> &targets,
+                                                 AnimatableTab *animatables,
+                                                 Q3DSSlide *animSourceSlide,
+                                                 Q3DSSlide *prevAnimSourceSlide,
+                                                 Q3DSSlide *playModeSourceSlide)
 {
     for (auto it = targets.cbegin(), ite = targets.cend(); it != ite; ++it) {
         T *target = it.key();
-        AttT *data = static_cast<AttT *>(target->attached());
+        Q3DSGraphObjectAttached *data = target->attached();
         Q_ASSERT(data);
         initAnimator(data, animSourceSlide, prevAnimSourceSlide, this);
 
@@ -498,23 +504,25 @@ template<class AttT, class T> void Q3DSAnimationManager::updateAnimationHelper(c
 
 // Pass in two slides since animSourceSlide may be the master whereas the play
 // mode must always be taken from the active sub-slide.
-void Q3DSAnimationManager::updateAnimations(Q3DSSlide *animSourceSlide, Q3DSSlide *prevAnimSourceSlide, Q3DSSlide *playModeSourceSlide)
+void Q3DSAnimationManager::updateAnimations(Q3DSSlide *animSourceSlide,
+                                            Q3DSSlide *prevAnimSourceSlide,
+                                            Q3DSSlide *playModeSourceSlide)
 {
     const QVector<Q3DSAnimationTrack> *anims = animSourceSlide->animations();
     if (anims->isEmpty())
         return;
 
-    QHash<Q3DSDefaultMaterial *, QVector<const Q3DSAnimationTrack *> > defMatAnims;
-    QHash<Q3DSCustomMaterialInstance *, QVector<const Q3DSAnimationTrack *> > customMatAnims;
-    QHash<Q3DSEffectInstance *, QVector<const Q3DSAnimationTrack *> > effectAnims;
-    QHash<Q3DSCameraNode *, QVector<const Q3DSAnimationTrack *> > camAnims;
-    QHash<Q3DSLightNode *, QVector<const Q3DSAnimationTrack *> > lightAnims;
-    QHash<Q3DSModelNode *, QVector<const Q3DSAnimationTrack *> > modelAnims;
-    QHash<Q3DSGroupNode *, QVector<const Q3DSAnimationTrack *> > groupAnims;
-    QHash<Q3DSComponentNode *, QVector<const Q3DSAnimationTrack *> > compAnims;
-    QHash<Q3DSTextNode *, QVector<const Q3DSAnimationTrack *> > textAnims;
-    QHash<Q3DSImage *, QVector<const Q3DSAnimationTrack *> > imageAnims;
-    QHash<Q3DSLayerNode *, QVector<const Q3DSAnimationTrack *> > layerAnims;
+    AnimationTrackListMap<Q3DSDefaultMaterial *> defMatAnims;
+    AnimationTrackListMap<Q3DSCustomMaterialInstance *> customMatAnims;
+    AnimationTrackListMap<Q3DSEffectInstance *> effectAnims;
+    AnimationTrackListMap<Q3DSCameraNode *> camAnims;
+    AnimationTrackListMap<Q3DSLightNode *> lightAnims;
+    AnimationTrackListMap<Q3DSModelNode *> modelAnims;
+    AnimationTrackListMap<Q3DSGroupNode *> groupAnims;
+    AnimationTrackListMap<Q3DSComponentNode *> compAnims;
+    AnimationTrackListMap<Q3DSTextNode *> textAnims;
+    AnimationTrackListMap<Q3DSImage *> imageAnims;
+    AnimationTrackListMap<Q3DSLayerNode *> layerAnims;
 
     for (const Q3DSAnimationTrack &animTrack : *anims) {
         Q3DSGraphObject *target = animTrack.target();
@@ -599,57 +607,57 @@ void Q3DSAnimationManager::updateAnimations(Q3DSSlide *animSourceSlide, Q3DSSlid
     if (m_defaultMaterialAnimatables.isEmpty())
         gatherAnimatableMeta(QLatin1String("Material"), &m_defaultMaterialAnimatables);
 
-    updateAnimationHelper<Q3DSDefaultMaterialAttached>(defMatAnims, &m_defaultMaterialAnimatables, animSourceSlide, prevAnimSourceSlide, playModeSourceSlide);
+    updateAnimationHelper(defMatAnims, &m_defaultMaterialAnimatables, animSourceSlide, prevAnimSourceSlide, playModeSourceSlide);
 
     if (m_cameraAnimatables.isEmpty()) {
         gatherAnimatableMeta(QLatin1String("Node"), &m_cameraAnimatables);
         gatherAnimatableMeta(QLatin1String("Camera"), &m_cameraAnimatables);
     }
 
-    updateAnimationHelper<Q3DSCameraAttached>(camAnims, &m_cameraAnimatables, animSourceSlide, prevAnimSourceSlide, playModeSourceSlide);
+    updateAnimationHelper(camAnims, &m_cameraAnimatables, animSourceSlide, prevAnimSourceSlide, playModeSourceSlide);
 
     if (m_lightAnimatables.isEmpty()) {
         gatherAnimatableMeta(QLatin1String("Node"), &m_lightAnimatables);
         gatherAnimatableMeta(QLatin1String("Light"), &m_lightAnimatables);
     }
 
-    updateAnimationHelper<Q3DSLightAttached>(lightAnims, &m_lightAnimatables, animSourceSlide, prevAnimSourceSlide, playModeSourceSlide);
+    updateAnimationHelper(lightAnims, &m_lightAnimatables, animSourceSlide, prevAnimSourceSlide, playModeSourceSlide);
 
     if (m_modelAnimatables.isEmpty()) {
         gatherAnimatableMeta(QLatin1String("Node"), &m_modelAnimatables);
         gatherAnimatableMeta(QLatin1String("Model"), &m_modelAnimatables);
     }
 
-    updateAnimationHelper<Q3DSModelAttached>(modelAnims, &m_modelAnimatables, animSourceSlide, prevAnimSourceSlide, playModeSourceSlide);
+    updateAnimationHelper(modelAnims, &m_modelAnimatables, animSourceSlide, prevAnimSourceSlide, playModeSourceSlide);
 
     if (m_groupAnimatables.isEmpty()) {
         gatherAnimatableMeta(QLatin1String("Node"), &m_groupAnimatables);
         gatherAnimatableMeta(QLatin1String("Group"), &m_groupAnimatables);
     }
 
-    updateAnimationHelper<Q3DSGroupAttached>(groupAnims, &m_groupAnimatables, animSourceSlide, prevAnimSourceSlide, playModeSourceSlide);
+    updateAnimationHelper(groupAnims, &m_groupAnimatables, animSourceSlide, prevAnimSourceSlide, playModeSourceSlide);
 
     if (m_componentAnimatables.isEmpty())
         gatherAnimatableMeta(QLatin1String("Node"), &m_componentAnimatables);
 
-    updateAnimationHelper<Q3DSComponentAttached>(compAnims, &m_componentAnimatables, animSourceSlide, prevAnimSourceSlide, playModeSourceSlide);
+    updateAnimationHelper(compAnims, &m_componentAnimatables, animSourceSlide, prevAnimSourceSlide, playModeSourceSlide);
 
     if (m_textAnimatables.isEmpty()) {
         gatherAnimatableMeta(QLatin1String("Node"), &m_textAnimatables);
         gatherAnimatableMeta(QLatin1String("Text"), &m_textAnimatables);
     }
 
-    updateAnimationHelper<Q3DSTextAttached>(textAnims, &m_textAnimatables, animSourceSlide, prevAnimSourceSlide, playModeSourceSlide);
+    updateAnimationHelper(textAnims, &m_textAnimatables, animSourceSlide, prevAnimSourceSlide, playModeSourceSlide);
 
     if (m_imageAnimatables.isEmpty())
         gatherAnimatableMeta(QLatin1String("Image"), &m_imageAnimatables);
 
-    updateAnimationHelper<Q3DSImageAttached>(imageAnims, &m_imageAnimatables, animSourceSlide, prevAnimSourceSlide, playModeSourceSlide);
+    updateAnimationHelper(imageAnims, &m_imageAnimatables, animSourceSlide, prevAnimSourceSlide, playModeSourceSlide);
 
     if (m_layerAnimatables.isEmpty())
         gatherAnimatableMeta(QLatin1String("Layer"), &m_layerAnimatables);
 
-    updateAnimationHelper<Q3DSLayerAttached>(layerAnims, &m_layerAnimatables, animSourceSlide, prevAnimSourceSlide, playModeSourceSlide);
+    updateAnimationHelper(layerAnims, &m_layerAnimatables, animSourceSlide, prevAnimSourceSlide, playModeSourceSlide);
 
     // custom materials and effects need special handling due to their dynamic properties
     if (!customMatAnims.isEmpty()) {
@@ -658,7 +666,7 @@ void Q3DSAnimationManager::updateAnimations(Q3DSSlide *animSourceSlide, Q3DSSlid
             Q3DSCustomMaterialInstance *mat3DS = it.key();
             gatherDynamicProperties(mat3DS->materialPropertyValues(), mat3DS->material()->properties(), &customMaterialAnimatables);
         }
-        updateAnimationHelper<Q3DSCustomMaterialAttached>(customMatAnims, &customMaterialAnimatables, animSourceSlide, prevAnimSourceSlide, playModeSourceSlide);
+        updateAnimationHelper(customMatAnims, &customMaterialAnimatables, animSourceSlide, prevAnimSourceSlide, playModeSourceSlide);
     }
     if (!effectAnims.isEmpty()) {
         AnimatableTab effectAnimatables;
@@ -666,7 +674,7 @@ void Q3DSAnimationManager::updateAnimations(Q3DSSlide *animSourceSlide, Q3DSSlid
             Q3DSEffectInstance *eff3DS = it.key();
             gatherDynamicProperties(eff3DS->effectPropertyValues(), eff3DS->effect()->properties(), &effectAnimatables);
         }
-        updateAnimationHelper<Q3DSEffectAttached>(effectAnims, &effectAnimatables, animSourceSlide, prevAnimSourceSlide, playModeSourceSlide);
+        updateAnimationHelper(effectAnims, &effectAnimatables, animSourceSlide, prevAnimSourceSlide, playModeSourceSlide);
     }
 }
 
