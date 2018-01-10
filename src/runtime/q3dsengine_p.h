@@ -118,6 +118,7 @@ public:
 
     void resize(const QSize &size, qreal dpr = qreal(1.0));
     void resize(int w, int h, qreal dpr) { resize(QSize(w, h), dpr); }
+    void setAutoStart(bool autoStart);
 
     void handleKeyPressEvent(QKeyEvent *e);
     void handleKeyReleaseEvent(QKeyEvent *e);
@@ -190,6 +191,7 @@ private:
     QHash<Qt3DRender::QRenderCaptureReply*, QMetaObject::Connection> m_captureConnections;
 
     QObject m_profileUiEventSource;
+    bool m_autoStart = true;
 };
 
 Q_DECLARE_OPERATORS_FOR_FLAGS(Q3DSEngine::Flags)

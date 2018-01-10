@@ -29,7 +29,8 @@ SOURCES += \
     q3dscustommaterialgenerator.cpp \
     q3dsabstractdocument.cpp \
     q3dsuiadocument.cpp \
-    q3dsqmldocument.cpp
+    q3dsqmldocument.cpp \
+    q3dsslideplayer.cpp
 
 HEADERS += \
     q3dsruntimeglobal.h \
@@ -61,7 +62,8 @@ HEADERS += \
     q3dscustommaterialgenerator_p.h \
     q3dsabstractdocument_p.h \
     q3dsuiadocument_p.h \
-    q3dsqmldocument_p.h
+    q3dsqmldocument_p.h \
+    q3dsslideplayer_p.h
 
 RESOURCES += \
     q3dsres.qrc

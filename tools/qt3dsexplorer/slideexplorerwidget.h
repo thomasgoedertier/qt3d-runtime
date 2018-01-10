@@ -40,8 +40,12 @@ class Q3DSComponentNode;
 class Q3DSSlide;
 class QListView;
 class QSlider;
+class QSpinBox;
 class SlideListModel;
 class QPushButton;
+class QCheckBox;
+class Q3DSSlidePlayer;
+
 class SlideExplorerWidget : public QWidget
 {
     Q_OBJECT
@@ -56,29 +60,31 @@ public:
 
 private slots:
     void handleSelectionChanged(const QModelIndex &index);
-    void handleCurrentSlideChanged(Q3DSSlide *slide, Q3DSSlide *oldSlide);
+    void handleCurrentSlideChanged(Q3DSSlide *slide);
     void switchToNextSlide();
     void switchToPrevSlide();
     void playCurrentSlide();
+    void stopCurrentSlide();
+    void setRate(int rate);
     void seekInCurrentSlide(int value);
+    void setPlayerMode(int value);
 private:
     void init();
     void updateModel();
     Q3DSComponentNode *m_component = nullptr;
     Q3DSUipPresentation *m_presentation = nullptr;
     Q3DSSceneManager *m_sceneManager = nullptr;
-    Q3DSSlide *m_masterSlide = nullptr;
-    Q3DSSlide *m_currentSlide = nullptr;
+    Q3DSSlidePlayer *m_slidePlayer = nullptr;
     QListView *m_slideListView;
 
     QPushButton *m_nextSlideButton;
     QPushButton *m_prevSlideButton;
     QPushButton *m_playSlideButton;
+    QPushButton *m_stopSlideButton;
+    QSpinBox *m_rateWidget;
     QSlider *m_slideSeekSlider;
     SlideListModel *m_slideModel;
-
-    bool m_isSlidePlaying = false;
-    bool m_slideAtEnd = false;
+    QCheckBox *m_playerModeCheckBox;
 };
 
 QT_END_NAMESPACE

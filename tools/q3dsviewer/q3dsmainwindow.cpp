@@ -31,6 +31,7 @@
 #include <private/q3dswindow_p.h>
 #include <private/q3dsengine_p.h>
 #include <private/q3dsutils_p.h>
+#include <private/q3dsslideplayer_p.h>
 #include <QApplication>
 #include <QMenuBar>
 #include <QMenu>
@@ -101,10 +102,12 @@ Q3DStudioMainWindow::Q3DStudioMainWindow(Q3DSWindow *view, QWidget *parent)
     pauseAnims->setChecked(false);
     connect(pauseAnims, &QAction::toggled, [=]() {
         Q3DSSceneManager *sb = view->engine()->sceneManager();
-        Q3DSSlide *slide = sb->currentSlide();
-        if (slide) {
-            sb->setAnimationsRunning(sb->masterSlide(), pauseAnims->isChecked());
-            sb->setAnimationsRunning(slide, pauseAnims->isChecked());
+        Q3DSSlidePlayer *player = sb->slidePlayer();
+        if (player) {
+            if (pauseAnims->isChecked())
+                player->pause();
+            else
+                player->play();
         }
     });
 

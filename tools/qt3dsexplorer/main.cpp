@@ -69,6 +69,7 @@ int main(int argc, char *argv[])
         flags |= Q3DSEngine::EnableProfiling;
 
     QScopedPointer<Q3DSEngine> engine(new Q3DSEngine);
+    engine->setAutoStart(false);
     QScopedPointer<Q3DSWindow> view(new Q3DSWindow);
     view->setEngine(engine.data());
     engine->setFlags(flags);

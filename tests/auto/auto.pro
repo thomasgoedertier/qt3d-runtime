@@ -7,6 +7,7 @@ SUBDIRS += \
     materialparser \
     effectparser \
     slides \
+    slideplayer \
     q3dslancelot \
     documents
 

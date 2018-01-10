@@ -147,7 +147,6 @@ class Q3DSV_PRIVATE_EXPORT Q3DSGraphObjectAttached
 public:
     virtual ~Q3DSGraphObjectAttached();
     struct AnimationData {
-        Qt3DAnimation::QClipAnimator *animator;
         QVector<Qt3DAnimation::QAnimationCallback *> animationCallbacks;
     };
     QHash<Q3DSSlide *, AnimationData *> animationDataMap;

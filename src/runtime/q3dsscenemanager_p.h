@@ -63,6 +63,7 @@ class Q3DSProfiler;
 class Q3DSProfileUi;
 class Q3DSEngine;
 class Q3DSMesh;
+class Q3DSSlidePlayer;
 
 namespace Qt3DCore {
 class QEntity;
@@ -488,6 +489,8 @@ public:
 class Q3DSSlideAttached : public Q3DSGraphObjectAttached
 {
 public:
+    Q3DSSlidePlayer *slidePlayer = nullptr;
+    Qt3DAnimation::QClipAnimator *animator = nullptr;
     QVector<Qt3DAnimation::QClipAnimator *> animators;
     QSet<Q3DSNode *> needsMasterRollback;
 };
@@ -556,10 +559,10 @@ public:
 
     Q3DSSlide *currentSlide() const { return m_currentSlide; }
     Q3DSSlide *masterSlide() const { return m_masterSlide; }
-    void setCurrentSlide(Q3DSSlide *newSlide);
+    void setCurrentSlide(Q3DSSlide *slide, bool fromSlidePlayer = false);
     void setComponentCurrentSlide(Q3DSComponentNode *component, Q3DSSlide *newSlide);
 
-    void setAnimationsRunning(Q3DSSlide *slide, bool running, bool restart = false);
+    void prepareAnimators();
     Q3DSAnimationManager *animationManager() { return m_animationManager; }
 
     enum SetNodePropFlag {
@@ -604,6 +607,8 @@ public:
 
     void addLog(const QString &msg);
     void addLog(const char *fmt, ...);
+    Q3DSSlidePlayer *slidePlayer() const { return m_slidePlayer; }
+    Qt3DCore::QEntity *getRootEntity() const { return m_rootEntity; }
 
 private:
     Q_DISABLE_COPY(Q3DSSceneManager)
@@ -698,12 +703,9 @@ private:
     void prepareNextFrame();
 
     bool isComponentVisible(Q3DSComponentNode *component);
-    void handleSlideChange(Q3DSSlide *prevSlide, Q3DSSlide *currentSlide, Q3DSSlide *masterSlide, Q3DSComponentNode *component = nullptr);
-    void updateSlideObjectVisibilities(Q3DSSlide *slide, Q3DSComponentNode *component = nullptr);
+    void handleSlideChange(Q3DSSlide *previousSlide,
+                           Q3DSSlide *currentSlide);
     void setNodeVisibility(Q3DSNode *node, bool visible);
-    bool scheduleNodeVisibilityUpdate(Q3DSGraphObject *obj, Q3DSComponentNode *component = nullptr);
-
-    void updateAnimations(Q3DSSlide *animSourceSlide, Q3DSSlide *prevAnimSourceSlide, Q3DSSlide *playModeSourceSlide);
 
     Qt3DRender::QTexture2D *dummyTexture();
 
@@ -740,9 +742,11 @@ private:
     QVector<std::function<void()> > m_compositorOutputSizeChangeCallbacks;
     qint64 m_firstFrameActionTime = 0;
     QMutex m_logMutex;
+    Q3DSSlidePlayer *m_slidePlayer = nullptr;
 
     friend class Q3DSFrameUpdater;
     friend class Q3DSProfiler;
+    friend class Q3DSSlidePlayer;
 };
 
 Q_DECLARE_OPERATORS_FOR_FLAGS(Q3DSSceneManager::SceneBuilderFlags)

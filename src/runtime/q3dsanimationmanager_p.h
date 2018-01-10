@@ -49,9 +49,8 @@ QT_BEGIN_NAMESPACE
 class Q3DSAnimationManager
 {
 public:
-    void updateAnimations(Q3DSSlide *animSourceSlide,
-                          Q3DSSlide *prevAnimSourceSlide,
-                          Q3DSSlide *playModeSourceSlide);
+    void updateAnimations(Q3DSSlide *slide);
+    void clearAnimations(Q3DSSlide *slide);
     void applyChanges();
     void clearPendingChanges();
 
@@ -87,9 +86,7 @@ private:
     template<class T>
     void updateAnimationHelper(const AnimationTrackListMap<T *> &targets,
                                AnimatableTab *animatables,
-                               Q3DSSlide *animSourceSlide,
-                               Q3DSSlide *prevAnimSourceSlide,
-                               Q3DSSlide *playModeSourceSlide);
+                               Q3DSSlide *slide);
 
     AnimatableTab m_defaultMaterialAnimatables;
     AnimatableTab m_cameraAnimatables;

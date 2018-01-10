@@ -572,6 +572,9 @@ bool Q3DSEngine::loadUipPresentation(UipPresentation *pres)
     if (!m_aspectEngine.isNull())
         m_aspectEngine->setRootEntity(Qt3DCore::QEntityPtr(pres->q3dscene.rootEntity));
 
+    if (m_autoStart)
+        pres->sceneManager->prepareAnimators();
+
     return true;
 }
 
@@ -636,6 +639,9 @@ bool Q3DSEngine::loadSubUipPresentation(UipPresentation *pres)
     pres->subPres.sceneManager = pres->sceneManager;
 
     pres->q3dscene.rootEntity->setParent(entityParent);
+
+    if (m_autoStart)
+        pres->sceneManager->prepareAnimators();
 
     return true;
 }
@@ -936,6 +942,11 @@ void Q3DSEngine::resize(const QSize &size, qreal dpr)
     m_dpr = dpr;
     if (!m_uipPresentations.isEmpty())
         m_uipPresentations[0].sceneManager->updateSizes(m_size, m_dpr);
+}
+
+void Q3DSEngine::setAutoStart(bool autoStart)
+{
+    m_autoStart = autoStart;
 }
 
 void Q3DSEngine::handleKeyPressEvent(QKeyEvent *e)

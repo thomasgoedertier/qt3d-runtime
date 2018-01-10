@@ -37,6 +37,7 @@
 #include "q3dsutils_p.h"
 #include "q3dsprofiler_p.h"
 #include "shadergenerator/q3dsshadermanager_p.h"
+#include "q3dsslideplayer_p.h"
 #if QT_CONFIG(q3ds_profileui)
 #include "profileui/q3dsprofileui_p.h"
 #endif
@@ -427,7 +428,8 @@ Q3DSSceneManager::Q3DSSceneManager(const Q3DSGraphicsLimits &limits)
       m_textMatGen(new Q3DSTextMaterialGenerator),
       m_animationManager(new Q3DSAnimationManager),
       m_textRenderer(new Q3DSTextRenderer),
-      m_profiler(new Q3DSProfiler(limits))
+      m_profiler(new Q3DSProfiler(limits)),
+      m_slidePlayer(new Q3DSSlidePlayer(m_animationManager, this))
 {
     const QString fontDir = Q3DSUtils::resourcePrefix() + QLatin1String("res/Font");
     m_textRenderer->registerFonts({ fontDir });
@@ -440,6 +442,7 @@ Q3DSSceneManager::~Q3DSSceneManager()
 #if QT_CONFIG(q3ds_profileui)
     delete m_profileUi;
 #endif
+    delete m_slidePlayer;
     delete m_textRenderer;
     delete m_animationManager;
     delete m_textMatGen;
@@ -495,30 +498,39 @@ void Q3DSSceneManager::updateSizes(const QSize &size, qreal dpr)
     });
 }
 
-void Q3DSSceneManager::setCurrentSlide(Q3DSSlide *newSlide)
+void Q3DSSceneManager::setCurrentSlide(Q3DSSlide *newSlide, bool fromSlidePlayer)
 {
     if (m_currentSlide == newSlide)
         return;
 
-    qCDebug(lcScene, "Setting new current slide %s", newSlide->id().constData());
-    auto prevSlide = m_currentSlide;
-    m_currentSlide = newSlide;
+    // TODO: Workaround to keep the slide test working...
+    if (!fromSlidePlayer) {
+        const int index = m_slidePlayer->slideDeck()->indexOfSlide(newSlide);
+        m_slidePlayer->slideDeck()->setCurrentSlide(index);
+        return;
+    }
 
-    handleSlideChange(prevSlide, m_currentSlide, m_masterSlide);
-    updateSubTree(m_scene);
+    qCDebug(lcScene, "Setting new current slide %s", newSlide->id().constData());
+    m_currentSlide = newSlide;
 }
 
+// TODO: Only called from the slide test, but we keep it working for now...
 void Q3DSSceneManager::setComponentCurrentSlide(Q3DSComponentNode *component, Q3DSSlide *newSlide)
 {
-    if (!component || component->currentSlide() == newSlide)
-        return;
-
+    Q3DSSlideAttached *data = component->masterSlide()->attached<Q3DSSlideAttached>();
+    const int index = data->slidePlayer->slideDeck()->indexOfSlide(newSlide);
+    Q_ASSERT(index != -1);
+    data->slidePlayer->slideDeck()->setCurrentSlide(index);
     qCDebug(lcScene, "Setting new current slide %s for component %s", newSlide->id().constData(), component->id().constData());
-    auto prevSlide = component->currentSlide();
-    component->setCurrentSlide(newSlide);
+}
 
-    handleSlideChange(prevSlide, component->currentSlide(), component->masterSlide(), component);
-    updateSubTree(m_scene);
+void Q3DSSceneManager::prepareAnimators()
+{
+    auto slideDeck = m_slidePlayer->slideDeck();
+    if ((m_slidePlayer->mode() == Q3DSSlidePlayer::PlayerMode::Viewer)
+            && (slideDeck->currentSlide()->initialPlayState() == Q3DSSlide::Play)) {
+        m_slidePlayer->play();
+    }
 }
 
 QDebug operator<<(QDebug dbg, const Q3DSSceneManager::SceneBuilderParams &p)
@@ -535,6 +547,8 @@ void Q3DSSceneManager::prepareEngineReset()
     delete m_frameUpdater;
     m_frameUpdater = nullptr;
 
+    delete m_slidePlayer;
+    m_slidePlayer = nullptr;
     m_animationManager->clearPendingChanges();
 
 #if QT_CONFIG(q3ds_profileui)
@@ -614,17 +628,27 @@ Q3DSSceneManager::Scene Q3DSSceneManager::buildScene(Q3DSUipPresentation *presen
         qWarning("Q3DSSceneBuilder: No slides?");
         return Scene();
     }
-    m_currentSlide = static_cast<Q3DSSlide *>(m_masterSlide->firstChild());
-    if (!m_masterSlide->attached())
-        m_masterSlide->setAttached(new Q3DSSlideAttached);
-    if (!m_currentSlide->attached())
-        m_currentSlide->setAttached(new Q3DSSlideAttached);
-
-    m_presentation->applySlidePropertyChanges(m_currentSlide);
 
     // Kick off the Qt3D scene.
     m_rootEntity = new Qt3DCore::QEntity;
     m_rootEntity->setObjectName(QLatin1String("root"));
+
+    static const auto createSlideAttached = [](Q3DSSlide *slide, Qt3DCore::QEntity *entity) {
+        if (!slide->attached()) {
+            Q3DSSlideAttached *data = new Q3DSSlideAttached;
+            data->entity = entity;
+            slide->setAttached(data);
+        }
+    };
+
+    // Create the attached data object(s)
+    createSlideAttached(m_masterSlide, m_rootEntity);
+    const int count = m_masterSlide->childCount();
+    for (int i = 0; i < count; ++i)
+        createSlideAttached(static_cast<Q3DSSlide *>(m_masterSlide->childAtIndex(i)), m_rootEntity);
+
+    Q3DSSlideDeck *slideDeck = new Q3DSSlideDeck(m_masterSlide);
+    m_currentSlide = slideDeck->currentSlide();
 
     // Property change processing happens in a frame action
     Qt3DLogic::QFrameAction *nodeUpdater = new Qt3DLogic::QFrameAction;
@@ -723,13 +747,8 @@ Q3DSSceneManager::Scene Q3DSSceneManager::buildScene(Q3DSUipPresentation *presen
         sc.renderSettings = frameGraphComponent;
     }
 
-    // Set visibility of objects in the scene and start animations.
-    Q3DSUipPresentation::forAllObjectsOfType(m_masterSlide, Q3DSGraphObject::Slide,
-                                             [this](Q3DSGraphObject *s) {
-        updateSlideObjectVisibilities(static_cast<Q3DSSlide *>(s));
-    });
-    updateAnimations(m_masterSlide, nullptr, m_currentSlide);
-    updateAnimations(m_currentSlide, nullptr, m_currentSlide);
+    // We now set of slide handling, updating object visibility etc.
+    m_slidePlayer->setSlideDeck(slideDeck);
 
     // measure the time from the end of scene building to the invocation of the first frame action
     m_frameUpdater->startTimeFirstFrame();
@@ -5812,33 +5831,26 @@ bool Q3DSSceneManager::isComponentVisible(Q3DSComponentNode *component)
     return visible;
 }
 
-void Q3DSSceneManager::handleSlideChange(Q3DSSlide *prevSlide, Q3DSSlide *currentSlide, Q3DSSlide *masterSlide, Q3DSComponentNode *component)
+void Q3DSSceneManager::handleSlideChange(Q3DSSlide *prevSlide,
+                                         Q3DSSlide *currentSlide)
 {
-    if (!currentSlide->attached())
-        currentSlide->setAttached(new Q3DSSlideAttached);
+    Q_ASSERT(currentSlide->attached());
 
-    // Reset properties like eyeball to the master slide's value.
-    auto slideData = static_cast<Q3DSSlideAttached *>(prevSlide->attached());
-    for (Q3DSNode *node : qAsConst(slideData->needsMasterRollback)) {
-        const Q3DSPropertyChangeList *changeList = node->masterRollbackList();
-        if (changeList) {
-            qCDebug(lcScene, "Rolling back %d changes to master for %s", changeList->count(), node->id().constData());
-            node->applyPropertyChanges(changeList);
-            if (isComponentVisible(component)) {
+    if (prevSlide) {
+        auto slideData = static_cast<Q3DSSlideAttached *>(prevSlide->attached());
+        for (Q3DSNode *node : qAsConst(slideData->needsMasterRollback)) {
+            const Q3DSPropertyChangeList *changeList = node->masterRollbackList();
+            if (changeList) {
+                qCDebug(lcScene, "Rolling back %d changes to master for %s", changeList->count(), node->id().constData());
+                node->applyPropertyChanges(changeList);
                 node->notifyPropertyChanges(changeList);
                 updateSubTreeRecursive(node);
             }
         }
+        slideData->needsMasterRollback.clear();
     }
-    slideData->needsMasterRollback.clear();
 
     m_presentation->applySlidePropertyChanges(currentSlide);
-
-    updateSlideObjectVisibilities(prevSlide, component);
-    updateSlideObjectVisibilities(currentSlide, component);
-
-    updateAnimations(masterSlide, nullptr, currentSlide);
-    updateAnimations(currentSlide, prevSlide, currentSlide);
 }
 
 void Q3DSSceneManager::prepareNextFrame()
@@ -6131,31 +6143,6 @@ void Q3DSSceneManager::updateNodeFromChangeFlags(Q3DSNode *node, Qt3DCore::QTran
     }
 }
 
-void Q3DSSceneManager::updateSlideObjectVisibilities(Q3DSSlide *slide, Q3DSComponentNode *component)
-{
-    for (Q3DSGraphObject *obj : *slide->objects()) {
-        const bool visible = scheduleNodeVisibilityUpdate(obj, component);
-        if (obj->type() == Q3DSGraphObject::Component) {
-            // objects on the Component's current (or master) slide
-            Q3DSComponentNode *comp = static_cast<Q3DSComponentNode *>(obj);
-            // Recursively update any component slides
-            Q3DSGraphObject *n = comp->masterSlide()->firstChild();
-            while (n) {
-                updateSlideObjectVisibilities(static_cast<Q3DSSlide *>(n), comp);
-                n = n->nextSibling();
-            }
-            for (Q3DSGraphObject *cobj : *comp->masterSlide()->objects())
-                scheduleNodeVisibilityUpdate(cobj, comp);
-            for (Q3DSGraphObject *cobj : *comp->currentSlide()->objects())
-                scheduleNodeVisibilityUpdate(cobj, comp);
-            if (visible) { // if Component is not on the current slide, then don't care for now
-                updateAnimations(comp->masterSlide(), nullptr, comp->currentSlide());
-                updateAnimations(comp->currentSlide(), nullptr, comp->currentSlide());
-            }
-        }
-    }
-}
-
 void Q3DSSceneManager::setNodeVisibility(Q3DSNode *node, bool visible)
 {
     Q3DSNodeAttached *data = static_cast<Q3DSNodeAttached *>(node->attached());
@@ -6191,53 +6178,6 @@ void Q3DSSceneManager::setNodeVisibility(Q3DSNode *node, bool visible)
     }
 
     updateGlobals(node, UpdateGlobalsRecursively | UpdateGlobalsSkipTransform);
-}
-
-// There are different kind of visibilities: the global (inhertied) visibility
-// is based on the Active flag (eyeball property) whereas the visibility
-// defined by the object belonging to the current (or master) slide comes on
-// top. The two get combined here.
-bool Q3DSSceneManager::scheduleNodeVisibilityUpdate(Q3DSGraphObject *obj, Q3DSComponentNode *component)
-{
-    if (obj->isNode() && obj->type() != Q3DSGraphObject::Camera) {
-        Q3DSNode *node = static_cast<Q3DSNode *>(obj);
-        Q3DSNodeAttached *ndata = static_cast<Q3DSNodeAttached *>(node->attached());
-        if (ndata) {
-            bool visible = ndata->globalVisibility;
-            // Check that object exists current slide scope (master + current)
-            Q3DSSlide *master = component ? component->masterSlide () : m_masterSlide;
-            Q3DSSlide *currentSlide = component ? component->currentSlide() : m_currentSlide;
-            if (!master->objects()->contains(node) && !currentSlide->objects()->contains(node))
-                visible = false;
-            // Check if component is visible in parent slide hierarchy
-            if (!isComponentVisible(component))
-                visible = false;
-            QSet<Q3DSNode *> *targetSet = visible ? &m_pendingNodeShow : &m_pendingNodeHide;
-            targetSet->insert(node);
-            return visible;
-        }
-    }
-    return false;
-}
-
-void Q3DSSceneManager::updateAnimations(Q3DSSlide *animSourceSlide, Q3DSSlide *prevAnimSourceSlide, Q3DSSlide *playModeSourceSlide)
-{
-    // Called when entering a slide. Go through the slide's animations and add
-    // Animator components for the affected entities (after removing existing ones).
-    if (prevAnimSourceSlide) {
-        setAnimationsRunning(prevAnimSourceSlide, false);
-    }
-    m_animationManager->updateAnimations(animSourceSlide, prevAnimSourceSlide, playModeSourceSlide);
-}
-
-void Q3DSSceneManager::setAnimationsRunning(Q3DSSlide *slide, bool running, bool restart)
-{
-    Q3DSSlideAttached *data = static_cast<Q3DSSlideAttached *>(slide->attached());
-    for (Qt3DAnimation::QClipAnimator *animator : data->animators) {
-        if (restart)
-            animator->setNormalizedTime(0.0f);
-        animator->setRunning(running);
-    }
 }
 
 void Q3DSFrameUpdater::frameAction(float dt)
