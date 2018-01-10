@@ -1061,6 +1061,11 @@ namespace  {
         if (!textureImage.hasAlphaChannel())
             return false;
 
+        if (textureImage.width() > 1024 || textureImage.height() > 1024)
+            qCDebug(lcUip, "Perf. hint: Scanning image of size %dx%d manually for transparency. "
+                    "Prefer setting hasTransparency in the ImageBuffer element instead.",
+                    textureImage.width(), textureImage.height());
+
         bool hasTransparency = false;
         for (int y = 0; y < textureImage.height(); ++y) {
             for (int x = 0; x < textureImage.width(); ++x) {
