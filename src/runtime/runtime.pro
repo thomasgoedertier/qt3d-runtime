@@ -1,7 +1,7 @@
 TARGET = Qt3DStudioRuntime2
 MODULE = 3dstudioruntime2
 
-QT += widgets 3dcore-private 3drender 3dinput 3dlogic 3danimation 3dextras
+QT += widgets 3dcore-private 3drender 3dinput 3dlogic 3danimation 3dextras qml 3dquick 3dquickscene2d
 
 SOURCES += \
     q3dsuipparser.cpp \

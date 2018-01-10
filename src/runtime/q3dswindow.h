@@ -35,8 +35,11 @@
 #include <Qt3DCore/QAspectEngine>
 #include <Qt3DStudioRuntime2/Q3DSUipDocument>
 #include <Qt3DStudioRuntime2/q3dsscenemanager.h>
+#include <Qt3DQuickScene2D/qscene2d.h>
 
 QT_BEGIN_NAMESPACE
+
+class QQmlEngine;
 
 class Q3DSV_EXPORT Q3DStudioWindow : public QWindow
 {
@@ -86,13 +89,23 @@ private:
         Q3DSSubPresentation subPres;
     };
 
+    struct QmlPresentation {
+        QString previewFileName;
+        Q3DSSceneManager *sceneManager = nullptr;
+        Qt3DRender::Quick::QScene2D *scene2d = nullptr;
+        Q3DSSubPresentation subPres;
+    };
+
     void createAspectEngine();
     bool loadPresentation(Presentation *pres);
     bool loadSubPresentation(Presentation *pres);
+    bool loadQmlSubPresentation(QmlPresentation *pres);
 
     Flags m_flags;
     QString m_source; // uip or uia file
     QVector<Presentation> m_presentations;
+    QVector<QmlPresentation> m_qmlPresentations;
+    QScopedPointer<QQmlEngine> m_engine;
 
     QScopedPointer<Qt3DCore::QAspectEngine> m_aspectEngine;
 

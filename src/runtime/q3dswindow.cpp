@@ -34,6 +34,7 @@
 #include <QLoggingCategory>
 #include <QKeyEvent>
 #include <QMouseEvent>
+#include <QtQml/qqmlengine.h>
 
 #include <QOpenGLContext>
 #include <QOpenGLFunctions>
@@ -284,17 +285,24 @@ bool Q3DStudioWindow::setSource(const QString &uipOrUiaFileName)
             return false;
         }
         for (const Q3DSUiaParser::Uia::Presentation &p : uiaDoc.presentations) {
-            if (p.type != Q3DSUiaParser::Uia::Presentation::Uip)
-                continue;
-            Presentation pres;
-            pres.subPres.id = p.id;
-            // assume the .uip name in the .uia is relative to the .uia's location
-            pres.uipFileName = sourcePrefix + p.source;
-            qCDebug(lcUip, "Registered subpresentation %s as %s", qPrintable(pres.uipFileName), qPrintable(p.id));
-            if (p.id == uiaDoc.initialPresentationId) // initial (main) presentation must be m_presentations[0]
-                m_presentations.prepend(pres);
-            else
-                m_presentations.append(pres);
+            if (p.type == Q3DSUiaParser::Uia::Presentation::Uip) {
+                Presentation pres;
+                pres.subPres.id = p.id;
+                // assume the .uip name in the .uia is relative to the .uia's location
+                pres.uipFileName = sourcePrefix + p.source;
+                qCDebug(lcUip, "Registered subpresentation %s as %s", qPrintable(pres.uipFileName), qPrintable(p.id));
+                if (p.id == uiaDoc.initialPresentationId) // initial (main) presentation must be m_presentations[0]
+                    m_presentations.prepend(pres);
+                else
+                    m_presentations.append(pres);
+            } else if (p.type == Q3DSUiaParser::Uia::Presentation::Qml) {
+                QmlPresentation pres;
+                pres.subPres.id = p.id;
+                pres.previewFileName = sourcePrefix + p.source;
+                qCDebug(lcUip, "Registered qml subpresentation %s as %s",
+                        qPrintable(pres.previewFileName), qPrintable(p.id));
+                m_qmlPresentations.append(pres);
+            }
         }
         if (m_presentations.isEmpty())
             return false;
@@ -307,9 +315,15 @@ bool Q3DStudioWindow::setSource(const QString &uipOrUiaFileName)
 
     for (int i = 1; i < m_presentations.count(); ++i)
         loadSubPresentation(&m_presentations[i]);
+    for (QmlPresentation &pres : m_qmlPresentations)
+        loadQmlSubPresentation(&pres);
 
     QVector<Q3DSSubPresentation> subPresentations;
     for (const Presentation &pres : m_presentations) {
+        if (!pres.subPres.id.isEmpty() && pres.subPres.colorTex)
+            subPresentations.append(pres.subPres);
+    }
+    for (const QmlPresentation &pres : m_qmlPresentations) {
         if (!pres.subPres.id.isEmpty() && pres.subPres.colorTex)
             subPresentations.append(pres.subPres);
     }
@@ -439,6 +453,104 @@ bool Q3DStudioWindow::loadSubPresentation(Presentation *pres)
     pres->subPres.sceneManager = pres->sceneManager;
 
     pres->q3dscene.rootEntity->setParent(entityParent);
+
+    return true;
+}
+
+bool Q3DStudioWindow::loadQmlSubPresentation(QmlPresentation *pres)
+{
+    if (m_engine.isNull())
+        m_engine.reset(new QQmlEngine);
+
+    Qt3DCore::QNode *entityParent = m_presentations[0].q3dscene.rootEntity;
+    QQmlComponent *component = new QQmlComponent(m_engine.data(),
+                                                 QUrl::fromLocalFile(pres->previewFileName));
+
+    if (component->isReady()) {
+        int width = 0;
+        int height = 0;
+        QQuickItem *item = static_cast<QQuickItem *>(component->create());
+        if (!item) {
+            qCDebug(lcUip, "Failed to load qml. Root is not a quick item.");
+            delete component;
+            delete item;
+            return false;
+        }
+
+        pres->scene2d = new Qt3DRender::Quick::QScene2D(entityParent);
+        pres->scene2d->setItem(item);
+        item->setParent(pres->scene2d);
+        Qt3DRender::QRenderTargetOutput *color
+                = new Qt3DRender::QRenderTargetOutput(pres->scene2d);
+
+        color->setAttachmentPoint(Qt3DRender::QRenderTargetOutput::Color0);
+        pres->subPres.colorTex = new Qt3DRender::QTexture2D(entityParent);
+        pres->subPres.colorTex->setFormat(Qt3DRender::QAbstractTexture::RGBA8_UNorm);
+        pres->subPres.colorTex->setMinificationFilter(Qt3DRender::QAbstractTexture::Linear);
+        pres->subPres.colorTex->setMagnificationFilter(Qt3DRender::QAbstractTexture::Linear);
+        color->setTexture(pres->subPres.colorTex);
+
+        pres->scene2d->setOutput(color);
+
+        width = int(item->width());
+        height = int(item->height());
+        if (!width) width = 128;
+        if (!height) height = 128;
+
+        pres->subPres.colorTex->setWidth(width);
+        pres->subPres.colorTex->setHeight(height);
+
+        delete component;
+    } else if (component->isLoading()) {
+        int width = 128;
+        int height = 128;
+
+        /* Must create these already here in order to link the texture to wherever it is used */
+        pres->scene2d = new Qt3DRender::Quick::QScene2D(entityParent);
+        Qt3DRender::QRenderTargetOutput *color
+                = new Qt3DRender::QRenderTargetOutput(pres->scene2d);
+
+        color->setAttachmentPoint(Qt3DRender::QRenderTargetOutput::Color0);
+        pres->subPres.colorTex = new Qt3DRender::QTexture2D(entityParent);
+        pres->subPres.colorTex->setFormat(Qt3DRender::QAbstractTexture::RGBA8_UNorm);
+        pres->subPres.colorTex->setMinificationFilter(Qt3DRender::QAbstractTexture::Linear);
+        pres->subPres.colorTex->setMagnificationFilter(Qt3DRender::QAbstractTexture::Linear);
+        color->setTexture(pres->subPres.colorTex);
+
+        pres->scene2d->setOutput(color);
+
+        pres->subPres.colorTex->setWidth(width);
+        pres->subPres.colorTex->setHeight(height);
+
+        QObject::connect(component, &QQmlComponent::statusChanged,
+                         [&, component, pres](QQmlComponent::Status status) {
+            if (status == QQmlComponent::Status::Ready) {
+                QQuickItem *item = static_cast<QQuickItem *>(component->create());
+                if (item) {
+                    pres->scene2d->setItem(item);
+                    item->setParent(pres->scene2d);
+                    int width = int(item->width());
+                    int height = int(item->height());
+
+                    pres->subPres.colorTex->setWidth(width);
+                    pres->subPres.colorTex->setHeight(height);
+                } else {
+                    qCDebug(lcUip, "Failed to load qml. Root is not a quick item.");
+                    delete item;
+                    pres->scene2d->deleteLater();
+                    component->deleteLater();
+                }
+            } else {
+                qCDebug(lcUip, "Failed to load qml: %s", qPrintable(component->errorString()));
+                pres->scene2d->deleteLater();
+                component->deleteLater();
+            }
+        });
+    } else {
+        qCDebug(lcUip, "Failed to load qml: %s", qPrintable(component->errorString()));
+        delete component;
+        return false;
+    }
 
     return true;
 }
