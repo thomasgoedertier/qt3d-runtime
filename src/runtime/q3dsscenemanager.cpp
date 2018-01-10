@@ -4647,6 +4647,12 @@ void Q3DSSceneManager::handlePropertyChange(Q3DSGraphObject *obj, const QSet<QSt
         data->changeFlags |= cf;
     }
         break;
+    case Q3DSGraphObject::Effect:
+    {
+        data->dirty |= Q3DSGraphObjectAttached::EffectDirty;
+        data->changeFlags |= cf;
+    }
+        break;
     case Q3DSGraphObject::Image:
     {
         data->dirty |= Q3DSGraphObjectAttached::ImageDirty;
@@ -4850,6 +4856,10 @@ static void markLayerForObjectDirty(Q3DSGraphObject *obj)
         Q3DSLayerNode *layer3DS = findLayerForMat(obj);
         if (layer3DS)
             markLayerDirty(layer3DS);
+    } else if (obj->type() == Q3DSGraphObject::Effect) {
+        Q3DSEffectAttached *data = static_cast<Q3DSEffectAttached *>(obj->attached());
+        if (data && data->layer3DS)
+            markLayerDirty(data->layer3DS);
     }
 }
 
@@ -4980,6 +4990,17 @@ void Q3DSSceneManager::updateSubTreeRecursive(Q3DSGraphObject *obj)
             updateCustomMaterial(mat3DS);
             m_wasDirty = true;
             markLayerForObjectDirty(mat3DS);
+        }
+    }
+        break;
+    case Q3DSGraphObject::Effect:
+    {
+        Q3DSEffectInstance *eff3DS = static_cast<Q3DSEffectInstance *>(obj);
+        Q3DSEffectAttached *data = static_cast<Q3DSEffectAttached *>(eff3DS->attached());
+        if (data && (data->dirty & Q3DSGraphObjectAttached::EffectDirty)) {
+            updateEffect(eff3DS);
+            m_wasDirty = true;
+            markLayerForObjectDirty(eff3DS);
         }
     }
         break;
