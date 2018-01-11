@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<UIP version="3" >
+	<Project >
+		<ProjectSettings author="" company="" presentationWidth="1200" presentationHeight="900" maintainAspect="False" >
+			<CustomColors count="16" >#ffffff #8f73a8 #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff</CustomColors>
+		</ProjectSettings>
+		<Graph >
+			<Scene id="Scene" >
+				<Layer id="Layer" >
+					<Camera id="Camera" />
+					<Light id="Light" />
+					<Model id="Rectangle" >
+						<Material id="Default" name="Default" >
+							<Image id="Default_diffusemap" />
+						</Material>
+					</Model>
+					<Model id="Rectangle2" >
+						<Material id="Default_001" name="Default" >
+							<Image id="Default_001_diffusemap" />
+						</Material>
+					</Model>
+					<Model id="Sphere" >
+						<Material id="Default_002" name="Default" >
+							<Image id="Default_002_diffusemap" />
+						</Material>
+					</Model>
+				</Layer>
+			</Scene>
+		</Graph>
+		<Logic >
+			<State name="Master Slide" component="#Scene" >
+				<Add ref="#Layer" />
+				<Add ref="#Camera" />
+				<Add ref="#Light" />
+				<State id="Scene-Slide1" name="Slide1" >
+					<Add ref="#Rectangle" name="Rectangle" position="-229.528 170.639 0" rotation="-23.5 -56.5 9.3099e-07" scale="3.92002 2.2675 1.325" sourcepath="#Rectangle" />
+					<Add ref="#Default" diffusemap="#Default_diffusemap" />
+					<Add ref="#Default_diffusemap" sourcepath="maps/dummy.png" subpresentation="left_rect" />
+					<Add ref="#Rectangle2" name="Rectangle2" position="347.828 230.555 0" rotation="-30.7742 70.8761 -5.83502" scale="1.69284 1.71606 1.99829" sourcepath="#Rectangle" />
+					<Add ref="#Default_001" diffusemap="#Default_001_diffusemap" />
+					<Add ref="#Default_001_diffusemap" sourcepath="maps/dummy.png" subpresentation="right_rect" />
+					<Add ref="#Sphere" name="Sphere" scale="3 3 3" sourcepath="#Sphere" />
+					<Add ref="#Default_002" diffusemap="#Default_002_diffusemap" />
+					<Add ref="#Default_002_diffusemap" sourcepath="maps/dummy.png" subpresentation="cylinder" />
+				</State>
+			</State>
+		</Logic>
+	</Project>
+</UIP>

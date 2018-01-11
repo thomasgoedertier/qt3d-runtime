@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<application>
+	<assets initial="multiplestreams">
+		<presentation id="multiplestreams" src="multiplestreams.uip"/>
+		<presentation-qml id="left_layer" args=""/>
+		<presentation-qml id="right_layer" args=""/>
+		<presentation-qml id="left_rect" args="scripts\left_rect.qml"/>
+		<presentation-qml id="right_rect" args="scripts\right_rect.qml"/>
+		<presentation-qml id="cylinder" args="scripts\cylinder.qml"/>
+	</assets>
+	<statemachine ref="#logic">
+		<visual-states>
+			<state ref="Initial">
+				<enter>
+					<goto-slide element="main:Scene" rel="next"/>
+				</enter>
+			</state>
+		</visual-states>
+	</statemachine>
+</application>

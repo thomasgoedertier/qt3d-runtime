@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<application xmlns="http://qt.io/qt3dstudio/uia">
+    <assets initial="qmlstream">
+        <presentation id="qmlstream" src="qmlstream.uip"/>
+        <presentation-qml id="red-fill" args="scripts/RedFill.qml" />
+    </assets>
+</application>
