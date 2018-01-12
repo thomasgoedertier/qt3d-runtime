@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<UIP version="3" >
+	<Project >
+		<ProjectSettings author="" company="" presentationWidth="800" presentationHeight="480" maintainAspect="F" >
+			<CustomColors count="16" >#ff5500 #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff</CustomColors>
+		</ProjectSettings>
+		<Graph >
+			<Scene id="Scene" >
+				<Layer id="Layer" >
+					<Camera id="Camera" />
+					<Light id="Light" />
+					<Model id="Cube" >
+						<Material id="Default" name="Default" />
+					</Model>
+					<Model id="Cube2" >
+						<Material id="Default_001" name="Default" />
+					</Model>
+					<Model id="Cube3" >
+						<Material id="Default_002" name="Default" />
+					</Model>
+					<Model id="Sphere" >
+						<Material id="Default_003" name="Default" />
+					</Model>
+					<Model id="Cube4" >
+						<Material id="Default_004" name="Default" />
+					</Model>
+					<Model id="Cone" >
+						<Material id="Default_005" name="Default" />
+					</Model>
+				</Layer>
+			</Scene>
+		</Graph>
+		<Logic >
+			<State name="Master Slide" component="#Scene" >
+				<Add ref="#Layer" />
+				<Add ref="#Camera" />
+				<Add ref="#Light" />
+				<State id="Scene-Looping" name="Looping" playmode="Looping" >
+					<Add ref="#Cube" name="Cube" position="-440.23 -1.44337 0" sourcepath="#Cube" >
+						<AnimationTrack property="position.x" type="EaseInOut" >0 -440.23 100 100 10 463.324 100 100</AnimationTrack>
+						<AnimationTrack property="position.y" type="EaseInOut" >0 -1.44337 100 100 10 9.53674e-07 100 100</AnimationTrack>
+						<AnimationTrack property="position.z" type="EaseInOut" >0 0 100 100 10 0 100 100</AnimationTrack>
+					</Add>
+					<Add ref="#Default" />
+				</State>
+				<State id="Scene-PingPong" name="PingPong" playmode="PingPong" playthroughto="Previous" >
+					<Add ref="#Cube2" name="Cube2" position="0 256.921 0" sourcepath="#Cube" >
+						<AnimationTrack property="position.x" type="EaseInOut" >0 0 100 100 10 0 100 100</AnimationTrack>
+						<AnimationTrack property="position.y" type="EaseInOut" >0 255.65 100 100 10 -258.192 100 100</AnimationTrack>
+						<AnimationTrack property="position.z" type="EaseInOut" >0 0 100 100 10 0 100 100</AnimationTrack>
+					</Add>
+					<Add ref="#Default_001" />
+				</State>
+				<State id="Scene-Ping" name="Ping" playthroughto="Previous" >
+					<Add ref="#Cube3" name="Cube3" position="-476.314 264.138 0" sourcepath="#Cube" >
+						<AnimationTrack property="position.x" type="EaseInOut" >0 -474.871 100 100 10 474.871 100 100</AnimationTrack>
+						<AnimationTrack property="position.y" type="EaseInOut" >0 264.138 100 100 10 -262.694 100 100</AnimationTrack>
+						<AnimationTrack property="position.z" type="EaseInOut" >0 0 100 100 10 0 100 100</AnimationTrack>
+					</Add>
+					<Add ref="#Default_002" />
+				</State>
+				<State id="Scene-PlayToNext" name="PlayToNext" playmode="Play Through To..." playthroughto="Next" >
+					<Add ref="#Cube4" name="Cube4" position="-473.427 -261.251 0" sourcepath="#Cube" >
+						<AnimationTrack property="position.x" type="EaseInOut" >0 0 100 100 10 474.871 100 100</AnimationTrack>
+						<AnimationTrack property="position.y" type="EaseInOut" >0 0 100 100 10 -264.138 100 100</AnimationTrack>
+						<AnimationTrack property="position.z" type="EaseInOut" >0 0 100 100 10 0 100 100</AnimationTrack>
+					</Add>
+					<Add ref="#Default_004" />
+				</State>
+				<State id="Scene-StopAtEnd" name="StopAtEnd" playthroughto="Previous" >
+					<Add ref="#Sphere" name="Sphere" position="-503.738 -284.345 0" sourcepath="#Sphere" >
+						<AnimationTrack property="position.x" type="EaseInOut" >0 -497.965 100 100 10 503.738 100 100</AnimationTrack>
+						<AnimationTrack property="position.y" type="EaseInOut" >0 -282.902 100 100 10 282.902 100 100</AnimationTrack>
+						<AnimationTrack property="position.z" type="EaseInOut" >0 0 100 100 10 0 100 100</AnimationTrack>
+					</Add>
+					<Add ref="#Default_003" />
+				</State>
+				<State id="Scene-PlayToPrevious" name="PlayToPrevious" playmode="Play Through To..." playthroughto="Previous" >
+					<Add ref="#Cone" name="Cone" sourcepath="#Cone" >
+						<AnimationTrack property="position.x" type="EaseInOut" >0 0 100 100 10 -1.44334 100 100</AnimationTrack>
+						<AnimationTrack property="position.y" type="EaseInOut" >0 0 100 100 10 -317.543 100 100</AnimationTrack>
+						<AnimationTrack property="position.z" type="EaseInOut" >0 0 100 100 10 0 100 100</AnimationTrack>
+					</Add>
+					<Add ref="#Default_005" />
+				</State>
+			</State>
+		</Logic>
+	</Project>
+</UIP>

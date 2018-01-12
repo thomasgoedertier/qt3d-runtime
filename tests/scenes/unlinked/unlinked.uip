@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<UIP version="3" >
+	<Project >
+		<ProjectSettings author="" company="" presentationWidth="800" presentationHeight="480" maintainAspect="F" >
+			<CustomColors count="16" >#ff5500 #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff</CustomColors>
+		</ProjectSettings>
+		<Graph >
+			<Scene id="Scene" >
+				<Layer id="Layer" >
+					<Camera id="Camera" />
+					<Light id="Light" />
+					<Model id="Cube" >
+						<Material id="Default" name="Default" />
+					</Model>
+					<Model id="Sphere" >
+						<Material id="Default_001" name="Default" />
+					</Model>
+					<Model id="Cylinder" >
+						<Material id="Default_002" name="Default" />
+					</Model>
+					<Model id="Cone" >
+						<Material id="Default_003" name="Default" />
+					</Model>
+					<Component id="Component" >
+						<Model id="Cylinder_001" >
+							<Material id="Default_004" name="Default" />
+						</Model>
+					</Component>
+				</Layer>
+			</Scene>
+		</Graph>
+		<Logic >
+			<State name="Master Slide" component="#Scene" playmode="Looping" >
+				<Add ref="#Layer" endtime="11800" />
+				<Add ref="#Camera" endtime="11800" />
+				<Add ref="#Light" endtime="11800" />
+				<Add ref="#Cube" name="Cube" endtime="11800" position="372.391 150.111 0" sourcepath="#Cube" >
+					<AnimationTrack property="position.x" type="EaseInOut" >0 372.391 100 100 11.36 0 100 100</AnimationTrack>
+					<AnimationTrack property="position.y" type="EaseInOut" >0 150.111 100 100 11.36 0 100 100</AnimationTrack>
+					<AnimationTrack property="position.z" type="EaseInOut" >0 0 100 100 11.36 0 100 100</AnimationTrack>
+				</Add>
+				<Add ref="#Default" />
+				<Add ref="#Cylinder" name="Cylinder" endtime="11800" position="-427.239 -282.902 0" sourcepath="#Cylinder" >
+					<AnimationTrack property="position.x" type="EaseInOut" >0 -438.786 100 100 11.8 -427.239 100 100</AnimationTrack>
+					<AnimationTrack property="position.y" type="EaseInOut" >0 248.261 100 100 11.8 -282.902 100 100</AnimationTrack>
+					<AnimationTrack property="position.z" type="EaseInOut" >0 0 100 100 11.8 0 100 100</AnimationTrack>
+				</Add>
+				<Add ref="#Default_002" />
+				<State id="Scene-Slide2" name="Slide2" initialplaystate="Play" playmode="Play Through To..." playthroughto="Next" >
+					<Set ref="#Layer" endtime="9997" />
+					<Set ref="#Camera" endtime="9997" />
+					<Set ref="#Light" endtime="9997" />
+					<Set ref="#Cube" endtime="9997" position="372.391 150.111 0" >
+						<AnimationTrack property="position.x" type="EaseInOut" >0 372.391 100 100 9.997 0 100 100</AnimationTrack>
+						<AnimationTrack property="position.y" type="EaseInOut" >0 150.111 100 100 9.997 0 100 100</AnimationTrack>
+						<AnimationTrack property="position.z" type="EaseInOut" >0 0 100 100 9.997 0 100 100</AnimationTrack>
+					</Set>
+					<Set ref="#Cylinder" endtime="9997" />
+					<Add ref="#Sphere" name="Sphere" endtime="9997" position="-5.7735 281.458 0" sourcepath="#Sphere" >
+						<AnimationTrack property="position.x" type="EaseInOut" >0 -5.7735 100 100 9.997 4.76837e-07 100 100</AnimationTrack>
+						<AnimationTrack property="position.y" type="EaseInOut" >0 281.458 100 100 9.997 -304.552 100 100</AnimationTrack>
+						<AnimationTrack property="position.z" type="EaseInOut" >0 0 100 100 9.997 0 100 100</AnimationTrack>
+					</Add>
+					<Add ref="#Default_001" />
+					<Add ref="#Component" name="Component" endtime="9997" >
+						<AnimationTrack property="position.x" type="EaseInOut" >0 0 100 100 9.997 4.33011 100 100</AnimationTrack>
+						<AnimationTrack property="position.y" type="EaseInOut" >0 0 100 100 9.997 523.945 100 100</AnimationTrack>
+						<AnimationTrack property="position.z" type="EaseInOut" >0 0 100 100 9.997 0 100 100</AnimationTrack>
+					</Add>
+				</State>
+				<State id="Scene-Slide1" name="Slide1" playthroughto="Previous" >
+					<Set ref="#Cube" position="0 0 0" >
+						<AnimationTrack property="position.x" type="EaseInOut" >0 0 100 100 10 -287.232 100 100</AnimationTrack>
+						<AnimationTrack property="position.y" type="EaseInOut" >0 0 100 100 10 -232.383 100 100</AnimationTrack>
+						<AnimationTrack property="position.z" type="EaseInOut" >0 0 100 100 10 0 100 100</AnimationTrack>
+					</Set>
+					<Add ref="#Cone" name="Cone" position="506.625 -311.769 0" sourcepath="#Cone" >
+						<AnimationTrack property="position.x" type="EaseInOut" >0 508.068 100 100 10 508.068 100 100</AnimationTrack>
+						<AnimationTrack property="position.y" type="EaseInOut" >0 -313.666 100 100 10 236.714 100 100</AnimationTrack>
+						<AnimationTrack property="position.z" type="EaseInOut" >0 0 100 100 10 0 100 100</AnimationTrack>
+					</Add>
+					<Add ref="#Default_003" />
+				</State>
+				<State id="Scene-Slide3" name="Slide3" initialplaystate="Play" playmode="Looping" playthroughto="Previous" >
+					<Set ref="#Layer" endtime="9996" />
+					<Set ref="#Camera" endtime="9996" />
+					<Set ref="#Light" endtime="9996" />
+					<Set ref="#Cube" endtime="9996" position="372.391 150.111 0" >
+						<AnimationTrack property="position.x" type="EaseInOut" />
+						<AnimationTrack property="position.y" type="EaseInOut" />
+						<AnimationTrack property="position.z" type="EaseInOut" />
+					</Set>
+					<Set ref="#Cylinder" endtime="9996" />
+				</State>
+			</State>
+			<State name="Master Slide" component="#Component" >
+				<State id="Component-Slide1" name="Slide1" playmode="Looping" >
+					<Add ref="#Cylinder_001" name="Cylinder" position="258.364 -268.468 0" sourcepath="#Cylinder" >
+						<AnimationTrack property="position.x" type="EaseInOut" >0 258.364 100 100 10 -304.552 100 100</AnimationTrack>
+						<AnimationTrack property="position.y" type="EaseInOut" >0 -268.468 100 100 10 -269.911 100 100</AnimationTrack>
+						<AnimationTrack property="position.z" type="EaseInOut" >0 0 100 100 10 0 100 100</AnimationTrack>
+					</Add>
+					<Add ref="#Default_004" />
+				</State>
+			</State>
+		</Logic>
+	</Project>
+</UIP>
