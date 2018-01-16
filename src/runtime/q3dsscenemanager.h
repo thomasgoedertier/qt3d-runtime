@@ -71,7 +71,7 @@ class QRenderPass;
 class QShaderProgram;
 class QBuffer;
 class QTexture2D;
-class QTextureImage;
+class QTextureLoader;
 class QPaintedTextureImage;
 class QLayerFilter;
 class QRenderTargetSelector;
@@ -343,8 +343,7 @@ struct Q3DSTextureParameters
 
     QVector<Qt3DRender::QParameter *> parameters() const { return { sampler, offsets, rotations }; }
 
-    Qt3DRender::QTexture2D *texture = nullptr;
-    Qt3DRender::QTextureImage *textureImage = nullptr;
+    Qt3DRender::QTextureLoader *texture = nullptr;
     QString subPresId;
 };
 

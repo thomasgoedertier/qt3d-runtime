@@ -3863,11 +3863,11 @@ void Q3DSSceneManager::prepareTextureParameters(Q3DSTextureParameters &texturePa
     textureParameters.rotations = new Qt3DRender::QParameter;
     textureParameters.rotations->setName(name + QLatin1String("_rotations"));
 
-    textureParameters.texture = new Qt3DRender::QTexture2D(m_rootEntity);
-    m_profiler->trackNewObject(textureParameters.texture, Q3DSProfiler::Texture2DObject,
+    // Prefer QTextureLoader since this is simpler and leads to updated width,
+    // height, etc. values on the texture.
+    textureParameters.texture = new Qt3DRender::QTextureLoader(m_rootEntity);
+    m_profiler->trackNewObject(textureParameters.texture, Q3DSProfiler::TextureLoaderObject,
                                "Texture for image %s", image3DS->id().constData());
-    textureParameters.textureImage = new Qt3DRender::QTextureImage;
-    textureParameters.texture->addTextureImage(textureParameters.textureImage);
 }
 
 void Q3DSSceneManager::updateTextureParameters(Q3DSTextureParameters &textureParameters, Q3DSImage *image)
@@ -3884,7 +3884,7 @@ void Q3DSSceneManager::updateTextureParameters(Q3DSTextureParameters &texturePar
             }
         }
     } else if (!image->sourcePath().isEmpty()) {
-        textureParameters.textureImage->setSource(QUrl::fromLocalFile(image->sourcePath()));
+        textureParameters.texture->setSource(QUrl::fromLocalFile(image->sourcePath()));
         textureParameters.sampler->setValue(QVariant::fromValue(textureParameters.texture));
     } else {
         textureParameters.sampler->setValue(QVariant::fromValue(dummyTexture()));
@@ -4191,14 +4191,15 @@ static inline void forAllCustomProperties(Q3DSEffectInstance *eff3DS, CustomProp
 Qt3DRender::QAbstractTexture *Q3DSSceneManager::createCustomPropertyTexture(const Q3DSCustomPropertyParameter &p)
 {
     const QString source = p.inputValue.toString();
-    Qt3DRender::QTexture2D *texture = new Qt3DRender::QTexture2D(m_rootEntity);
-    m_profiler->trackNewObject(texture, Q3DSProfiler::Texture2DObject,
+    // Using QTextureLoader has the benefit of getting updated width and height
+    // values from the texture later on which is pretty important for some
+    // effect uniforms for instance.
+    Qt3DRender::QTextureLoader *texture = new Qt3DRender::QTextureLoader(m_rootEntity);
+    m_profiler->trackNewObject(texture, Q3DSProfiler::TextureLoaderObject,
                                "Custom property texture %s", qPrintable(source));
     if (!source.isEmpty()) {
         qCDebug(lcScene, "Creating custom property texture %s", qPrintable(source));
-        Qt3DRender::QTextureImage *textureImage = new Qt3DRender::QTextureImage;
-        textureImage->setSource(QUrl::fromLocalFile(source));
-        texture->addTextureImage(textureImage);
+        texture->setSource(QUrl::fromLocalFile(source));
     }
 
     switch (p.meta.magFilterType) {
@@ -4535,6 +4536,8 @@ void Q3DSSceneManager::setupEffectTextureBuffer(Q3DSEffectAttached::TextureBuffe
                                                 Q3DSLayerNode *layer3DS)
 {
     Qt3DRender::QAbstractTexture *texture = new Qt3DRender::QTexture2D(m_rootEntity);
+    m_profiler->trackNewObject(texture, Q3DSProfiler::Texture2DObject,
+                               "Effect buffer %s", qPrintable(bufDesc.name()));
     tb->texture = texture;
 
     switch (bufDesc.filter()) {

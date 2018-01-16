@@ -196,13 +196,12 @@ void Q3DSProfileView::frame()
         auto tex2d = objs->values(Q3DSProfiler::Texture2DObject);
         ImGui::Text("2D textures: %d", tex2d.count());
         if (ImGui::TreeNodeEx("2D texture details", tex2d.isEmpty() ? 0 : ImGuiTreeNodeFlags_DefaultOpen)) {
-            ImGui::Columns(6, "tex2dcols");
+            ImGui::Columns(5, "tex2dcols");
             ImGui::Separator();
             ImGui::Text("Index"); ImGui::SetColumnWidth(-1, 50); ImGui::NextColumn();
             ImGui::Text("Description"); ImGui::NextColumn();
             ImGui::Text("Size (pixels)"); ImGui::NextColumn();
             ImGui::Text("Format"); ImGui::NextColumn();
-            ImGui::Text("Source"); ImGui::NextColumn();
             ImGui::Text("Samples"); ImGui::NextColumn();
             ImGui::Separator();
             int idx = 0;
@@ -214,35 +213,27 @@ void Q3DSProfileView::frame()
                 ImGui::Text("%s", info.constData());
                 ImGui::NextColumn();
                 if (auto t = qobject_cast<Qt3DRender::QAbstractTexture *>(objd.obj)) {
+                    bool useTexture = true;
                     const QVector<Qt3DRender::QAbstractTextureImage *> textureImages = t->textureImages();
-                    if (textureImages.isEmpty()) {
+                    if (!textureImages.isEmpty()) {
+                        // handle Text textures specially since the data may be dummy on the texture itself
+                        if (auto ti = qobject_cast<Qt3DRender::QPaintedTextureImage *>(textureImages[0])) {
+                            ImGui::Text("%dx%d", ti->width(), ti->height());
+                            ImGui::NextColumn();
+                            ImGui::Text("0x8058");
+                            ImGui::NextColumn();
+                            ImGui::Text("1");
+                            ImGui::NextColumn();
+                            useTexture = false;
+                        }
+                    }
+                    if (useTexture) {
                         ImGui::Text("%dx%d", t->width(), t->height());
                         ImGui::NextColumn();
                         ImGui::Text("0x%x", t->format());
                         ImGui::NextColumn();
-                        ImGui::NextColumn();
                         ImGui::Text("%d", t->samples());
                         ImGui::NextColumn();
-                    } else {
-                        if (auto ti = qobject_cast<Qt3DRender::QTextureImage *>(textureImages[0])) {
-                            ImGui::NextColumn();
-                            ImGui::NextColumn();
-                            const QByteArray src = ti->source().toLocalFile().toUtf8();
-                            ImGui::TextWrapped("%s", src.constData());
-                            ImGui::NextColumn();
-                            ImGui::NextColumn();
-                        } else if (auto ti = qobject_cast<Qt3DRender::QPaintedTextureImage *>(textureImages[0])) {
-                            ImGui::Text("%dx%d", ti->width(), ti->height());
-                            ImGui::NextColumn();
-                            ImGui::NextColumn();
-                            ImGui::NextColumn();
-                            ImGui::NextColumn();
-                        } else {
-                            ImGui::NextColumn();
-                            ImGui::NextColumn();
-                            ImGui::NextColumn();
-                            ImGui::NextColumn();
-                        }
                     }
                 } else {
                     ImGui::NextColumn();
