@@ -56,6 +56,18 @@ bool Q3DSAbstractXmlParser::setSource(const QString &filename)
     return true;
 }
 
+bool Q3DSAbstractXmlParser::setSourceData(const QByteArray &data)
+{
+    m_parseTimer.start();
+
+    m_reader.clear();
+    m_reader.addData(data);
+
+    // TODO: Check that data is valid XML?
+
+    return true;
+}
+
 Q3DSAbstractXmlParser::~Q3DSAbstractXmlParser()
 {
 

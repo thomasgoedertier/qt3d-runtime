@@ -43,6 +43,7 @@ public:
     Q3DSPresentation *presentation() const;
 
     bool loadUip(const QString &fileName);
+    bool loadUipData(const QByteArray &data);
     bool saveUip(const QString &fileName);
 
 private:

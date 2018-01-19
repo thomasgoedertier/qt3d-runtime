@@ -50,6 +50,13 @@ bool Q3DSUipDocument::loadUip(const QString &fileName)
     return !m_presentation.isNull();
 }
 
+bool Q3DSUipDocument::loadUipData(const QByteArray &data)
+{
+    Q3DSUipParser parser;
+    m_presentation.reset(parser.parseData(data));
+    return !m_presentation.isNull();
+}
+
 bool Q3DSUipDocument::saveUip(const QString &fileName)
 {
     Q_UNUSED(fileName)

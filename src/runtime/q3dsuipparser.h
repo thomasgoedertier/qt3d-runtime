@@ -40,8 +40,10 @@ class Q3DSV_EXPORT Q3DSUipParser : public Q3DSAbstractXmlParser
 {
 public:
     Q3DSPresentation *parse(const QString &filename);
+    Q3DSPresentation *parseData(const QByteArray &data);
 
 private:
+    Q3DSPresentation *createPresentation();
     void parseUIP();
     void parseProject();
     void parseProjectSettings();

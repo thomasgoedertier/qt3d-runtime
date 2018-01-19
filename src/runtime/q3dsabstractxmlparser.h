@@ -52,6 +52,7 @@ public:
 
 protected:
     bool setSource(const QString &filename);
+    bool setSourceData(const QByteArray &data);
     QXmlStreamReader *reader() { return &m_reader; }
 
 private:

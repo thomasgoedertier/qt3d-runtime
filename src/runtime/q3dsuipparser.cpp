@@ -90,6 +90,19 @@ Q3DSPresentation *Q3DSUipParser::parse(const QString &filename)
     if (!setSource(filename))
         return nullptr;
 
+    return createPresentation();
+}
+
+Q3DSPresentation *Q3DSUipParser::parseData(const QByteArray &data)
+{
+    if (!setSourceData(data))
+        return nullptr;
+
+    return createPresentation();
+}
+
+Q3DSPresentation *Q3DSUipParser::createPresentation()
+{
     // reset (not owned by Q3DSUipParser)
     m_presentation.reset(new Q3DSPresentation());
 
@@ -110,7 +123,7 @@ Q3DSPresentation *Q3DSUipParser::parse(const QString &filename)
 
     resolveReferences(m_presentation->scene());
 
-    qCDebug(lcUip, "%s loaded in %lld ms", qPrintable(filename), elapsedSinceSetSource());
+    qCDebug(lcUip, "Presentation loaded in %lld ms", elapsedSinceSetSource());
 
     return m_presentation.take();
 }

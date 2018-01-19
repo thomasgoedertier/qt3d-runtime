@@ -64,6 +64,8 @@ public:
     bool setSource(const QString &uipOrUiaFileName);
     QString source() const;
 
+    bool setSourceData(const QByteArray &data);
+
     QString uipFileName(int index = 0) const;
     Q3DSUipDocument *uipDocument(int index = 0) const;
     Q3DSSceneManager *sceneManager(int index = 0) const;
@@ -83,6 +85,7 @@ protected:
 private:
     struct Presentation {
         QString uipFileName;
+        QByteArray uipData;
         Q3DSUipDocument *uipDocument = nullptr;
         Q3DSSceneManager *sceneManager = nullptr;
         Q3DSSceneManager::Scene q3dscene;
@@ -100,6 +103,7 @@ private:
     bool loadPresentation(Presentation *pres);
     bool loadSubPresentation(Presentation *pres);
     bool loadQmlSubPresentation(QmlPresentation *pres);
+    void cleanupPresentations();
 
     Flags m_flags;
     QString m_source; // uip or uia file

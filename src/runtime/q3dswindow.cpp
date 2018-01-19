@@ -234,22 +234,7 @@ bool Q3DStudioWindow::setSource(const QString &uipOrUiaFileName)
 {
     // no check for m_source being the same - must reload no matter what
 
-    if (!m_presentations.isEmpty()) {
-        for (Presentation &pres : m_presentations) {
-            if (pres.sceneManager)
-                pres.sceneManager->prepareEngineReset();
-        }
-
-        Q3DSSceneManager::prepareEngineResetGlobal();
-        Qt3DCore::QAspectEnginePrivate::get(m_aspectEngine.data())->exitSimulationLoop();
-        createAspectEngine();
-
-        for (Presentation &pres : m_presentations) {
-            delete pres.sceneManager;
-            delete pres.uipDocument;
-        }
-        m_presentations.clear();
-    }
+    cleanupPresentations();
 
     m_source = uipOrUiaFileName;
 
@@ -332,14 +317,43 @@ bool Q3DStudioWindow::setSource(const QString &uipOrUiaFileName)
     return true;
 }
 
+bool Q3DStudioWindow::setSourceData(const QByteArray &data)
+{
+    cleanupPresentations();
+
+    // No uia supported here, data must be uip
+    Presentation pres;
+    pres.uipData = data;
+
+    m_presentations.append(pres);
+
+    if (!loadPresentation(&m_presentations[0])) {
+        m_presentations.clear();
+        return false;
+    }
+
+    QVector<Q3DSSubPresentation> emptySubPresentations;
+    m_presentations[0].sceneManager->finalizeMainScene(emptySubPresentations);
+
+    return true;
+}
+
 bool Q3DStudioWindow::loadPresentation(Presentation *pres)
 {
     // Parse.
     QScopedPointer<Q3DSUipDocument> uipDocument(new Q3DSUipDocument);
-    if (!uipDocument->loadUip(pres->uipFileName)) {
-        Q3DSUtils::showMessage(QObject::tr("Failed to parse main presentation"));
-        return false;
+    if (!pres->uipFileName.isEmpty()) {
+        if (!uipDocument->loadUip(pres->uipFileName)) {
+            Q3DSUtils::showMessage(QObject::tr("Failed to parse main presentation from file"));
+            return false;
+        }
+    } else {
+        if (!uipDocument->loadUipData(pres->uipData)) {
+            Q3DSUtils::showMessage(QObject::tr("Failed to parse main presentation from data"));
+            return false;
+        }
     }
+
     pres->uipDocument = uipDocument.take();
 
     // Presentation is ready. Build the Qt3D scene. This will also activate the first sub-slide.
@@ -553,6 +567,26 @@ bool Q3DStudioWindow::loadQmlSubPresentation(QmlPresentation *pres)
     }
 
     return true;
+}
+
+void Q3DStudioWindow::cleanupPresentations()
+{
+    if (!m_presentations.isEmpty()) {
+        for (Presentation &pres : m_presentations) {
+            if (pres.sceneManager)
+                pres.sceneManager->prepareEngineReset();
+        }
+
+        Q3DSSceneManager::prepareEngineResetGlobal();
+        Qt3DCore::QAspectEnginePrivate::get(m_aspectEngine.data())->exitSimulationLoop();
+        createAspectEngine();
+
+        for (Presentation &pres : m_presentations) {
+            delete pres.sceneManager;
+            delete pres.uipDocument;
+        }
+        m_presentations.clear();
+    }
 }
 
 QString Q3DStudioWindow::uipFileName(int index) const
