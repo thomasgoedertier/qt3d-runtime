@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<Effect>
+        <MetaData>
+                <!--Distorts the image in a ripple way.-->
+                <Property name="radius"         formalName="Radius"             min="0" max="100"       default="100.0"         description="Adjusts the spread between ripples."/>
+                <Property name="center"         formalName="Center"             type="Float2"           default="0.5 0.5"       description="Adjusts the focus point of the distortion."/>
+                <Property name="ripples"        formalName="Wave Width"         min="2" max="100"       default="95.0"          description="Adjusts the number of ripples."/>
+                <Property name="height"         formalName="Wave Height"        min="0" max="100"       default="25.0"          description="Adjusts the distortion amount."/>
+                <Property name="phase"          formalName="Ripple Phase"                                               default="0.0"           description="The offset of each wave. Animate this property to see the waves move."/>
+        </MetaData>
+        <Shaders>
+                <Shared>
+varying vec2 center_vec;
+float PI2 = radians(360.0);
+                </Shared>
+                <Shader>
+                        <VertexShader>
+void vert ()
+{
+  center_vec = TexCoord - center;
+  //Multiply by x/y ratio so we see a sphere on the screen
+  //instead of an ellipse.
+  center_vec.y *= Texture0Info.y / Texture0Info.x;
+}
+                        </VertexShader>
+                        <FragmentShader>
+<![CDATA[
+void frag()
+{
+    float dist_to_center = length(center_vec) * 100.0 / radius;;
+
+    vec2 texc;
+    if(dist_to_center > 1.0) {
+        texc = TexCoord;
+    } else {
+        float r = PI2 * (1.0 - dist_to_center);
+        float distortion = sin(r * (100.0-ripples) + radians(phase));
+        texc = TexCoord - ( TexCoord - center ) * distortion * height / 800.0;
+    }
+
+  if ( texc.x < 0.0 || texc.x > 1.0 || texc.y < 0.0 || texc.y > 1.0 )
+    gl_FragColor = vec4(0.0);
+  else
+    colorOutput(texture2D_0(texc));
+}
+]]>
+                        </FragmentShader>
+                </Shader>
+        </Shaders>
+</Effect>

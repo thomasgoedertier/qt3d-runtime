@@ -4327,6 +4327,72 @@ void Q3DSSceneManager::buildEffect(Q3DSEffectInstance *eff3DS, Q3DSLayerNode *la
     }
 }
 
+static inline void setTextureInfoUniform(Qt3DRender::QParameter *param, Qt3DRender::QAbstractTexture *texture)
+{
+    param->setValue(QVector4D(texture->width(), texture->height(), 0, 0)); // ### 3rd value is isPremultiplied, is that correct?
+}
+
+static inline Qt3DRender::QParameter *makePropertyUniform(const QString &name, const QString &value, const Q3DSMaterial::PropertyElement &propMeta)
+{
+    QScopedPointer<Qt3DRender::QParameter> param(new Qt3DRender::QParameter);
+    param->setName(name);
+
+    switch (propMeta.type) {
+    case Q3DS::Float:
+    {
+        float v;
+        if (Q3DS::convertToFloat(&value, &v)) {
+            param->setValue(v);
+            return param.take();
+        } else {
+            qWarning("Invalid value %s for custom property %s", qPrintable(value), qPrintable(name));
+        }
+    }
+        break;
+    case Q3DS::Long:
+    {
+        int v;
+        if (Q3DS::convertToInt(&value, &v)) {
+            param->setValue(v);
+            return param.take();
+        } else {
+            qWarning("Invalid value %s for custom property %s", qPrintable(value), qPrintable(name));
+        }
+    }
+        break;
+    case Q3DS::Float2:
+    {
+        QVector2D v;
+        if (Q3DS::convertToVector2D(&value, &v)) {
+            param->setValue(v);
+            return param.take();
+        } else {
+            qWarning("Invalid value %s for custom property %s", qPrintable(value), qPrintable(name));
+        }
+    }
+        break;
+    case Q3DS::Vector:
+    case Q3DS::Scale:
+    case Q3DS::Rotation:
+    case Q3DS::Color:
+    {
+        QVector3D v;
+        if (Q3DS::convertToVector3D(&value, &v)) {
+            param->setValue(v);
+            return param.take();
+        } else {
+            qWarning("Invalid value %s for custom property %s", qPrintable(value), qPrintable(name));
+        }
+    }
+        break;
+    default:
+        qWarning("Unknown uniform mapping for custom property %s with type %d", qPrintable(name), propMeta.type);
+        break;
+    }
+
+    return nullptr;
+}
+
 void Q3DSSceneManager::finalizeEffects(Q3DSLayerNode *layer3DS)
 {
     Q3DSLayerAttached *layerData = static_cast<Q3DSLayerAttached *>(layer3DS->attached());
@@ -4337,11 +4403,6 @@ void Q3DSSceneManager::finalizeEffects(Q3DSLayerNode *layer3DS)
         Q3DSEffectAttached *effData = static_cast<Q3DSEffectAttached *>(eff3DS->attached());
         qCDebug(lcScene, "Applying post-processing effect %s to layer %s",
                 eff3DS->id().constData(), layer3DS->id().constData());
-        const Q3DSEffect *effDesc = eff3DS->effect();
-        if (effDesc->passes().isEmpty()) {
-            qWarning("Effect %s: No passes; effect ignored", eff3DS->id().constData());
-            continue;
-        }
 
         // Set up textures for Buffers
         createEffectBuffers(eff3DS);
@@ -4386,19 +4447,35 @@ void Q3DSSceneManager::finalizeEffects(Q3DSLayerNode *layer3DS)
         // Set initial QParameter (uniform) values.
         updateEffect(eff3DS);
 
+        const Q3DSEffect *effDesc = eff3DS->effect();
         const QMap<QString, Q3DSMaterial::Shader> &shaderPrograms = effDesc->shaders();
+        const QMap<QString, Q3DSMaterial::PropertyElement> &propMeta = effDesc->properties();
 
         // Each pass leads to creating a new framegraph subtree parented to effectRoot.
         auto passes = effDesc->passes();
-        for (int passIdx = 0; passIdx < passes.count(); ++passIdx) {
-            const Q3DSMaterial::Pass &pass(passes[passIdx]);
-            if (!shaderPrograms.contains(pass.shaderName)) {
-                qWarning("Effect %s: Unknown shader program %s; pass ignored",
-                         eff3DS->id().constData(), qPrintable(pass.shaderName));
-                continue;
+        const bool implicitPass = passes.isEmpty();
+        const int passCount = implicitPass ? 1 : passes.count();
+        for (int passIdx = 0; passIdx < passCount; ++passIdx) {
+            Q3DSMaterial::Pass pass;
+            if (!implicitPass) {
+                pass = passes[passIdx];
+                if (!shaderPrograms.contains(pass.shaderName)) {
+                    qWarning("Effect %s: Unknown shader program %s; pass ignored",
+                             eff3DS->id().constData(), qPrintable(pass.shaderName));
+                    continue;
+                }
+                qCDebug(lcScene, "  Registered effect pass with shader program %s input %s output %s %d extra commands",
+                        qPrintable(pass.shaderName), qPrintable(pass.input), qPrintable(pass.output), pass.commands.count());
+            } else {
+                // Not having any passes is valid too. This should use the first vertex/fragment shader (no name matching).
+                if (shaderPrograms.isEmpty()) {
+                    qWarning("Effect %s: No shader program; pass ignored", eff3DS->id().constData());
+                    continue;
+                }
+                // Leave pass.input and output as the default [source] and [dest].
+                qCDebug(lcScene, "  Registered implicit effect pass with input %s output %s",
+                        qPrintable(pass.input), qPrintable(pass.output));
             }
-            qCDebug(lcScene, "  Registered pass with shader program %s input %s output %s %d extra commands",
-                    qPrintable(pass.shaderName), qPrintable(pass.input), qPrintable(pass.output), pass.commands.count());
 
             QVector<Qt3DRender::QParameter *> paramList;
             paramList << commonParamList;
@@ -4415,7 +4492,7 @@ void Q3DSSceneManager::finalizeEffects(Q3DSLayerNode *layer3DS)
                         paramList.append(texParam);
                         Qt3DRender::QParameter *texInfoParam = new Qt3DRender::QParameter;
                         texInfoParam->setName(cmd.data()->param + QLatin1String("Info"));
-                        texInfoParam->setValue(QVector4D(layerData->layerTexture->width(), layerData->layerTexture->height(), 0, 0)); // ### 3rd value is isPremultiplied, is that correct?
+                        setTextureInfoUniform(texInfoParam, layerData->layerTexture);
                         effData->sourceDepTextureInfoParams.append(texInfoParam);
                         paramList.append(texInfoParam);
                     } else if (effData->textureBuffers.contains(bufferName)) {
@@ -4426,7 +4503,7 @@ void Q3DSSceneManager::finalizeEffects(Q3DSLayerNode *layer3DS)
                         paramList.append(texParam);
                         Qt3DRender::QParameter *texInfoParam = new Qt3DRender::QParameter;
                         texInfoParam->setName(cmd.data()->param + QLatin1String("Info"));
-                        texInfoParam->setValue(QVector4D(tb.texture->width(), tb.texture->height(), 0, 0)); // ### 3rd value is isPremultiplied, is that correct?
+                        setTextureInfoUniform(texInfoParam, tb.texture);
                         tb.textureInfoParams.append(texInfoParam);
                         paramList.append(texInfoParam);
                     } else {
@@ -4434,7 +4511,22 @@ void Q3DSSceneManager::finalizeEffects(Q3DSLayerNode *layer3DS)
                     }
                 }
                     break;
+                case Q3DSMaterial::PassCommand::SetParamType:
+                {
+                    auto cmdData = cmd.data();
+                    if (propMeta.contains(cmdData->name)) {
+                        const Q3DSMaterial::PropertyElement &propDesc(propMeta.value(cmdData->name));
+                        Qt3DRender::QParameter *param = makePropertyUniform(cmdData->name, cmdData->value, propDesc);
+                        if (param)
+                            paramList.append(param);
+                    } else {
+                        qWarning("Effect %s: SetParam for unknown property %s",
+                                 eff3DS->id().constData(), qPrintable(cmd.data()->name));
+                    }
+                }
+                    break;
                 default:
+                    qWarning("Effect %s: Unhandled command %d", eff3DS->id().constData(), cmd.type());
                     break;
                 }
             }
@@ -4494,7 +4586,7 @@ void Q3DSSceneManager::finalizeEffects(Q3DSLayerNode *layer3DS)
             pd.destSizeParam = destSizeParam;
             effData->passData.append(pd);
 
-            const Q3DSMaterial::Shader &shaderProgram(shaderPrograms.value(pass.shaderName));
+            const Q3DSMaterial::Shader &shaderProgram = !implicitPass ? shaderPrograms.value(pass.shaderName) : shaderPrograms.first();
             const QString decoratedShaderName = QString::fromUtf8(eff3DS->id()) + QLatin1Char('_') + pass.shaderName;
             const QString decoratedVertexShader = effDesc->addPropertyUniforms(shaderProgram.vertexShader);
             const QString decoratedFragmentShader = effDesc->addPropertyUniforms(shaderProgram.fragmentShader);
@@ -4633,7 +4725,6 @@ void Q3DSSceneManager::createEffectBuffers(Q3DSEffectInstance *eff3DS)
             setupEffectTextureBuffer(&tb, bufDesc, effData->layer3DS);
             effData->textureBuffers.insert(bufDesc.name(), tb);
         } else {
-            // ###
             qWarning("Effect %s: Unsupported buffer type", eff3DS->id().constData());
         }
     }
@@ -4667,7 +4758,7 @@ void Q3DSSceneManager::updateEffect(Q3DSEffectInstance *eff3DS)
         {
             Qt3DRender::QAbstractTexture *tex = createCustomPropertyTexture(p);
             p.param->setValue(QVariant::fromValue(tex));
-            p.infoParam->setValue(QVector4D(tex->width(), tex->height(), 0, 0)); // ### 3rd value is isPremultiplied, is that correct?
+            setTextureInfoUniform(p.infoParam, tex);
         }
             break;
 
@@ -4697,10 +4788,10 @@ void Q3DSSceneManager::updateEffectForNextFrame(Q3DSEffectInstance *eff3DS, qint
     }
     for (const auto &tb : effData->textureBuffers) {
         for (Qt3DRender::QParameter *param : tb.textureInfoParams)
-            param->setValue(QVector4D(tb.texture->width(), tb.texture->height(), 0, 0)); // ### 3rd value is isPremultiplied, is that correct?
+            setTextureInfoUniform(param, tb.texture);
     }
     for (Qt3DRender::QParameter *param : effData->sourceDepTextureInfoParams)
-        param->setValue(QVector4D(layerData->layerTexture->width(), layerData->layerTexture->height(), 0, 0)); // ### 3rd value is isPremultiplied, is that correct?
+        setTextureInfoUniform(param, layerData->layerTexture);
 }
 
 void Q3DSSceneManager::gatherLights(Q3DSGraphObject *root,
