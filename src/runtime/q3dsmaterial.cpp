@@ -324,6 +324,27 @@ PropertyElement parsePropertyElement(QXmlStreamReader *r)
     return property;
 }
 
+static QString readText(QXmlStreamReader *r)
+{
+    QString s;
+    if (r->readNext() == QXmlStreamReader::Characters) {
+        bool needsSkip = true;
+        // CDATA sections tend to first return a sole '\n', continue reading in that case.
+        for (; ;) {
+            s += r->text().toString().trimmed() + QLatin1Char('\n');
+            QXmlStreamReader::TokenType t = r->readNext();
+            if (t != QXmlStreamReader::Characters) {
+                if (t == QXmlStreamReader::EndElement)
+                    needsSkip = false;
+                break;
+            }
+        }
+        if (needsSkip)
+            r->skipCurrentElement();
+    }
+    return s.trimmed(); // must trim here esp. for there are isEmpty() checks later on
+}
+
 Shader parserShaderElement(QXmlStreamReader *r)
 {
     Q3DSMaterial::Shader shader;
@@ -333,20 +354,11 @@ Shader parserShaderElement(QXmlStreamReader *r)
     }
     while (r->readNextStartElement()) {
         if (r->name() == QStringLiteral("Shared")) {
-            if ( r->readNext() == QXmlStreamReader::Characters) {
-                shader.shared = r->text().toString().trimmed();
-                r->skipCurrentElement();
-            }
+            shader.shared = readText(r);
         } else if (r->name() == QStringLiteral("VertexShader")) {
-            if ( r->readNext() == QXmlStreamReader::Characters) {
-                shader.vertexShader = r->text().toString().trimmed();
-                r->skipCurrentElement();
-            }
+            shader.vertexShader = readText(r);
         } else if (r->name() == QStringLiteral("FragmentShader")) {
-            if ( r->readNext() == QXmlStreamReader::Characters) {
-                shader.fragmentShader = r->text().toString().trimmed();
-                r->skipCurrentElement();
-            }
+            shader.fragmentShader = readText(r);
         } else if (r->name() == QStringLiteral("GeometryShader")) {
             if (r->readNext() == QXmlStreamReader::Characters) {
                 qWarning("Custom material/effect: Geometry shaders are not supported; ignored");
