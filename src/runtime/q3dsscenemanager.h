@@ -284,7 +284,7 @@ public:
 };
 
 Q_DECLARE_OPERATORS_FOR_FLAGS(Q3DSLayerAttached::SizeManagedTexture::Flags)
-Q_DECLARE_TYPEINFO(Q3DSLayerAttached::SizeManagedTexture, Q_MOVABLE_TYPE);
+// NB! Q3DSLayerAttached::SizeManagedTexture cannot be Q_MOVABLE_TYPE due to std::function in it
 Q_DECLARE_TYPEINFO(Q3DSLayerAttached::PerLightShadowMapData, Q_MOVABLE_TYPE);
 Q_DECLARE_TYPEINFO(Q3DSLayerAttached::ProgAAData, Q_MOVABLE_TYPE);
 
