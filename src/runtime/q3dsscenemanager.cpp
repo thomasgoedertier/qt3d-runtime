@@ -4523,6 +4523,40 @@ void Q3DSSceneManager::finalizeEffects(Q3DSLayerNode *layer3DS)
                     paramList.append(texFlagParam);
                 }
                     break;
+
+                case Q3DSMaterial::PassCommand::DepthInputType:
+                {
+                    setDepthTextureEnabled(layer3DS, true);
+                    // param cannot be anything else but a buffer name (with no
+                    // source, hence being mapped to a plain sampler).
+                    const QString samplerName = cmd.data()->param;
+                    const bool valid = propMeta.contains(samplerName);
+                    if (valid) {
+                        Qt3DRender::QParameter *texParam = new Qt3DRender::QParameter;
+                        texParam->setName(samplerName);
+                        texParam->setValue(QVariant::fromValue(layerData->depthTextureData.depthTexture));
+                        paramList.append(texParam);
+                        // Have the usual Info and flag uniforms.
+                        Qt3DRender::QParameter *texInfoParam = new Qt3DRender::QParameter;
+                        texInfoParam->setName(samplerName + QLatin1String("Info"));
+                        // Can conveniently use the layer texture since the
+                        // sizes must match. This is very handy esp. with
+                        // sourceDepTextureInfoParams since we get size updates
+                        // via the same code path.
+                        setTextureInfoUniform(texInfoParam, layerData->layerTexture);
+                        effData->sourceDepTextureInfoParams.append(texInfoParam);
+                        paramList.append(texInfoParam);
+                    } else {
+                        qWarning("Effect %s: Unknown depth texture sampler %s",
+                                 eff3DS->id().constData(), qPrintable(samplerName));
+                    }
+                    Qt3DRender::QParameter *texFlagParam = new Qt3DRender::QParameter;
+                    texFlagParam->setName(QLatin1String("flag") + samplerName);
+                    texFlagParam->setValue(valid ? 1 : 0);
+                    paramList.append(texFlagParam);
+                }
+                    break;
+
                 case Q3DSMaterial::PassCommand::SetParamType:
                 {
                     auto cmdData = cmd.data();
@@ -4537,6 +4571,7 @@ void Q3DSSceneManager::finalizeEffects(Q3DSLayerNode *layer3DS)
                     }
                 }
                     break;
+
                 default:
                     qWarning("Effect %s: Unhandled command %d", eff3DS->id().constData(), cmd.type());
                     break;
