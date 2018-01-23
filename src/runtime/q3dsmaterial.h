@@ -310,6 +310,8 @@ public:
         bool sync = false;
         QString source;
         QString destination;
+        BlendFunc blendSource = One;
+        BlendFunc blendDestination = One;
         QString name;
         QString bufferName;
         quint32 stencilValue = 0;
@@ -355,14 +357,14 @@ void combineShaderCode(Shader *shader,
                        const QString &sharedFragmentShaderCode);
 Buffer parseBuffer(QXmlStreamReader *r);
 
-bool convertToUsageType(const QStringRef &value, Q3DSMaterial::UsageType *type, const char *desc, QXmlStreamReader *reader = nullptr);
-bool convertToFilterType(const QStringRef &value, Q3DSMaterial::FilterType *type, const char *desc, QXmlStreamReader *reader = nullptr);
-bool convertToClampType(const QStringRef &value, Q3DSMaterial::ClampType *type, const char *desc, QXmlStreamReader *reader = nullptr);
-bool convertToBoolOp(const QStringRef &value, Q3DSMaterial::BoolOp *type, const char *desc, QXmlStreamReader *reader = nullptr);
-bool convertToStencilOp(const QStringRef &value, Q3DSMaterial::StencilOp *type, const char *desc, QXmlStreamReader *reader = nullptr);
-bool convertToTextureFormat(const QStringRef &value, const QString &typeValue, Q3DSMaterial::TextureFormat *type, const char *desc, QXmlStreamReader *reader = nullptr);
-bool convertToBlendFunc(const QStringRef &value, Q3DSMaterial::BlendFunc *type, const char *desc, QXmlStreamReader *reader = nullptr);
-bool convertToImageAccess(const QStringRef &value, Q3DSMaterial::ImageAccess *type, const char *desc, QXmlStreamReader *reader = nullptr);
+bool convertToUsageType(const QStringRef &value, Q3DSMaterial::UsageType *type, const char *desc = nullptr, QXmlStreamReader *reader = nullptr);
+bool convertToFilterType(const QStringRef &value, Q3DSMaterial::FilterType *type, const char *desc = nullptr, QXmlStreamReader *reader = nullptr);
+bool convertToClampType(const QStringRef &value, Q3DSMaterial::ClampType *type, const char *desc = nullptr, QXmlStreamReader *reader = nullptr);
+bool convertToBoolOp(const QStringRef &value, Q3DSMaterial::BoolOp *type, const char *desc = nullptr, QXmlStreamReader *reader = nullptr);
+bool convertToStencilOp(const QStringRef &value, Q3DSMaterial::StencilOp *type, const char *desc = nullptr, QXmlStreamReader *reader = nullptr);
+bool convertToTextureFormat(const QStringRef &value, const QString &typeValue, Q3DSMaterial::TextureFormat *type, const char *desc = nullptr, QXmlStreamReader *reader = nullptr);
+bool convertToBlendFunc(const QStringRef &value, Q3DSMaterial::BlendFunc *type, const char *desc = nullptr, QXmlStreamReader *reader = nullptr);
+bool convertToImageAccess(const QStringRef &value, Q3DSMaterial::ImageAccess *type, const char *desc = nullptr, QXmlStreamReader *reader = nullptr);
 }
 
 Q_DECLARE_TYPEINFO(Q3DSMaterial::PropertyElement, Q_MOVABLE_TYPE);

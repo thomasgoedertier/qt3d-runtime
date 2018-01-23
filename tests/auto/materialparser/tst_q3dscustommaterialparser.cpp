@@ -237,8 +237,8 @@ void tst_Q3DSCustomMaterialParser::testCommands()
     QCOMPARE(cmd.data()->param, QLatin1String("refractiveTexture"));
     cmd = passes[4].commands[1];
     QCOMPARE(cmd.type(), Q3DSMaterial::PassCommand::BlendingType);
-    QCOMPARE(cmd.data()->source, QLatin1String("SrcAlpha"));
-    QCOMPARE(cmd.data()->destination, QLatin1String("OneMinusSrcAlpha"));
+    QCOMPARE(cmd.data()->blendSource, Q3DSMaterial::SrcAlpha);
+    QCOMPARE(cmd.data()->blendDestination, Q3DSMaterial::OneMinusSrcAlpha);
 }
 
 void tst_Q3DSCustomMaterialParser::testBuffers()

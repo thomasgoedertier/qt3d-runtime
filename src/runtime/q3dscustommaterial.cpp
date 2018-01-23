@@ -460,9 +460,9 @@ void Q3DSCustomMaterialParser::parsePass()
             Q3DSMaterial::PassCommand blending(Q3DSMaterial::PassCommand::BlendingType);
             for (auto attribute : r->attributes()) {
                 if (attribute.name() == QStringLiteral("source"))
-                    blending.data()->source = attribute.value().toString();
+                    Q3DSMaterial::convertToBlendFunc(attribute.value(), &blending.data()->blendSource, "source blend mode", r);
                 else if (attribute.name() == QStringLiteral("dest"))
-                    blending.data()->destination = attribute.value().toString();
+                    Q3DSMaterial::convertToBlendFunc(attribute.value(), &blending.data()->blendDestination, "destination blend mode", r);
             }
             pass.commands.append(blending);
             m_material.m_hasTransparency = true; // if we have blending we have transparency
