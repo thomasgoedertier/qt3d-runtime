@@ -94,10 +94,11 @@ QString Q3DSEffect::addPropertyUniforms(const QString &shaderSrc) const
             addUniform("sampler2D", prop.name);
             // In addition we must add:
             //   - uniform vec4 <name>Info that contains (width, height, isPremultiplied, 0)
+            //   - uniform int flag<name> that is either 0 or 1 based on having a valid texture for the sampler
             //   - a texture2D_<name> function
-            // The flag uniform from 3DS1 is dropped since its purpose was unknown.
             // The SNAPPER macros are not used, we insert the uniform/function code directly here.
             addUniform("vec4", prop.name + QLatin1String("Info"));
+            addUniform("int", QLatin1String("flag") + prop.name);
             s += QString(QLatin1String("vec4 texture2D_%1(vec2 uv) { return GetTextureValue(%1, uv, %1Info.z); }\n")).arg(prop.name);
             break;
 

@@ -11,6 +11,7 @@
 			<Effect id="Blur" name="Blur" sourcepath="Blur.effect" />
 			<Effect id="Brush Strokes" name="Brush Strokes" sourcepath="Brush Strokes.effect" />
 			<Effect id="ChromaticAberration" name="ChromaticAberration" sourcepath="ChromaticAberration.effect" />
+			<Effect id="ColorMaster" name="ColorMaster" sourcepath="ColorMaster.effect" />
 			<Effect id="Corona" name="Corona" sourcepath="Corona.effect" />
 			<Effect id="Desaturate" name="Desaturate" sourcepath="Desaturate.effect" />
 			<Effect id="Distortion Ripple" name="Distortion Ripple" sourcepath="Distortion Ripple.effect" />
@@ -31,7 +32,6 @@
 			<Effect id="Stylize - Scatter" name="Stylize - Scatter" sourcepath="Stylize - Scatter.effect" />
 			<Effect id="Tilt Shift" name="Tilt Shift" sourcepath="Tilt Shift.effect" />
 			<Effect id="VignetteEffect" name="VignetteEffect" sourcepath="VignetteEffect.effect" />
-			<Effect id="ColorMaster" name="ColorMaster" sourcepath="ColorMaster.effect" />
 		</Classes>
 		<Graph >
 			<Scene id="Scene" >

@@ -4433,14 +4433,20 @@ void Q3DSSceneManager::finalizeEffects(Q3DSLayerNode *layer3DS)
             param->setName(propKey);
             commonParamList.append(param);
             Qt3DRender::QParameter *infoParam = nullptr;
+            Qt3DRender::QParameter *flagParam = nullptr;
             // textures do not just get a sampler uniform but also an additional vec4
             if (propMeta.type == Q3DS::Texture) {
                 infoParam = new Qt3DRender::QParameter;
                 infoParam->setName(propKey + QLatin1String("Info"));
                 commonParamList.append(infoParam);
+                flagParam = new Qt3DRender::QParameter;
+                flagParam->setName(QLatin1String("flag") + propKey);
+                flagParam->setValue(0); // will change to 1 when loading something
+                commonParamList.append(flagParam);
             }
             Q3DSCustomPropertyParameter pp(param, QVariant(), propMeta);
-            pp.infoParam = infoParam;
+            pp.texInfoParam = infoParam;
+            pp.texFlagParam = flagParam;
             effData->params.insert(propKey, pp);
         });
 
@@ -4484,6 +4490,7 @@ void Q3DSSceneManager::finalizeEffects(Q3DSLayerNode *layer3DS)
                 switch (cmd.type()) {
                 case Q3DSMaterial::PassCommand::BufferInputType:
                 {
+                    bool valid = true;
                     const QString bufferName = cmd.data()->value;
                     if (bufferName == QStringLiteral("[source]")) {
                         Qt3DRender::QParameter *texParam = new Qt3DRender::QParameter;
@@ -4508,7 +4515,12 @@ void Q3DSSceneManager::finalizeEffects(Q3DSLayerNode *layer3DS)
                         paramList.append(texInfoParam);
                     } else {
                         qWarning("Effect %s: Unknown buffer %s", eff3DS->id().constData(), qPrintable(bufferName));
+                        valid = false;
                     }
+                    Qt3DRender::QParameter *texFlagParam = new Qt3DRender::QParameter;
+                    texFlagParam->setName(QLatin1String("flag") + cmd.data()->param);
+                    texFlagParam->setValue(valid ? 1 : 0);
+                    paramList.append(texFlagParam);
                 }
                     break;
                 case Q3DSMaterial::PassCommand::SetParamType:
@@ -4569,6 +4581,11 @@ void Q3DSSceneManager::finalizeEffects(Q3DSLayerNode *layer3DS)
             Qt3DRender::QParameter *texture0InfoParam = new Qt3DRender::QParameter;
             texture0InfoParam->setName(QLatin1String("Texture0Info"));
             paramList.append(texture0InfoParam);
+
+            Qt3DRender::QParameter *texture0FlagParam = new Qt3DRender::QParameter;
+            texture0FlagParam->setName(QLatin1String("Texture0Flags")); // this is not a mistake, it's not flagTexture0 but Texture0Flags. go figure.
+            texture0FlagParam->setValue(1);
+            paramList.append(texture0FlagParam);
 
             Qt3DRender::QParameter *fragColorAlphaParam = new Qt3DRender::QParameter;
             fragColorAlphaParam->setName(QLatin1String("FragColorAlphaSettings"));
@@ -4758,7 +4775,8 @@ void Q3DSSceneManager::updateEffect(Q3DSEffectInstance *eff3DS)
         {
             Qt3DRender::QAbstractTexture *tex = createCustomPropertyTexture(p);
             p.param->setValue(QVariant::fromValue(tex));
-            setTextureInfoUniform(p.infoParam, tex);
+            setTextureInfoUniform(p.texInfoParam, tex);
+            p.texFlagParam->setValue(1);
         }
             break;
 

@@ -393,7 +393,8 @@ struct Q3DSCustomPropertyParameter {
     Qt3DRender::QParameter *param = nullptr;
     QVariant inputValue; // e.g. Texture: inputValue is a string whereas param->value is a QAbstractTexture*
     Q3DSMaterial::PropertyElement meta;
-    Qt3DRender::QParameter *infoParam = nullptr;
+    Qt3DRender::QParameter *texInfoParam = nullptr;
+    Qt3DRender::QParameter *texFlagParam = nullptr;
 };
 
 Q_DECLARE_TYPEINFO(Q3DSCustomPropertyParameter, Q_MOVABLE_TYPE);

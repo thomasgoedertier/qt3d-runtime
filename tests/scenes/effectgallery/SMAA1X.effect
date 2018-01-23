@@ -23,7 +23,7 @@ vec2 pixelIncrements;
     </Shared>
 		<Shader name="EdgeDetect">
 			<VertexShader>
-#define SMAA_ONLY_COMPILE_PS 0
+#define SMAA_ONLY_COMPILE_VS 1
 #include "SMAA.glsllib"
 
 out float4 svPosition;
@@ -61,7 +61,7 @@ void frag()
 		<Shader name="BlendingWeightCalculation">
 		
 			<VertexShader>
-#define SMAA_ONLY_COMPILE_PS 0
+#define SMAA_ONLY_COMPILE_VS 1
 #include "SMAA.glsllib"
 out float4 svPosition;
 out float4 offset[3];
@@ -100,7 +100,7 @@ void frag()
 		</Shader>
 		<Shader name="NeighborhoodBlending">
 			<VertexShader>
-#define SMAA_ONLY_COMPILE_PS 0
+#define SMAA_ONLY_COMPILE_VS 1
 #include "SMAA.glsllib"
 
 out float4 svPosition;
