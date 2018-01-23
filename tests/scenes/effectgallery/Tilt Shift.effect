@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<Effect>
+	<MetaData>
+		<Property name="FocusPos" formalName="Focus Position" description="Height of the focus bar in normalized coordinates" min="0" max="1" default=".5"/>
+		<Property name="FocusWidth" formalName="Focus Width" description="Objects within this range of Focus Distance will be in focus" min="0" max="1" default=".2"/>
+		<Property name="BlurDebug" formalName="Debug Rendering" type="Boolean" description="Allows you to see exactly how the Focus variables work.  Black objects are in focus, white are blurred" default="False"/>
+		<Property name="BlurAmount" formalName="Blur Amount" description="Increase the amount of blur.  Amounts above 4 may cause artifacts" min="0" max="10" default="4" />
+		<Property name="SourceSampler" type="Texture" filter="linear" clamp="clamp"/>
+		<Property name="VerticalEffect" formalName="Vertical" type='Boolean' description="Makes the effect work vertically instead of horizontally" default="False"/>
+		<Property name="InvertBlur" formalName="Invert Blur" type="Boolean" description="Inverts the blur area so the center is blurred vs. the outer" default="False"/>
+	</MetaData>
+	<Shaders>
+		<Shared>
+#include "blur.glsllib"
+			
+float AdvancedGetTiltShiftMultiplier(vec2 inTexCoord, float inFocusBarHeight, float inFocusWidth, bool inVertical, bool inInvert )
+{
+	//For now, you can't rotate the focus blur but in time you will be able to.
+	float texPos = inVertical ? inTexCoord.x : inTexCoord.y;
+	float focusDiff = max( 0.0, abs( texPos - inFocusBarHeight ) - (inFocusWidth/2.0) ) / inFocusWidth;
+	float retval = clamp( focusDiff, 0.0, 1.0 );
+	return inInvert ? 1.0 - retval : retval;
+}
+
+		</Shared>
+		<Shader name="DOWNSAMPLE">
+			<VertexShader>
+void vert()
+{
+	SetupBoxBlurCoords(vec2(Texture0Info.xy));
+}
+			</VertexShader>
+			<FragmentShader>
+			
+vec4 AdvancedBoxTiltShiftBlur( sampler2D inBlurSampler, float inBlurSamplerAlphaFlag
+							, float inFocusBarHeight, float inFocusWidth
+							, bool inVertical, bool inInvert )
+{
+	float mult0 = .25 * AdvancedGetTiltShiftMultiplier( TexCoord0, inFocusBarHeight, inFocusWidth, inVertical, inInvert );
+	float mult1 = .25 * AdvancedGetTiltShiftMultiplier( TexCoord1, inFocusBarHeight, inFocusWidth, inVertical, inInvert );
+	float mult2 = .25 * AdvancedGetTiltShiftMultiplier( TexCoord2, inFocusBarHeight, inFocusWidth, inVertical, inInvert );
+	float mult3 = .25 * AdvancedGetTiltShiftMultiplier( TexCoord3, inFocusBarHeight, inFocusWidth, inVertical, inInvert );
+	float multTotal = mult0 + mult1 + mult2 + mult3;
+	float totalDivisor = multTotal != 0.0 ? 1.0 / multTotal : 0.0;
+	vec4 OutCol = GetTextureValuePreMult(inBlurSampler, TexCoord0) * mult0;
+	OutCol += GetTextureValuePreMult(inBlurSampler, TexCoord1) * mult1;
+	OutCol += GetTextureValuePreMult(inBlurSampler, TexCoord2) * mult2;
+	OutCol += GetTextureValuePreMult(inBlurSampler, TexCoord3) * mult3;
+	return OutCol * totalDivisor;
+}
+void frag() // Simple averaging box blur.
+{	
+    gl_FragColor = AdvancedBoxTiltShiftBlur(Texture0, Texture0Info.z, FocusPos, FocusWidth, VerticalEffect, InvertBlur );
+} 
+			</FragmentShader>
+		</Shader>
+		<Shader name="BLUR">
+			<VertexShader>
+			
+void vert()
+{
+	SetupPoissonBlurCoords( BlurAmount, DestSize.xy );
+}
+
+			</VertexShader>
+			<FragmentShader>
+
+vec4 AdvancedPoissonTiltShiftBlur(sampler2D inSampler, float inAlphaFlag, float inBarHeight, float inFocusWidth, bool inVertical, bool inInvert )
+{
+	float mult0 = (1.0 - poisson0.z) * AdvancedGetTiltShiftMultiplier( TexCoord0, inBarHeight, inFocusWidth, inVertical, inInvert );
+	float mult1 = (1.0 - poisson1.z) * AdvancedGetTiltShiftMultiplier( TexCoord1, inBarHeight, inFocusWidth, inVertical, inInvert );
+	float mult2 = (1.0 - poisson2.z) * AdvancedGetTiltShiftMultiplier( TexCoord2, inBarHeight, inFocusWidth, inVertical, inInvert );
+	float mult3 = (1.0 - poisson3.z) * AdvancedGetTiltShiftMultiplier( TexCoord3, inBarHeight, inFocusWidth, inVertical, inInvert );
+	float mult4 = (1.0 - poisson4.z) * AdvancedGetTiltShiftMultiplier( TexCoord4, inBarHeight, inFocusWidth, inVertical, inInvert );
+	
+	float multTotal = mult0 + mult1 + mult2 + mult3 + mult4;
+	float multMultiplier = multTotal > 0.0 ? 1.0 / multTotal : 0.0;
+	
+	vec4 outColor = GetTextureValuePreMult( inSampler, TexCoord0 ) * (mult0 * multMultiplier);
+	outColor += GetTextureValuePreMult( inSampler, TexCoord1 ) * (mult1 * multMultiplier);
+	outColor += GetTextureValuePreMult( inSampler, TexCoord2 ) * (mult2 * multMultiplier);
+	outColor += GetTextureValuePreMult( inSampler, TexCoord3 ) * (mult3 * multMultiplier);
+	outColor += GetTextureValuePreMult( inSampler, TexCoord4 ) * (mult4 * multMultiplier);
+	return outColor;
+}
+
+void frag() // Mix the input blur and the depth texture with the sprite
+{
+	float centerMultiplier = AdvancedGetTiltShiftMultiplier( TexCoord, FocusPos, FocusWidth, VerticalEffect, InvertBlur );
+	if ( BlurDebug )
+	{
+		gl_FragColor = vec4( centerMultiplier,centerMultiplier,centerMultiplier, 1.0 );
+	}
+	else
+	{	
+		vec4 blurColor = AdvancedPoissonTiltShiftBlur(Texture0, Texture0Info.z, FocusPos, FocusWidth, VerticalEffect, InvertBlur );
+		gl_FragColor = mix( texture2D_SourceSampler(TexCoord), blurColor, centerMultiplier );
+	}
+}
+			</FragmentShader>
+		</Shader>
+	</Shaders>
+	<Passes>
+		<Buffer name="downsample_buffer" type="ubyte" format="rgba" filter="linear" wrap="clamp" size=".5" lifetime="frame"/>
+		<Pass shader="DOWNSAMPLE" input="[source]" output="downsample_buffer"/>
+		<Pass shader="BLUR" input="downsample_buffer">  
+			<BufferInput value="[source]" param="SourceSampler" />
+		</Pass>
+	</Passes>
+</Effect>
+

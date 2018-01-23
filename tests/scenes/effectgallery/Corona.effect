@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<Effect>
+	<MetaData>
+		<!--Creates a corona around a sprite.-->
+		<Property name="HBlurBias" 		formalName="Horizontal Blur" 	min="0" max="10" 	default="2" 	description="Amount of corona horizontally."/>
+		<Property name="VBlurBias" 		formalName="Vertical Blur" 		min="0" max="10" 	default="2" 	description="Amount of corona vertically."/>
+		<Property name="Trailfade" 		formalName="Fade Amount" 		min="0" max="1" 	default="0.8"	description="0=no glow, 0.5=fade quickly, 1.0=persistent trails"/>
+		<Property name="GlowSampler" 	filter="nearest" clamp="clamp" type="Texture" />
+		<Property name="GlowCol" 		formalName="Glow Color" 		type="Color" 		default="1 0.6 0.0"	description="The color to use for the glow."/>
+		<Property name="NoiseSamp" 		formalName="Noise" filter="linear" clamp="repeat" 	default="./maps/effects/noise.dds" type="Texture" description="Texture to be used for the noise texture"/>
+		<Property name="NoiseScale" 	formalName="Noise Density" 		min="0" max="10" 	default="2"		description="The density of the noise in corona. The higher the value, the denser and smaller of the noise; the lower the value, the bigger of the noise scale."/>
+		<Property name="NoiseBright" 	formalName="Noise Brightness" 	min="0" max="5" 	default="4"		description="Brightness of the noise."/>
+		<Property name="NoiseRatio" 	formalName="Noise Amount" 		min="0" max="1" 	default=".15"	description="Magnitude of the noise."/>
+		<Property name="CrawlLen" 		formalName="Crawl Length" 		min="0" max="1" 	default=".3"	description="Length of the corona trail in animation."/>
+		<Property name="CrawlAngle" 	formalName="Crawl Angle" 							default="0"		description="Angle of the corona trail in animation."/>
+		<Property name="Sprite" 		filter="nearest" clamp="clamp" type="Texture" />
+	</MetaData>
+	<Shaders>
+		<Shared>
+#include "blur.glsllib"
+uniform float AppFrame;  // frame number since app starts
+uniform float FPS;
+		</Shared>
+		<Shader name="CORONA_HBLUR">
+			<Shared>
+varying vec2 crawl;  // corona crawl direction and magnitude
+			</Shared>
+			<VertexShader>
+void vert ()
+{
+  SetupHorizontalGaussianBlur(Texture0Info.x, HBlurBias, TexCoord);
+  // compute crawl
+  float alpha = radians(CrawlAngle + 180.0);
+  crawl = vec2(CrawlLen * sin(alpha), CrawlLen * cos(alpha));
+}
+			</VertexShader>
+			<FragmentShader>
+void frag()
+{
+	//Passing in 1.0 means the value will not get alpha-multiplied again
+    float OutCol = GaussianAlphaBlur( GlowSampler, 1.0 );
+    OutCol *= Trailfade;  // fade away glow color
+    OutCol += texture2D_0( TexCoord ).a;  // add glow color in the original tex area
+
+    vec2 nuv = NoiseScale * TexCoord3 + AppFrame / FPS * crawl;
+    vec4 noise = texture2D_NoiseSamp(fract(nuv));
+    float ns = (1.0 - NoiseRatio) + NoiseRatio * NoiseBright * noise.x;
+    OutCol *= ns;
+    gl_FragColor = vec4( OutCol );
+}
+			</FragmentShader>
+		</Shader>
+		<Shader name="CORONA_VBLUR">
+			<VertexShader>
+void vert ()
+{
+	SetupVerticalGaussianBlur( Texture0Info.y, VBlurBias, TexCoord );
+}
+			</VertexShader>
+			<FragmentShader>
+void frag() // PS_Blur_Vertical_9tap
+{   
+    float OutCol = GaussianAlphaBlur( Texture0, Texture0Info.z );
+    gl_FragColor = OutCol * vec4(GlowCol, 1.0);
+}
+			</FragmentShader>
+		</Shader>
+		<Shader name="CORONA_BLEND">
+			<VertexShader>
+void vert()
+{
+}
+			</VertexShader>
+			<FragmentShader>
+void frag ()
+{
+  vec4 src = texture2D_0( TexCoord );
+  vec4 dst = texture2D_Sprite(TexCoord);
+  colorOutput( src * (1.0 - dst.a) + dst );
+}
+			</FragmentShader>
+		</Shader>
+	</Shaders>
+	<Passes>
+		<Buffer name="glow_buffer" type="ubyte" format="rgba" filter="linear" wrap="clamp" size="0.55" lifetime="scene"/>
+		<Buffer name="temp_buffer" type="ubyte" format="rgba" filter="linear" wrap="clamp" size="0.55" lifetime="frame"/>
+
+		<Pass shader="CORONA_HBLUR" input="[source]" output="temp_buffer">
+			<BufferInput param="GlowSampler" value="glow_buffer"/>
+		</Pass>
+		<Pass shader="CORONA_VBLUR" input="temp_buffer" output="glow_buffer"/>
+		
+		<Pass shader="CORONA_BLEND" input="glow_buffer">
+			<BufferInput param="Sprite" value="[source]"/>
+		</Pass>
+	</Passes>
+</Effect>

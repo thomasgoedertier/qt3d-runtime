@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<Effect>
+        <MetaData>
+                <!--Simulates an artistic painting of the image-->
+                <Property name="NoiseSamp"      formalName="Noise" filter="linear" clamp="repeat" type="Texture" default="./maps/effects/brushnoise.dds" description="Texture to be used for the brush texture"/>
+                <Property name="brushAngle" formalName="Brush Angle"                                            default="45"    description="Amount to rotate the noise texture."/>
+                <Property name="brushLen"       formalName="Stroke Length"      min="0" max="3"         default="1"     description="How far to offset the image/'brush'."/>
+                <Property name="brushSize"      formalName="Stroke Size"        min="10" max="200"      default="100"   description="Scale the brush. (Smaller values yield larger sizes.)"/>
+        </MetaData>
+        <Shaders>
+                <Shader>
+                        <FragmentShader>
+void frag (void)
+{
+        if ( flagNoiseSamp != 0 ) {
+                float alpha = radians(brushAngle);
+                float cosAlpha = cos(alpha);
+                float sinAlpha = sin(alpha);
+                mat2 rotMat = mat2(cosAlpha, sinAlpha, -sinAlpha, cosAlpha);
+
+                vec2 uv0 = TexCoord / brushSize * 1000.0;
+                uv0 = (uv0.yx * rotMat).yx;
+
+                vec2 uv1 = texture2D_NoiseSamp(fract(uv0)).xy - 0.5;
+                uv1*= vec2(1.0, 0.01);
+                uv1*= rotMat;
+                vec2 uv2 = TexCoord + uv1 * 0.1 * brushLen;
+
+                vec2 halfPixelSize = 0.5 / Texture0Info.xy;
+                colorOutput(texture2D_0(clamp(uv2, halfPixelSize, 1.0-halfPixelSize)));
+        }
+        else
+                colorOutput(texture2D_0(TexCoord));
+}
+                        </FragmentShader>
+                </Shader>
+        </Shaders>
+</Effect>

@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<Effect>
+	<MetaData>
+		<!--Create an apparent streaking for rapidly moving objects in the layer.-->
+		<Property name="fadeAmount" formalName="Fade Amount" min="0" max="1" default=".05" description="0=object trails persist, 1.0=object trails fade out immediately (no trail)" />
+		<Property name="GlowSampler" type="Texture" filter="nearest" clamp="clamp" />
+		<Property name="Sprite" type="Texture" filter="nearest" clamp="clamp" />
+	</MetaData>
+	<Shaders>
+		<Shared>
+#include "blur.glsllib"
+		</Shared>
+		
+		<Shader name="HBLUR">
+			<VertexShader>
+void vert()
+{
+	SetupHorizontalGaussianBlur3Tap( Texture0Info.x, 1.0, TexCoord );
+}
+			</VertexShader>
+			<FragmentShader>
+void frag()
+{   
+    vec4 src = texture2D_0(TexCoord);
+	
+    float Trailfade = 1.0 - fadeAmount;
+    vec4 OutCol = GaussianBlur3TapPremultiplied( GlowSampler ) * Trailfade;
+	
+    // change the color so that it looks different. saturate it a bit.
+	float srcSum = dot(vec3(1.0), src.rgb);
+    src.rgb = src.rgb * 0.7 + vec3(srcSum,srcSum,srcSum) * 0.3;
+    gl_FragColor.rgb = (1.0 - src.a) * OutCol.rgb + src.rgb;
+    gl_FragColor.a = src.a + OutCol.a;
+} 
+			</FragmentShader>
+		</Shader>
+		<Shader name="VBLUR">
+			<VertexShader>	
+void vert()
+{
+	SetupVerticalGaussianBlur3Tap( Texture0Info.y, 1.0, TexCoord );
+}
+			</VertexShader>
+			<FragmentShader>
+void frag() // PS_Blur_Vertical
+{   
+    vec4 OutCol = GaussianBlur3TapPremultiplied( Texture0 );
+    gl_FragColor = OutCol;
+}
+			</FragmentShader>
+		</Shader>
+		<Shader name="BLEND">
+			<FragmentShader>
+void frag()
+{	
+	vec4 src = texture2D_0(TexCoord);
+	vec4 dst = texture2D_Sprite(TexCoord);
+
+	colorOutput(src * (1.0-dst.a) + dst);
+}
+			</FragmentShader>
+		</Shader>
+	</Shaders>
+	<Passes>
+		<Buffer name="glow_buffer" type="ubyte" format="rgba" filter="linear" wrap="clamp" size=".25" lifetime="scene"/>
+		<Buffer name="temp_buffer" type="ubyte" format="rgba" filter="linear" wrap="clamp" size=".25" lifetime="frame"/>
+  
+		<Pass name="1" shader="HBLUR" input="[source]" output="temp_buffer">
+			<BufferInput param="GlowSampler" value="glow_buffer"/>
+		</Pass>
+		<Pass name="2" shader="VBLUR" input="temp_buffer" output="glow_buffer"/>
+		<Pass name="pass3_Composite" shader="BLEND" input="glow_buffer">
+			<BufferInput param="Sprite" value="[source]"/>
+		</Pass>
+	</Passes>
+</Effect>

@@ -1,0 +1,149 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<Effect>
+	<MetaData>
+	<Property name="searchTex" 	filter="nearest" clamp="clamp" type="Texture" default="./maps/effects/SearchTex-yflipped.png" hidden="True"/>
+	<Property name="areaTex" 	filter="linear" clamp="clamp" type="Texture" default="./maps/effects/AreaTex-yflipped.dds" hidden="True"/>
+	<Property name="blendTex" 	filter="linear" clamp="clamp" type="Texture" hidden="True"/>
+	</MetaData>
+	<Shaders>
+		<Shared>
+vec2 pixelIncrements;
+#define SMAA_PIXEL_SIZE pixelIncrements
+#define SMAA_HLSL_3 0
+#define SMAA_HLSL_4 0
+#define SMAA_HLSL_4_1 0
+#define SMAA_GLSL_3 1
+#define SMAA_GLSL_4 0
+#define SMAA_PRESET_LOW 0
+#define SMAA_PRESET_MEDIUM 0
+#define SMAA_PRESET_HIGH 1
+#define SMAA_PRESET_ULTRA 0
+#define SMAA_PRESET_CUSTOM 0
+      vec2 pixelSizes;
+    </Shared>
+		<Shader name="EdgeDetect">
+			<VertexShader>
+#define SMAA_ONLY_COMPILE_PS 0
+#include "SMAA.glsllib"
+
+out float4 svPosition;
+out float4 offset[3];
+
+void vert ()
+{
+	pixelIncrements = vec2( 1.0 / Texture0Info.x, 1.0 / Texture0Info.y );
+	float4 tempOffset[3];
+	float4 tempPos;
+	SMAAEdgeDetectionVS(gl_Position, tempPos, TexCoord, tempOffset);
+	
+	offset[0] = tempOffset[0];
+	offset[1] = tempOffset[1];
+	offset[2] = tempOffset[2];
+	svPosition = tempPos;
+}
+			</VertexShader>
+			<FragmentShader>
+#define SMAA_ONLY_COMPILE_PS 1
+#include "SMAA.glsllib"
+
+in float4 svPosition;
+in float4 offset[3];
+
+
+void frag() 
+{
+	pixelIncrements = vec2( 1.0 / Texture0Info.x, 1.0 / Texture0Info.y );
+	gl_FragColor = SMAALumaEdgeDetectionPS(TexCoord, offset, Texture0);
+}
+			</FragmentShader>
+		</Shader>
+		
+		<Shader name="BlendingWeightCalculation">
+		
+			<VertexShader>
+#define SMAA_ONLY_COMPILE_PS 0
+#include "SMAA.glsllib"
+out float4 svPosition;
+out float4 offset[3];
+out float2 pixcoord;
+void vert()
+{
+	pixelIncrements = vec2( 1.0 / Texture0Info.x, 1.0 / Texture0Info.y );
+	float4 tempOffset[3];
+	float4 tempPos;
+	float2 tempPixCoord;
+	SMAABlendingWeightCalculationVS(gl_Position, tempPos, TexCoord, tempPixCoord, tempOffset);
+	
+	
+	offset[0] = tempOffset[0];
+	offset[1] = tempOffset[1];
+	offset[2] = tempOffset[2];
+	svPosition = tempPos;
+	pixcoord = tempPixCoord;
+}
+			</VertexShader>
+			<FragmentShader>
+#define SMAA_ONLY_COMPILE_PS 1
+#include "SMAA.glsllib"
+in float4 svPosition;
+in float4 offset[3];
+in float2 pixcoord;
+//Required for temporal
+int4 subsampleIndices;
+
+void frag()
+{
+	pixelIncrements = vec2( 1.0 / Texture0Info.x, 1.0 / Texture0Info.y );
+	gl_FragColor = SMAABlendingWeightCalculationPS(TexCoord, pixcoord, offset, Texture0, areaTex, searchTex, subsampleIndices);
+}
+			</FragmentShader>
+		</Shader>
+		<Shader name="NeighborhoodBlending">
+			<VertexShader>
+#define SMAA_ONLY_COMPILE_PS 0
+#include "SMAA.glsllib"
+
+out float4 svPosition;
+out float4 offset[2];
+
+void vert ()
+{
+	pixelIncrements = vec2( 1.0 / Texture0Info.x, 1.0 / Texture0Info.y );
+	float4 tempOffset[2];
+	float4 tempPos;
+	SMAANeighborhoodBlendingVS(gl_Position, tempPos, TexCoord, tempOffset);
+	offset[0] = tempOffset[0];
+	offset[1] = tempOffset[1];
+	svPosition = tempPos;
+}
+			</VertexShader>
+			<FragmentShader>
+#define SMAA_ONLY_COMPILE_PS 1
+#include "SMAA.glsllib"
+
+in float4 svPosition;
+in float4 offset[2];
+void frag()
+{
+	pixelIncrements = vec2( 1.0 / Texture0Info.x, 1.0 / Texture0Info.y );
+	gl_FragColor = SMAANeighborhoodBlendingPS(TexCoord, offset, Texture0, blendTex);
+}
+			</FragmentShader>
+		</Shader>
+	</Shaders>
+	<Passes>
+		<Buffer name="edges_buffer" type="ubyte" format="rg" filter="linear" wrap="clamp" lifetime="scene"/>
+		<Buffer name="blend_buffer" type="ubyte" format="rgba" filter="linear" wrap="clamp" lifetime="scene"/>
+		<Buffer name="stencil_buffer" format='depth24stencil8' lifetime="frame" />
+		<Pass shader="EdgeDetect" input='[source]' output='edges_buffer'>
+			<DepthStencil buffer='stencil_buffer' flags='clear-stencil' stencil-fail='replace' depth-fail='replace' depth-pass='replace' stencil-function='always' reference='1'/>
+		</Pass>
+		<Pass shader="BlendingWeightCalculation" input='edges_buffer' output='blend_buffer' >
+			<DepthStencil buffer='stencil_buffer' stencil-fail='keep' depth-fail='keep' depth-pass='keep' stencil-function='equal' reference='1'/>
+		</Pass>
+		<Pass shader='NeighborhoodBlending' input='[source]' >
+			<BufferInput param='blendTex' value="blend_buffer"/>
+		</Pass>
+	</Passes>
+</Effect>
+

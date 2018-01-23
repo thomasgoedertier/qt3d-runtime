@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<Effect>
+    <MetaData>
+    <Property name="vig_color" formalName="Vignet Color" type="Color" default="0.5 0.5 0.5" description="The color to use for the Vignetting."/>
+    <Property name="vig_strenght" formalName="Strenght" min="0" max="15" default="15.0" description="Strenght of Vignetting."/>
+    <Property name="vig_radius" formalName="Radius" min="0" max="5" default="0.35" description="Size of Vignetting."/>
+    </MetaData>
+    <Shaders>
+        <Shared></Shared>
+        <VertexShaderShared></VertexShaderShared>
+        <FragmentShaderShared></FragmentShaderShared>
+        <Shader name="main">
+            <VertexShader></VertexShader>
+            <FragmentShader><![CDATA[
+
+void frag()
+{
+    float radius = vig_radius;
+    vec4 origColor = texture2D_0(TexCoord);
+    vec2 uv = TexCoord.xy;
+    vec2 center = vec2(0.5);
+
+    vec4 bg = origColor;
+
+    uv *=  1.0 - uv.yx;
+    float vig = uv.x*uv.y * vig_strenght;
+    vig = pow(vig, vig_radius);
+
+    vec4 vigmixcolor = vec4(vig_color,vig) * vec4(vig);
+    gl_FragColor = vec4(mix(origColor,vigmixcolor,1.0-vig));
+
+}
+    ]]></FragmentShader>
+        </Shader>
+    </Shaders>
+    <Passes>
+        <Pass shader="main" input="[source]" output="[dest]"/>
+    </Passes>
+</Effect>
+
+

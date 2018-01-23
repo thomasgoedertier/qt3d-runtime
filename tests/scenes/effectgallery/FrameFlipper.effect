@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<Effect>
+    <MetaData>
+    <Property name="horflip" formalName="Flip Horizontally" type="Boolean" description="Flip Frame horizontally" default="False"/>
+    <Property name="verflip" formalName="Flip Vertically" type="Boolean" description="Flip Frame vertically" default="False"/>
+    </MetaData>
+    <Shaders>
+        <Shared></Shared>
+        <VertexShaderShared></VertexShaderShared>
+        <FragmentShaderShared></FragmentShaderShared>
+        <Shader name="main">
+            <VertexShader></VertexShader>
+            <FragmentShader><![CDATA[
+void frag()
+{
+    float yflippedCoord = 1.0 - TexCoord.y;
+    float xflippedCoord = 1.0 - TexCoord.x;
+    vec2 flippedCoord = TexCoord;
+
+    if(horflip || verflip){
+        if(horflip){
+            flippedCoord.x = xflippedCoord;
+        }
+        if(verflip){
+            flippedCoord.y = yflippedCoord;
+        }
+    }
+
+    vec4 origColor = texture2D_0(flippedCoord);
+
+    gl_FragColor = origColor;
+}
+    ]]></FragmentShader>
+        </Shader>
+    </Shaders>
+    <Passes>
+        <Pass shader="main" input="[source]" output="[dest]"/>
+    </Passes>
+</Effect>
+
+

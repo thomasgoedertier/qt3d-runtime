@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<Effect>
+	<MetaData>
+		<Property name="FilterSize" formalName="Filter Size" description="Range to shoot samples for conversion" default="4"/>
+		<Property name="DistScale" formalName="Distance Scale" description="Divisor for distances during filtering -- larger equals more subtle" default="8"/>
+		<Property name="DistBias" formalName="Distance Bias" description="Depth bias to prevent self-shadowing artifacts" default="1"/>
+		<Property name="DebugView" formalName="Debug SSAO effect" type="Boolean" description="Allows you to see the effect of the filter directly to help setup parameters" default="False"/>
+		<Property name="DepthSampler" type="Texture" filter="nearest" clamp="clamp"/>
+		<Property name="SourceSampler" type="Texture" filter="linear" clamp="clamp"/>
+	</MetaData>
+	
+	<Shaders>
+		
+		<Shader name="SSAO">
+			<FragmentShader>
+#include "depthpass.glsllib"
+uniform vec2 CameraClipRange;
+			
+void frag( void )
+{
+	float ret = 16.0;
+	
+	vec3 kernel[16];
+	
+	// Not particularly random set of samples, I know, which means some risk 
+	// of artifacts due to regularity.
+	kernel[0] = vec3(0.355512, -0.709318, -0.102371);
+	kernel[1] = vec3(0.534186, 0.71511, -0.115167);
+	kernel[2] = vec3(-0.87866, 0.157139, -0.115167);
+	kernel[3] = vec3(0.140679, -0.475516, -0.0639818);
+	kernel[4] = vec3(-0.0796121, 0.158842, -0.677075);
+	kernel[5] = vec3(-0.0759516, -0.101676, -0.483625);
+	kernel[6] = vec3(0.12493, -0.0223423, -0.483625);
+	kernel[7] = vec3(-0.0720074, 0.243395, -0.967251);
+	kernel[8] = vec3(-0.207641, 0.414286, 0.187755);
+	kernel[9] = vec3(-0.277332,  -0.371262, 0.187755);
+	kernel[10] = vec3(0.63864, -0.114214, 0.262857);
+	kernel[11] = vec3(-0.184051, 0.622119, 0.262857);
+	kernel[12] = vec3(0.110007, -0.219486, 0.435574);
+	kernel[13] = vec3(0.235085, 0.314707, 0.696918);
+	kernel[14] = vec3(-0.290012, 0.0518654, 0.522688);
+	kernel[15] = vec3(0.0975089, -0.329594, 0.609803);
+	
+	ivec2 iCoords = ivec2( gl_FragCoord.xy + vec2(0.5, 0.5) );
+	float depth = getDepthValue(texelFetch(DepthSampler, iCoords, 0));
+	depth = depthValueToLinearDistance( depth, CameraClipRange );
+	
+	for( int i = 15; i >= 0; --i )
+	{
+		// Note -- this cheap 2D trick is partially correct, but what we really need is to
+		// get the actual position, shoot the ray in 3d and re-project to get the actual
+		// 3D distance between points.
+		vec3 ray = kernel[i] * FilterSize;
+		ivec2 newSamp = ivec2( iCoords + ray.xy );
+		float sampleDepth = getDepthValue( texelFetch(DepthSampler, newSamp, 0) );
+		sampleDepth = depthValueToLinearDistance( sampleDepth, CameraClipRange );
+		
+		// Occlusion is applied based on a Cauchy distribution filter
+		float occlDist = max(sampleDepth - depth - DistBias, 0.0) / DistScale;
+		
+		// This gives us an occlusion based on distance where the closest stuff
+		// occludes the most, but the extra little subtraction of a yet tighter
+		// Cauchy lobe means that we avoid the super-close stuff in order to limit
+		// self occlusion.  The 1.5 multiplier is to assure that the maximum possible 
+		// effect of a given sample is 1.0 exactly.
+		float occlFactor = 1.0 / ( 1.0 + occlDist*occlDist*0.04 );
+		occlFactor -= 1.0 / ( 1.0 + occlDist*occlDist );
+		ret -= 1.5 * occlFactor;
+
+	}
+	ret /= 16.0;
+
+	vec4 backColor = texture2D_SourceSampler(TexCoord);
+	if (DebugView)
+	{
+		backColor = vec4( 1.0 );
+	}
+	
+	gl_FragColor = vec4( ret,ret,ret, 1.0 ) * backColor;
+}
+			</FragmentShader>
+		</Shader>
+	</Shaders>
+	<Passes>
+		<Pass shader="SSAO">
+			<BufferInput value="[source]" param="SourceSampler" />
+			<DepthInput param="DepthSampler" />
+		</Pass>
+	</Passes>
+</Effect>

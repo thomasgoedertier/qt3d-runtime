@@ -1,0 +1,268 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<UIP version="3" >
+	<Project >
+		<ProjectSettings author="" company="" presentationWidth="1280" presentationHeight="720" maintainAspect="False" >
+			<CustomColors count="16" >#ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff</CustomColors>
+		</ProjectSettings>
+		<Graph >
+			<Scene id="Scene" >
+				<Layer id="Layer" >
+					<Camera id="Camera" />
+					<Light id="Light" />
+					<Model id="Cube" >
+						<Material id="Default" name="Default" />
+					</Model>
+					<Model id="Sphere" >
+						<Material id="Default_001" name="Default" />
+					</Model>
+				</Layer>
+				<Layer id="Layer2" >
+					<Camera id="Camera_001" />
+					<Light id="Light_001" />
+					<Model id="Cube_001" >
+						<Material id="Default_002" name="Default" />
+					</Model>
+					<Model id="Sphere_001" >
+						<Material id="Default_003" name="Default" />
+					</Model>
+				</Layer>
+				<Layer id="Layer3" >
+					<Camera id="Camera_002" />
+					<Light id="Light_002" />
+					<Model id="Cube_002" >
+						<Material id="Default_004" name="Default" />
+					</Model>
+					<Model id="Sphere_002" >
+						<Material id="Default_005" name="Default" />
+					</Model>
+				</Layer>
+				<Layer id="Layer4" >
+					<Camera id="Camera_003" />
+					<Light id="Light_003" />
+					<Model id="Cube_003" >
+						<Material id="Default_006" name="Default" />
+					</Model>
+					<Model id="Sphere_003" >
+						<Material id="Default_007" name="Default" />
+					</Model>
+				</Layer>
+				<Layer id="Layer5" >
+					<Camera id="Camera_004" />
+					<Light id="Light_004" />
+					<Model id="Cube_004" >
+						<Material id="Default_008" name="Default" />
+					</Model>
+					<Model id="Sphere_004" >
+						<Material id="Default_009" name="Default" />
+					</Model>
+				</Layer>
+				<Layer id="Layer6" >
+					<Camera id="Camera_005" />
+					<Light id="Light_005" />
+					<Model id="Cube_005" >
+						<Material id="Default_010" name="Default" />
+					</Model>
+					<Model id="Sphere_005" >
+						<Material id="Default_011" name="Default" />
+					</Model>
+				</Layer>
+				<Layer id="Layer7" >
+					<Camera id="Camera_006" />
+					<Light id="Light_006" />
+					<Model id="Cube_006" >
+						<Material id="Default_012" name="Default" />
+					</Model>
+					<Model id="Sphere_006" >
+						<Material id="Default_013" name="Default" />
+					</Model>
+				</Layer>
+				<Layer id="Layer8" >
+					<Camera id="Camera_007" />
+					<Light id="Light_007" />
+					<Model id="Cube_007" >
+						<Material id="Default_014" name="Default" />
+					</Model>
+					<Model id="Sphere_007" >
+						<Material id="Default_015" name="Default" />
+					</Model>
+				</Layer>
+				<Layer id="Layer9" >
+					<Camera id="Camera_008" />
+					<Light id="Light_008" />
+					<Model id="Cube_008" >
+						<Material id="Default_016" name="Default" />
+					</Model>
+					<Model id="Sphere_008" >
+						<Material id="Default_017" name="Default" />
+					</Model>
+				</Layer>
+				<Layer id="Layer10" >
+					<Camera id="Camera_009" />
+					<Light id="Light_009" />
+					<Model id="Cube_009" >
+						<Material id="Default_018" name="Default" />
+					</Model>
+					<Model id="Sphere_009" >
+						<Material id="Default_019" name="Default" />
+					</Model>
+				</Layer>
+			</Scene>
+		</Graph>
+		<Logic >
+			<State name="Master Slide" component="#Scene" >
+				<Add ref="#Layer" height="10" width="10" />
+				<Add ref="#Camera" />
+				<Add ref="#Light" />
+				<State id="Scene-Slide1" name="Slide1" >
+					<Add ref="#Cube" name="Cube" position="-296.053 33.0374 0" rotation="-22.9052 -70.9856 10.3556" scale="2 2 2" sourcepath="#Cube" >
+						<AnimationTrack property="rotation.x" type="EaseInOut" >0 -22.9052 100 100 10 -22.905 100 100</AnimationTrack>
+						<AnimationTrack property="rotation.y" type="EaseInOut" >0 -70.9856 100 100 10 200 100 100</AnimationTrack>
+						<AnimationTrack property="rotation.z" type="EaseInOut" >0 10.3556 100 100 10 10.356 100 100</AnimationTrack>
+					</Add>
+					<Add ref="#Default" />
+					<Add ref="#Sphere" name="Sphere" position="192.771 17.3205 0" rotation="71.3254 -100.135 -168.32" scale="2.5 2 2" sourcepath="#Sphere" >
+						<AnimationTrack property="rotation.x" type="EaseInOut" >0 71.3254 100 100 10 71.325 100 100</AnimationTrack>
+						<AnimationTrack property="rotation.y" type="EaseInOut" >0 -100.135 100 100 10 300 100 100</AnimationTrack>
+						<AnimationTrack property="rotation.z" type="EaseInOut" >0 -168.32 100 100 10 -168.32 100 100</AnimationTrack>
+					</Add>
+					<Add ref="#Default_001" />
+					<Add ref="#Layer2" name="Layer2" height="10" left="10" width="10" />
+					<Add ref="#Camera_001" />
+					<Add ref="#Light_001" />
+					<Add ref="#Cube_001" name="Cube" position="-296.053 33.0374 0" rotation="-22.9052 -70.9856 10.3556" scale="2 2 2" sourcepath="#Cube" >
+						<AnimationTrack property="rotation.x" type="EaseInOut" >0 -22.9052 100 100 10 -22.905 100 100</AnimationTrack>
+						<AnimationTrack property="rotation.y" type="EaseInOut" >0 -70.9856 100 100 10 200 100 100</AnimationTrack>
+						<AnimationTrack property="rotation.z" type="EaseInOut" >0 10.3556 100 100 10 10.356 100 100</AnimationTrack>
+					</Add>
+					<Add ref="#Default_002" />
+					<Add ref="#Sphere_001" name="Sphere" position="192.771 17.3205 0" rotation="71.3254 -100.135 -168.32" scale="2.5 2 2" sourcepath="#Sphere" >
+						<AnimationTrack property="rotation.x" type="EaseInOut" >0 71.3254 100 100 10 71.325 100 100</AnimationTrack>
+						<AnimationTrack property="rotation.y" type="EaseInOut" >0 -100.135 100 100 10 300 100 100</AnimationTrack>
+						<AnimationTrack property="rotation.z" type="EaseInOut" >0 -168.32 100 100 10 -168.32 100 100</AnimationTrack>
+					</Add>
+					<Add ref="#Default_003" />
+					<Add ref="#Layer3" name="Layer3" height="10" left="20" width="10" />
+					<Add ref="#Camera_002" />
+					<Add ref="#Light_002" />
+					<Add ref="#Cube_002" name="Cube" position="-296.053 33.0374 0" rotation="-22.9052 -70.9856 10.3556" scale="2 2 2" sourcepath="#Cube" >
+						<AnimationTrack property="rotation.x" type="EaseInOut" >0 -22.9052 100 100 10 -22.905 100 100</AnimationTrack>
+						<AnimationTrack property="rotation.y" type="EaseInOut" >0 -70.9856 100 100 10 200 100 100</AnimationTrack>
+						<AnimationTrack property="rotation.z" type="EaseInOut" >0 10.3556 100 100 10 10.356 100 100</AnimationTrack>
+					</Add>
+					<Add ref="#Default_004" />
+					<Add ref="#Sphere_002" name="Sphere" position="192.771 17.3205 0" rotation="71.3254 -100.135 -168.32" scale="2.5 2 2" sourcepath="#Sphere" >
+						<AnimationTrack property="rotation.x" type="EaseInOut" >0 71.3254 100 100 10 71.325 100 100</AnimationTrack>
+						<AnimationTrack property="rotation.y" type="EaseInOut" >0 -100.135 100 100 10 300 100 100</AnimationTrack>
+						<AnimationTrack property="rotation.z" type="EaseInOut" >0 -168.32 100 100 10 -168.32 100 100</AnimationTrack>
+					</Add>
+					<Add ref="#Default_005" />
+					<Add ref="#Layer4" name="Layer4" height="10" left="30" width="10" />
+					<Add ref="#Camera_003" />
+					<Add ref="#Light_003" />
+					<Add ref="#Cube_003" name="Cube" position="-296.053 33.0374 0" rotation="-22.9052 -70.9856 10.3556" scale="2 2 2" sourcepath="#Cube" >
+						<AnimationTrack property="rotation.x" type="EaseInOut" >0 -22.9052 100 100 10 -22.905 100 100</AnimationTrack>
+						<AnimationTrack property="rotation.y" type="EaseInOut" >0 -70.9856 100 100 10 200 100 100</AnimationTrack>
+						<AnimationTrack property="rotation.z" type="EaseInOut" >0 10.3556 100 100 10 10.356 100 100</AnimationTrack>
+					</Add>
+					<Add ref="#Default_006" />
+					<Add ref="#Sphere_003" name="Sphere" position="192.771 17.3205 0" rotation="71.3254 -100.135 -168.32" scale="2.5 2 2" sourcepath="#Sphere" >
+						<AnimationTrack property="rotation.x" type="EaseInOut" >0 71.3254 100 100 10 71.325 100 100</AnimationTrack>
+						<AnimationTrack property="rotation.y" type="EaseInOut" >0 -100.135 100 100 10 300 100 100</AnimationTrack>
+						<AnimationTrack property="rotation.z" type="EaseInOut" >0 -168.32 100 100 10 -168.32 100 100</AnimationTrack>
+					</Add>
+					<Add ref="#Default_007" />
+					<Add ref="#Layer5" name="Layer5" height="10" left="40" width="10" />
+					<Add ref="#Camera_004" />
+					<Add ref="#Light_004" />
+					<Add ref="#Cube_004" name="Cube" position="-296.053 33.0374 0" rotation="-22.9052 -70.9856 10.3556" scale="2 2 2" sourcepath="#Cube" >
+						<AnimationTrack property="rotation.x" type="EaseInOut" >0 -22.9052 100 100 10 -22.905 100 100</AnimationTrack>
+						<AnimationTrack property="rotation.y" type="EaseInOut" >0 -70.9856 100 100 10 200 100 100</AnimationTrack>
+						<AnimationTrack property="rotation.z" type="EaseInOut" >0 10.3556 100 100 10 10.356 100 100</AnimationTrack>
+					</Add>
+					<Add ref="#Default_008" />
+					<Add ref="#Sphere_004" name="Sphere" position="192.771 17.3205 0" rotation="71.3254 -100.135 -168.32" scale="2.5 2 2" sourcepath="#Sphere" >
+						<AnimationTrack property="rotation.x" type="EaseInOut" >0 71.3254 100 100 10 71.325 100 100</AnimationTrack>
+						<AnimationTrack property="rotation.y" type="EaseInOut" >0 -100.135 100 100 10 300 100 100</AnimationTrack>
+						<AnimationTrack property="rotation.z" type="EaseInOut" >0 -168.32 100 100 10 -168.32 100 100</AnimationTrack>
+					</Add>
+					<Add ref="#Default_009" />
+					<Add ref="#Layer6" name="Layer6" height="10" left="50" width="10" />
+					<Add ref="#Camera_005" />
+					<Add ref="#Light_005" />
+					<Add ref="#Cube_005" name="Cube" position="-296.053 33.0374 0" rotation="-22.9052 -70.9856 10.3556" scale="2 2 2" sourcepath="#Cube" >
+						<AnimationTrack property="rotation.x" type="EaseInOut" >0 -22.9052 100 100 10 -22.905 100 100</AnimationTrack>
+						<AnimationTrack property="rotation.y" type="EaseInOut" >0 -70.9856 100 100 10 200 100 100</AnimationTrack>
+						<AnimationTrack property="rotation.z" type="EaseInOut" >0 10.3556 100 100 10 10.356 100 100</AnimationTrack>
+					</Add>
+					<Add ref="#Default_010" />
+					<Add ref="#Sphere_005" name="Sphere" position="192.771 17.3205 0" rotation="71.3254 -100.135 -168.32" scale="2.5 2 2" sourcepath="#Sphere" >
+						<AnimationTrack property="rotation.x" type="EaseInOut" >0 71.3254 100 100 10 71.325 100 100</AnimationTrack>
+						<AnimationTrack property="rotation.y" type="EaseInOut" >0 -100.135 100 100 10 300 100 100</AnimationTrack>
+						<AnimationTrack property="rotation.z" type="EaseInOut" >0 -168.32 100 100 10 -168.32 100 100</AnimationTrack>
+					</Add>
+					<Add ref="#Default_011" />
+					<Add ref="#Layer7" name="Layer7" height="10" left="60" width="10" />
+					<Add ref="#Camera_006" />
+					<Add ref="#Light_006" />
+					<Add ref="#Cube_006" name="Cube" position="-296.053 33.0374 0" rotation="-22.9052 -70.9856 10.3556" scale="2 2 2" sourcepath="#Cube" >
+						<AnimationTrack property="rotation.x" type="EaseInOut" >0 -22.9052 100 100 10 -22.905 100 100</AnimationTrack>
+						<AnimationTrack property="rotation.y" type="EaseInOut" >0 -70.9856 100 100 10 200 100 100</AnimationTrack>
+						<AnimationTrack property="rotation.z" type="EaseInOut" >0 10.3556 100 100 10 10.356 100 100</AnimationTrack>
+					</Add>
+					<Add ref="#Default_012" />
+					<Add ref="#Sphere_006" name="Sphere" position="192.771 17.3205 0" rotation="71.3254 -100.135 -168.32" scale="2.5 2 2" sourcepath="#Sphere" >
+						<AnimationTrack property="rotation.x" type="EaseInOut" >0 71.3254 100 100 10 71.325 100 100</AnimationTrack>
+						<AnimationTrack property="rotation.y" type="EaseInOut" >0 -100.135 100 100 10 300 100 100</AnimationTrack>
+						<AnimationTrack property="rotation.z" type="EaseInOut" >0 -168.32 100 100 10 -168.32 100 100</AnimationTrack>
+					</Add>
+					<Add ref="#Default_013" />
+					<Add ref="#Layer8" name="Layer8" height="10" left="70" width="10" />
+					<Add ref="#Camera_007" />
+					<Add ref="#Light_007" />
+					<Add ref="#Cube_007" name="Cube" position="-296.053 33.0374 0" rotation="-22.9052 -70.9856 10.3556" scale="2 2 2" sourcepath="#Cube" >
+						<AnimationTrack property="rotation.x" type="EaseInOut" >0 -22.9052 100 100 10 -22.905 100 100</AnimationTrack>
+						<AnimationTrack property="rotation.y" type="EaseInOut" >0 -70.9856 100 100 10 200 100 100</AnimationTrack>
+						<AnimationTrack property="rotation.z" type="EaseInOut" >0 10.3556 100 100 10 10.356 100 100</AnimationTrack>
+					</Add>
+					<Add ref="#Default_014" />
+					<Add ref="#Sphere_007" name="Sphere" position="192.771 17.3205 0" rotation="71.3254 -100.135 -168.32" scale="2.5 2 2" sourcepath="#Sphere" >
+						<AnimationTrack property="rotation.x" type="EaseInOut" >0 71.3254 100 100 10 71.325 100 100</AnimationTrack>
+						<AnimationTrack property="rotation.y" type="EaseInOut" >0 -100.135 100 100 10 300 100 100</AnimationTrack>
+						<AnimationTrack property="rotation.z" type="EaseInOut" >0 -168.32 100 100 10 -168.32 100 100</AnimationTrack>
+					</Add>
+					<Add ref="#Default_015" />
+					<Add ref="#Layer9" name="Layer9" height="10" left="80" width="10" />
+					<Add ref="#Camera_008" />
+					<Add ref="#Light_008" />
+					<Add ref="#Cube_008" name="Cube" position="-296.053 33.0374 0" rotation="-22.9052 -70.9856 10.3556" scale="2 2 2" sourcepath="#Cube" >
+						<AnimationTrack property="rotation.x" type="EaseInOut" >0 -22.9052 100 100 10 -22.905 100 100</AnimationTrack>
+						<AnimationTrack property="rotation.y" type="EaseInOut" >0 -70.9856 100 100 10 200 100 100</AnimationTrack>
+						<AnimationTrack property="rotation.z" type="EaseInOut" >0 10.3556 100 100 10 10.356 100 100</AnimationTrack>
+					</Add>
+					<Add ref="#Default_016" />
+					<Add ref="#Sphere_008" name="Sphere" position="192.771 17.3205 0" rotation="71.3254 -100.135 -168.32" scale="2.5 2 2" sourcepath="#Sphere" >
+						<AnimationTrack property="rotation.x" type="EaseInOut" >0 71.3254 100 100 10 71.325 100 100</AnimationTrack>
+						<AnimationTrack property="rotation.y" type="EaseInOut" >0 -100.135 100 100 10 300 100 100</AnimationTrack>
+						<AnimationTrack property="rotation.z" type="EaseInOut" >0 -168.32 100 100 10 -168.32 100 100</AnimationTrack>
+					</Add>
+					<Add ref="#Default_017" />
+					<Add ref="#Layer10" name="Layer10" height="10" left="90" width="10" />
+					<Add ref="#Camera_009" />
+					<Add ref="#Light_009" />
+					<Add ref="#Cube_009" name="Cube" position="-296.053 33.0374 0" rotation="-22.9052 -70.9856 10.3556" scale="2 2 2" sourcepath="#Cube" >
+						<AnimationTrack property="rotation.x" type="EaseInOut" >0 -22.9052 100 100 10 -22.905 100 100</AnimationTrack>
+						<AnimationTrack property="rotation.y" type="EaseInOut" >0 -70.9856 100 100 10 200 100 100</AnimationTrack>
+						<AnimationTrack property="rotation.z" type="EaseInOut" >0 10.3556 100 100 10 10.356 100 100</AnimationTrack>
+					</Add>
+					<Add ref="#Default_018" />
+					<Add ref="#Sphere_009" name="Sphere" position="192.771 17.3205 0" rotation="71.3254 -100.135 -168.32" scale="2.5 2 2" sourcepath="#Sphere" >
+						<AnimationTrack property="rotation.x" type="EaseInOut" >0 71.3254 100 100 10 71.325 100 100</AnimationTrack>
+						<AnimationTrack property="rotation.y" type="EaseInOut" >0 -100.135 100 100 10 300 100 100</AnimationTrack>
+						<AnimationTrack property="rotation.z" type="EaseInOut" >0 -168.32 100 100 10 -168.32 100 100</AnimationTrack>
+					</Add>
+					<Add ref="#Default_019" />
+				</State>
+			</State>
+		</Logic>
+	</Project>
+</UIP>

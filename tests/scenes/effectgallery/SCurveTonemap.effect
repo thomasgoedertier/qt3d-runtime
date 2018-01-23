@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<Effect>
+	<MetaData>
+		<Property name="Shoulder" formalName="Shoulder Slope" type="Float" default="1" min="0" max="3"/>
+		<Property name="ShoulderWt" formalName="Shoulder Emphasis" type="Float" default="0" min="-1" max="1"/>
+		<Property name="Toe" formalName="Toe Slope" type="Float" default="1" min="0" max="3"/>
+		<Property name="ToeWt" formalName="Toe Emphasis" type="Float" default="0" min="-1" max="1"/>
+		<Property name="Contrast" formalName="Contrast Boost" type="Float" default="0" min="-1" max="2"/>
+		<Property name="Saturation" formalName="Saturation Level" type="Float" default="1" min="0" max="2"/>
+		<Property name="GammaValue" formalName="Gamma" type="Float" default="2.2" min="0.1" max="8"/>
+		<Property name="UseExposure" formalName="Use Exposure" type="Boolean" default="False"/>
+		<Property name="WhiteVal" formalName="White Point" type="Float" default="1.0" min="0.01" max="128.0">
+			<ShowIfEqual property="UseExposure" value="False"/>
+		</Property>
+		<Property name="ExposeVal" formalName="Exposure Value" type="Float" default="1.0" min="0.01" max="16.0">
+			<ShowIfEqual property="UseExposure" value="True"/>
+		</Property>
+	</MetaData>
+	<Shaders>
+		<Shared>
+#include "luminance.glsllib"
+
+float remapLum( float inLum, float whitePt )
+{
+	return clamp( inLum / whitePt, 0.0, 1.0 );
+}
+
+float exposeLum( float inLum, float exposure )
+{
+	return 1.0 - exp2( -inLum / exposure );
+}
+
+vec3 gammaCorrect( vec3 inColor, float gammaExp )
+{
+	return pow( inColor, vec3( 1.0 / gammaExp ) );
+}
+
+vec3 adjSaturation( vec3 inRGB, float satFactor )
+{
+	// Must be done in linear space (before gamma correction)
+	float P = sqrt( luminance( inRGB * inRGB ) );
+	vec3 outCol;
+	outCol = (inRGB - vec3(P)) * satFactor;
+	outCol += vec3(P);
+	return outCol;
+}
+
+		</Shared>
+<Shader name="TONEMAP">
+<FragmentShader>
+float curveCompute( float inLum, float slope0, float slope1 )
+{
+	float a1 = slope0;
+	float a2 = 3.0 - 2.0 * slope0 - slope1;
+	float a3 = slope1 + slope0 - 2.0;
+
+	// Cubic curve fit.  This results in a curve that is 0 where inColor is 0
+	// equals 1 when inColor is 1, and the derivative at 0 is slope0 and the
+	// derivative at 1 is slope1
+	return ((((a3 * inLum) + a2)*inLum) + a1)*inLum;
+}
+
+float toeEmphasize( float inParam )
+{
+	float a1 = 1.0 - ToeWt;
+	float a2 = 2.0 * ToeWt;
+	float a3 = -ToeWt;
+	
+	return ((((a3 * inParam) + a2) * inParam) + a1) * inParam;
+}
+
+float shoulderEmphasize( float inParam )
+{
+	float a1 = 1.0;
+	float a2 = ShoulderWt;
+	float a3 = -ShoulderWt;
+	
+	return ((((a3 * inParam) + a2) * inParam) + a1) * inParam;
+}
+
+void frag()
+{
+	// k = shadow slope, m = midtone slope, n = highlight slope
+	float k = Toe;
+	float m = 1.0 + Contrast;
+	float n = Shoulder;
+	
+	//vec4 sourceColor = texture(SourceSampler, TexCoord);
+	vec4 sourceColor = texture(Texture0, TexCoord);
+	vec3 sourceSep = RGBToYPbPr(sourceColor.rgb);
+	
+	float lum = sourceSep.r;
+	
+	if (UseExposure) 
+		lum = exposeLum( lum, ExposeVal );
+	else
+		lum = remapLum( lum, WhiteVal );
+
+	float param0 = toeEmphasize( 2.0 * lum );		// Parametrization for Curve Part 1
+	float param1 = shoulderEmphasize( 2.0 * lum - 1.0 );	// Parametrization for Curve Part 2
+	
+	float lum0 = 0.5 * curveCompute( param0, k, m );
+	float lum1 = 0.5 * curveCompute( param1, m, n ) + 0.5;
+	sourceSep.r = (lum > 0.5) ? lum1 : lum0;
+	
+	// Convert back to RGB and gamma correct
+	vec3 finalColor = YPbPrToRGB( sourceSep );
+	finalColor = gammaCorrect( adjSaturation( finalColor, Saturation ), GammaValue );
+	gl_FragColor = vec4( finalColor, sourceColor.a );
+}
+</FragmentShader>
+</Shader>
+	</Shaders>
+	<Passes>
+		<Pass shader="TONEMAP" input="[source]" />
+	</Passes>	
+</Effect>

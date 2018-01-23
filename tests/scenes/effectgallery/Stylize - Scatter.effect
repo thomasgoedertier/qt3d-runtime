@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<Effect>
+	<MetaData>
+		<!--Scatters the pixels in a layer, creating a blurry or smeared appearance. Without changing the color of each individual pixel, the Scatter effect redistributes the pixels randomly, but in the same general area as their original positions.-->
+		<Property name="NoiseSamp" 	formalName="Noise" filter="linear" clamp="repeat" type="Texture" default="./maps/effects/brushnoise.dds" hidden="True"/>
+		<Property name="Amount" 	formalName="Scatter Amount" 		min="0" max="127" 					default="20.0" 	description="Determines how much to scatter."/>
+		<Property name="dir" 		formalName="Grain" 					list="Both:Horizontal:Vertical" 	default="Both" 	description="The direction in which to scatter the pixels - horizontally or vertically. Select Both to scatter pixels in all directions."/>
+		<Property name="isRand" 	formalName="Randomize Every Frame" 	type="Boolean" 						default="False"	description="Specifies whether scattering changes at each frame. To animate scattering without keyframes, select the Randomize Every Frame option."/>
+	</MetaData>
+	<Shaders>
+		<Shader>
+			<FragmentShader>
+uniform float AppFrame;  // frame number since app starts
+void frag (void)
+{
+  float size = 15.0;
+  float amount = Amount / 127.0 * 0.4;
+
+  vec2 uv = TexCoord * size;
+  if (isRand)
+    uv = fract(uv + 0.031 * AppFrame);
+
+  uv = texture2D_NoiseSamp(fract(uv)).xy - 0.5;
+  
+  if (dir == 0) { // both directions
+    uv *= (vec2(1.5, 0.15) * amount);
+    
+  } else if (dir == 1) { // x direction
+    uv *= (vec2(1.3, 0.0) * amount);
+    
+  } else { // y direction
+    uv *= (vec2(0.0, 0.29) * amount);
+  }
+  
+  uv += TexCoord;
+  
+  // shift half of a pixel size of the source to avoid the artifact on upper right borders.
+  // FBO size is bigger than the sprite, so clamping to [0, 1] will introduce artifacts
+  // (when OpenGL glTexParameter is set to linear). Lets not rely on OpenGL to clamp. we
+  // do it here.
+  vec2 halfPixelSize = 0.5 / Texture0Info.xy;
+  colorOutput(texture2D_0(clamp(uv, halfPixelSize, 1.0-halfPixelSize)));
+}
+			</FragmentShader>
+		</Shader>
+	</Shaders>
+</Effect>
