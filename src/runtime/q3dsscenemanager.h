@@ -78,6 +78,7 @@ class QRenderTargetSelector;
 class QRenderTarget;
 class QTechnique;
 class QFilterKey;
+class QRenderState;
 }
 
 namespace Qt3DExtras {
@@ -526,6 +527,11 @@ public:
     };
     Q_DECLARE_FLAGS(BuildLayerQuadFlags, BuildLayerQuadFlag)
 
+    enum FsQuadFlag {
+        FsQuadCustomDepthSettings = 0x01
+    };
+    Q_DECLARE_FLAGS(FsQuadFlags, FsQuadFlag)
+
     static QVector<Qt3DRender::QRenderPass *> standardRenderPasses(Qt3DRender::QShaderProgram *program,
                                                                    Q3DSLayerNode *layer3DS,
                                                                    Q3DSDefaultMaterial::BlendMode blendMode = Q3DSDefaultMaterial::Normal,
@@ -617,11 +623,16 @@ private:
     void buildCompositor(Qt3DRender::QFrameGraphNode *parent, Qt3DCore::QEntity *parentEntity);
     void buildGuiPass(Qt3DRender::QFrameGraphNode *parent, Qt3DCore::QEntity *parentEntity);
 
-    void buildFsQuad(Qt3DCore::QEntity *parentEntity,
-                     const QStringList &passNames,
-                     const QVector<Qt3DRender::QShaderProgram *> &passProgs,
-                     Qt3DRender::QLayer *tag,
-                     const QVector<Qt3DRender::QParameter *> &params);
+    struct FsQuadParams {
+        FsQuadFlags flags;
+        Qt3DCore::QEntity *parentEntity = nullptr;
+        QStringList passNames;
+        QVector<Qt3DRender::QShaderProgram *> passProgs;
+        Qt3DRender::QLayer *tag = nullptr;
+        QVector<Qt3DRender::QParameter *> params;
+        QVector<Qt3DRender::QRenderState *> renderStates;
+    };
+    void buildFsQuad(const FsQuadParams &info);
 
     void handlePropertyChange(Q3DSGraphObject *obj, const QSet<QString> &keys, int changeFlags);
     void updateNodeFromChangeFlags(Q3DSNode *node, Qt3DCore::QTransform *transform, int changeFlags);
@@ -678,6 +689,7 @@ Q_DECLARE_OPERATORS_FOR_FLAGS(Q3DSSceneManager::SceneBuilderFlags)
 Q_DECLARE_OPERATORS_FOR_FLAGS(Q3DSSceneManager::SetNodePropFlags)
 Q_DECLARE_OPERATORS_FOR_FLAGS(Q3DSSceneManager::UpdateGlobalFlags)
 Q_DECLARE_OPERATORS_FOR_FLAGS(Q3DSSceneManager::BuildLayerQuadFlags)
+Q_DECLARE_OPERATORS_FOR_FLAGS(Q3DSSceneManager::FsQuadFlags)
 
 class Q3DSFrameUpdater : public QObject
 {

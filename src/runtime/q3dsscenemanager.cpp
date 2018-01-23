@@ -679,7 +679,12 @@ Q3DSSceneManager::Scene Q3DSSceneManager::buildScene(Q3DSPresentation *presentat
     }
     fsQuadPassNames << QLatin1String("ssao") << QLatin1String("progaa");
     fsQuadPassProgs << sm.getSsaoTextureShader(m_rootEntity) << sm.getProgAABlendShader(m_rootEntity);
-    buildFsQuad(m_rootEntity, fsQuadPassNames, fsQuadPassProgs, m_fsQuadTag, {});
+    FsQuadParams quadInfo;
+    quadInfo.parentEntity = m_rootEntity;
+    quadInfo.passNames = fsQuadPassNames;
+    quadInfo.passProgs = fsQuadPassProgs;
+    quadInfo.tag = m_fsQuadTag;
+    buildFsQuad(quadInfo);
 
     Scene sc;
     sc.rootEntity = m_rootEntity;
@@ -3056,13 +3061,12 @@ void Q3DSSceneManager::buildGuiPass(Qt3DRender::QFrameGraphNode *parent, Qt3DCor
     lfilter->addLayer(m_guiData.activeTag);
 }
 
-void Q3DSSceneManager::buildFsQuad(Qt3DCore::QEntity *parentEntity,
-                                   const QStringList &passNames,
-                                   const QVector<Qt3DRender::QShaderProgram *> &passProgs,
-                                   Qt3DRender::QLayer *tag,
-                                   const QVector<Qt3DRender::QParameter *> &params)
+void Q3DSSceneManager::buildFsQuad(const FsQuadParams &info)
 {
-    Qt3DCore::QEntity *fsQuadEntity = new Qt3DCore::QEntity(parentEntity);
+    Q_ASSERT(info.tag);
+    Q_ASSERT(info.passNames.count() == info.passProgs.count());
+
+    Qt3DCore::QEntity *fsQuadEntity = new Qt3DCore::QEntity(info.parentEntity);
     fsQuadEntity->setObjectName(QObject::tr("fullscreen quad"));
 
     // The shaders should be prepared for Qt3D attribute names...
@@ -3081,19 +3085,24 @@ void Q3DSSceneManager::buildFsQuad(Qt3DCore::QEntity *parentEntity,
     Q3DSDefaultMaterialGenerator::addDefaultApiFilter(technique);
     markAsMainTechnique(technique); // just to make the TechniqueFilter happy
 
-    for (int i = 0; i < passNames.count(); ++i) {
+    for (int i = 0; i < info.passNames.count(); ++i) {
         Qt3DRender::QFilterKey *filterKey = new Qt3DRender::QFilterKey;
         filterKey->setName(QLatin1String("pass"));
-        filterKey->setValue(passNames[i]);
+        filterKey->setValue(info.passNames[i]);
 
         Qt3DRender::QRenderPass *pass = new Qt3DRender::QRenderPass;
         pass->addFilterKey(filterKey);
-        pass->addRenderState(new Qt3DRender::QNoDepthMask);
 
-        pass->setShaderProgram(passProgs[i]);
+        pass->setShaderProgram(info.passProgs[i]);
 
-        for (Qt3DRender::QParameter *param : params)
+        for (Qt3DRender::QParameter *param : info.params)
             pass->addParameter(param);
+
+        for (Qt3DRender::QRenderState *state : info.renderStates)
+            pass->addRenderState(state);
+
+        if (!info.flags.testFlag(FsQuadCustomDepthSettings))
+            pass->addRenderState(new Qt3DRender::QNoDepthMask);
 
         technique->addRenderPass(pass);
     }
@@ -3101,7 +3110,7 @@ void Q3DSSceneManager::buildFsQuad(Qt3DCore::QEntity *parentEntity,
     effect->addTechnique(technique);
     material->setEffect(effect);
 
-    fsQuadEntity->addComponent(tag);
+    fsQuadEntity->addComponent(info.tag);
     fsQuadEntity->addComponent(mesh);
     fsQuadEntity->addComponent(transform);
     fsQuadEntity->addComponent(material);
@@ -4486,6 +4495,9 @@ void Q3DSSceneManager::finalizeEffects(Q3DSLayerNode *layer3DS)
             QVector<Qt3DRender::QParameter *> paramList;
             paramList << commonParamList;
 
+            Qt3DRender::QBlendEquation *blendFunc = nullptr;
+            Qt3DRender::QBlendEquationArguments *blendArgs = nullptr;
+
             for (const Q3DSMaterial::PassCommand &cmd : pass.commands) {
                 switch (cmd.type()) {
                 case Q3DSMaterial::PassCommand::BufferInputType:
@@ -4572,6 +4584,42 @@ void Q3DSSceneManager::finalizeEffects(Q3DSLayerNode *layer3DS)
                 }
                     break;
 
+                case Q3DSMaterial::PassCommand::BlendingType:
+                {
+                    if (!blendFunc)
+                        blendFunc = new Qt3DRender::QBlendEquation;
+                    blendFunc->setBlendFunction(Qt3DRender::QBlendEquation::Add);
+                    if (!blendArgs)
+                        blendArgs = new Qt3DRender::QBlendEquationArguments;
+                    switch (cmd.data()->blendSource) {
+                    case Q3DSMaterial::SrcAlpha:
+                        blendArgs->setSourceRgba(Qt3DRender::QBlendEquationArguments::SourceAlpha);
+                        break;
+                    case Q3DSMaterial::OneMinusSrcAlpha:
+                        blendArgs->setSourceRgba(Qt3DRender::QBlendEquationArguments::OneMinusSourceAlpha);
+                        break;
+                    case Q3DSMaterial::One:
+                        blendArgs->setSourceRgba(Qt3DRender::QBlendEquationArguments::One);
+                        break;
+                    default:
+                        break;
+                    }
+                    switch (cmd.data()->blendDestination) {
+                    case Q3DSMaterial::SrcAlpha:
+                        blendArgs->setDestinationRgba(Qt3DRender::QBlendEquationArguments::SourceAlpha);
+                        break;
+                    case Q3DSMaterial::OneMinusSrcAlpha:
+                        blendArgs->setDestinationRgba(Qt3DRender::QBlendEquationArguments::OneMinusSourceAlpha);
+                        break;
+                    case Q3DSMaterial::One:
+                        blendArgs->setDestinationRgba(Qt3DRender::QBlendEquationArguments::One);
+                        break;
+                    default:
+                        break;
+                    }
+                }
+                    break;
+
                 default:
                     qWarning("Effect %s: Unhandled command %d", eff3DS->id().constData(), cmd.type());
                     break;
@@ -4648,7 +4696,19 @@ void Q3DSSceneManager::finalizeEffects(Q3DSLayerNode *layer3DS)
                                                                                              decoratedFragmentShader);
 
             effData->quadEntityTag = new Qt3DRender::QLayer;
-            buildFsQuad(m_rootEntity, { QLatin1String("eff") }, { prog }, effData->quadEntityTag, paramList);
+
+            FsQuadParams quadInfo;
+            quadInfo.parentEntity = m_rootEntity;
+            quadInfo.passNames << QLatin1String("eff");
+            quadInfo.passProgs << prog;
+            quadInfo.tag = effData->quadEntityTag;
+            quadInfo.params = paramList;
+            if (blendFunc)
+                quadInfo.renderStates << blendFunc;
+            if (blendArgs)
+                quadInfo.renderStates << blendArgs;
+
+            buildFsQuad(quadInfo);
 
             Qt3DRender::QRenderTargetSelector *rtSel = new Qt3DRender::QRenderTargetSelector(layerData->effectData.effectRoot);
             Qt3DRender::QRenderTarget *rt = new Qt3DRender::QRenderTarget;

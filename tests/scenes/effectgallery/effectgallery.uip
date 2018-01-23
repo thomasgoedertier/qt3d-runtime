@@ -32,6 +32,7 @@
 			<Effect id="Stylize - Scatter" name="Stylize - Scatter" sourcepath="Stylize - Scatter.effect" />
 			<Effect id="Tilt Shift" name="Tilt Shift" sourcepath="Tilt Shift.effect" />
 			<Effect id="VignetteEffect" name="VignetteEffect" sourcepath="VignetteEffect.effect" />
+			<Effect id="blendtest" name="blendtest" sourcepath="blendtest.effect" />
 		</Classes>
 		<Graph >
 			<Scene id="Scene" >
@@ -341,6 +342,7 @@
 					<Model id="Sphere_027" >
 						<Material id="Default_055" name="Default" />
 					</Model>
+					<Effect id="blendtest_001" class="#blendtest" />
 				</Layer>
 				<Layer id="Layer29" >
 					<Camera id="Camera_028" />
@@ -814,6 +816,7 @@
 						<AnimationTrack property="rotation.z" type="EaseInOut" >0 -168.32 100 100 10 -168.32 100 100</AnimationTrack>
 					</Add>
 					<Add ref="#Default_055" />
+					<Add ref="#blendtest_001" name="blendtest" />
 					<Add ref="#Layer29" name="Layer29" height="10" left="80" top="20" width="10" />
 					<Add ref="#Camera_028" />
 					<Add ref="#Light_028" />
