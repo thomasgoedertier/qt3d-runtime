@@ -349,7 +349,7 @@ Shader parserShaderElement(QXmlStreamReader *r)
 {
     Q3DSMaterial::Shader shader;
     for (auto attribute : r->attributes()) {
-        if (attribute.name() == QStringLiteral("name"))
+        if (attribute.name() == QStringLiteral("name") || attribute.name() == QStringLiteral("Name"))
             shader.name = attribute.value().toString();
     }
     while (r->readNextStartElement()) {
@@ -550,6 +550,24 @@ bool convertToStencilOp(const QStringRef &value, StencilOp *type, const char *de
             reader->raiseError(QObject::tr("Invalid %1 \"%2\"").arg(QString::fromUtf8(desc)).arg(value.toString()));
     }
     return ok;
+}
+
+bool convertToDepthStencilFlags(const QStringRef &value, DepthStencilFlags *flags, const char *desc, QXmlStreamReader *reader)
+{
+    *flags = 0;
+    QStringList values = value.toString().split(QLatin1Char('|'), QString::SkipEmptyParts);
+    for (const QString &v : values) {
+        if (v == QStringLiteral("clear-stencil")) {
+            *flags |= Q3DSMaterial::ClearStencil;
+        } else if (v == QStringLiteral("clear-depth")) {
+            *flags |= Q3DSMaterial::ClearDepth;
+        } else {
+            if (reader)
+                reader->raiseError(QObject::tr("Invalid %1 \"%2\"").arg(QString::fromUtf8(desc)).arg(value.toString()));
+            return false;
+        }
+    }
+    return true;
 }
 
 bool convertToTextureFormat(const QStringRef &value, const QString &typeValue, TextureFormat *type, const char *desc, QXmlStreamReader *reader)

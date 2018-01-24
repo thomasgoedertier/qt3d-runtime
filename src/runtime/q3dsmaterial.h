@@ -284,6 +284,12 @@ enum StencilOp {
     Invert
 };
 
+enum DepthStencilFlag {
+    ClearDepth = 0x01,
+    ClearStencil = 0x02
+};
+Q_DECLARE_FLAGS(DepthStencilFlags, DepthStencilFlag)
+
 class Q3DSV_EXPORT PassCommand
 {
 public:
@@ -315,7 +321,7 @@ public:
         QString name;
         QString bufferName;
         quint32 stencilValue = 0;
-        QString flags;
+        DepthStencilFlags flags;
         quint32 mask = 4294967295U; // 0xffffffff
         BoolOp stencilFunction = Equal;
         StencilOp stencilFail = Keep;
@@ -362,6 +368,7 @@ bool convertToFilterType(const QStringRef &value, Q3DSMaterial::FilterType *type
 bool convertToClampType(const QStringRef &value, Q3DSMaterial::ClampType *type, const char *desc = nullptr, QXmlStreamReader *reader = nullptr);
 bool convertToBoolOp(const QStringRef &value, Q3DSMaterial::BoolOp *type, const char *desc = nullptr, QXmlStreamReader *reader = nullptr);
 bool convertToStencilOp(const QStringRef &value, Q3DSMaterial::StencilOp *type, const char *desc = nullptr, QXmlStreamReader *reader = nullptr);
+bool convertToDepthStencilFlags(const QStringRef &value, Q3DSMaterial::DepthStencilFlags *flags, const char *desc = nullptr, QXmlStreamReader *reader = nullptr);
 bool convertToTextureFormat(const QStringRef &value, const QString &typeValue, Q3DSMaterial::TextureFormat *type, const char *desc = nullptr, QXmlStreamReader *reader = nullptr);
 bool convertToBlendFunc(const QStringRef &value, Q3DSMaterial::BlendFunc *type, const char *desc = nullptr, QXmlStreamReader *reader = nullptr);
 bool convertToImageAccess(const QStringRef &value, Q3DSMaterial::ImageAccess *type, const char *desc = nullptr, QXmlStreamReader *reader = nullptr);
@@ -376,6 +383,8 @@ Q_DECLARE_TYPEINFO(Q3DSMaterial::DataBuffer, Q_MOVABLE_TYPE);
 Q_DECLARE_TYPEINFO(Q3DSMaterial::PassCommand::Data, Q_MOVABLE_TYPE);
 Q_DECLARE_TYPEINFO(Q3DSMaterial::PassCommand, Q_MOVABLE_TYPE);
 Q_DECLARE_TYPEINFO(Q3DSMaterial::Pass, Q_MOVABLE_TYPE);
+
+Q_DECLARE_OPERATORS_FOR_FLAGS(Q3DSMaterial::DepthStencilFlags)
 
 QT_END_NAMESPACE
 

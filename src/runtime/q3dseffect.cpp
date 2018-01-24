@@ -369,7 +369,9 @@ void Q3DSEffectParser::parsePass(Q3DSEffect &effect)
                     if (Q3DS::convertToInt32(attribute.value(), &stencilValue, "stencil value", r))
                         depthStencil.data()->stencilValue = stencilValue;
                 } else if (attribute.name() == QStringLiteral("flags")) {
-                    depthStencil.data()->flags = attribute.value().toString();
+                    Q3DSMaterial::DepthStencilFlags flags;
+                    if (Q3DSMaterial::convertToDepthStencilFlags(attribute.value(), &flags, "depth stencil flags", r))
+                        depthStencil.data()->flags = flags;
                 } else if (attribute.name() == QStringLiteral("mask")) {
                     qint32 mask;
                     if (Q3DS::convertToInt32(attribute.value(), &mask, "stencil mask", r))

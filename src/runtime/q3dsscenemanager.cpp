@@ -79,6 +79,11 @@
 #include <Qt3DRender/QShaderProgram>
 #include <Qt3DRender/QBuffer>
 #include <Qt3DRender/QBlitFramebuffer>
+#include <Qt3DRender/QStencilTest>
+#include <Qt3DRender/QStencilTestArguments>
+#include <Qt3DRender/QStencilMask>
+#include <Qt3DRender/QStencilOperation>
+#include <Qt3DRender/QStencilOperationArguments>
 
 #include <Qt3DAnimation/QClipAnimator>
 
@@ -4402,6 +4407,64 @@ static inline Qt3DRender::QParameter *makePropertyUniform(const QString &name, c
     return nullptr;
 }
 
+static inline Qt3DRender::QStencilTestArguments::StencilFunction convertToQt3DStencilFunc(Q3DSMaterial::BoolOp func)
+{
+    switch (func) {
+    case Q3DSMaterial::Never:
+        return Qt3DRender::QStencilTestArguments::Never;
+    case Q3DSMaterial::AlwaysTrue:
+        return Qt3DRender::QStencilTestArguments::Always;
+    case Q3DSMaterial::Less:
+        return Qt3DRender::QStencilTestArguments::Less;
+    case Q3DSMaterial::LessThanOrEqual:
+        return Qt3DRender::QStencilTestArguments::LessOrEqual;
+    case Q3DSMaterial::Equal:
+        return Qt3DRender::QStencilTestArguments::Equal;
+    case Q3DSMaterial::GreaterThanOrEqual:
+        return Qt3DRender::QStencilTestArguments::GreaterOrEqual;
+    case Q3DSMaterial::Greater:
+        return Qt3DRender::QStencilTestArguments::Greater;
+    case Q3DSMaterial::NotEqual:
+        return Qt3DRender::QStencilTestArguments::NotEqual;
+    default:
+        return Qt3DRender::QStencilTestArguments::Never;
+    }
+}
+
+static inline Qt3DRender::QStencilOperationArguments::Operation convertToQt3DStencilOp(Q3DSMaterial::StencilOp op)
+{
+    switch (op) {
+    case Q3DSMaterial::Keep:
+        return Qt3DRender::QStencilOperationArguments::Keep;
+    case Q3DSMaterial::Zero:
+        return Qt3DRender::QStencilOperationArguments::Zero;
+    case Q3DSMaterial::Replace:
+        return Qt3DRender::QStencilOperationArguments::Replace;
+    case Q3DSMaterial::Increment:
+        return Qt3DRender::QStencilOperationArguments::Increment;
+    case Q3DSMaterial::IncrementWrap:
+        return Qt3DRender::QStencilOperationArguments::IncrementWrap;
+    case Q3DSMaterial::Decrement:
+        return Qt3DRender::QStencilOperationArguments::Decrement;
+    case Q3DSMaterial::DecrementWrap:
+        return Qt3DRender::QStencilOperationArguments::DecrementWrap;
+    case Q3DSMaterial::Invert:
+        return Qt3DRender::QStencilOperationArguments::Invert;
+    default:
+        return Qt3DRender::QStencilOperationArguments::Keep;
+    }
+}
+
+static inline void setupStencilTest(Qt3DRender::QStencilTest *stencilTest, const Q3DSMaterial::PassCommand &cmd)
+{
+    auto d = cmd.data();
+    for (auto s : { stencilTest->front(), stencilTest->back() }) {
+        s->setComparisonMask(d->mask);
+        s->setReferenceValue(d->stencilValue);
+        s->setStencilFunction(convertToQt3DStencilFunc(d->stencilFunction));
+    }
+}
+
 void Q3DSSceneManager::finalizeEffects(Q3DSLayerNode *layer3DS)
 {
     Q3DSLayerAttached *layerData = static_cast<Q3DSLayerAttached *>(layer3DS->attached());
@@ -4497,6 +4560,11 @@ void Q3DSSceneManager::finalizeEffects(Q3DSLayerNode *layer3DS)
 
             Qt3DRender::QBlendEquation *blendFunc = nullptr;
             Qt3DRender::QBlendEquationArguments *blendArgs = nullptr;
+            Qt3DRender::QStencilTest *stencilTest = nullptr;
+            Qt3DRender::QStencilOperation *stencilOp = nullptr;
+            bool depthNeedsClear = false;
+            bool stencilNeedsClear = false;
+            QString depthStencilBufferName;
 
             for (const Q3DSMaterial::PassCommand &cmd : pass.commands) {
                 switch (cmd.type()) {
@@ -4620,6 +4688,52 @@ void Q3DSSceneManager::finalizeEffects(Q3DSLayerNode *layer3DS)
                 }
                     break;
 
+                case Q3DSMaterial::PassCommand::RenderStateType:
+                {
+                    if (cmd.data()->name == QStringLiteral("Stencil")) {
+                        bool enabled = false;
+                        if (Q3DS::convertToBool(&cmd.data()->value, &enabled)) {
+                            if (enabled) {
+                                if (!stencilTest)
+                                    stencilTest = new Qt3DRender::QStencilTest;
+                                Q3DSMaterial::PassCommand dummy; // with defaults
+                                setupStencilTest(stencilTest, dummy);
+                            } else {
+                                delete stencilTest;
+                                stencilTest = nullptr;
+                                delete stencilOp;
+                                stencilOp = nullptr;
+                            }
+                        }
+                    } else {
+                        qWarning("Effect %s: Unsupported render state %s", eff3DS->id().constData(), qPrintable(cmd.data()->name));
+                    }
+                }
+                    break;
+
+                case Q3DSMaterial::PassCommand::DepthStencilType:
+                {
+                    auto d = cmd.data();
+                    depthStencilBufferName = d->bufferName;
+                    depthNeedsClear = d->flags.testFlag(Q3DSMaterial::ClearDepth);
+                    stencilNeedsClear = d->flags.testFlag(Q3DSMaterial::ClearStencil);
+
+                    if (!stencilTest)
+                        stencilTest = new Qt3DRender::QStencilTest;
+
+                    setupStencilTest(stencilTest, cmd);
+
+                    if (!stencilOp)
+                        stencilOp = new Qt3DRender::QStencilOperation;
+
+                    for (auto s : { stencilOp->front(), stencilOp->back() }) {
+                        s->setStencilTestFailureOperation(convertToQt3DStencilOp(d->stencilFail));
+                        s->setDepthTestFailureOperation(convertToQt3DStencilOp(d->depthFail));
+                        s->setAllTestsPassOperation(convertToQt3DStencilOp(d->depthPass));
+                    }
+                }
+                    break;
+
                 default:
                     qWarning("Effect %s: Unhandled command %d", eff3DS->id().constData(), cmd.type());
                     break;
@@ -4707,20 +4821,45 @@ void Q3DSSceneManager::finalizeEffects(Q3DSLayerNode *layer3DS)
                 quadInfo.renderStates << blendFunc;
             if (blendArgs)
                 quadInfo.renderStates << blendArgs;
+            if (stencilTest)
+                quadInfo.renderStates << stencilTest;
+            if (stencilOp)
+                quadInfo.renderStates << stencilOp;
 
             buildFsQuad(quadInfo);
 
             Qt3DRender::QRenderTargetSelector *rtSel = new Qt3DRender::QRenderTargetSelector(layerData->effectData.effectRoot);
             Qt3DRender::QRenderTarget *rt = new Qt3DRender::QRenderTarget;
+            m_profiler->trackNewObject(rt, Q3DSProfiler::RenderTargetObject, "RT for effect %s pass %d",
+                                       eff3DS->id().constData(), passIdx + 1);
             Qt3DRender::QRenderTargetOutput *color = new Qt3DRender::QRenderTargetOutput;
             color->setAttachmentPoint(Qt3DRender::QRenderTargetOutput::Color0);
             color->setTexture(passOutput);
             rt->addOutput(color);
+            if (!depthStencilBufferName.isEmpty()) {
+                if (effData->textureBuffers.contains(depthStencilBufferName)) {
+                    qCDebug(lcScene, "    Binding buffer %s for depth-stencil", qPrintable(depthStencilBufferName));
+                    Qt3DRender::QRenderTargetOutput *ds = new Qt3DRender::QRenderTargetOutput;
+                    ds->setAttachmentPoint(Qt3DRender::QRenderTargetOutput::DepthStencil);
+                    ds->setTexture(effData->textureBuffers[depthStencilBufferName].texture);
+                    rt->addOutput(ds);
+                } else {
+                    qWarning("Effect %s: Unknown depth-stencil buffer %s",
+                             eff3DS->id().constData(), qPrintable(depthStencilBufferName));
+                }
+            }
             rtSel->setTarget(rt);
 
             Qt3DRender::QClearBuffers *clearBuf = new Qt3DRender::QClearBuffers(rtSel);
             clearBuf->setClearColor(Qt::transparent);
-            clearBuf->setBuffers(outputNeedsClear ? Qt3DRender::QClearBuffers::ColorBuffer : Qt3DRender::QClearBuffers::None);
+            int buffersToClear = Qt3DRender::QClearBuffers::None;
+            if (outputNeedsClear)
+                buffersToClear |= Qt3DRender::QClearBuffers::ColorBuffer;
+            if (depthNeedsClear)
+                buffersToClear |= Qt3DRender::QClearBuffers::DepthBuffer;
+            if (stencilNeedsClear)
+                buffersToClear |= Qt3DRender::QClearBuffers::StencilBuffer;
+            clearBuf->setBuffers(Qt3DRender::QClearBuffers::BufferType(buffersToClear));
 
             Qt3DRender::QLayerFilter *layerFilter = new Qt3DRender::QLayerFilter(clearBuf);
             layerFilter->addLayer(effData->quadEntityTag);
