@@ -308,7 +308,12 @@ QVariant convertToVariant(const QString &value, Q3DS::PropertyType type)
     }
         break;
     case Boolean:
-        return bool(value.toInt());
+    {
+        bool v;
+        if (convertToBool(&value, &v))
+            return v;
+    }
+        break;
     default:
         break;
     }
