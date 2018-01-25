@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<UIP version="3" >
+	<Project >
+		<ProjectSettings author="" company="" presentationWidth="800" presentationHeight="480" maintainAspect="False" >
+			<CustomColors count="16" >#ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff</CustomColors>
+		</ProjectSettings>
+		<Graph >
+			<Scene id="Scene" >
+				<Layer id="Layer" >
+					<Camera id="Camera" />
+					<Light id="Light" />
+					<Model id="Rectangle" >
+						<Material id="Default" name="Default" />
+					</Model>
+					<Model id="Sphere" >
+						<Material id="Default_001" name="Default" />
+					</Model>
+					<Model id="Cube" >
+						<Material id="Default_002" name="Default" />
+					</Model>
+					<Model id="Cylinder" >
+						<Material id="Default_003" name="Default" />
+					</Model>
+					<Model id="Cone" >
+						<Material id="Default_004" name="Default" />
+					</Model>
+				</Layer>
+			</Scene>
+		</Graph>
+		<Logic >
+			<State name="Master Slide" component="#Scene" >
+				<Add ref="#Layer" />
+				<Add ref="#Camera" />
+				<Add ref="#Light" />
+				<State id="Scene-Slide1" name="Slide1" >
+					<Add ref="#Rectangle" name="Rectangle" position="-409.906 211.328 0" sourcepath="#Rectangle" />
+					<Add ref="#Default" />
+					<Add ref="#Sphere" name="Sphere" position="-404.139 0 0" sourcepath="#Sphere" />
+					<Add ref="#Default_001" />
+					<Add ref="#Cube" name="Cube" position="8.66024 170.318 0" sourcepath="#Cube" />
+					<Add ref="#Default_002" />
+					<Add ref="#Cylinder" name="Cylinder" position="0 -152.968 0" sourcepath="#Cylinder" />
+					<Add ref="#Default_003" />
+					<Add ref="#Cone" name="Cone" position="349.224 0 0" sourcepath="#Cone" />
+					<Add ref="#Default_004" />
+				</State>
+			</State>
+		</Logic>
+	</Project>
+</UIP>

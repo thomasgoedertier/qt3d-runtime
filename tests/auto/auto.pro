@@ -6,4 +6,5 @@ SUBDIRS += \
     meshloader \
     materialparser \
     effectparser \
-    slides
+    slides \
+    q3dslancelot

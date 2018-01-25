@@ -1,2 +1,3 @@
 TEMPLATE = subdirs
-SUBDIRS = datamodelgen
+SUBDIRS = \
+    datamodelgen
