@@ -53,6 +53,7 @@
 #include <Qt3DRender/QRenderTargetOutput>
 #include <Qt3DRender/QRenderTarget>
 #include <Qt3DRender/QTexture>
+#include <Qt3DRender/QRenderCapture>
 
 #include <Qt3DInput/QInputSettings>
 
@@ -419,6 +420,12 @@ bool Q3DSEngine::loadPresentation(Presentation *pres)
     // Expose update signal
     connect(pres->q3dscene.frameAction, &Qt3DLogic::QFrameAction::triggered, this, &Q3DSEngine::nextFrameStarting);
 
+    // Insert Render Capture node to framegraph for grabbing
+    m_capture = new Qt3DRender::QRenderCapture();
+    pres->q3dscene.frameGraphRoot->setParent(m_capture);
+    pres->q3dscene.frameGraphRoot = m_capture;
+    pres->q3dscene.renderSettings->setActiveFrameGraph(pres->q3dscene.frameGraphRoot);
+
     // Set new root entity if the engine was already up and running.
     if (!m_aspectEngine.isNull())
         m_aspectEngine->setRootEntity(Qt3DCore::QEntityPtr(pres->q3dscene.rootEntity));
@@ -596,6 +603,7 @@ void Q3DSEngine::destroy()
         delete pres.uipDocument;
     }
     m_presentations.clear();
+    m_capture = nullptr;
 
     // wish I knew why this is needed. Qt 3D tends not to shut down its threads correctly on exit otherwise.
     if (m_aspectEngine)
@@ -735,6 +743,19 @@ void Q3DSEngine::handleMouseDoubleClickEvent(QMouseEvent *e)
     {
         auto m = m_presentations[0].sceneManager;
         m->setProfileUiVisible(!m->isProfileUiVisible());
+    }
+}
+
+void Q3DSEngine::requestGrab()
+{
+    if (m_capture) {
+        Qt3DRender::QRenderCaptureReply *captureReply = m_capture->requestCapture();
+        m_captureConnections.insert(captureReply, QObject::connect(captureReply, &Qt3DRender::QRenderCaptureReply::completed, [=](){
+            QObject::disconnect(m_captureConnections.value(captureReply));
+            m_captureConnections.remove(captureReply);
+            emit grabReady(captureReply->image());
+            delete captureReply;
+        }));
     }
 }
 

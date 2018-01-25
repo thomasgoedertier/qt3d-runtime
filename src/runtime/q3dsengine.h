@@ -44,6 +44,8 @@ class QQmlEngine;
 
 namespace Qt3DRender {
 class QRenderAspect;
+class QRenderCapture;
+class QRenderCaptureReply;
 namespace Quick {
 class QScene2D;
 }
@@ -100,9 +102,13 @@ public:
     void handleMouseReleaseEvent(QMouseEvent *e);
     void handleMouseDoubleClickEvent(QMouseEvent *e);
 
+public Q_SLOTS:
+    void requestGrab();
+
 Q_SIGNALS:
     void presentationLoaded();
     void nextFrameStarting();
+    void grabReady(const QImage &image);
 
 private:
     Q_DISABLE_COPY(Q3DSEngine)
@@ -144,6 +150,9 @@ private:
     Qt3DRender::QRenderAspect *m_renderAspect = nullptr;
 
     QElapsedTimer m_profilerActivateTimer;
+
+    Qt3DRender::QRenderCapture *m_capture = nullptr;
+    QHash<Qt3DRender::QRenderCaptureReply*, QMetaObject::Connection> m_captureConnections;
 };
 
 Q_DECLARE_OPERATORS_FOR_FLAGS(Q3DSEngine::Flags)
