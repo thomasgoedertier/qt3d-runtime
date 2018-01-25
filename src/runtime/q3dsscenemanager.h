@@ -195,6 +195,7 @@ public:
     QPointF layerPos;
     int msaaSampleCount = 0;
     int ssaaScaleFactor = 1;
+    bool effectActive = false;
     bool wasDirty = false;
     QVector<Q3DSLightSource> allLights;
     QVector<Q3DSLightSource> nonAreaLights;
@@ -430,6 +431,7 @@ public:
     };
     QVector<PassData> passData;
     QVector<Qt3DRender::QParameter *> sourceDepTextureInfoParams;
+    Qt3DRender::QAbstractTexture *sourceTexture = nullptr;
 };
 
 class Q3DSSlideAttached : public Q3DSGraphObjectAttached

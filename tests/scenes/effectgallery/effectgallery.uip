@@ -368,7 +368,7 @@
 		</Graph>
 		<Logic >
 			<State name="Master Slide" component="#Scene" >
-				<Add ref="#Layer" height="10" width="10" />
+				<Add ref="#Layer" height="10" multisampleaa="4x" width="10" />
 				<Add ref="#Camera" />
 				<Add ref="#Light" />
 				<State id="Scene-Slide1" name="Slide1" >
@@ -385,7 +385,7 @@
 					</Add>
 					<Add ref="#Default_001" />
 					<Add ref="#AdditiveColorGradient_001" name="AdditiveColorGradient" />
-					<Add ref="#Layer2" name="Layer2" height="10" left="10" width="10" />
+					<Add ref="#Layer2" name="Layer2" height="10" left="10" multisampleaa="SSAA" width="10" />
 					<Add ref="#Camera_001" />
 					<Add ref="#Light_001" />
 					<Add ref="#Cube_001" name="Cube" position="-296.053 33.0374 0" rotation="-22.9052 -70.9856 10.3556" scale="2 2 2" sourcepath="#Cube" >
