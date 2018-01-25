@@ -262,9 +262,9 @@ int animatablePropertyTypeToMetaType(Q3DS::PropertyType type)
     }
 }
 
-QVariant convertToVariant(const QString &value, Q3DS::PropertyType type)
+QVariant convertToVariant(const QString &value, const Q3DSMaterial::PropertyElement &propMeta)
 {
-    switch (type) {
+    switch (propMeta.type) {
     case StringList:
     case Slide:
     case Font:
@@ -281,7 +281,6 @@ QVariant convertToVariant(const QString &value, Q3DS::PropertyType type)
     case StringListOrInt:
     case Renderable:
     case PathBuffer:
-    case Enum:
         return value;
     case LongRange:
     case Long:
@@ -312,6 +311,12 @@ QVariant convertToVariant(const QString &value, Q3DS::PropertyType type)
         bool v;
         if (convertToBool(&value, &v))
             return v;
+    }
+        break;
+    case Enum:
+    {
+        int idx = propMeta.enumValues.indexOf(value);
+        return idx >= 0 ? idx : 0;
     }
         break;
     default:
@@ -1349,12 +1354,12 @@ static void fillCustomProperties(const QMap<QString, Q3DSMaterial::PropertyEleme
         for (auto it = instanceProps.cbegin(), ite = instanceProps.cend(); it != ite; ++it) {
             if (it->nameStr() == propMetaIt.key()) {
                 found = true;
-                propTab->insert(it->nameStr(), Q3DS::convertToVariant(it->valueStr(), propMetaIt->type));
+                propTab->insert(it->nameStr(), Q3DS::convertToVariant(it->valueStr(), *propMetaIt));
                 break;
             }
         }
         if (!found)
-            propTab->insert(propMetaIt.key(), Q3DS::convertToVariant(propMetaIt->defaultValue, propMetaIt->type));
+            propTab->insert(propMetaIt.key(), Q3DS::convertToVariant(propMetaIt->defaultValue, *propMetaIt));
     }
 
     // Fix up the filenames to that no further adjustment is necessary from this point on.

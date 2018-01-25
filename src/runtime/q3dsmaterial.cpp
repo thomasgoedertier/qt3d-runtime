@@ -319,6 +319,11 @@ PropertyElement parsePropertyElement(QXmlStreamReader *r)
             property.align = attribute.value().toString();
         } else if (attribute.name() == QStringLiteral("access")) {
             property.access = attribute.value().toString();
+        } else if (attribute.name() == QStringLiteral("list")) {
+            // type is not used here. The strings in the list separated by
+            // colons are mapped to integers 0, 1, ...
+            property.type = Q3DS::Enum;
+            property.enumValues = attribute.value().toString().split(QLatin1Char(':'), QString::SkipEmptyParts);
         }
     }
     return property;

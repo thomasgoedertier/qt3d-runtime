@@ -101,6 +101,9 @@ QString Q3DSEffect::addPropertyUniforms(const QString &shaderSrc) const
             addUniform("int", QLatin1String("flag") + prop.name);
             s += QString(QLatin1String("vec4 texture2D_%1(vec2 uv) { return GetTextureValue(%1, uv, %1Info.z); }\n")).arg(prop.name);
             break;
+        case Q3DS::Enum:
+            addUniform("int", prop.name);
+            break;
 
         // ### there could be more that needs handling here (Buffer?)
 

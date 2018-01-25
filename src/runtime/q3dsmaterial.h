@@ -133,6 +133,7 @@ struct Q3DSV_EXPORT PropertyElement
     QString name;
     QString description;
     QString formalName;
+    QStringList enumValues;
     Q3DS::PropertyType type;
     int componentCount;
     float min;
