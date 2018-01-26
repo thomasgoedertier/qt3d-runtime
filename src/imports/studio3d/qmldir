@@ -1,0 +1,3 @@
+module QtStudio3D
+plugin q3dsstudio3dplugin
+classname Q3DSStudio3DPlugin
