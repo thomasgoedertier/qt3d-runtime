@@ -30,6 +30,7 @@
 #include "q3dsexplorermainwindow.h"
 
 #include <Qt3DStudioRuntime2/q3dswindow.h>
+#include <Qt3DStudioRuntime2/q3dsengine.h>
 #include <QApplication>
 #include <QMenuBar>
 #include <QMenu>
@@ -50,7 +51,7 @@ QString Q3DSExplorerMainWindow::fileFilter()
     return tr("All Supported Formats (*.uia *.uip);;Studio UI Presentation (*.uip);;Application File (*.uia);;All Files (*)");
 }
 
-Q3DSExplorerMainWindow::Q3DSExplorerMainWindow(Q3DStudioWindow *view, QWidget *parent)
+Q3DSExplorerMainWindow::Q3DSExplorerMainWindow(Q3DSWindow *view, QWidget *parent)
     : QMainWindow(parent)
     , m_view(view)
 {
@@ -80,12 +81,12 @@ Q3DSExplorerMainWindow::Q3DSExplorerMainWindow(Q3DStudioWindow *view, QWidget *p
     fileMenu->addAction(tr("&Open..."), this, [=] {
         QString fn = QFileDialog::getOpenFileName(this, tr("Open"), QString(), fileFilter());
         if (!fn.isEmpty()) {
-            view->setSource(fn);
+            view->engine()->setSource(fn);
             updatePresentation();
         }
     }, QKeySequence::Open);
     fileMenu->addAction(tr("&Reload"), this, [=] {
-        view->setSource(view->source());
+        view->engine()->setSource(view->engine()->source());
         updatePresentation();
     }, QKeySequence::Refresh);
     fileMenu->addAction(tr("E&xit"), this, &QWidget::close);
@@ -109,7 +110,7 @@ Q3DSExplorerMainWindow::Q3DSExplorerMainWindow(Q3DStudioWindow *view, QWidget *p
     renderOnDemand->setCheckable(true);
     renderOnDemand->setChecked(false);
     connect(renderOnDemand, &QAction::toggled, [=]() {
-        view->setOnDemandRendering(renderOnDemand->isChecked());
+        view->engine()->setOnDemandRendering(renderOnDemand->isChecked());
     });
 
     QMenu *helpMenu = menuBar()->addMenu(tr("&Help"));
@@ -132,15 +133,15 @@ Q3DSExplorerMainWindow::~Q3DSExplorerMainWindow()
 
 void Q3DSExplorerMainWindow::updatePresentation()
 {
-    auto pres = m_view->uipDocument()->presentation();
+    auto pres = m_view->engine()->uipDocument()->presentation();
     m_slideExplorer->reset();
     m_sceneExplorer->reset();
     handleComponentSelected(nullptr);
     if (pres) {
         m_sceneExplorer->setPresentation(pres);
         m_slideExplorer->setPresentation(pres);
-        m_slideExplorer->setSceneManager(m_view->sceneManager(0));
-        m_componentSlideExplorer->setSceneManager(m_view->sceneManager(0));
+        m_slideExplorer->setSceneManager(m_view->engine()->sceneManager(0));
+        m_componentSlideExplorer->setSceneManager(m_view->engine()->sceneManager(0));
     }
 }
 
@@ -154,5 +155,5 @@ void Q3DSExplorerMainWindow::handleComponentSelected(Q3DSComponentNode *componen
 
     m_componentSlideExplorer->setEnabled(true);
     m_componentSlideExplorer->setComponent(component);
-    m_componentSlideExplorer->setSceneManager(m_view->sceneManager(0));
+    m_componentSlideExplorer->setSceneManager(m_view->engine()->sceneManager(0));
 }

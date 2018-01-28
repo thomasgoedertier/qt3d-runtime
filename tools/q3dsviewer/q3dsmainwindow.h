@@ -34,13 +34,13 @@
 
 QT_BEGIN_NAMESPACE
 
-class Q3DStudioWindow;
+class Q3DSWindow;
 
 class Q3DStudioMainWindow : public QMainWindow
 {
     Q_OBJECT
 public:
-    explicit Q3DStudioMainWindow(Q3DStudioWindow *view, QWidget *parent = 0);
+    explicit Q3DStudioMainWindow(Q3DSWindow *view, QWidget *parent = 0);
 
     static QString fileFilter();
 };

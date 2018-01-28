@@ -30,7 +30,8 @@
 
 
 #include <Qt3DStudioRuntime2/Q3DSUtils>
-#include <Qt3DStudioRuntime2/Q3DStudioWindow>
+#include <Qt3DStudioRuntime2/Q3DSWindow>
+#include <Qt3DStudioRuntime2/Q3DSEngine>
 #include <Qt3DStudioRuntime2/Q3DSPresentation>
 #include <Qt3DStudioRuntime2/Q3DSSceneManager>
 #include <Qt3DCore/QEntity>
@@ -61,7 +62,8 @@ private:
 
     bool isNodeVisible(Q3DSNode *node);
 
-    Q3DStudioWindow *m_view = nullptr;
+    Q3DSEngine *m_engine = nullptr;
+    Q3DSWindow *m_view = nullptr;
     Q3DSPresentation *m_presentation = nullptr;
     Q3DSSceneManager *m_sceneManager = nullptr;
     Q3DSScene *m_scene = nullptr;
@@ -110,14 +112,17 @@ private:
 
 tst_Q3DSSlides::tst_Q3DSSlides()
 {
-    Q3DStudioWindow::initStaticPreApp();
-    Q3DStudioWindow::initStaticPostApp();
-    m_view = new Q3DStudioWindow();
-    m_view->resize(640, 480);
+    Q3DSEngine::initStaticPreApp();
+    Q3DSEngine::initStaticPostApp();
+    m_engine = new Q3DSEngine;
+    m_view = new Q3DSWindow;
+    m_view->setEngine(m_engine);
+    m_view->forceResize(640, 480);
 }
 
 tst_Q3DSSlides::~tst_Q3DSSlides()
 {
+    delete m_engine;
     delete m_view;
 }
 
@@ -125,12 +130,12 @@ void tst_Q3DSSlides::initTestCase()
 {
     Q3DSUtils::setDialogsEnabled(false);
     // This tests the basic Presentation (top level) slide change
-    m_view->setSource(QLatin1String(":/test3.uip"));
-    QVERIFY(m_view->uipDocument()->presentation());
-    QVERIFY(m_view->sceneManager());
+    m_view->engine()->setSource(QLatin1String(":/test3.uip"));
+    QVERIFY(m_view->engine()->uipDocument()->presentation());
+    QVERIFY(m_view->engine()->sceneManager());
 
-    m_presentation = m_view->uipDocument()->presentation();
-    m_sceneManager = m_view->sceneManager();
+    m_presentation = m_view->engine()->uipDocument()->presentation();
+    m_sceneManager = m_view->engine()->sceneManager();
     m_scene = m_presentation->scene();
 
     // Presentation Slides
@@ -212,7 +217,7 @@ void tst_Q3DSSlides::setPresentationSlides()
 {
     QVERIFY(m_sceneManager->currentSlide() == m_presentationSlide1);
     // For the first check we have to wait from the first frame update
-    QSignalSpy m_updateSpy(m_view, SIGNAL(sceneUpdated()));
+    QSignalSpy m_updateSpy(m_engine, SIGNAL(nextFrameStarting()));
     m_updateSpy.wait(30);
 
     // Check starting state

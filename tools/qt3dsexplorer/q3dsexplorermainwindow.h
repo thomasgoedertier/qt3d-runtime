@@ -34,7 +34,7 @@
 
 QT_BEGIN_NAMESPACE
 
-class Q3DStudioWindow;
+class Q3DSWindow;
 class SlideExplorerWidget;
 class SceneExplorerWidget;
 class Q3DSPresentation;
@@ -44,7 +44,7 @@ class Q3DSExplorerMainWindow : public QMainWindow
 {
     Q_OBJECT
 public:
-    explicit Q3DSExplorerMainWindow(Q3DStudioWindow *view, QWidget *parent = 0);
+    explicit Q3DSExplorerMainWindow(Q3DSWindow *view, QWidget *parent = 0);
     ~Q3DSExplorerMainWindow();
 
     void updatePresentation();
@@ -55,7 +55,7 @@ private Q_SLOTS:
     void handleComponentSelected(Q3DSComponentNode *component);
 
 private:
-    Q3DStudioWindow *m_view;
+    Q3DSWindow *m_view;
     SlideExplorerWidget *m_slideExplorer;
     SlideExplorerWidget *m_componentSlideExplorer;
     SceneExplorerWidget *m_sceneExplorer;

@@ -32,13 +32,14 @@
 #include <QCommandLineParser>
 #include <QFileDialog>
 #include <Qt3DStudioRuntime2/q3dsutils.h>
+#include <Qt3DStudioRuntime2/q3dsengine.h>
 #include <Qt3DStudioRuntime2/q3dswindow.h>
 
 int main(int argc, char *argv[])
 {
-    Q3DStudioWindow::initStaticPreApp();
+    Q3DSEngine::initStaticPreApp();
     QApplication app(argc, argv);
-    Q3DStudioWindow::initStaticPostApp();
+    Q3DSEngine::initStaticPostApp();
 
     QCommandLineParser cmdLineParser;
     cmdLineParser.addHelpOption();
@@ -62,20 +63,26 @@ int main(int argc, char *argv[])
         return 0;
     }
 
-    Q3DStudioWindow::Flags flags = 0;
+    Q3DSEngine::Flags flags = 0;
     if (cmdLineParser.isSet(msaaOption))
-        flags |= Q3DStudioWindow::Force4xMSAA;
+        flags |= Q3DSEngine::Force4xMSAA;
     if (cmdLineParser.isSet(profOption))
-        flags |= Q3DStudioWindow::EnableProfiling;
+        flags |= Q3DSEngine::EnableProfiling;
 
-    QScopedPointer<Q3DStudioWindow> view;
-    view.reset(new Q3DStudioWindow);
-    if (!view->setSource(fn.first()))
+    QScopedPointer<Q3DSEngine> engine(new Q3DSEngine);
+    QScopedPointer<Q3DSWindow> view(new Q3DSWindow);
+    view->setEngine(engine.data());
+    engine->setFlags(flags);
+    if (!engine->setSource(fn.first()))
         return 0;
 
     QScopedPointer<Q3DSExplorerMainWindow> mw;
     mw.reset(new Q3DSExplorerMainWindow(view.take()));
     mw->show();
 
-    return app.exec();
+    int r = app.exec();
+
+    // make sure the engine is destroyed before the view (which is owned by mw by now)
+    engine.reset();
+    return r;
 }

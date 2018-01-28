@@ -29,6 +29,7 @@
 
 #include "q3dsmainwindow.h"
 #include <Qt3DStudioRuntime2/q3dswindow.h>
+#include <Qt3DStudioRuntime2/q3dsengine.h>
 #include <Qt3DStudioRuntime2/q3dsutils.h>
 #include <QApplication>
 #include <QMenuBar>
@@ -44,7 +45,7 @@ QString Q3DStudioMainWindow::fileFilter()
     return tr("All Supported Formats (*.uia *.uip);;Studio UI Presentation (*.uip);;Application File (*.uia);;All Files (*)");
 }
 
-Q3DStudioMainWindow::Q3DStudioMainWindow(Q3DStudioWindow *view, QWidget *parent)
+Q3DStudioMainWindow::Q3DStudioMainWindow(Q3DSWindow *view, QWidget *parent)
     : QMainWindow(parent)
 {
     QWidget *wrapper = QWidget::createWindowContainer(view);
@@ -53,23 +54,23 @@ Q3DStudioMainWindow::Q3DStudioMainWindow(Q3DStudioWindow *view, QWidget *parent)
     QMenu *fileMenu = menuBar()->addMenu(tr("&File"));
     auto open = [=]() {
         QString dir;
-        QString prevFilename = view->source();
+        QString prevFilename = view->engine()->source();
         if (!prevFilename.isEmpty())
             dir = QFileInfo(prevFilename).canonicalPath();
         QString fn = QFileDialog::getOpenFileName(this, tr("Open"), dir, fileFilter());
         if (!fn.isEmpty())
-            view->setSource(fn);
+            view->engine()->setSource(fn);
     };
     fileMenu->addAction(tr("&Open..."), this, [=] {
-        view->setFlag(Q3DStudioWindow::EnableProfiling, false);
+        view->engine()->setFlag(Q3DSEngine::EnableProfiling, false);
         open();
     } , QKeySequence::Open);
     fileMenu->addAction(tr("Open with &profiling..."), this, [=] {
-        view->setFlag(Q3DStudioWindow::EnableProfiling, true);
+        view->engine()->setFlag(Q3DSEngine::EnableProfiling, true);
         open();
     });
     fileMenu->addAction(tr("&Reload"), this, [=] {
-        view->setSource(view->source());
+        view->engine()->setSource(view->engine()->source());
     }, QKeySequence::Refresh);
     fileMenu->addAction(tr("E&xit"), this, &QWidget::close);
 
@@ -92,14 +93,14 @@ Q3DStudioMainWindow::Q3DStudioMainWindow(Q3DStudioWindow *view, QWidget *parent)
     renderOnDemand->setCheckable(true);
     renderOnDemand->setChecked(false);
     connect(renderOnDemand, &QAction::toggled, [=]() {
-        view->setOnDemandRendering(renderOnDemand->isChecked());
+        view->engine()->setOnDemandRendering(renderOnDemand->isChecked());
     });
 
     QAction *pauseAnims = viewMenu->addAction(tr("&Stop animations"));
     pauseAnims->setCheckable(true);
     pauseAnims->setChecked(false);
     connect(pauseAnims, &QAction::toggled, [=]() {
-        Q3DSSceneManager *sb = view->sceneManager();
+        Q3DSSceneManager *sb = view->engine()->sceneManager();
         Q3DSSlide *slide = sb->currentSlide();
         if (slide) {
             sb->setAnimationsRunning(sb->masterSlide(), !pauseAnims->isChecked());
@@ -114,30 +115,30 @@ Q3DStudioMainWindow::Q3DStudioMainWindow(Q3DStudioWindow *view, QWidget *parent)
     });
 
     viewMenu->addAction(tr("Toggle in-scene &debug view"), this, [view] {
-        Q3DSSceneManager *sm = view->sceneManager();
+        Q3DSSceneManager *sm = view->engine()->sceneManager();
         sm->setProfileUiVisible(!sm->isProfileUiVisible());
     });
 
     QMenu *debugMenu = menuBar()->addMenu(tr("&Debug"));
     debugMenu->addAction(tr("&Object graph..."), [=]() {
-        Q3DSUtils::showObjectGraph(view->uipDocument()->presentation()->scene());
+        Q3DSUtils::showObjectGraph(view->engine()->uipDocument()->presentation()->scene());
     });
     debugMenu->addAction(tr("&Scene slide graph..."), [=]() {
-        Q3DSUtils::showObjectGraph(view->uipDocument()->presentation()->masterSlide());
+        Q3DSUtils::showObjectGraph(view->engine()->uipDocument()->presentation()->masterSlide());
     });
     QAction *depthTexAction = debugMenu->addAction(tr("&Force depth texture"));
     depthTexAction->setCheckable(true);
     depthTexAction->setChecked(false);
     connect(depthTexAction, &QAction::toggled, [=]() {
-        Q3DSPresentation::forAllLayers(view->uipDocument()->presentation()->scene(), [=](Q3DSLayerNode *layer3DS) {
-            view->sceneManager()->setDepthTextureEnabled(layer3DS, depthTexAction->isChecked());
+        Q3DSPresentation::forAllLayers(view->engine()->uipDocument()->presentation()->scene(), [=](Q3DSLayerNode *layer3DS) {
+            view->engine()->sceneManager()->setDepthTextureEnabled(layer3DS, depthTexAction->isChecked());
         });
     });
     QAction *ssaoAction = debugMenu->addAction(tr("Force SS&AO"));
     ssaoAction->setCheckable(true);
     ssaoAction->setChecked(false);
     connect(ssaoAction, &QAction::toggled, [=]() {
-        Q3DSPresentation::forAllLayers(view->uipDocument()->presentation()->scene(), [=](Q3DSLayerNode *layer3DS) {
+        Q3DSPresentation::forAllLayers(view->engine()->uipDocument()->presentation()->scene(), [=](Q3DSLayerNode *layer3DS) {
             Q3DSPropertyChangeList changeList;
             const QString value = ssaoAction->isChecked() ? QLatin1String("50") : QLatin1String("0");
             changeList.append(Q3DSPropertyChange(QLatin1String("aostrength"), value));
@@ -147,13 +148,13 @@ Q3DStudioMainWindow::Q3DStudioMainWindow(Q3DStudioWindow *view, QWidget *parent)
     });
     QAction *rebuildMatAction = debugMenu->addAction(tr("&Rebuild model materials"));
     connect(rebuildMatAction, &QAction::triggered, [=]() {
-        Q3DSPresentation::forAllModels(view->uipDocument()->presentation()->scene(), [=](Q3DSModelNode *model3DS) {
-            view->sceneManager()->rebuildModelMaterial(model3DS);
+        Q3DSPresentation::forAllModels(view->engine()->uipDocument()->presentation()->scene(), [=](Q3DSModelNode *model3DS) {
+            view->engine()->sceneManager()->rebuildModelMaterial(model3DS);
         });
     });
     QAction *toggleShadowAction = debugMenu->addAction(tr("&Toggle shadow casting for point lights"));
     connect(toggleShadowAction, &QAction::triggered, [=]() {
-        Q3DSPresentation::forAllObjectsOfType(view->uipDocument()->presentation()->scene(), Q3DSGraphObject::Light, [=](Q3DSGraphObject *obj) {
+        Q3DSPresentation::forAllObjectsOfType(view->engine()->uipDocument()->presentation()->scene(), Q3DSGraphObject::Light, [=](Q3DSGraphObject *obj) {
             Q3DSLightNode *light3DS = static_cast<Q3DSLightNode *>(obj);
             if (light3DS->flags().testFlag(Q3DSNode::Active) && light3DS->lightType() == Q3DSLightNode::Point) {
                 Q3DSPropertyChangeList changeList;
@@ -166,7 +167,7 @@ Q3DStudioMainWindow::Q3DStudioMainWindow(Q3DStudioWindow *view, QWidget *parent)
     });
     QAction *shadowResChangeAction = debugMenu->addAction(tr("&Maximize shadow map resolution for lights"));
     connect(shadowResChangeAction, &QAction::triggered, [=]() {
-        Q3DSPresentation::forAllObjectsOfType(view->uipDocument()->presentation()->scene(), Q3DSGraphObject::Light, [=](Q3DSGraphObject *obj) {
+        Q3DSPresentation::forAllObjectsOfType(view->engine()->uipDocument()->presentation()->scene(), Q3DSGraphObject::Light, [=](Q3DSGraphObject *obj) {
             Q3DSLightNode *light3DS = static_cast<Q3DSLightNode *>(obj);
             if (light3DS->flags().testFlag(Q3DSNode::Active)) {
                 Q3DSPropertyChangeList changeList;

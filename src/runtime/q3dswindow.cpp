@@ -28,631 +28,93 @@
 ****************************************************************************/
 
 #include "q3dswindow.h"
-#include <Qt3DStudioRuntime2/q3dsuiaparser.h>
-#include <Qt3DStudioRuntime2/q3dsutils.h>
+#include "q3dsengine.h"
 
-#include <QLoggingCategory>
-#include <QKeyEvent>
-#include <QMouseEvent>
-#include <QtQml/qqmlengine.h>
-
-#include <QOpenGLContext>
-#include <QOpenGLFunctions>
-#include <QOpenGLTexture>
-#include <QOffscreenSurface>
-
-#include <Qt3DCore/QEntity>
-#include <Qt3DRender/QRenderAspect>
-#include <Qt3DRender/QRenderSettings>
-#include <Qt3DInput/QInputAspect>
-#include <Qt3DAnimation/QAnimationAspect>
-#include <Qt3DLogic/QLogicAspect>
-#include <Qt3DLogic/QFrameAction>
-
-#include <Qt3DRender/QRenderTargetSelector>
-#include <Qt3DRender/QRenderTargetOutput>
-#include <Qt3DRender/QRenderTarget>
-#include <Qt3DRender/QTexture>
-
-#include <Qt3DInput/QInputSettings>
-
-#include <Qt3DCore/private/qaspectengine_p.h>
-
-#ifndef GL_MAX_DRAW_BUFFERS
-#define GL_MAX_DRAW_BUFFERS               0x8824
-#endif
-
-static void initResources()
-{
-    Q_INIT_RESOURCE(q3dsres);
-}
-
-QT_BEGIN_NAMESPACE
-
-Q_DECLARE_LOGGING_CATEGORY(lcUip)
-
-static Q3DSGraphicsLimits gfxLimits;
-
-Q3DStudioWindow::Q3DStudioWindow()
+Q3DSWindow::Q3DSWindow(QWindow *parent)
+    : QWindow(parent)
 {
     setSurfaceType(QSurface::OpenGLSurface);
-    createAspectEngine();
 }
 
-Q3DStudioWindow::~Q3DStudioWindow()
+Q3DSWindow::~Q3DSWindow()
 {
-    for (Presentation &pres : m_presentations) {
-        delete pres.sceneManager;
-        delete pres.uipDocument;
-    }
 }
 
-static void initGraphicsLimits(QOpenGLContext *ctx)
+void Q3DSWindow::setEngine(Q3DSEngine *engine)
 {
-    QOffscreenSurface s;
-    s.setFormat(ctx->format());
-    s.create();
-    if (!ctx->makeCurrent(&s)) {
-        qWarning("Failed to make temporary context current");
-        return;
-    }
+    Q_ASSERT(!m_engine); // engine change is not supported atm
+    Q_ASSERT(engine);
 
-    QOpenGLFunctions *f = ctx->functions();
-    GLint n;
+    m_engine = engine;
+    m_engine->setSurface(this);
 
-    // Max number of MRT outputs is typically 8 or so, but may be 4 on some implementations.
-    n = 0;
-    f->glGetIntegerv(GL_MAX_DRAW_BUFFERS, &n);
-    qDebug("  GL_MAX_DRAW_BUFFERS: %d", n);
-    gfxLimits.maxDrawBuffers = n;
-
-    gfxLimits.multisampleTextureSupported = QOpenGLTexture::hasFeature(QOpenGLTexture::TextureMultisample);
-    qDebug("  multisample textures: %s", gfxLimits.multisampleTextureSupported ? "true" : "false");
-
-    // version string bonanza for the profiler
-    const char *rendererStr = reinterpret_cast<const char *>(f->glGetString(GL_RENDERER));
-    if (rendererStr) {
-        gfxLimits.renderer = rendererStr;
-        qDebug("  renderer: %s", rendererStr);
-    }
-    const char *vendorStr = reinterpret_cast<const char *>(f->glGetString(GL_VENDOR));
-    if (vendorStr) {
-        gfxLimits.vendor = vendorStr;
-        qDebug("  vendor: %s", vendorStr);
-    }
-    const char *versionStr = reinterpret_cast<const char *>(f->glGetString(GL_VERSION));
-    if (versionStr) {
-        gfxLimits.version = versionStr;
-        qDebug("  version: %s", versionStr);
-    }
-
-    ctx->doneCurrent();
-}
-
-static QSurfaceFormat findIdealGLVersion()
-{
-    QSurfaceFormat fmt;
-    fmt.setProfile(QSurfaceFormat::CoreProfile);
-
-    // Advanced: Try 4.3 core (so we get compute shaders for instance)
-    fmt.setVersion(4, 3);
-    QOpenGLContext ctx;
-    ctx.setFormat(fmt);
-    if (ctx.create() && ctx.format().version() >= qMakePair(4, 3)) {
-        qDebug("Requesting OpenGL 4.3 core context succeeded");
-        initGraphicsLimits(&ctx);
-        return fmt;
-    }
-
-    // Basic: Stick with 3.3 for now to keep less fortunate, Mesa-based systems happy
-    fmt.setVersion(3, 3);
-    ctx.setFormat(fmt);
-    if (ctx.create()) {
-        qDebug("Requesting OpenGL 3.3 core context succeeded");
-        initGraphicsLimits(&ctx);
-        return fmt;
-    }
-
-    qDebug("Impending doom");
-    return fmt;
-}
-
-static QSurfaceFormat findIdealGLESVersion()
-{
-    QSurfaceFormat fmt;
-
-    // Advanced: Try 3.1 (so we get compute shaders for instance)
-    fmt.setVersion(3, 1);
-    QOpenGLContext ctx;
-    ctx.setFormat(fmt);
-    if (ctx.create()) {
-        qDebug("Requesting OpenGL ES 3.1 context succeeded");
-        initGraphicsLimits(&ctx);
-        return fmt;
-    }
-
-    // Basic: OpenGL ES 3.0 is a hard requirement at the moment since we can
-    // only generate 300 es shaders, uniform buffers are mandatory.
-    fmt.setVersion(3, 0);
-    ctx.setFormat(fmt);
-    if (ctx.create()) {
-        qDebug("Requesting OpenGL ES 3.0 context succeeded");
-        initGraphicsLimits(&ctx);
-        return fmt;
-    }
-
-    qDebug("Impending doom");
-    return fmt;
-}
-
-void Q3DStudioWindow::initStaticPreApp()
-{
-    initResources();
-}
-
-void Q3DStudioWindow::initStaticPostApp()
-{
-    QSurfaceFormat fmt;
-    if (QOpenGLContext::openGLModuleType() == QOpenGLContext::LibGL) { // works in dynamic gl builds too because there's a qguiapp already
-        fmt = findIdealGLVersion();
-    } else {
-        fmt = findIdealGLESVersion();
-    }
-    fmt.setDepthBufferSize(24);
-    fmt.setStencilBufferSize(8);
-    // Ignore MSAA here as that is a per-layer setting.
-    QSurfaceFormat::setDefaultFormat(fmt);
-}
-
-void Q3DStudioWindow::createAspectEngine()
-{
-    m_aspectEngine.reset(new Qt3DCore::QAspectEngine);
-    m_aspectEngine->registerAspect(new Qt3DRender::QRenderAspect);
-    m_aspectEngine->registerAspect(new Qt3DInput::QInputAspect);
-    m_aspectEngine->registerAspect(new Qt3DAnimation::QAnimationAspect);
-    m_aspectEngine->registerAspect(new Qt3DLogic::QLogicAspect);
-}
-
-QString Q3DStudioWindow::source() const
-{
-    return m_source;
-}
-
-void Q3DStudioWindow::setFlags(Flags flags)
-{
-    // applies to the next setSource()
-    m_flags = flags;
-}
-
-void Q3DStudioWindow::setFlag(Flag flag, bool enabled)
-{
-    // applies to the next setSource()
-    m_flags.setFlag(flag, enabled);
-}
-
-bool Q3DStudioWindow::setSource(const QString &uipOrUiaFileName)
-{
-    // no check for m_source being the same - must reload no matter what
-
-    cleanupPresentations();
-
-    m_source = uipOrUiaFileName;
-
-    // There are two cases:
-    //   m_source is a .uip file:
-    //     - check if there is a .uia with the same complete-basename
-    //     - if there isn't, go with m_source as the sole .uip
-    //     - if there is, parse the .uia instead and use the initial .uip as the main presentation. Add all others as subpresentations.
-    //  m_source is a .uia file:
-    //     - like the .uia path above
-
-    QFileInfo fi(m_source);
-    const QString sourcePrefix = fi.canonicalPath() + QLatin1Char('/');
-    QString uia;
-    if (fi.suffix() == QStringLiteral("uia")) {
-        uia = m_source;
-    } else {
-        const QString maybeUia = sourcePrefix + fi.completeBaseName() + QLatin1String(".uia");
-        if (QFile::exists(maybeUia)) {
-            qCDebug(lcUip, "Switching to .uia file %s", qPrintable(maybeUia));
-            uia = maybeUia;
+    connect(engine, &Q3DSEngine::presentationLoaded, this, [this]() {
+        // Size the window to the presentation at first. The window takes
+        // control for future resizes afterwards.
+        if (!m_implicitSizeTaken) {
+            m_implicitSizeTaken = true;
+            resize(m_engine->implicitSize());
         }
-    }
-    if (uia.isEmpty()) {
-        Presentation pres;
-        pres.uipFileName = m_source;
-        m_presentations.append(pres);
-    } else {
-        Q3DSUiaParser uiaParser;
-        Q3DSUiaParser::Uia uiaDoc = uiaParser.parse(uia);
-        if (!uiaDoc.isValid()) {
-            Q3DSUtils::showMessage(QObject::tr("Failed to parse application file"));
-            return false;
-        }
-        for (const Q3DSUiaParser::Uia::Presentation &p : uiaDoc.presentations) {
-            if (p.type == Q3DSUiaParser::Uia::Presentation::Uip) {
-                Presentation pres;
-                pres.subPres.id = p.id;
-                // assume the .uip name in the .uia is relative to the .uia's location
-                pres.uipFileName = sourcePrefix + p.source;
-                qCDebug(lcUip, "Registered subpresentation %s as %s", qPrintable(pres.uipFileName), qPrintable(p.id));
-                if (p.id == uiaDoc.initialPresentationId) // initial (main) presentation must be m_presentations[0]
-                    m_presentations.prepend(pres);
-                else
-                    m_presentations.append(pres);
-            } else if (p.type == Q3DSUiaParser::Uia::Presentation::Qml) {
-                QmlPresentation pres;
-                pres.subPres.id = p.id;
-                pres.previewFileName = sourcePrefix + p.source;
-                qCDebug(lcUip, "Registered qml subpresentation %s as %s",
-                        qPrintable(pres.previewFileName), qPrintable(p.id));
-                m_qmlPresentations.append(pres);
-            }
-        }
-        if (m_presentations.isEmpty())
-            return false;
-    }
-
-    if (!loadPresentation(&m_presentations[0])) {
-        m_presentations.clear();
-        return false;
-    }
-
-    for (int i = 1; i < m_presentations.count(); ++i)
-        loadSubPresentation(&m_presentations[i]);
-    for (QmlPresentation &pres : m_qmlPresentations)
-        loadQmlSubPresentation(&pres);
-
-    QVector<Q3DSSubPresentation> subPresentations;
-    for (const Presentation &pres : m_presentations) {
-        if (!pres.subPres.id.isEmpty() && pres.subPres.colorTex)
-            subPresentations.append(pres.subPres);
-    }
-    for (const QmlPresentation &pres : m_qmlPresentations) {
-        if (!pres.subPres.id.isEmpty() && pres.subPres.colorTex)
-            subPresentations.append(pres.subPres);
-    }
-    m_presentations[0].sceneManager->finalizeMainScene(subPresentations);
-
-    return true;
+    });
 }
 
-bool Q3DStudioWindow::setSourceData(const QByteArray &data)
+Q3DSEngine *Q3DSWindow::engine() const
 {
-    cleanupPresentations();
-
-    // No uia supported here, data must be uip
-    Presentation pres;
-    pres.uipData = data;
-
-    m_presentations.append(pres);
-
-    if (!loadPresentation(&m_presentations[0])) {
-        m_presentations.clear();
-        return false;
-    }
-
-    QVector<Q3DSSubPresentation> emptySubPresentations;
-    m_presentations[0].sceneManager->finalizeMainScene(emptySubPresentations);
-
-    return true;
+    return m_engine;
 }
 
-bool Q3DStudioWindow::loadPresentation(Presentation *pres)
+void Q3DSWindow::forceResize(const QSize &size)
 {
-    // Parse.
-    QScopedPointer<Q3DSUipDocument> uipDocument(new Q3DSUipDocument);
-    if (!pres->uipFileName.isEmpty()) {
-        if (!uipDocument->loadUip(pres->uipFileName)) {
-            Q3DSUtils::showMessage(QObject::tr("Failed to parse main presentation from file"));
-            return false;
-        }
-    } else {
-        if (!uipDocument->loadUipData(pres->uipData)) {
-            Q3DSUtils::showMessage(QObject::tr("Failed to parse main presentation from data"));
-            return false;
-        }
-    }
-
-    pres->uipDocument = uipDocument.take();
-
-    // Presentation is ready. Build the Qt3D scene. This will also activate the first sub-slide.
-    Q3DSSceneManager::SceneBuilderParams params;
-    params.flags = 0;
-    if (m_flags.testFlag(Force4xMSAA))
-        params.flags |= Q3DSSceneManager::Force4xMSAA;
-    if (m_flags.testFlag(EnableProfiling))
-        params.flags |= Q3DSSceneManager::EnableProfiling;
-
-    params.outputSize = size();
-    params.outputDpr = devicePixelRatio();
-    params.window = this;
-
-    QScopedPointer<Q3DSSceneManager> sceneManager(new Q3DSSceneManager(gfxLimits));
-    pres->q3dscene = sceneManager->buildScene(pres->uipDocument->presentation(), params);
-    if (!pres->q3dscene.rootEntity) {
-        Q3DSUtils::showMessage(QObject::tr("Failed to build Qt3D scene"));
-        return false;
-    }
-    pres->sceneManager = sceneManager.take();
-
-    // Input (Qt3D).
-    Qt3DInput::QInputSettings *inputSettings = new Qt3DInput::QInputSettings;
-    inputSettings->setEventSource(this);
-    pres->q3dscene.rootEntity->addComponent(inputSettings);
-
-    // Input (profiling UI).
-    pres->sceneManager->setProfileUiInputEventSource(this);
-
-    if (size().isEmpty()) {
-        // Try sizing the window to the presentation at first.
-        Q3DSPresentation *pres3DS = pres->uipDocument->presentation();
-        QSize winSize(pres3DS->presentationWidth(), pres3DS->presentationHeight());
-        if (winSize.isEmpty())
-            winSize = QSize(800, 480);
-        resize(winSize);
-    }
-
-    // Once the window has a size, follow it with the presentation.
-    m_presentations[0].sceneManager->updateSizes(size(), devicePixelRatio());
-
-    // Expose update signal
-    connect(pres->q3dscene.frameAction, &Qt3DLogic::QFrameAction::triggered, this, &Q3DStudioWindow::sceneUpdated);
-
-    // Set new root entity if the window was already up and running.
-    if (isExposed())
-        m_aspectEngine->setRootEntity(Qt3DCore::QEntityPtr(pres->q3dscene.rootEntity));
-
-    return true;
+    m_implicitSizeTaken = true; // disable following the presentation size upon the first load
+    resize(size);
 }
 
-bool Q3DStudioWindow::loadSubPresentation(Presentation *pres)
+void Q3DSWindow::exposeEvent(QExposeEvent *)
 {
-    // Parse.
-    QScopedPointer<Q3DSUipDocument> uipDocument(new Q3DSUipDocument);
-    if (!uipDocument->loadUip(pres->uipFileName)) {
-        Q3DSUtils::showMessage(QObject::tr("Failed to parse subpresentation"));
-        return false;
-    }
-    pres->uipDocument = uipDocument.take();
-
-    Qt3DRender::QFrameGraphNode *fgParent = m_presentations[0].q3dscene.subPresFrameGraphRoot;
-    Qt3DCore::QNode *entityParent = m_presentations[0].q3dscene.rootEntity;
-
-    Q3DSSceneManager::SceneBuilderParams params;
-    params.flags = Q3DSSceneManager::SubPresentation;
-    if (m_flags.testFlag(EnableProfiling))
-        params.flags |= Q3DSSceneManager::EnableProfiling;
-
-    Q3DSPresentation *pres3DS = pres->uipDocument->presentation();
-    params.outputSize = QSize(pres3DS->presentationWidth(), pres3DS->presentationHeight());
-    params.outputDpr = 1;
-
-    Qt3DRender::QRenderTargetSelector *rtSel = new Qt3DRender::QRenderTargetSelector(fgParent);
-    Qt3DRender::QRenderTarget *rt = new Qt3DRender::QRenderTarget;
-    Qt3DRender::QRenderTargetOutput *color = new Qt3DRender::QRenderTargetOutput;
-
-    color->setAttachmentPoint(Qt3DRender::QRenderTargetOutput::Color0);
-    pres->subPres.colorTex = new Qt3DRender::QTexture2D(entityParent);
-    pres->subPres.colorTex->setFormat(Qt3DRender::QAbstractTexture::RGBA8_UNorm);
-    pres->subPres.colorTex->setWidth(pres3DS->presentationWidth());
-    pres->subPres.colorTex->setHeight(pres3DS->presentationHeight());
-    pres->subPres.colorTex->setMinificationFilter(Qt3DRender::QAbstractTexture::Linear);
-    pres->subPres.colorTex->setMagnificationFilter(Qt3DRender::QAbstractTexture::Linear);
-    color->setTexture(pres->subPres.colorTex);
-
-    Qt3DRender::QRenderTargetOutput *ds = new Qt3DRender::QRenderTargetOutput;
-    ds->setAttachmentPoint(Qt3DRender::QRenderTargetOutput::DepthStencil);
-    pres->subPres.dsTex = new Qt3DRender::QTexture2D(entityParent);
-    pres->subPres.dsTex->setFormat(Qt3DRender::QAbstractTexture::D24S8);
-    pres->subPres.dsTex->setWidth(pres3DS->presentationWidth());
-    pres->subPres.dsTex->setHeight(pres3DS->presentationHeight());
-    pres->subPres.dsTex->setMinificationFilter(Qt3DRender::QAbstractTexture::Linear);
-    pres->subPres.dsTex->setMagnificationFilter(Qt3DRender::QAbstractTexture::Linear);
-    ds->setTexture(pres->subPres.dsTex);
-
-    rt->addOutput(color);
-    rt->addOutput(ds);
-
-    rtSel->setTarget(rt);
-    params.frameGraphRoot = rtSel;
-
-    QScopedPointer<Q3DSSceneManager> sceneManager(new Q3DSSceneManager(gfxLimits));
-    pres->q3dscene = sceneManager->buildScene(pres->uipDocument->presentation(), params);
-    if (!pres->q3dscene.rootEntity) {
-        Q3DSUtils::showMessage(QObject::tr("Failed to build Qt3D scene for subpresentation"));
-        return false;
-    }
-    pres->sceneManager = sceneManager.take();
-    pres->subPres.sceneManager = pres->sceneManager;
-
-    pres->q3dscene.rootEntity->setParent(entityParent);
-
-    return true;
+    if (isExposed() && m_engine)
+        m_engine->start();
 }
 
-bool Q3DStudioWindow::loadQmlSubPresentation(QmlPresentation *pres)
+void Q3DSWindow::resizeEvent(QResizeEvent *)
 {
-    if (m_engine.isNull())
-        m_engine.reset(new QQmlEngine);
-
-    Qt3DCore::QNode *entityParent = m_presentations[0].q3dscene.rootEntity;
-    QQmlComponent *component = new QQmlComponent(m_engine.data(),
-                                                 QUrl::fromLocalFile(pres->previewFileName));
-
-    if (component->isReady()) {
-        int width = 0;
-        int height = 0;
-        QQuickItem *item = static_cast<QQuickItem *>(component->create());
-        if (!item) {
-            qCDebug(lcUip, "Failed to load qml. Root is not a quick item.");
-            delete component;
-            delete item;
-            return false;
-        }
-
-        pres->scene2d = new Qt3DRender::Quick::QScene2D(entityParent);
-        pres->scene2d->setItem(item);
-        item->setParent(pres->scene2d);
-        Qt3DRender::QRenderTargetOutput *color
-                = new Qt3DRender::QRenderTargetOutput(pres->scene2d);
-
-        color->setAttachmentPoint(Qt3DRender::QRenderTargetOutput::Color0);
-        pres->subPres.colorTex = new Qt3DRender::QTexture2D(entityParent);
-        pres->subPres.colorTex->setFormat(Qt3DRender::QAbstractTexture::RGBA8_UNorm);
-        pres->subPres.colorTex->setMinificationFilter(Qt3DRender::QAbstractTexture::Linear);
-        pres->subPres.colorTex->setMagnificationFilter(Qt3DRender::QAbstractTexture::Linear);
-        color->setTexture(pres->subPres.colorTex);
-
-        pres->scene2d->setOutput(color);
-
-        width = int(item->width());
-        height = int(item->height());
-        if (!width) width = 128;
-        if (!height) height = 128;
-
-        pres->subPres.colorTex->setWidth(width);
-        pres->subPres.colorTex->setHeight(height);
-
-        delete component;
-    } else if (component->isLoading()) {
-        int width = 128;
-        int height = 128;
-
-        /* Must create these already here in order to link the texture to wherever it is used */
-        pres->scene2d = new Qt3DRender::Quick::QScene2D(entityParent);
-        Qt3DRender::QRenderTargetOutput *color
-                = new Qt3DRender::QRenderTargetOutput(pres->scene2d);
-
-        color->setAttachmentPoint(Qt3DRender::QRenderTargetOutput::Color0);
-        pres->subPres.colorTex = new Qt3DRender::QTexture2D(entityParent);
-        pres->subPres.colorTex->setFormat(Qt3DRender::QAbstractTexture::RGBA8_UNorm);
-        pres->subPres.colorTex->setMinificationFilter(Qt3DRender::QAbstractTexture::Linear);
-        pres->subPres.colorTex->setMagnificationFilter(Qt3DRender::QAbstractTexture::Linear);
-        color->setTexture(pres->subPres.colorTex);
-
-        pres->scene2d->setOutput(color);
-
-        pres->subPres.colorTex->setWidth(width);
-        pres->subPres.colorTex->setHeight(height);
-
-        QObject::connect(component, &QQmlComponent::statusChanged,
-                         [&, component, pres](QQmlComponent::Status status) {
-            if (status == QQmlComponent::Status::Ready) {
-                QQuickItem *item = static_cast<QQuickItem *>(component->create());
-                if (item) {
-                    pres->scene2d->setItem(item);
-                    item->setParent(pres->scene2d);
-                    int width = int(item->width());
-                    int height = int(item->height());
-
-                    pres->subPres.colorTex->setWidth(width);
-                    pres->subPres.colorTex->setHeight(height);
-                } else {
-                    qCDebug(lcUip, "Failed to load qml. Root is not a quick item.");
-                    delete item;
-                    pres->scene2d->deleteLater();
-                    component->deleteLater();
-                }
-            } else {
-                qCDebug(lcUip, "Failed to load qml: %s", qPrintable(component->errorString()));
-                pres->scene2d->deleteLater();
-                component->deleteLater();
-            }
-        });
-    } else {
-        qCDebug(lcUip, "Failed to load qml: %s", qPrintable(component->errorString()));
-        delete component;
-        return false;
-    }
-
-    return true;
+    if (m_engine)
+        m_engine->resize(size(), devicePixelRatio());
 }
 
-void Q3DStudioWindow::cleanupPresentations()
+void Q3DSWindow::keyPressEvent(QKeyEvent *e)
 {
-    if (!m_presentations.isEmpty()) {
-        for (Presentation &pres : m_presentations) {
-            if (pres.sceneManager)
-                pres.sceneManager->prepareEngineReset();
-        }
-
-        Q3DSSceneManager::prepareEngineResetGlobal();
-        Qt3DCore::QAspectEnginePrivate::get(m_aspectEngine.data())->exitSimulationLoop();
-        createAspectEngine();
-
-        for (Presentation &pres : m_presentations) {
-            delete pres.sceneManager;
-            delete pres.uipDocument;
-        }
-        m_presentations.clear();
-    }
+    if (m_engine)
+        m_engine->handleKeyPressEvent(e);
 }
 
-QString Q3DStudioWindow::uipFileName(int index) const
+void Q3DSWindow::keyReleaseEvent(QKeyEvent *e)
 {
-    return (index >= 0 && index < m_presentations.count()) ? m_presentations[index].uipFileName : QString();
+    if (m_engine)
+        m_engine->handleKeyReleaseEvent(e);
 }
 
-Q3DSUipDocument *Q3DStudioWindow::uipDocument(int index) const
+void Q3DSWindow::mousePressEvent(QMouseEvent *e)
 {
-    return (index >= 0 && index < m_presentations.count()) ? m_presentations[index].uipDocument : nullptr;
+    if (m_engine)
+        m_engine->handleMousePressEvent(e);
 }
 
-Q3DSSceneManager *Q3DStudioWindow::sceneManager(int index) const
+void Q3DSWindow::mouseMoveEvent(QMouseEvent *e)
 {
-    return (index >= 0 && index < m_presentations.count()) ? m_presentations[index].sceneManager : nullptr;
+    if (m_engine)
+        m_engine->handleMouseMoveEvent(e);
 }
 
-void Q3DStudioWindow::exposeEvent(QExposeEvent *)
+void Q3DSWindow::mouseReleaseEvent(QMouseEvent *e)
 {
-    if (isExposed()
-            && !m_presentations.isEmpty()
-            && m_aspectEngine->rootEntity() != m_presentations[0].q3dscene.rootEntity)
-    {
-        m_aspectEngine->setRootEntity(Qt3DCore::QEntityPtr(m_presentations[0].q3dscene.rootEntity));
-    }
+    if (m_engine)
+        m_engine->handleMouseReleaseEvent(e);
 }
 
-void Q3DStudioWindow::resizeEvent(QResizeEvent *)
+void Q3DSWindow::mouseDoubleClickEvent(QMouseEvent *e)
 {
-    if (!m_presentations.isEmpty())
-        m_presentations[0].sceneManager->updateSizes(size(), devicePixelRatio());
-}
-
-void Q3DStudioWindow::setOnDemandRendering(bool enabled)
-{
-    m_presentations[0].q3dscene.renderSettings->setRenderPolicy(enabled ? Qt3DRender::QRenderSettings::OnDemand
-                                                                        : Qt3DRender::QRenderSettings::Always);
-}
-
-void Q3DStudioWindow::keyPressEvent(QKeyEvent *e)
-{
-    // not ideal since the window needs focus which it often won't have. also no keyboard on embedded/mobile.
-    if (e->key() == Qt::Key_F10 && !m_presentations.isEmpty()) {
-        auto m = m_presentations[0].sceneManager;
-        m->setProfileUiVisible(!m->isProfileUiVisible());
-    }
-}
-
-void Q3DStudioWindow::mouseDoubleClickEvent(QMouseEvent *e)
-{
-    // Toggle with short double-clicks. This should work both with
-    // touch and with mouse emulation via gamepads on Android. Just
-    // using a single double-click would be too error-prone.
-
-    if (!m_profilerActivateTimer.isValid()) {
-        m_profilerActivateTimer.start();
-        return;
-    }
-
-    if (m_profilerActivateTimer.restart() < 800
-        && e->button() == Qt::LeftButton
-        && !m_presentations.isEmpty())
-    {
-        auto m = m_presentations[0].sceneManager;
-        m->setProfileUiVisible(!m->isProfileUiVisible());
-    }
+    if (m_engine)
+        m_engine->handleMouseDoubleClickEvent(e);
 }
 
 QT_END_NAMESPACE

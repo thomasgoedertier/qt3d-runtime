@@ -457,7 +457,7 @@ void Q3DSSceneManager::updateSizes(const QSize &size, qreal dpr)
     if (!m_scene)
         return;
 
-    qCDebug(lcScene) << "Size" << size << "DPR" << dpr;
+    qCDebug(lcScene) << "Resize to" << size << "device pixel ratio" << dpr;
 
     m_outputPixelSize = size * dpr;
     m_guiData.outputSize = size;
@@ -518,7 +518,7 @@ void Q3DSSceneManager::setComponentCurrentSlide(Q3DSComponentNode *component, Q3
 QDebug operator<<(QDebug dbg, const Q3DSSceneManager::SceneBuilderParams &p)
 {
     QDebugStateSaver saver(dbg);
-    dbg << "SceneBuilderParams(" << p.flags << p.outputSize << p.outputDpr << p.window << ")";
+    dbg << "SceneBuilderParams(" << p.flags << p.outputSize << p.outputDpr << p.surface << ")";
     return dbg;
 }
 
@@ -621,7 +621,7 @@ Q3DSSceneManager::Scene Q3DSSceneManager::buildScene(Q3DSPresentation *presentat
     Qt3DRender::QRenderSettings *frameGraphComponent;
     Qt3DRender::QFrameGraphNode *frameGraphRoot;
     Qt3DRender::QFrameGraphNode *subPresFrameGraphRoot;
-    if (params.window) {
+    if (params.surface) {
         Q_ASSERT(!m_flags.testFlag(SubPresentation));
         frameGraphComponent = new Qt3DRender::QRenderSettings(m_rootEntity);
         frameGraphRoot = new Qt3DRender::QRenderSurfaceSelector;
@@ -697,11 +697,11 @@ Q3DSSceneManager::Scene Q3DSSceneManager::buildScene(Q3DSPresentation *presentat
     sc.subPresFrameGraphRoot = subPresFrameGraphRoot;
     sc.frameAction = nodeUpdater;
 
-    if (params.window) {
+    if (params.surface) {
         // Ready to go (except that the sizes calculated from params.outputSize are
         // likely bogus when it is derived from QWindow::size() during app startup;
         // will get updated in updateSizes()).
-        static_cast<Qt3DRender::QRenderSurfaceSelector *>(frameGraphRoot)->setSurface(params.window);
+        static_cast<Qt3DRender::QRenderSurfaceSelector *>(frameGraphRoot)->setSurface(params.surface);
         frameGraphComponent->setActiveFrameGraph(frameGraphRoot);
         m_rootEntity->addComponent(frameGraphComponent);
         sc.renderSettings = frameGraphComponent;

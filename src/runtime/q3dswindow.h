@@ -27,97 +27,44 @@
 **
 ****************************************************************************/
 
-#ifndef Q3DSTUDIOWINDOW_H
-#define Q3DSTUDIOWINDOW_H
+#ifndef Q3DSWINDOW_H
+#define Q3DSWINDOW_H
 
+#include <Qt3DStudioRuntime2/q3dsruntimeglobal.h>
 #include <QWindow>
-#include <QElapsedTimer>
-#include <Qt3DCore/QAspectEngine>
-#include <Qt3DStudioRuntime2/Q3DSUipDocument>
-#include <Qt3DStudioRuntime2/q3dsscenemanager.h>
-#include <Qt3DQuickScene2D/qscene2d.h>
 
 QT_BEGIN_NAMESPACE
 
-class QQmlEngine;
+class Q3DSEngine;
 
-class Q3DSV_EXPORT Q3DStudioWindow : public QWindow
+class Q3DSV_EXPORT Q3DSWindow : public QWindow
 {
     Q_OBJECT
 public:
-    Q3DStudioWindow();
-    ~Q3DStudioWindow();
+    Q3DSWindow(QWindow *parent = nullptr);
+    ~Q3DSWindow();
 
-    enum Flag {
-        Force4xMSAA = 0x01,
-        EnableProfiling = 0x02
-    };
-    Q_DECLARE_FLAGS(Flags, Flag)
+    void setEngine(Q3DSEngine *engine);
+    Q3DSEngine *engine() const;
 
-    static void initStaticPreApp();
-    static void initStaticPostApp();
-
-    Flags flags() const { return m_flags; }
-    void setFlags(Flags flags);
-    void setFlag(Flag flag, bool enabled);
-
-    bool setSource(const QString &uipOrUiaFileName);
-    QString source() const;
-
-    bool setSourceData(const QByteArray &data);
-
-    QString uipFileName(int index = 0) const;
-    Q3DSUipDocument *uipDocument(int index = 0) const;
-    Q3DSSceneManager *sceneManager(int index = 0) const;
-
-    // for testing purposes
-    void setOnDemandRendering(bool enabled);
-
-Q_SIGNALS:
-    void sceneUpdated();
+    void forceResize(const QSize &size);
+    void forceResize(int w, int h) { forceResize(QSize(w, h)); }
 
 protected:
     void exposeEvent(QExposeEvent *) override;
     void resizeEvent(QResizeEvent *) override;
     void keyPressEvent(QKeyEvent *) override;
+    void keyReleaseEvent(QKeyEvent *) override;
+    void mousePressEvent(QMouseEvent *) override;
+    void mouseMoveEvent(QMouseEvent *) override;
+    void mouseReleaseEvent(QMouseEvent *) override;
     void mouseDoubleClickEvent(QMouseEvent *) override;
 
 private:
-    struct Presentation {
-        QString uipFileName;
-        QByteArray uipData;
-        Q3DSUipDocument *uipDocument = nullptr;
-        Q3DSSceneManager *sceneManager = nullptr;
-        Q3DSSceneManager::Scene q3dscene;
-        Q3DSSubPresentation subPres;
-    };
-
-    struct QmlPresentation {
-        QString previewFileName;
-        Q3DSSceneManager *sceneManager = nullptr;
-        Qt3DRender::Quick::QScene2D *scene2d = nullptr;
-        Q3DSSubPresentation subPres;
-    };
-
-    void createAspectEngine();
-    bool loadPresentation(Presentation *pres);
-    bool loadSubPresentation(Presentation *pres);
-    bool loadQmlSubPresentation(QmlPresentation *pres);
-    void cleanupPresentations();
-
-    Flags m_flags;
-    QString m_source; // uip or uia file
-    QVector<Presentation> m_presentations;
-    QVector<QmlPresentation> m_qmlPresentations;
-    QScopedPointer<QQmlEngine> m_engine;
-
-    QScopedPointer<Qt3DCore::QAspectEngine> m_aspectEngine;
-
-    QElapsedTimer m_profilerActivateTimer;
+    Q3DSEngine *m_engine = nullptr;
+    bool m_implicitSizeTaken = false;
 };
-
-Q_DECLARE_OPERATORS_FOR_FLAGS(Q3DStudioWindow::Flags)
 
 QT_END_NAMESPACE
 
-#endif // Q3DSTUDIOWINDOW_H
+#endif // Q3DSWINDOW_H

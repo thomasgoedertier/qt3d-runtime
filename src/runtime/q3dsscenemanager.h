@@ -481,7 +481,7 @@ public:
         SceneBuilderFlags flags;
         QSize outputSize;
         qreal outputDpr = 1;
-        QObject *window = nullptr; // null for subpresentations that go into a texture
+        QObject *surface = nullptr; // null for subpresentations that go into a texture
         Qt3DRender::QFrameGraphNode *frameGraphRoot = nullptr; // when !window
     };
 
