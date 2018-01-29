@@ -27,8 +27,19 @@
 **
 ****************************************************************************/
 
-#ifndef Q3DSUTILS_H
-#define Q3DSUTILS_H
+#ifndef Q3DSUTILS_P_H
+#define Q3DSUTILS_P_H
+
+//
+//  W A R N I N G
+//  -------------
+//
+// This file is not part of the Qt API.  It exists for the convenience
+// of a number of Qt sources files.  This header file may change from
+// version to version without notice, or even be removed.
+//
+// We mean it.
+//
 
 #include <Qt3DStudioRuntime2/q3dsruntimeglobal.h>
 #include <QString>
@@ -49,4 +60,4 @@ public:
 
 QT_END_NAMESPACE
 
-#endif // Q3DSUTILS_H
+#endif // Q3DSUTILS_P_H

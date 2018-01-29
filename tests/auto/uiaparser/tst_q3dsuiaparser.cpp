@@ -27,7 +27,7 @@
 ****************************************************************************/
 
 #include <QtTest/QtTest>
-#include <Qt3DStudioRuntime2/q3dsutils.h>
+#include <Qt3DStudioRuntime2/private/q3dsutils_p.h>
 #include <Qt3DStudioRuntime2/q3dsuiaparser.h>
 
 class tst_Q3DSUiaParser : public QObject

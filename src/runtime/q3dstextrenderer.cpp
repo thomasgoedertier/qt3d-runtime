@@ -27,7 +27,7 @@
 **
 ****************************************************************************/
 
-#include "q3dstextrenderer.h"
+#include "q3dstextrenderer_p.h"
 #include "q3dspresentation.h"
 
 #include <QDir>

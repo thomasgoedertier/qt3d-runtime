@@ -31,10 +31,10 @@
 #include <QCommandLineParser>
 #include <QFileDialog>
 #include <QStandardPaths>
-#include <Qt3DStudioRuntime2/q3dsutils.h>
+#include <Q3DSEngine>
+#include <Q3DSWindow>
+#include <private/q3dsutils_p.h>
 #include "q3dsmainwindow.h"
-#include "q3dsengine.h"
-#include "q3dswindow.h"
 
 int main(int argc, char *argv[])
 {

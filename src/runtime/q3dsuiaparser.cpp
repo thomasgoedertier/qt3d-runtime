@@ -28,7 +28,7 @@
 ****************************************************************************/
 
 #include "q3dsuiaparser.h"
-#include "q3dsutils.h"
+#include "q3dsutils_p.h"
 #include <QLoggingCategory>
 
 QT_BEGIN_NAMESPACE

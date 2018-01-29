@@ -29,8 +29,8 @@
 
 #include "q3dsuipparser.h"
 #include "q3dspresentationcommon.h"
-#include "q3dsutils.h"
-#include "q3dsenummaps.h"
+#include "q3dsutils_p.h"
+#include "q3dsenummaps_p.h"
 #include <QLoggingCategory>
 
 QT_BEGIN_NAMESPACE

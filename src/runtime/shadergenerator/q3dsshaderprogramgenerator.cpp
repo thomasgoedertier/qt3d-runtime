@@ -28,7 +28,7 @@
 ****************************************************************************/
 
 #include "q3dsshaderprogramgenerator_p.h"
-#include "q3dsutils.h"
+#include "q3dsutils_p.h"
 
 #include <QtCore/QFile>
 #include <QtCore/QTextStream>

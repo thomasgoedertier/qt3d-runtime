@@ -28,8 +28,8 @@
 ****************************************************************************/
 
 #include "q3dspresentation.h"
-#include "q3dsdatamodelparser.h"
-#include "q3dsenummaps.h"
+#include "q3dsdatamodelparser_p.h"
+#include "q3dsenummaps_p.h"
 #include "q3dsuipparser.h"
 #include "q3dsscenemanager.h"
 #include <QXmlStreamReader>

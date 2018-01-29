@@ -29,7 +29,7 @@
 #include <QString>
 #include <QtTest>
 
-#include "q3dsutils.h"
+#include <private/q3dsutils_p.h>
 #include "q3dseffect.h"
 
 class tst_Q3DSEffectParser : public QObject

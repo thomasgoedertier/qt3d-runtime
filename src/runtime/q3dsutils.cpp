@@ -27,8 +27,8 @@
 **
 ****************************************************************************/
 
-#include "q3dsutils.h"
-#include "q3dsgraphexplorer.h"
+#include "q3dsutils_p.h"
+#include "q3dsgraphexplorer_p.h"
 #include <QMessageBox>
 #include <QInputDialog>
 

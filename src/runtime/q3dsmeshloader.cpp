@@ -44,7 +44,7 @@
 #include <Qt3DRender/QBuffer>
 #include <Qt3DRender/QAttribute>
 
-#include "q3dsutils.h"
+#include "q3dsutils_p.h"
 
 QT_BEGIN_NAMESPACE
 

@@ -28,7 +28,7 @@
 ****************************************************************************/
 
 #include "q3dseffect.h"
-#include "q3dsutils.h"
+#include "q3dsutils_p.h"
 
 QT_BEGIN_NAMESPACE
 

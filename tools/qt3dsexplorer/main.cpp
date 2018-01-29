@@ -31,9 +31,9 @@
 #include <QApplication>
 #include <QCommandLineParser>
 #include <QFileDialog>
-#include <Qt3DStudioRuntime2/q3dsutils.h>
-#include <Qt3DStudioRuntime2/q3dsengine.h>
-#include <Qt3DStudioRuntime2/q3dswindow.h>
+#include <Q3DSEngine>
+#include <Q3DSWindow>
+#include <private/q3dsutils_p.h>
 
 int main(int argc, char *argv[])
 {

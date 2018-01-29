@@ -27,25 +27,36 @@
 **
 ****************************************************************************/
 
-#ifndef Q3DSTEXTMATERIALGENERATOR_H
-#define Q3DSTEXTMATERIALGENERATOR_H
+#ifndef Q3DSGRAPHEXPLORER_P_H
+#define Q3DSGRAPHEXPLORER_P_H
 
-#include <Qt3DStudioRuntime2/q3dsscenemanager.h>
+//
+//  W A R N I N G
+//  -------------
+//
+// This file is not part of the Qt API.  It exists for the convenience
+// of a number of Qt sources files.  This header file may change from
+// version to version without notice, or even be removed.
+//
+// We mean it.
+//
+
+#include <QWidget>
+#include <QVariant>
 
 QT_BEGIN_NAMESPACE
 
-namespace Qt3DRender {
-class QParameter;
-class QMaterial;
-}
+class Q3DSGraphObject;
 
-class Q3DSTextMaterialGenerator
+class Q3DSGraphExplorer : public QWidget
 {
 public:
-    Qt3DRender::QMaterial *generateMaterial(const QVector<Qt3DRender::QParameter *> &params);
+    Q3DSGraphExplorer(Q3DSGraphObject *obj, QWidget *parent = nullptr);
 
+private:
+    QString varStr(const QVariant &v);
 };
 
 QT_END_NAMESPACE
 
-#endif // Q3DSTEXTMATERIALGENERATOR_H
+#endif // Q3DSGRAPHEXPLORER_P_H

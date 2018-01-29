@@ -27,46 +27,36 @@
 **
 ****************************************************************************/
 
-#ifndef Q3DSDATAMODELPARSER_H
-#define Q3DSDATAMODELPARSER_H
+#ifndef Q3DSTEXTMATERIALGENERATOR_P_H
+#define Q3DSTEXTMATERIALGENERATOR_P_H
 
-#include <Qt3DStudioRuntime2/q3dsabstractxmlparser.h>
-#include <Qt3DStudioRuntime2/q3dspresentation.h>
-#include <Qt3DStudioRuntime2/q3dspresentationcommon.h>
-#include <QDebug>
+//
+//  W A R N I N G
+//  -------------
+//
+// This file is not part of the Qt API.  It exists for the convenience
+// of a number of Qt sources files.  This header file may change from
+// version to version without notice, or even be removed.
+//
+// We mean it.
+//
+
+#include <Qt3DStudioRuntime2/q3dsscenemanager.h>
 
 QT_BEGIN_NAMESPACE
 
-class Q3DSV_EXPORT Q3DSDataModelParser : public Q3DSAbstractXmlParser
+namespace Qt3DRender {
+class QParameter;
+class QMaterial;
+}
+
+class Q3DSTextMaterialGenerator
 {
 public:
-    struct Property
-    {
-        QString name;
-        Q3DS::PropertyType type = Q3DS::Unknown;
-        int componentCount = 1;
-        QString typeStr;
-        QStringList enumValues;
-        QString defaultValue;
-        bool animatable = true;
-    };
+    Qt3DRender::QMaterial *generateMaterial(const QVector<Qt3DRender::QParameter *> &params);
 
-    static Q3DSDataModelParser *instance();
-
-    const QVector<Property> *propertiesForType(const QString &typeName);
-
-private:
-    Q3DSDataModelParser();
-    void parseMetaData();
-    void parseProperty(QVector<Property> *props);
-
-    bool m_valid = false;
-
-    QHash<QString, QVector<Property> > m_props;
 };
-
-QDebug operator<<(QDebug dbg, const Q3DSDataModelParser::Property &prop);
 
 QT_END_NAMESPACE
 
-#endif // Q3DSDATAMODELPARSER_H
+#endif // Q3DSTEXTMATERIALGENERATOR_P_H

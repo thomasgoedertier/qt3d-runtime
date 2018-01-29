@@ -27,8 +27,19 @@
 **
 ****************************************************************************/
 
-#ifndef Q3DSTEXTRENDERER_H
-#define Q3DSTEXTRENDERER_H
+#ifndef Q3DSTEXTRENDERER_P_H
+#define Q3DSTEXTRENDERER_P_H
+
+//
+//  W A R N I N G
+//  -------------
+//
+// This file is not part of the Qt API.  It exists for the convenience
+// of a number of Qt sources files.  This header file may change from
+// version to version without notice, or even be removed.
+//
+// We mean it.
+//
 
 #include <QVector>
 #include <QStringList>
@@ -64,4 +75,4 @@ private:
 
 QT_END_NAMESPACE
 
-#endif // Q3DSTEXTRENDERER_H
+#endif // Q3DSTEXTRENDERER_P_H

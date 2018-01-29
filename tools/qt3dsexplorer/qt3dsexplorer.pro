@@ -1,4 +1,4 @@
-QT       += core gui widgets 3dstudioruntime2
+QT += core gui widgets 3dstudioruntime2-private
 
 TARGET = qt3dsexplorer
 

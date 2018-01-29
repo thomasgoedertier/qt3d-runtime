@@ -28,7 +28,7 @@
 
 #include <QString>
 #include <QtTest>
-#include "q3dsutils.h"
+#include <private/q3dsutils_p.h>
 #include "q3dscustommaterial.h"
 
 class tst_Q3DSCustomMaterialParser : public QObject

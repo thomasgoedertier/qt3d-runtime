@@ -27,7 +27,7 @@
 **
 ****************************************************************************/
 
-#include "q3dsenummaps.h"
+#include "q3dsenummaps_p.h"
 
 QT_BEGIN_NAMESPACE
 

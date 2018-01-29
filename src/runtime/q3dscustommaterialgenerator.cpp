@@ -42,7 +42,7 @@
 #include <QtCore/QLoggingCategory>
 #include <QtGui/QOpenGLContext>
 
-#include "q3dsutils.h"
+#include "q3dsutils_p.h"
 
 #include "shadergenerator/q3dsshadermanager_p.h"
 

@@ -28,8 +28,8 @@
 ****************************************************************************/
 
 #include "q3dsengine.h"
-#include <Qt3DStudioRuntime2/q3dsuiaparser.h>
-#include <Qt3DStudioRuntime2/q3dsutils.h>
+#include "q3dsuiaparser.h"
+#include "q3dsutils_p.h"
 
 #include <QLoggingCategory>
 #include <QKeyEvent>

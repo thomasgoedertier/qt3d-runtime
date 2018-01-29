@@ -27,9 +27,9 @@
 **
 ****************************************************************************/
 
-#include "q3dsgraphexplorer.h"
+#include "q3dsgraphexplorer_p.h"
 #include "q3dspresentation.h"
-#include "q3dsutils.h"
+#include "q3dsutils_p.h"
 #include <QSplitter>
 #include <QVBoxLayout>
 #include <QTreeView>

@@ -31,20 +31,20 @@ SOURCES += \
 HEADERS += \
     q3dsuipparser.h \
     q3dsabstractxmlparser.h \
-    q3dsutils.h \
+    q3dsutils_p.h \
     q3dsmeshloader.h \
     q3dspresentation.h \
-    q3dsenummaps.h \
+    q3dsenummaps_p.h \
     q3dsmesh.h \
     q3dscustommaterial.h \
     q3dsmaterial.h \
     q3dseffect.h \
-    q3dsdatamodelparser.h \
-    q3dsgraphexplorer.h \
+    q3dsdatamodelparser_p.h \
+    q3dsgraphexplorer_p.h \
     q3dspresentationcommon.h \
     q3dsdefaultmaterialgenerator.h \
-    q3dstextrenderer.h \
-    q3dstextmaterialgenerator.h \
+    q3dstextrenderer_p.h \
+    q3dstextmaterialgenerator_p.h \
     q3dsgraphicslimits.h \
     q3dsengine.h \
     q3dswindow.h \

@@ -29,7 +29,7 @@
 #include <QtTest>
 
 
-#include <Qt3DStudioRuntime2/Q3DSUtils>
+#include <Qt3DStudioRuntime2/private/q3dsutils_p.h>
 #include <Qt3DStudioRuntime2/Q3DSWindow>
 #include <Qt3DStudioRuntime2/Q3DSEngine>
 #include <Qt3DStudioRuntime2/Q3DSPresentation>

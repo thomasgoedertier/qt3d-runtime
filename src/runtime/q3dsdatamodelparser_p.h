@@ -27,25 +27,57 @@
 **
 ****************************************************************************/
 
-#ifndef Q3DSGRAPHEXPLORER_H
-#define Q3DSGRAPHEXPLORER_H
+#ifndef Q3DSDATAMODELPARSER_P_H
+#define Q3DSDATAMODELPARSER_P_H
 
-#include <QWidget>
-#include <QVariant>
+//
+//  W A R N I N G
+//  -------------
+//
+// This file is not part of the Qt API.  It exists for the convenience
+// of a number of Qt sources files.  This header file may change from
+// version to version without notice, or even be removed.
+//
+// We mean it.
+//
+
+#include <Qt3DStudioRuntime2/q3dsabstractxmlparser.h>
+#include <Qt3DStudioRuntime2/q3dspresentation.h>
+#include <Qt3DStudioRuntime2/q3dspresentationcommon.h>
+#include <QDebug>
 
 QT_BEGIN_NAMESPACE
 
-class Q3DSGraphObject;
-
-class Q3DSGraphExplorer : public QWidget
+class Q3DSV_EXPORT Q3DSDataModelParser : public Q3DSAbstractXmlParser
 {
 public:
-    Q3DSGraphExplorer(Q3DSGraphObject *obj, QWidget *parent = nullptr);
+    struct Property
+    {
+        QString name;
+        Q3DS::PropertyType type = Q3DS::Unknown;
+        int componentCount = 1;
+        QString typeStr;
+        QStringList enumValues;
+        QString defaultValue;
+        bool animatable = true;
+    };
+
+    static Q3DSDataModelParser *instance();
+
+    const QVector<Property> *propertiesForType(const QString &typeName);
 
 private:
-    QString varStr(const QVariant &v);
+    Q3DSDataModelParser();
+    void parseMetaData();
+    void parseProperty(QVector<Property> *props);
+
+    bool m_valid = false;
+
+    QHash<QString, QVector<Property> > m_props;
 };
+
+QDebug operator<<(QDebug dbg, const Q3DSDataModelParser::Property &prop);
 
 QT_END_NAMESPACE
 
-#endif // Q3DSGRAPHEXPLORER_H
+#endif // Q3DSDATAMODELPARSER_P_H
