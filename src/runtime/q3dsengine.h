@@ -32,6 +32,7 @@
 
 #include <QObject>
 #include <QElapsedTimer>
+#include <QSurfaceFormat>
 #include <Qt3DCore/QAspectEngine>
 #include <Qt3DStudioRuntime2/q3dsuipdocument.h>
 #include <Qt3DStudioRuntime2/q3dsscenemanager.h>
@@ -43,7 +44,6 @@ class QMouseEvent;
 class QQmlEngine;
 
 namespace Qt3DRender {
-class QRenderAspect;
 class QRenderCapture;
 class QRenderCaptureReply;
 namespace Quick {
@@ -60,12 +60,12 @@ public:
 
     enum Flag {
         Force4xMSAA = 0x01,
-        EnableProfiling = 0x02
+        EnableProfiling = 0x02,
+        WithoutRenderAspect = 0x04
     };
     Q_DECLARE_FLAGS(Flags, Flag)
 
-    static void initStaticPreApp();
-    static void initStaticPostApp();
+    static QSurfaceFormat surfaceFormat();
 
     Flags flags() const { return m_flags; }
     void setFlags(Flags flags);
@@ -81,7 +81,7 @@ public:
     Q3DSSceneManager *sceneManager(int index = 0) const;
 
     Qt3DCore::QAspectEngine *aspectEngine() const;
-    Qt3DRender::QRenderAspect *renderAspect() const;
+    Qt3DCore::QEntity *rootEntity() const;
 
     void setOnDemandRendering(bool enabled);
 
@@ -90,7 +90,7 @@ public:
     void setSurface(QObject *surface);
     QObject *surface() const;
 
-    void start();
+    bool start();
 
     void resize(const QSize &size, qreal dpr = 1.0f);
     void resize(int w, int h, qreal dpr) { resize(QSize(w, h), dpr); }
@@ -147,7 +147,6 @@ private:
     QScopedPointer<QQmlEngine> m_qmlEngine;
 
     QScopedPointer<Qt3DCore::QAspectEngine> m_aspectEngine;
-    Qt3DRender::QRenderAspect *m_renderAspect = nullptr;
 
     QElapsedTimer m_profilerActivateTimer;
 

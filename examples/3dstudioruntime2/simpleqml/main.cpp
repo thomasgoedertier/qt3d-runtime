@@ -50,13 +50,14 @@
 
 #include <QtGui/QGuiApplication>
 #include <QtQuick/QQuickView>
+#include <Q3DSEngine>
 
 int main(int argc, char *argv[])
 {
     QGuiApplication app(argc, argv);
 
     QQuickView viewer;
-
+    viewer.setFormat(Q3DSEngine::surfaceFormat());
     viewer.setSource(QUrl("qrc:/main.qml"));
 
     viewer.setTitle(QStringLiteral("Qt 3D Studio Example"));

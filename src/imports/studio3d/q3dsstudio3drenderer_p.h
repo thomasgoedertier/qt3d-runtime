@@ -27,8 +27,8 @@
 **
 ****************************************************************************/
 
-#ifndef Q3DSSTUDIO3DITEM_P_H
-#define Q3DSSTUDIO3DITEM_P_H
+#ifndef Q3DSSTUDIO3DRENDERER_P_H
+#define Q3DSSTUDIO3DRENDERER_P_H
 
 //
 //  W A R N I N G
@@ -41,45 +41,47 @@
 // We mean it.
 //
 
-#include <QQuickItem>
+#include <QObject>
+#include <QUrl>
+#include <QOpenGLFramebufferObject>
+#include <QSGTexture>
 
 QT_BEGIN_NAMESPACE
 
-class Q3DSStudio3DRenderer;
-class Q3DSEngine;
+class QQuickWindow;
+class Q3DSStudio3DItem;
+class Q3DSStudio3DNode;
 
-class Q3DSStudio3DItem : public QQuickItem
+namespace Qt3DCore {
+class QAspectEngine;
+}
+namespace Qt3DRender {
+class QRenderAspect;
+class QRenderAspectPrivate;
+}
+
+class Q3DSStudio3DRenderer : public QObject
 {
     Q_OBJECT
-    Q_PROPERTY(QUrl source READ source WRITE setSource NOTIFY sourceChanged)
 
 public:
-    explicit Q3DSStudio3DItem(QQuickItem *parent = 0);
-    ~Q3DSStudio3DItem();
-
-    QUrl source() const;
-    void setSource(const QUrl &newSource);
-
-signals:
-    void sourceChanged();
+    Q3DSStudio3DRenderer(Q3DSStudio3DItem *item, Q3DSStudio3DNode *node, Qt3DCore::QAspectEngine *aspectEngine);
+    ~Q3DSStudio3DRenderer();
 
 private slots:
-    void startEngine();
-    void destroyEngine();
+    void renderOffscreen();
 
 private:
-    QSGNode *updatePaintNode(QSGNode *node, UpdatePaintNodeData *nodeData) override;
-    void releaseResources() override;
-    void itemChange(QQuickItem::ItemChange change, const QQuickItem::ItemChangeData &changeData) override;
-    void geometryChanged(const QRectF &newGeometry, const QRectF &oldGeometry) override;
-    void createEngine();
-    void sendResize(const QSize &size);
+    Q3DSStudio3DItem *m_item;
+    Q3DSStudio3DNode *m_node;
+    Qt3DCore::QAspectEngine *m_aspectEngine;
+    Qt3DRender::QRenderAspect *m_renderAspect = nullptr;
+    Qt3DRender::QRenderAspectPrivate *m_renderAspectD = nullptr;
 
-    QUrl m_source;
-    Q3DSStudio3DRenderer *m_renderer = nullptr;
-    Q3DSEngine *m_engine = nullptr;
+    QScopedPointer<QSGTexture> m_texture;
+    QScopedPointer<QOpenGLFramebufferObject> m_fbo;
 };
 
 QT_END_NAMESPACE
 
-#endif // Q3DSSTUDIO3DITEM_P_H
+#endif // Q3DSSTUDIO3DRENDERER_P_H

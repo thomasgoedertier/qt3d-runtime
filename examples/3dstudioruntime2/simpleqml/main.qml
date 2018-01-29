@@ -50,11 +50,36 @@
 
 import QtQuick 2.0
 import QtStudio3D 2.0
+import QtQuick.Window 2.3
 
 Rectangle {
+    id: root
     color: "lightGray"
 
     Studio3D {
-        anchors.margins: 10
+        id: s3d
+        anchors.margins: 40
+        anchors.fill: parent
+        source: "qrc:/presentation/barrel.uip"
+    }
+
+    Window {
+        id: w
+        visible: true
+        width: 500
+        height: 500
+        Item {
+            id: wroot
+            anchors.fill: parent
+        }
+        title: "Second window"
+    }
+
+    MouseArea {
+        anchors.fill: parent
+        onClicked: if (s3d.parent === wroot) s3d.parent = root; else s3d.parent = wroot
+        Text {
+            text: "Click to move to other window"
+        }
     }
 }

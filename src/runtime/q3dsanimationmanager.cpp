@@ -516,6 +516,9 @@ void Q3DSAnimationManager::updateAnimations(Q3DSSlide *animSourceSlide, Q3DSSlid
 
     for (const Q3DSAnimationTrack &animTrack : *anims) {
         Q3DSGraphObject *target = animTrack.target();
+        if (!target->attached())
+            continue;
+
         switch (target->type()) {
         case Q3DSGraphObject::DefaultMaterial:
         {

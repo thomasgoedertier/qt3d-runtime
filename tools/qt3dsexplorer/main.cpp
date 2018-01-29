@@ -37,9 +37,8 @@
 
 int main(int argc, char *argv[])
 {
-    Q3DSEngine::initStaticPreApp();
     QApplication app(argc, argv);
-    Q3DSEngine::initStaticPostApp();
+    QSurfaceFormat::setDefaultFormat(Q3DSEngine::surfaceFormat());
 
     QCommandLineParser cmdLineParser;
     cmdLineParser.addHelpOption();

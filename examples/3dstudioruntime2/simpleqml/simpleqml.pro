@@ -1,6 +1,6 @@
 TEMPLATE = app
 
-QT += qml quick
+QT += qml quick 3dstudioruntime2
 
 SOURCES += \
     main.cpp

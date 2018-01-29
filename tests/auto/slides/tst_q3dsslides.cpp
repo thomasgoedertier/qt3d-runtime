@@ -112,8 +112,7 @@ private:
 
 tst_Q3DSSlides::tst_Q3DSSlides()
 {
-    Q3DSEngine::initStaticPreApp();
-    Q3DSEngine::initStaticPostApp();
+    QSurfaceFormat::setDefaultFormat(Q3DSEngine::surfaceFormat());
     m_engine = new Q3DSEngine;
     m_view = new Q3DSWindow;
     m_view->setEngine(m_engine);

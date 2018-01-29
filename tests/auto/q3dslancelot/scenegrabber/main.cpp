@@ -142,9 +142,8 @@ int main(int argc, char *argv[])
 {
     qSetGlobalQHashSeed(0);
 
-    Q3DSEngine::initStaticPreApp();
     QGuiApplication a(argc, argv);
-    Q3DSEngine::initStaticPostApp();
+    QSurfaceFormat::setDefaultFormat(Q3DSEngine::surfaceFormat());
 
     Q3DSUtils::setDialogsEnabled(false);
 

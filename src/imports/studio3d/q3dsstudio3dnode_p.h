@@ -27,8 +27,8 @@
 **
 ****************************************************************************/
 
-#ifndef Q3DSSTUDIO3DITEM_P_H
-#define Q3DSSTUDIO3DITEM_P_H
+#ifndef Q3DSSTUDIO3DNODE_P_H
+#define Q3DSSTUDIO3DNODE_P_H
 
 //
 //  W A R N I N G
@@ -41,45 +41,58 @@
 // We mean it.
 //
 
-#include <QQuickItem>
+#include <QSGGeometryNode>
+#include <QSGMaterial>
+#include <QSGMaterialShader>
+#include <QSGTexture>
 
 QT_BEGIN_NAMESPACE
 
-class Q3DSStudio3DRenderer;
-class Q3DSEngine;
-
-class Q3DSStudio3DItem : public QQuickItem
+class Q3DSStudio3DMaterialShader : public QSGMaterialShader
 {
-    Q_OBJECT
-    Q_PROPERTY(QUrl source READ source WRITE setSource NOTIFY sourceChanged)
-
 public:
-    explicit Q3DSStudio3DItem(QQuickItem *parent = 0);
-    ~Q3DSStudio3DItem();
+    void updateState(const RenderState &state, QSGMaterial *newMaterial, QSGMaterial *oldMaterial) override;
+    const char * const *attributeNames() const override;
 
-    QUrl source() const;
-    void setSource(const QUrl &newSource);
-
-signals:
-    void sourceChanged();
-
-private slots:
-    void startEngine();
-    void destroyEngine();
+protected:
+    void initialize() override;
+    const char *vertexShader() const override;
+    const char *fragmentShader() const override;
 
 private:
-    QSGNode *updatePaintNode(QSGNode *node, UpdatePaintNodeData *nodeData) override;
-    void releaseResources() override;
-    void itemChange(QQuickItem::ItemChange change, const QQuickItem::ItemChangeData &changeData) override;
-    void geometryChanged(const QRectF &newGeometry, const QRectF &oldGeometry) override;
-    void createEngine();
-    void sendResize(const QSize &size);
+    int m_matrixId = -1;
+    int m_opacityId = -1;
+};
 
-    QUrl m_source;
-    Q3DSStudio3DRenderer *m_renderer = nullptr;
-    Q3DSEngine *m_engine = nullptr;
+class Q3DSStudio3DMaterial : public QSGMaterial
+{
+public:
+    void setTexture(QSGTexture *texture);
+    QSGTexture *texture() const;
+
+    QSGMaterialType *type() const override;
+    QSGMaterialShader *createShader() const override;
+
+private:
+    QSGTexture *m_texture = nullptr;
+};
+
+class Q3DSStudio3DNode : public QSGGeometryNode
+{
+public:
+    Q3DSStudio3DNode();
+
+    void setTexture(QSGTexture *texture);
+    QSGTexture *texture() const;
+
+    void setRect(const QRectF &rect);
+
+private:
+    QSGGeometry m_geometry;
+    QRectF m_rect;
+    Q3DSStudio3DMaterial m_material;
 };
 
 QT_END_NAMESPACE
 
-#endif // Q3DSSTUDIO3DITEM_P_H
+#endif // Q3DSSTUDIO3DNODE_P_H

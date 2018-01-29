@@ -67,7 +67,11 @@
 
 static void initResources()
 {
-    Q_INIT_RESOURCE(q3dsres);
+    static bool done = false;
+    if (!done) {
+        done = true;
+        Q_INIT_RESOURCE(q3dsres);
+    }
 }
 
 QT_BEGIN_NAMESPACE
@@ -78,6 +82,7 @@ static Q3DSGraphicsLimits gfxLimits;
 
 Q3DSEngine::Q3DSEngine()
 {
+    initResources();
 }
 
 Q3DSEngine::~Q3DSEngine()
@@ -183,12 +188,7 @@ static QSurfaceFormat findIdealGLESVersion()
     return fmt;
 }
 
-void Q3DSEngine::initStaticPreApp()
-{
-    initResources();
-}
-
-void Q3DSEngine::initStaticPostApp()
+QSurfaceFormat Q3DSEngine::surfaceFormat()
 {
     QSurfaceFormat fmt;
     if (QOpenGLContext::openGLModuleType() == QOpenGLContext::LibGL) { // works in dynamic gl builds too because there's a qguiapp already
@@ -199,14 +199,14 @@ void Q3DSEngine::initStaticPostApp()
     fmt.setDepthBufferSize(24);
     fmt.setStencilBufferSize(8);
     // Ignore MSAA here as that is a per-layer setting.
-    QSurfaceFormat::setDefaultFormat(fmt);
+    return fmt;
 }
 
 void Q3DSEngine::createAspectEngine()
 {
     m_aspectEngine.reset(new Qt3DCore::QAspectEngine);
-    m_renderAspect = new Qt3DRender::QRenderAspect;
-    m_aspectEngine->registerAspect(m_renderAspect);
+    if (!m_flags.testFlag(WithoutRenderAspect))
+        m_aspectEngine->registerAspect(new Qt3DRender::QRenderAspect);
     m_aspectEngine->registerAspect(new Qt3DInput::QInputAspect);
     m_aspectEngine->registerAspect(new Qt3DAnimation::QAnimationAspect);
     m_aspectEngine->registerAspect(new Qt3DLogic::QLogicAspect);
@@ -318,6 +318,9 @@ bool Q3DSEngine::setSource(const QString &uipOrUiaFileName)
     }
     m_presentations[0].sceneManager->finalizeMainScene(subPresentations);
 
+    if (m_aspectEngine.isNull())
+        createAspectEngine();
+
     emit presentationLoaded();
     return true;
 }
@@ -345,6 +348,9 @@ bool Q3DSEngine::setSourceData(const QByteArray &data)
 
     QVector<Q3DSSubPresentation> emptySubPresentations;
     m_presentations[0].sceneManager->finalizeMainScene(emptySubPresentations);
+
+    if (m_aspectEngine.isNull())
+        createAspectEngine();
 
     emit presentationLoaded();
     return true;
@@ -610,7 +616,6 @@ void Q3DSEngine::destroy()
         Qt3DCore::QAspectEnginePrivate::get(m_aspectEngine.data())->exitSimulationLoop();
 
     m_aspectEngine.reset();
-    m_renderAspect = nullptr;
 }
 
 void Q3DSEngine::prepareForReload()
@@ -653,9 +658,9 @@ Qt3DCore::QAspectEngine *Q3DSEngine::aspectEngine() const
     return m_aspectEngine.data();
 }
 
-Qt3DRender::QRenderAspect *Q3DSEngine::renderAspect() const
+Qt3DCore::QEntity *Q3DSEngine::rootEntity() const
 {
-    return m_renderAspect;
+    return m_presentations.isEmpty() ? nullptr : m_presentations[0].q3dscene.rootEntity;
 }
 
 void Q3DSEngine::setOnDemandRendering(bool enabled)
@@ -679,14 +684,15 @@ QObject *Q3DSEngine::surface() const
     return m_surface;
 }
 
-void Q3DSEngine::start()
+bool Q3DSEngine::start()
 {
     if (!m_presentations.isEmpty()) {
-        if (m_aspectEngine.isNull())
-            createAspectEngine();
+        Q_ASSERT(!m_aspectEngine.isNull());
         if (m_aspectEngine->rootEntity() != m_presentations[0].q3dscene.rootEntity)
             m_aspectEngine->setRootEntity(Qt3DCore::QEntityPtr(m_presentations[0].q3dscene.rootEntity));
+        return true;
     }
+    return false;
 }
 
 void Q3DSEngine::resize(const QSize &size, qreal dpr)
