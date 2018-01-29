@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<UIP version="3" >
+	<Project >
+		<ProjectSettings author="" company="" presentationWidth="800" presentationHeight="480" maintainAspect="False" >
+			<CustomColors count="16" >#ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff</CustomColors>
+		</ProjectSettings>
+		<Graph >
+			<Scene id="Scene" >
+				<Layer id="Layer" >
+					<Camera id="Camera" />
+					<Light id="Light" />
+					<Model id="Rectangle" >
+						<Material id="Material" >
+							<Image id="Material_diffusemap" />
+						</Material>
+					</Model>
+					<Model id="Rectangle2" >
+						<Material id="Material_001" >
+							<Image id="Material_001_diffusemap" />
+						</Material>
+					</Model>
+				</Layer>
+			</Scene>
+		</Graph>
+		<Logic >
+			<State name="Master Slide" component="#Scene" >
+				<Add ref="#Layer" />
+				<Add ref="#Camera" />
+				<Add ref="#Light" />
+				<State id="Scene-Slide1" name="Slide1" playmode="Looping" >
+					<Add ref="#Rectangle" name="Rectangle" position="-280.015 -1.5 0" scale="5 5 1" sourcepath="#Rectangle" />
+					<Add ref="#Material" diffusemap="#Material_diffusemap" />
+					<Add ref="#Material_diffusemap" mappingmode="UV Mapping" rotationuv="0" scaleu="1" scalev="8" sourcepath=".\maps\oulu_2.jpeg" tilingmodehorz="Tiled" />
+					<Add ref="#Rectangle2" name="Rectangle2" position="280.015 -1.5 0" scale="5 5 1" sourcepath="#Rectangle" />
+					<Add ref="#Material_001" diffusemap="#Material_001_diffusemap" />
+					<Add ref="#Material_001_diffusemap" pivotu="-0.5" pivotv="-0.2" positionu="0.8" positionv="0.2" rotationuv="45" sourcepath=".\maps\oulu_2.jpeg" tilingmodehorz="Mirrored" tilingmodevert="Mirrored" />
+				</State>
+			</State>
+		</Logic>
+	</Project>
+</UIP>

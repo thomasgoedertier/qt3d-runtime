@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<UIP Version="1" >
+	<Project Revision="1" >
+		<Graph >
+			<Group id="__import__root__" >
+				<Model id="Barrel" name="Barrel" orientation="Right Handed" position="0 0 -0" rotation="-90 -0 0" rotationorder="XYZr" scale="100 100 100" sourcepath="meshes/Barrel.mesh" >
+					<Material id="Barrel_0001" name="Barrel" blendmode="Normal" diffuse="0.64 0.64 0.64" emissivepower="0" opacity="100" specularamount="0" specularroughness="9.60784" />
+				</Model>
+			</Group>
+		</Graph>
+		<Import SrcFile="../../../../barrel.fbx" ImageDir="Images" MeshDir="Meshes" >
+			<Mesh >
+				<Source >Barrel</Source>
+				<Dest >meshes/Barrel.mesh</Dest>
+			</Mesh>
+		</Import>
+	</Project>
+</UIP>

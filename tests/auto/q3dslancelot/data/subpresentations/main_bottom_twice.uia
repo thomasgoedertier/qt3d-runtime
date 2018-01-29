@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<application>
+	<assets initial="main">
+		<presentation id="main" src="main_bottom_twice.uip"/>
+		<presentation id="subpres1" src="subpres.uip"/>
+		<presentation id="subpres2" src="subpres.uip"/>
+	</assets>
+	<statemachine ref="#logic">
+		<visual-states>
+			<state ref="Initial">
+				<enter>
+					<goto-slide element="main:Scene" rel="next"/>
+				</enter>
+			</state>
+		</visual-states>
+	</statemachine>
+</application>

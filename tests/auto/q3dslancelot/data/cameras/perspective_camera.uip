@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<UIP version="3" >
+	<Project >
+		<ProjectSettings author="" company="" presentationWidth="800" presentationHeight="480" maintainAspect="False" />
+		<Graph >
+			<Scene id="Scene" >
+				<Layer id="Layer" >
+					<Camera id="Camera" />
+					<Light id="Light" />
+					<Model id="Cylinder" >
+						<Material id="Material" />
+					</Model>
+					<Model id="Cylinder2" >
+						<Material id="Material_001" />
+					</Model>
+				</Layer>
+			</Scene>
+		</Graph>
+		<Logic >
+			<State name="Master Slide" component="#Scene" >
+				<Add ref="#Layer" />
+				<Add ref="#Camera" orthographic="False" />
+				<Add ref="#Light" />
+				<State id="Scene-Slide1" name="Slide1" >
+					<Add ref="#Cylinder" name="Cylinder" position="-165.988 -128.46 0" sourcepath="#Cylinder" />
+					<Add ref="#Material" />
+					<Add ref="#Cylinder2" name="Cylinder2" position="55.7838 116.872 -200" sourcepath="#Cylinder" />
+					<Add ref="#Material_001" />
+				</State>
+			</State>
+		</Logic>
+	</Project>
+</UIP>

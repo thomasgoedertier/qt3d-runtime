@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<UIP version="3" >
+	<Project >
+		<ProjectSettings author="" company="" presentationWidth="800" presentationHeight="480" maintainAspect="False" >
+			<CustomColors count="16" >#ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff</CustomColors>
+		</ProjectSettings>
+		<Graph >
+			<Scene id="Scene" backgroundcolor="1 1 1" >
+				<Layer id="Layer" >
+					<Camera id="Camera" />
+					<Light id="Light" />
+					<Model id="Sphere" >
+						<Material id="Default" name="Default" />
+					</Model>
+					<Model id="Cone" >
+						<Material id="Default_002" name="Default" />
+					</Model>
+					<Model id="Cube" >
+						<Material id="Default_003" name="Default" />
+					</Model>
+					<Group id="barrel" importid="__import__root__" >
+						<Model id="Barrel" name="Barrel" importid="Barrel" orientation="Right Handed" position="0 0 -0" rotation="-90 -0 0" rotationorder="XYZr" scale="100 100 100" sourcepath="models/barrel/meshes/Barrel.mesh" >
+							<Material id="Barrel_001" name="Barrel" blendmode="Normal" diffuse="0.64 0.64 0.64" emissivepower="0" importid="Barrel_0001" opacity="100" specularamount="0" specularroughness="9.60784" />
+						</Model>
+					</Group>
+					<Model id="Cylinder" >
+						<Material id="Default_001" name="Default" />
+					</Model>
+				</Layer>
+			</Scene>
+		</Graph>
+		<Logic >
+			<State name="Master Slide" component="#Scene" >
+				<Add ref="#Layer" disabledepthprepass="False" disabledepthtest="False" multisampleaa="SSAA" progressiveaa="None" />
+				<Add ref="#Camera" />
+				<Add ref="#Light" />
+				<State id="Scene-Slide1" name="Slide1" >
+					<Add ref="#Sphere" name="Sphere" position="-354.989 135.238 0" sourcepath="#Sphere" />
+					<Add ref="#Default" />
+					<Add ref="#Cone" name="Cone" position="-365.912 -248.222 0" scale="2.89542 3.13161 1" sourcepath="#Cone" />
+					<Add ref="#Default_002" />
+					<Add ref="#Cube" name="Cube" position="349.297 -228.053 0" rotation="-28.0299 -33.3145 17.1637" scale="2.00606 1 1" sourcepath="#Cube" />
+					<Add ref="#Default_003" />
+					<Add ref="#barrel" name="barrel" importfile="models/barrel/barrel.import" position="-292.216 -304.023 434" rotation="0 0 -41.5" scale="10 10 10" sourcepath="models/barrel/barrel.import" />
+					<Add ref="#Barrel" importfile="models/barrel/barrel.import" />
+					<Add ref="#Barrel_001" importfile="models/barrel/barrel.import" />
+					<Add ref="#Cylinder" name="Cylinder" position="255.743 -27.1591 -185" scale="1.5 1.5 1.5" sourcepath="#Cylinder" />
+					<Add ref="#Default_001" opacity="76" />
+				</State>
+			</State>
+		</Logic>
+	</Project>
+</UIP>

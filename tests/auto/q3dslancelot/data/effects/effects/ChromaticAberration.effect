@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<Effect>
+	<MetaData>
+		<Property name="Dispersion" formalName="Aberration Amount" description="Amount of Chromatic Aberration" default="0"/>	
+		<Property name="FocusDepth" formalName="Focus Depth" description="Dispersion will scale in relation to distance from this depth" default="0"/>
+		<Property name="MaskSampler" formalName="Effect Mask" description="Grayscale texture to control where and how strong on screen the aberration effect occurs" type="Texture" filter="linear" clamp="clamp" default="./maps/effects/white.png" />
+		<Property name="DepthDebug" formalName="Debug Dispersion Amount" type="Boolean" description="Allows you to see effect of controls.  Black objects will disperse less and white will disperse more" default="False"/>
+		<Property name="DepthSampler" type="Texture" filter="nearest" clamp="clamp"/>
+		<Property name="SourceSampler" type="Texture" filter="linear" clamp="clamp"/>
+	</MetaData>
+	<Shaders>
+	<Shader Name="DISPERSE">
+		<FragmentShader>
+#include "depthpass.glsllib"
+
+uniform vec2 CameraClipRange;
+
+void frag()
+{
+    vec4 depthSample = texture(DepthSampler, TexCoord);
+    float depthVal = getDepthValue( depthSample, CameraClipRange );
+    float rawDepth = depthValueToLinearDistance( depthVal, CameraClipRange );
+    
+    float depthScale = abs(CameraClipRange.y - CameraClipRange.x);
+    float depthDisp = abs(rawDepth - FocusDepth) / depthScale;
+    float finalDisperse = Dispersion * depthDisp;
+    float effectAmt = texture(MaskSampler, TexCoord).x;
+    
+    if ( DepthDebug )
+    {
+        gl_FragColor.rgb = vec3( depthDisp * effectAmt );
+        return;
+    }
+    
+    gl_FragColor = texture(SourceSampler, TexCoord);
+    
+    ivec2 texSize = textureSize( SourceSampler, 0 );
+    vec2 dispDir = normalize( TexCoord.xy - vec2(0.5) );
+    dispDir /= 2.0 * vec2( texSize );
+    vec3 mixColor;
+    mixColor = gl_FragColor.rgb;
+    mixColor.r = texture(SourceSampler, TexCoord+dispDir*finalDisperse).r;
+    mixColor.b = texture(SourceSampler, TexCoord-dispDir*finalDisperse).b;
+    
+    gl_FragColor.rgb = mix( gl_FragColor.rgb, mixColor, effectAmt );
+}
+		</FragmentShader>
+	</Shader>
+	</Shaders>
+	<Passes>
+	<Pass shader="DISPERSE">  
+		<BufferInput value="[source]" param="SourceSampler" />
+		<DepthInput param="DepthSampler"/>
+	</Pass>
+	</Passes>
+</Effect>

@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<Effect>
+	<MetaData>
+		<!--Quickly blurs by an adjustable amount. Gaussian refers to the bell-shaped curve that is generated when the shader applies a weighted average to the pixels. The Gaussian Blur filter adds low-frequency detail and can produce a hazy effect.-->
+		<Property name="BlurBias" formalName="Blurriness" min="0" max="10" default="2" description="0=no blur, 10=maximum blur" />
+	</MetaData>
+	<Shaders>
+		<Shared>
+#include "blur.glsllib"
+		</Shared>
+		<Shader name="HBLUR">
+			<VertexShader>
+void vert()
+{
+	SetupHorizontalGaussianBlur(Texture0Info.x, BlurBias, TexCoord);
+}
+			</VertexShader>
+			<FragmentShader>
+void frag()
+{
+    gl_FragColor = GaussianBlur(Texture0, Texture0Info.z);
+} 
+			</FragmentShader>
+		</Shader>
+		<Shader name="VBLUR">
+			<VertexShader>
+void vert()
+{
+	SetupVerticalGaussianBlur(Texture0Info.y, BlurBias, TexCoord);
+}
+			</VertexShader>
+			<FragmentShader>
+
+void frag() // PS_Blur_Vertical_9tap
+{
+    vec4 fragColor = GaussianBlur(Texture0, Texture0Info.z);    
+    colorOutput(fragColor);
+} 
+			</FragmentShader>
+		</Shader>
+	</Shaders>
+	<Passes>
+	  <Buffer name="temp_buffer" type="ubyte" format="rgba" filter="linear" wrap="clamp" size="1.0" lifetime="frame"/>
+	  <Pass name="1" shader="HBLUR" input="[source]" output="temp_buffer"/>
+	  <Pass name="2" shader="VBLUR" input="temp_buffer"/>  
+	</Passes>
+</Effect>
+

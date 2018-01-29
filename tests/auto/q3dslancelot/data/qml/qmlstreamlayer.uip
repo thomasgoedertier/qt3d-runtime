@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<UIP version="3" >
+	<Project >
+		<ProjectSettings author="" company="" presentationWidth="1200" presentationHeight="800" maintainAspect="False" >
+			<CustomColors count="16" >#ffffff #8f73a8 #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff</CustomColors>
+		</ProjectSettings>
+		<Graph >
+			<Scene id="Scene" >
+				<Layer id="qmlstream" >
+					<Camera id="Camera_001" />
+					<Light id="Light_001" />
+				</Layer>
+				<Layer id="Layer" >
+					<Camera id="Camera" />
+					<Light id="Light" />
+					<Model id="Cube" >
+						<Material id="Material" >
+							<Image id="Material_diffusemap" />
+						</Material>
+					</Model>
+				</Layer>
+			</Scene>
+		</Graph>
+		<Logic >
+			<State name="Master Slide" component="#Scene" >
+				<Add ref="#Layer" endtime="2000" />
+				<Add ref="#Camera" endtime="2000" />
+				<Add ref="#Light" endtime="2000" />
+				<State id="Scene-Rotating_Cube" name="Rotating_Cube" playmode="PingPong" >
+					<Set ref="#Layer" endtime="2000" />
+					<Set ref="#Camera" endtime="2000" />
+					<Set ref="#Light" endtime="2000" />
+					<Add ref="#qmlstream" name="qmlstream" endtime="2000" height="512" heightunits="pixels" left="0" sourcepath="layer" top="288" topunits="pixels" width="512" widthunits="pixels" />
+					<Add ref="#Camera_001" endtime="2000" />
+					<Add ref="#Light_001" endtime="2000" />
+					<Add ref="#Cube" name="Cube" endtime="2000" position="-7.21698 4.33 0" rotation="-7 -72 127" sourcepath="#Cube" />
+					<Add ref="#Material" diffuse="1 1 1" diffusemap="#Material_diffusemap" />
+					<Add ref="#Material_diffusemap" sourcepath=".\images\dummy.png" subpresentation="red-fill" />
+				</State>
+			</State>
+		</Logic>
+	</Project>
+</UIP>

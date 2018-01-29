@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<UIP version="3" >
+	<Project >
+		<ProjectSettings author="" company="" presentationWidth="1366" presentationHeight="768" maintainAspect="False" >
+			<CustomColors count="16" >#ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff</CustomColors>
+		</ProjectSettings>
+		<Graph >
+			<Scene id="Scene" backgroundcolor="0.929412 0.956863 0.34902" >
+				<Layer id="Layer" >
+					<Camera id="Camera" />
+					<Light id="Light" />
+					<Model id="Sphere" >
+						<Material id="Material_001" />
+					</Model>
+					<Model id="Cylinder" >
+						<Material id="Material_002" />
+					</Model>
+					<Model id="Cone" >
+						<Material id="Material_003" />
+					</Model>
+				</Layer>
+			</Scene>
+		</Graph>
+		<Logic >
+			<State name="Master Slide" component="#Scene" >
+				<Add ref="#Layer" />
+				<Add ref="#Camera" position="0 -40 -600" rotation="-10 0 -10" />
+				<Add ref="#Light" />
+				<State id="Scene-Slide1" name="Slide1" >
+					<Add ref="#Sphere" name="Sphere" opacity="50" position="-479.719 208.826 220.558" rotation="-20.8358 34.3489 -62.5045" sourcepath="#Sphere" />
+					<Add ref="#Material_001" blendmode="Screen" diffuse="0.341176 0.258824 0.8" opacity="80" />
+					<Add ref="#Cylinder" name="Cylinder" opacity="50" position="211.66 54.7973 -123.049" rotation="-29.16 22.9975 -41.0578" scale="0.89855 0.969231 1" sourcepath="#Cylinder" />
+					<Add ref="#Material_002" blendmode="Screen" diffuse="0.215686 0.815686 0.756863" />
+					<Add ref="#Cone" name="Cone" rotation="-47.4815 2.69907 11.9215" sourcepath="#Cone" />
+					<Add ref="#Material_003" blendmode="Screen" diffuse="0.890196 0.341176 0.615686" opacity="50" />
+				</State>
+			</State>
+		</Logic>
+	</Project>
+</UIP>

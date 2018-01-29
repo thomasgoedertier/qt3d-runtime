@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<UIP version="3" >
+	<Project >
+		<ProjectSettings author="" company="" presentationWidth="1920" presentationHeight="1080" maintainAspect="False" >
+			<CustomColors count="16" >#ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff</CustomColors>
+		</ProjectSettings>
+		<Graph >
+			<Scene id="Scene" >
+				<Layer id="Layer" >
+					<Camera id="Camera" />
+					<Light id="Light" />
+					<Group id="ArrowUp" >
+						<Model id="Cone" >
+							<Material id="Default" name="Default" />
+						</Model>
+						<Model id="Cylinder" >
+							<Material id="Default_001" name="Default" />
+						</Model>
+						<Camera id="Camera_001" />
+					</Group>
+					<Group id="ArrowForward" >
+						<Model id="Cone_001" >
+							<Material id="Default_002" name="Default" />
+						</Model>
+						<Model id="Cylinder_001" >
+							<Material id="Default_003" name="Default" />
+						</Model>
+					</Group>
+					<Group id="ArrowDown" >
+						<Model id="Cone_002" >
+							<Material id="Default_004" name="Default" />
+						</Model>
+						<Model id="Cylinder_002" >
+							<Material id="Default_005" name="Default" />
+						</Model>
+					</Group>
+					<Group id="ArrowBackwards" >
+						<Model id="Cone_003" >
+							<Material id="Default_006" name="Default" />
+						</Model>
+						<Model id="Cylinder_003" >
+							<Material id="Default_007" name="Default" />
+						</Model>
+					</Group>
+					<Light id="Light2" />
+				</Layer>
+			</Scene>
+		</Graph>
+		<Logic >
+			<State name="Master Slide" component="#Scene" >
+				<Add ref="#Layer" />
+				<Add ref="#Camera" name="CameraForward" />
+				<Add ref="#Light" name="Light1" lightambient="0.168627 0.164706 0.160784" lightdiffuse="1 1 0.964706" />
+				<Add ref="#ArrowUp" name="ArrowUp" position="-393.171 121.883 0" />
+				<Add ref="#Cone" name="Cone" position="0 0 0" sourcepath="#Cone" />
+				<Add ref="#Default" diffuse="0 1 0" />
+				<Add ref="#Cylinder" name="Cylinder" position="0 -97.5005 0" scale="0.5 2 0.5" sourcepath="#Cylinder" />
+				<Add ref="#Default_001" diffuse="0 1 0" />
+				<Add ref="#Camera_001" name="ChildCamera" position="0 98.234 0" rotation="26 90 0" />
+				<Add ref="#ArrowForward" name="ArrowForward" position="-138.558 0 0" rotation="90 0 0" />
+				<Add ref="#Cone_001" name="Cone" position="0 0 0" sourcepath="#Cone" />
+				<Add ref="#Default_002" diffuse="1 0 0" />
+				<Add ref="#Cylinder_001" name="Cylinder" position="0 -97.5005 0" scale="0.5 2 0.5" sourcepath="#Cylinder" />
+				<Add ref="#Default_003" diffuse="1 0 0" />
+				<Add ref="#ArrowDown" name="ArrowDown" position="91.1513 0 0" rotation="180 0 0" />
+				<Add ref="#Cone_002" name="Cone" position="0 0 0" sourcepath="#Cone" />
+				<Add ref="#Default_004" diffuse="0.333333 1 1" />
+				<Add ref="#Cylinder_002" name="Cylinder" position="0 -97.5005 0" scale="0.5 2 0.5" sourcepath="#Cylinder" />
+				<Add ref="#Default_005" diffuse="0.333333 1 1" />
+				<Add ref="#ArrowBackwards" name="ArrowBackwards" position="312.117 0 0" rotation="-90 0 0" />
+				<Add ref="#Cone_003" name="Cone" position="0 0 0" sourcepath="#Cone" />
+				<Add ref="#Default_006" />
+				<Add ref="#Cylinder_003" name="Cylinder" position="0 -97.5005 0" scale="0.5 2 0.5" sourcepath="#Cylinder" />
+				<Add ref="#Default_007" />
+				<Add ref="#Light2" name="Light2" lightdiffuse="1 0.988235 0.882353" rotation="180 90 0" />
+				<State id="Scene-DefaultCamera" name="DefaultCamera" initialplaystate="Play" playmode="Looping" playthroughto="Next" />
+			</State>
+		</Logic>
+	</Project>
+</UIP>

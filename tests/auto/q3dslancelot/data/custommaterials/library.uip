@@ -1,0 +1,314 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<UIP version="3" >
+	<Project >
+		<ProjectSettings author="" company="" presentationWidth="1920" presentationHeight="1080" maintainAspect="False" >
+			<CustomColors count="16" >#ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff</CustomColors>
+		</ProjectSettings>
+		<Classes >
+			<CustomMaterial id="aluminium_anodized" name="aluminium_anodized" sourcepath="materials/aluminium_anodized.material" />
+			<CustomMaterial id="aluminium_anodized_emissive" name="aluminium_anodized_emissive" sourcepath="materials/aluminium_anodized_emissive.material" />
+			<CustomMaterial id="aluminum" name="aluminum" sourcepath="materials/aluminum.material" />
+			<CustomMaterial id="aluminum_anisotropic" name="aluminum_anisotropic" sourcepath="materials/aluminum_anisotropic.material" />
+			<CustomMaterial id="aluminum_brushed" name="aluminum_brushed" sourcepath="materials/aluminum_brushed.material" />
+			<CustomMaterial id="aluminum_emissive" name="aluminum_emissive" sourcepath="materials/aluminum_emissive.material" />
+			<CustomMaterial id="aluminum_textured_aniso" name="aluminum_textured_aniso" sourcepath="materials/aluminum_textured_aniso.material" />
+			<CustomMaterial id="asphalt" name="asphalt" sourcepath="materials/asphalt.material" />
+			<CustomMaterial id="bamboo_natural_matte" name="bamboo_natural_matte" sourcepath="materials/bamboo_natural_matte.material" />
+			<CustomMaterial id="bamboo_natural_matte_emissive" name="bamboo_natural_matte_emissive" sourcepath="materials/bamboo_natural_matte_emissive.material" />
+			<CustomMaterial id="carbon_fiber" name="carbon_fiber" sourcepath="materials/carbon_fiber.material" />
+			<CustomMaterial id="carbon_fiber_emissive" name="carbon_fiber_emissive" sourcepath="materials/carbon_fiber_emissive.material" />
+			<CustomMaterial id="carpaint_blue_standard" name="carpaint_blue_standard" sourcepath="materials/carpaint_blue_standard.material" />
+			<CustomMaterial id="carpaint_color_peel_2_layer" name="carpaint_color_peel_2_layer" sourcepath="materials/carpaint_color_peel_2_layer.material" />
+			<CustomMaterial id="carpaint_yellow_standard" name="carpaint_yellow_standard" sourcepath="materials/carpaint_yellow_standard.material" />
+			<CustomMaterial id="concrete" name="concrete" sourcepath="materials/concrete.material" />
+			<CustomMaterial id="copper" name="copper" sourcepath="materials/copper.material" />
+			<CustomMaterial id="leather_smoothed_black" name="leather_smoothed_black" sourcepath="materials/leather_smoothed_black.material" />
+			<CustomMaterial id="mesh_fence" name="mesh_fence" sourcepath="materials/mesh_fence.material" />
+			<CustomMaterial id="metal_mesh_fine" name="metal_mesh_fine" sourcepath="materials/metal_mesh_fine.material" />
+			<CustomMaterial id="paper_artistic" name="paper_artistic" sourcepath="materials/paper_artistic.material" />
+			<CustomMaterial id="paper_office" name="paper_office" sourcepath="materials/paper_office.material" />
+			<CustomMaterial id="plastic_structured_red" name="plastic_structured_red" sourcepath="materials/plastic_structured_red.material" />
+			<CustomMaterial id="plastic_structured_red_emissive" name="plastic_structured_red_emissive" sourcepath="materials/plastic_structured_red_emissive.material" />
+			<CustomMaterial id="porcelain" name="porcelain" sourcepath="materials/porcelain.material" />
+			<CustomMaterial id="powder_coat" name="powder_coat" sourcepath="materials/powder_coat.material" />
+			<CustomMaterial id="powder_coat_emissive" name="powder_coat_emissive" sourcepath="materials/powder_coat_emissive.material" />
+			<CustomMaterial id="rubber_studded_black" name="rubber_studded_black" sourcepath="materials/rubber_studded_black.material" />
+			<CustomMaterial id="rubber_studded_emissive" name="rubber_studded_emissive" sourcepath="materials/rubber_studded_emissive.material" />
+			<CustomMaterial id="simple_glass" name="simple_glass" sourcepath="materials/simple_glass.material" />
+			<CustomMaterial id="steel_milled_concentric" name="steel_milled_concentric" sourcepath="materials/steel_milled_concentric.material" />
+			<CustomMaterial id="thin_glass_frosted" name="thin_glass_frosted" sourcepath="materials/thin_glass_frosted.material" />
+			<CustomMaterial id="thin_glass_frosted_sp" name="thin_glass_frosted_sp" sourcepath="materials/thin_glass_frosted_sp.material" />
+			<CustomMaterial id="thin_glass_refractive" name="thin_glass_refractive" sourcepath="materials/thin_glass_refractive.material" />
+			<CustomMaterial id="walnut_matte" name="walnut_matte" sourcepath="materials/walnut_matte.material" />
+		</Classes>
+		<Graph >
+			<Scene id="Scene" backgroundcolor="0.333333 1 1" bgcolorenable="True" >
+				<Layer id="Layer" >
+					<Camera id="Camera" />
+					<Light id="Light" />
+					<Group id="Teapots2" >
+						<Model id="teapot_aluminium_anodized" >
+							<CustomMaterial id="aluminium_anodized_001" class="#aluminium_anodized" />
+						</Model>
+						<Model id="teapot11" >
+							<CustomMaterial id="aluminium_anodized_emissive_001" class="#aluminium_anodized_emissive" />
+						</Model>
+						<Model id="teapot21" >
+							<CustomMaterial id="aluminum_001" class="#aluminum" />
+						</Model>
+						<Model id="teapot31" >
+							<CustomMaterial id="aluminum_anisotropic_001" class="#aluminum_anisotropic" />
+						</Model>
+						<Model id="teapot32" >
+							<CustomMaterial id="aluminum_brushed_001" class="#aluminum_brushed" />
+						</Model>
+						<Model id="teapot33" >
+							<CustomMaterial id="aluminum_emissive_001" class="#aluminum_emissive" />
+						</Model>
+						<Model id="teapot34" >
+							<CustomMaterial id="aluminum_textured_aniso_001" class="#aluminum_textured_aniso" />
+						</Model>
+						<Model id="teapot35" >
+							<CustomMaterial id="asphalt_001" class="#asphalt" />
+						</Model>
+						<Model id="teapot22" >
+							<CustomMaterial id="bamboo_natural_matte_001" class="#bamboo_natural_matte" />
+						</Model>
+						<Model id="teapot23" >
+							<CustomMaterial id="bamboo_natural_matte_emissive_001" class="#bamboo_natural_matte_emissive" />
+						</Model>
+						<Model id="teapot24" >
+							<CustomMaterial id="carbon_fiber_001" class="#carbon_fiber" />
+						</Model>
+						<Model id="teapot25" >
+							<CustomMaterial id="carbon_fiber_emissive_001" class="#carbon_fiber_emissive" />
+						</Model>
+						<Model id="teapot26" >
+							<CustomMaterial id="carpaint_blue_standard_001" class="#carpaint_blue_standard" />
+						</Model>
+						<Model id="teapot27" >
+							<CustomMaterial id="carpaint_color_peel_2_layer_001" class="#carpaint_color_peel_2_layer" />
+						</Model>
+						<Model id="teapot28" >
+							<CustomMaterial id="carpaint_yellow_standard_001" class="#carpaint_yellow_standard" />
+						</Model>
+						<Model id="teapot29" >
+							<CustomMaterial id="concrete_001" class="#concrete" />
+						</Model>
+						<Model id="teapot30" >
+							<CustomMaterial id="copper_001" class="#copper" />
+						</Model>
+						<Model id="teapot12" >
+							<CustomMaterial id="leather_smoothed_black_001" class="#leather_smoothed_black" />
+						</Model>
+						<Model id="teapot13" >
+							<CustomMaterial id="mesh_fence_001" class="#mesh_fence" />
+						</Model>
+						<Model id="teapot14" >
+							<CustomMaterial id="metal_mesh_fine_001" class="#metal_mesh_fine" />
+						</Model>
+						<Model id="teapot15" >
+							<CustomMaterial id="paper_artistic_001" class="#paper_artistic" />
+						</Model>
+						<Model id="teapot16" >
+							<CustomMaterial id="paper_office_001" class="#paper_office" />
+						</Model>
+						<Model id="teapot17" >
+							<CustomMaterial id="plastic_structured_red_001" class="#plastic_structured_red" />
+						</Model>
+						<Model id="teapot18" >
+							<CustomMaterial id="plastic_structured_red_emissive_001" class="#plastic_structured_red_emissive" />
+						</Model>
+						<Model id="teapot19" >
+							<CustomMaterial id="porcelain_001" class="#porcelain" />
+						</Model>
+						<Model id="teapot20" >
+							<CustomMaterial id="powder_coat_001" class="#powder_coat" />
+						</Model>
+						<Model id="teapot2" >
+							<CustomMaterial id="powder_coat_emissive_001" class="#powder_coat_emissive" />
+						</Model>
+						<Model id="teapot3" >
+							<CustomMaterial id="rubber_studded_black_001" class="#rubber_studded_black" />
+						</Model>
+						<Model id="teapot4" >
+							<CustomMaterial id="rubber_studded_emissive_001" class="#rubber_studded_emissive" />
+						</Model>
+						<Model id="teapot5" >
+							<CustomMaterial id="simple_glass_001" class="#simple_glass" />
+						</Model>
+						<Model id="teapot6" >
+							<CustomMaterial id="steel_milled_concentric_001" class="#steel_milled_concentric" />
+						</Model>
+						<Model id="teapot7" >
+							<CustomMaterial id="thin_glass_frosted_001" class="#thin_glass_frosted" />
+						</Model>
+						<Model id="teapot8" >
+							<CustomMaterial id="thin_glass_frosted_sp_001" class="#thin_glass_frosted_sp" />
+						</Model>
+						<Model id="teapot9" >
+							<CustomMaterial id="thin_glass_refractive_001" class="#thin_glass_refractive" />
+						</Model>
+						<Model id="teapot10" >
+							<CustomMaterial id="walnut_matte_001" class="#walnut_matte" />
+						</Model>
+					</Group>
+				</Layer>
+			</Scene>
+		</Graph>
+		<Logic >
+			<State name="Master Slide" component="#Scene" >
+				<Add ref="#Layer" aostrength="1" />
+				<Add ref="#Camera" fov="51.12" position="-196 200 -530" />
+				<Add ref="#Light" />
+				<Add ref="#Teapots2" name="Teapots2" position="-3.58161e-37 -3.65327e-37 4.19051e-37" />
+				<Add ref="#teapot_aluminium_anodized" name="teapot_aluminium_anodized" position="-500 400 0" sourcepath="#Sphere" />
+				<Add ref="#aluminium_anodized_001" name="Aluminium_Anodized" />
+				<Add ref="#teapot11" name="teapot_aluminium_anodized_emissive" position="-200 300 0" sourcepath="#Sphere" />
+				<Add ref="#aluminium_anodized_emissive_001" name="Aluminium_Anodized_Emissive" />
+				<Add ref="#teapot21" name="teapot_aluminium" position="-400 100 0" sourcepath="#Sphere" />
+				<Add ref="#aluminum_001" name="Aluminium" />
+				<Add ref="#teapot31" name="teapot31" position="0 0 0" sourcepath="#Sphere" />
+				<Add ref="#aluminum_anisotropic_001" name="Default" />
+				<Add ref="#teapot32" name="teapot32" position="-500 0 0" sourcepath="#Sphere" />
+				<Add ref="#aluminum_brushed_001" name="Default" />
+				<Add ref="#teapot33" name="teapot33" position="-400 0 0" sourcepath="#Sphere" />
+				<Add ref="#aluminum_emissive_001" name="Default" />
+				<Add ref="#teapot34" name="teapot34" position="-300 0 0" sourcepath="#Sphere" />
+				<Add ref="#aluminum_textured_aniso_001" name="Default" />
+				<Add ref="#teapot35" name="teapot35" position="100 100 0" sourcepath="#Sphere" />
+				<Add ref="#asphalt_001" name="Default" />
+				<Add ref="#teapot22" name="teapot22" position="-500 100 0" sourcepath="#Sphere" />
+				<Add ref="#bamboo_natural_matte_001" name="Default" />
+				<Add ref="#teapot23" name="teapot23" position="-300 100 0" sourcepath="#Sphere" />
+				<Add ref="#bamboo_natural_matte_emissive_001" name="Default" />
+				<Add ref="#teapot24" name="teapot24" position="-200 100 0" sourcepath="#Sphere" />
+				<Add ref="#carbon_fiber_001" name="Default" />
+				<Add ref="#teapot25" name="teapot25" position="0 100 0" sourcepath="#Sphere" />
+				<Add ref="#carbon_fiber_emissive_001" name="Default" />
+				<Add ref="#teapot26" name="teapot26" position="-100 0 0" sourcepath="#Sphere" />
+				<Add ref="#carpaint_blue_standard_001" name="Default" />
+				<Add ref="#teapot27" name="teapot27" position="-100 100 0" sourcepath="#Sphere" />
+				<Add ref="#carpaint_color_peel_2_layer_001" name="Default" />
+				<Add ref="#teapot28" name="teapot28" position="-200 0 0" sourcepath="#Sphere" />
+				<Add ref="#carpaint_yellow_standard_001" name="Default" />
+				<Add ref="#teapot29" name="teapot29" position="100 0 0" sourcepath="#Sphere" />
+				<Add ref="#concrete_001" name="Default" />
+				<Add ref="#teapot30" name="teapot30" position="100 200 0" sourcepath="#Sphere" />
+				<Add ref="#copper_001" name="Default" />
+				<Add ref="#teapot12" name="teapot12" position="-100 300 0" sourcepath="#Sphere" />
+				<Add ref="#leather_smoothed_black_001" name="Default" />
+				<Add ref="#teapot13" name="teapot13" position="0 300 0" sourcepath="#Sphere" />
+				<Add ref="#mesh_fence_001" name="Default" />
+				<Add ref="#teapot14" name="teapot14" position="100 300 0" sourcepath="#Sphere" />
+				<Add ref="#metal_mesh_fine_001" name="Default" />
+				<Add ref="#teapot15" name="teapot15" position="-500 200 0" sourcepath="#Sphere" />
+				<Add ref="#paper_artistic_001" name="Default" />
+				<Add ref="#teapot16" name="teapot16" position="-400 200 0" sourcepath="#Sphere" />
+				<Add ref="#paper_office_001" name="Default" />
+				<Add ref="#teapot17" name="teapot17" position="-300 200 0" sourcepath="#Sphere" />
+				<Add ref="#plastic_structured_red_001" name="Default" />
+				<Add ref="#teapot18" name="teapot18" position="-200 200 0" sourcepath="#Sphere" />
+				<Add ref="#plastic_structured_red_emissive_001" name="Default" />
+				<Add ref="#teapot19" name="teapot19" position="-100 200 0" sourcepath="#Sphere" />
+				<Add ref="#porcelain_001" name="Default" />
+				<Add ref="#teapot20" name="teapot20" position="0 200 0" sourcepath="#Sphere" />
+				<Add ref="#powder_coat_001" name="Default" />
+				<Add ref="#teapot2" name="teapot2" position="-400 400 0" sourcepath="#Sphere" />
+				<Add ref="#powder_coat_emissive_001" name="Default" />
+				<Add ref="#teapot3" name="teapot3" position="-300 400 0" sourcepath="#Sphere" />
+				<Add ref="#rubber_studded_black_001" name="Default" />
+				<Add ref="#teapot4" name="teapot4" position="-200 400 0" sourcepath="#Sphere" />
+				<Add ref="#rubber_studded_emissive_001" name="Default" />
+				<Add ref="#teapot5" name="teapot5" position="-100 400 0" sourcepath="#Sphere" />
+				<Add ref="#simple_glass_001" name="Default" />
+				<Add ref="#teapot6" name="teapot6" position="0 400 0" sourcepath="#Sphere" />
+				<Add ref="#steel_milled_concentric_001" name="Default" />
+				<Add ref="#teapot7" name="teapot7" position="100 400 0" sourcepath="#Sphere" />
+				<Add ref="#thin_glass_frosted_001" name="Default" />
+				<Add ref="#teapot8" name="teapot8" position="-500 300 0" sourcepath="#Sphere" />
+				<Add ref="#thin_glass_frosted_sp_001" name="Default" />
+				<Add ref="#teapot9" name="teapot9" position="-400 300 0" sourcepath="#Sphere" />
+				<Add ref="#thin_glass_refractive_001" name="Default" />
+				<Add ref="#teapot10" name="teapot10" position="-300 300 0" sourcepath="#Sphere" />
+				<Add ref="#walnut_matte_001" name="Default" />
+				<State id="Scene-Slide1" name="Slide1" playmode="Looping" >
+					<Set ref="#Layer" endtime="38907" />
+					<Set ref="#Camera" endtime="39094" />
+					<Set ref="#Light" endtime="46482" />
+					<Set ref="#Teapots2" endtime="46040" />
+					<Set ref="#teapot_aluminium_anodized" endtime="46040" />
+					<Set ref="#aluminium_anodized_001" endtime="46040" />
+					<Set ref="#teapot11" endtime="46040" />
+					<Set ref="#aluminium_anodized_emissive_001" endtime="46040" />
+					<Set ref="#teapot21" endtime="46040" />
+					<Set ref="#aluminum_001" endtime="46040" />
+					<Set ref="#teapot31" endtime="46040" />
+					<Set ref="#aluminum_anisotropic_001" endtime="46040" />
+					<Set ref="#teapot32" endtime="46040" />
+					<Set ref="#aluminum_brushed_001" endtime="46040" />
+					<Set ref="#teapot33" endtime="46040" />
+					<Set ref="#aluminum_emissive_001" endtime="46040" />
+					<Set ref="#teapot34" endtime="46040" />
+					<Set ref="#aluminum_textured_aniso_001" endtime="46040" />
+					<Set ref="#teapot35" endtime="46040" />
+					<Set ref="#asphalt_001" endtime="46040" />
+					<Set ref="#teapot22" endtime="46040" />
+					<Set ref="#bamboo_natural_matte_001" endtime="46040" />
+					<Set ref="#teapot23" endtime="46040" />
+					<Set ref="#bamboo_natural_matte_emissive_001" endtime="46040" />
+					<Set ref="#teapot24" endtime="46040" />
+					<Set ref="#carbon_fiber_001" endtime="46040" />
+					<Set ref="#teapot25" endtime="46040" />
+					<Set ref="#carbon_fiber_emissive_001" endtime="46040" />
+					<Set ref="#teapot26" endtime="46040" />
+					<Set ref="#carpaint_blue_standard_001" endtime="46040" />
+					<Set ref="#teapot27" endtime="46040" />
+					<Set ref="#carpaint_color_peel_2_layer_001" endtime="46040" />
+					<Set ref="#teapot28" endtime="46040" />
+					<Set ref="#carpaint_yellow_standard_001" endtime="46040" />
+					<Set ref="#teapot29" endtime="46040" />
+					<Set ref="#concrete_001" endtime="46040" />
+					<Set ref="#teapot30" endtime="46040" />
+					<Set ref="#copper_001" endtime="46040" />
+					<Set ref="#teapot12" endtime="46040" />
+					<Set ref="#leather_smoothed_black_001" endtime="46040" />
+					<Set ref="#teapot13" endtime="46040" />
+					<Set ref="#mesh_fence_001" endtime="46040" />
+					<Set ref="#teapot14" endtime="46040" />
+					<Set ref="#metal_mesh_fine_001" endtime="46040" />
+					<Set ref="#teapot15" endtime="46040" />
+					<Set ref="#paper_artistic_001" endtime="46040" />
+					<Set ref="#teapot16" endtime="46040" />
+					<Set ref="#paper_office_001" endtime="46040" />
+					<Set ref="#teapot17" endtime="46040" />
+					<Set ref="#plastic_structured_red_001" endtime="46040" />
+					<Set ref="#teapot18" endtime="46040" />
+					<Set ref="#plastic_structured_red_emissive_001" endtime="46040" />
+					<Set ref="#teapot19" endtime="46040" />
+					<Set ref="#porcelain_001" endtime="46040" />
+					<Set ref="#teapot20" endtime="46040" />
+					<Set ref="#powder_coat_001" endtime="46040" />
+					<Set ref="#teapot2" endtime="46040" />
+					<Set ref="#powder_coat_emissive_001" endtime="46040" />
+					<Set ref="#teapot3" endtime="46040" />
+					<Set ref="#rubber_studded_black_001" endtime="46040" />
+					<Set ref="#teapot4" endtime="46040" />
+					<Set ref="#rubber_studded_emissive_001" endtime="46040" />
+					<Set ref="#teapot5" endtime="46040" />
+					<Set ref="#simple_glass_001" endtime="46040" />
+					<Set ref="#teapot6" endtime="46040" />
+					<Set ref="#steel_milled_concentric_001" endtime="46040" />
+					<Set ref="#teapot7" endtime="46040" />
+					<Set ref="#thin_glass_frosted_001" endtime="46040" />
+					<Set ref="#teapot8" endtime="46040" />
+					<Set ref="#thin_glass_frosted_sp_001" endtime="46040" />
+					<Set ref="#teapot9" endtime="46040" />
+					<Set ref="#thin_glass_refractive_001" endtime="46040" />
+					<Set ref="#teapot10" endtime="46040" />
+					<Set ref="#walnut_matte_001" endtime="46040" />
+				</State>
+			</State>
+		</Logic>
+	</Project>
+</UIP>

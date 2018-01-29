@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<Effect>
+    <MetaData>
+    <Property name="red" formalName="Red Amount" min="0" max="2.0" default="1.0" description="Amount of Red"/>
+    <Property name="green" formalName="Green Amount" min="0" max="2.0" default="1.0" description="Amount of Green"/>
+    <Property name="blue" formalName="Blue Amount" min="0" max="2.0" default="1.0" description="Amount of Blue"/>
+    <Property name="strength_gray" formalName="Saturation" min="-1" max="1" default="0.0" description="Strenght of Color"/>
+    </MetaData>
+    <Shaders>
+        <Shared></Shared>
+        <VertexShaderShared></VertexShaderShared>
+        <FragmentShaderShared></FragmentShaderShared>
+        <Shader name="main">
+            <VertexShader></VertexShader>
+            <FragmentShader><![CDATA[
+
+vec4 desaturate(vec3 color, float strength)
+{
+    vec3 lum = vec3(0.299, 0.587, 0.114);
+    // lum values based on: ITU-R BT.601
+    vec3 gray = vec3(dot(lum, color));
+    return vec4(mix(color, gray, -strength), 1.0);
+}
+void frag()
+{
+    vec4 sourceColor = texture2D_0(TexCoord);
+    vec4 basecolor = vec4(sourceColor.r*red,sourceColor.g*green,sourceColor.b*blue,sourceColor.a);
+    gl_FragColor = desaturate(basecolor.rgb,strength_gray);
+}
+    ]]></FragmentShader>
+        </Shader>
+    </Shaders>
+    <Passes>
+        <Pass shader="main" input="[source]" output="[dest]"/>
+    </Passes>
+</Effect>
+
+

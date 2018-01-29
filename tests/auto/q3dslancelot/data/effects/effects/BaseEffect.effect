@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<Effect>
+    <MetaData>
+    </MetaData>
+    <Shaders>
+        <Shared></Shared>
+        <VertexShaderShared></VertexShaderShared>
+        <FragmentShaderShared></FragmentShaderShared>
+        <Shader name="main">
+            <VertexShader></VertexShader>
+            <FragmentShader><![CDATA[
+
+void frag()
+{
+    // save original fragments to a variable
+    vec4 original = texture2D_0(TexCoord);
+
+    //output the unmodified original fragments;
+    gl_FragColor = original;
+}
+
+    ]]></FragmentShader>
+        </Shader>
+    </Shaders>
+    <Passes>
+        <Pass shader="main" input="[source]" output="[dest]"/>
+    </Passes>
+</Effect>
+
+

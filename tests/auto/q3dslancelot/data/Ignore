@@ -1,0 +1,3 @@
+# Don't open presentation files with qmlstreams
+qml/qmlstream.uip
+qml/qmlstreamlayer.uip

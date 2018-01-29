@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<UIP version="3" >
+	<Project >
+		<ProjectSettings author="" company="" presentationWidth="800" presentationHeight="480" maintainAspect="False" >
+			<CustomColors count="16" >#ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff</CustomColors>
+		</ProjectSettings>
+		<Graph >
+			<Scene id="Scene" backgroundcolor="0.858824 0.811765 0.282353" bgcolorenable="True" >
+				<Layer id="Layer" >
+					<Camera id="Camera" />
+					<Light id="Light2" />
+					<Light id="Light" />
+					<Model id="qt" >
+						<Material id="Material" >
+							<Image id="Material_diffusemap" />
+						</Material>
+					</Model>
+				</Layer>
+			</Scene>
+		</Graph>
+		<Logic >
+			<State name="Master Slide" component="#Scene" >
+				<Add ref="#Layer" background="Transparent" backgroundcolor="0.564706 0.552941 0.188235" />
+				<Add ref="#Camera" />
+				<Add ref="#Light" lightdiffuse="0.294118 0.847059 1" lighttype="Point" position="70.7254 -165.988 0" />
+				<State id="Scene-Slide1" name="Slide1" playmode="Looping" >
+					<Add ref="#Light2" name="Light2" lighttype="Point" position="-373.834 -83.7161 -1155.44" />
+					<Add ref="#qt" name="qt" scale="9.28787 4.59601 1" sourcepath="#Rectangle" />
+					<Add ref="#Material" diffusemap="#Material_diffusemap" />
+					<Add ref="#Material_diffusemap" pivotu="0" positionu="0" rotationuv="0" sourcepath="qt.png" />
+				</State>
+			</State>
+		</Logic>
+	</Project>
+</UIP>

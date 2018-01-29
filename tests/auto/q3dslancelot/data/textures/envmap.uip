@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<UIP version="3" >
+	<Project >
+		<ProjectSettings author="" company="" presentationWidth="800" presentationHeight="480" maintainAspect="False" >
+			<CustomColors count="16" >#ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff</CustomColors>
+		</ProjectSettings>
+		<Graph >
+			<Scene id="Scene" >
+				<Layer id="Layer" >
+					<Camera id="Camera" />
+					<Light id="Light" />
+					<Model id="Sphere" >
+						<Material id="Material" >
+							<Image id="Material_specularreflection" />
+						</Material>
+					</Model>
+				</Layer>
+			</Scene>
+		</Graph>
+		<Logic >
+			<State name="Master Slide" component="#Scene" >
+				<Add ref="#Layer" />
+				<Add ref="#Camera" />
+				<Add ref="#Light" lighttype="Point" position="458.993 -407.032 0" scale="5.6848 0.207183 1" />
+				<State id="Scene-Slide1" name="Slide1" >
+					<Add ref="#Sphere" name="Sphere" scale="7.95522 5.71875 1" sourcepath="#Sphere" />
+					<Add ref="#Material" specularreflection="#Material_specularreflection" />
+					<Add ref="#Material_specularreflection" mappingmode="Environmental Mapping" sourcepath=".\maps\OpenfootageNET_lowerAustria01-1024.hdr" />
+				</State>
+			</State>
+		</Logic>
+	</Project>
+</UIP>

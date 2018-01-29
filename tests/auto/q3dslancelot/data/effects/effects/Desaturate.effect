@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<Effect>
+    <MetaData>
+    <Property name="strenght_gray" formalName="Effect Strenght" min="0" max="1" default="1.0" description="Strenght of the Grayscale"/>
+    </MetaData>
+    <Shaders>
+        <Shared></Shared>
+        <VertexShaderShared></VertexShaderShared>
+        <FragmentShaderShared></FragmentShaderShared>
+        <Shader name="main">
+            <VertexShader></VertexShader>
+            <FragmentShader><![CDATA[
+
+vec4 desaturate(vec3 color, float strenght)
+{
+    vec3 lum = vec3(0.299, 0.587, 0.114);
+    // lum values based on: ITU-R BT.601
+    vec3 gray = vec3(dot(lum, color));
+    return vec4(mix(color, gray, strenght), 1.0);
+}
+void frag()
+{
+    vec4 origColor = texture2D_0(TexCoord);
+
+    gl_FragColor = desaturate(origColor.rgb,strenght_gray);
+}
+    ]]></FragmentShader>
+        </Shader>
+    </Shaders>
+    <Passes>
+        <Pass shader="main" input="[source]" output="[dest]"/>
+    </Passes>
+</Effect>
+
+

@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<Effect>
+    <MetaData>
+    <Property name="amount" formalName="Blur Amount" min="0" max="0.10" default="0.01" description="Amount of Blur"/>
+    </MetaData>
+    <Shaders>
+        <Shared></Shared>
+        <VertexShaderShared></VertexShaderShared>
+        <FragmentShaderShared></FragmentShaderShared>
+        <Shader name="main">
+            <VertexShader></VertexShader>
+            <FragmentShader><![CDATA[
+void frag()
+{
+
+    vec4 c1 = texture2D_0(vec2(TexCoord.x - amount, TexCoord.y - amount));
+    vec4 c2 = texture2D_0(vec2(TexCoord.x + amount, TexCoord.y - amount));
+    vec4 c3 = texture2D_0(vec2(TexCoord.x - amount, TexCoord.y + amount));
+    vec4 c4 = texture2D_0(vec2(TexCoord.x + amount, TexCoord.y + amount));
+
+    vec4 f1 = vec4(mix(c1, c2, 0.5));
+    vec4 f2 = vec4(mix(c3, c4, 0.5));
+
+    vec4 c5 = texture2D_0(vec2(TexCoord.x - (amount * 2.0), TexCoord.y));
+    vec4 c6 = texture2D_0(vec2(TexCoord.x, TexCoord.y - (amount * 2.0)));
+    vec4 c7 = texture2D_0(vec2(TexCoord.x, TexCoord.y + (amount * 2.0)));
+    vec4 c8 = texture2D_0(vec2(TexCoord.x + (amount * 2.0), TexCoord.y));
+
+    vec4 f3 = vec4(mix(c5, c6, 0.5));
+    vec4 f4 = vec4(mix(c7, c8, 0.5));
+
+    vec4 r1 = vec4(mix(f1, f2, 0.5));
+    vec4 r2 = vec4(mix(f3, f4, 0.5));
+
+    gl_FragColor = vec4(mix(r1, r2, 0.5));
+
+
+}
+    ]]></FragmentShader>
+        </Shader>
+    </Shaders>
+    <Passes>
+        <Pass shader="main" input="[source]" output="[dest]"/>
+    </Passes>
+</Effect>
+
+

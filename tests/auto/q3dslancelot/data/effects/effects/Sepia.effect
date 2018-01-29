@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<Effect>
+	<!--Name of the effect is implicitly the file stem with extension -->
+	<!--Metadata stands for properties, events, and handlers and has the same format as the viewer's metadata file
+	and the data inserted at the top of lua files-->
+	<MetaData>
+		<!--Properties are automatically translated into the effect format when we generate the effect's GLSL file -->
+		<!--Colorizes the image to a faded brown color, simulating old film coloration.-->
+		<Property name="amount" formalName="Amount" min="0" max="1" default="1" description="0=no change to image, 1=full sepia effect." />
+	</MetaData>
+	<!-- default shader doesn't need to be named-->
+	<Shaders>
+		<!-- an implicit #include "effect.glsllib" is done at the top of all the produced shader files -->
+		<!-- Shared sections are pasted at the top of the files after the uniform declarations.  Here you put your
+		varying declarations as well as functions that all the shaders need to use-->
+		<!--Sepia doesn't share anything so all of the shared sections could be omitted and you would get the same
+		code-->
+		<Shared></Shared>
+		<!--Shared data that you want all vertex shaders to see -->
+		<VertexShaderShared></VertexShaderShared>
+		<!--Shared data that you all fragment shaders to see -->
+		<FragmentShaderShared></FragmentShaderShared>
+		<!-- shaders can have names.  No name means the shader gets its integer index as its name-->
+		<Shader name="main">
+			<!-- Shaders can also have Shared sections that are shared between the vertex and fragment shaders
+			of only precisely this shader-->
+			<!--no vertex shader or empty vertex shader means just output a vert(){} for the vertex shader-->
+			<VertexShader></VertexShader>
+			<FragmentShader><![CDATA[
+void frag()
+{
+	mat3 sepiaMat = mat3(0.0);
+	
+	sepiaMat[0][0] = 0.393;
+	sepiaMat[1][0] = 0.769;
+	sepiaMat[2][0] = 0.189;
+	
+	sepiaMat[0][1] = 0.349;
+	sepiaMat[1][1] = 0.686;
+	sepiaMat[2][1] = 0.168;
+	
+	sepiaMat[0][2] = 0.272;
+	sepiaMat[1][2] = 0.534;
+	sepiaMat[2][2] = 0.131;
+
+	vec4 origColor = texture2D_0(TexCoord);
+	vec3 sepiaColor = sepiaMat*origColor.rgb;
+	sepiaColor = clamp( sepiaColor.rgb, 0.0, origColor.a );
+	
+	colorOutput(vec4(mix( origColor.rgb, sepiaColor, amount ), origColor.a));
+}
+	]]></FragmentShader>
+		</Shader>
+	</Shaders>
+	<!-- if there is only one shader then we can assume there is only one pass and we can go from there -->
+	<!-- for this example, however, I am demonstrating the pass xml elements-->
+	<Passes>
+		<!-- single pass, input is the special source name and output is the special destination name which is assumed
+		for the last pass -->
+		<Pass shader="main" input="[source]" output="[dest]"/>
+	</Passes>
+</Effect>
+
+

@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<Effect>
+    <MetaData>
+        <Property formalName="Top Color" name="top_color" type="Color" default="0.65 0.35 0.15" description="Top color of the gradient."/>
+        <Property formalName="Bottom Color" name="bottom_color" type="Color" default="0.05 0.35 0.75" description="Bottom color of the gradient."/>
+    </MetaData>
+    <Shaders>
+        <Shared></Shared>
+        <VertexShaderShared></VertexShaderShared>
+        <FragmentShaderShared></FragmentShaderShared>
+        <Shader name="main">
+            <VertexShader></VertexShader>
+            <FragmentShader><![CDATA[
+
+void frag()
+{
+    vec4 origColor = texture2D_0(TexCoord);
+    vec2 uv = TexCoord.xy;
+
+    vec4 gradient = vec4(mix(vec4(bottom_color, 1.0), vec4(top_color, 1.0), uv.y));
+
+    gl_FragColor = origColor + gradient;
+}
+    ]]></FragmentShader>
+        </Shader>
+    </Shaders>
+    <Passes>
+        <Pass shader="main" input="[source]" output="[dest]"/>
+    </Passes>
+</Effect>
+
+

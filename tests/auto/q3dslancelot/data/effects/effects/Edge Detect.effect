@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<Effect>
+	<MetaData>
+		<!--Smooth, unchanging areas of the image are turned black, while areas of the image with sharp color changes are brightened to highlight the 'edges' in the image.-->
+		<Property name="amount" formalName="Amount" min="0" max="1" default="1" description="0=no effect, 1=maximum effect"/>
+	</MetaData>
+	<Shaders>
+		<Shared>
+////////////////////////////////////////////////////////////
+// vert / frag shaders.
+
+varying vec4 TexCoordBLL; //Bottom Left and Bottom Tap
+varying vec4 TexCoordTLT; //Top Left and Top Tap
+varying vec4 TexCoordTRR; //Upper Right and Right Tap
+varying vec4 TexCoordBRB; //Bottom Right and Bottom Tap
+		</Shared>
+		<Shader>
+			<VertexShader>
+void vert()
+{	
+	//Pass Through the Texture Taps
+	float deltax = 1.0/Texture0Info.x;
+	float deltay = 1.0/Texture0Info.y;
+	
+	//Bottom Left
+	TexCoordBLL.x = TexCoord.s - deltax;
+	TexCoordBLL.y = TexCoord.t - deltay;
+	
+	//Left
+	TexCoordBLL.z = TexCoord.s - deltax;
+	TexCoordBLL.w = TexCoord.t;
+	
+	//Top Left
+	TexCoordTLT.x = TexCoord.s - deltax;
+	TexCoordTLT.y = TexCoord.t + deltay;
+	
+	//Top
+	TexCoordTLT.z = TexCoord.s;
+	TexCoordTLT.w = TexCoord.t + deltay;
+	
+	//Upper Right
+	TexCoordTRR.x = TexCoord.s + deltax;
+	TexCoordTRR.y = TexCoord.t + deltay;
+	
+	//Right
+	TexCoordTRR.z = TexCoord.s + deltax;
+	TexCoordTRR.w = TexCoord.t;
+	
+	//Bottom Right
+	TexCoordBRB.x = TexCoord.s + deltax;
+	TexCoordBRB.y = TexCoord.t - deltay;
+	
+	//Bottom
+	TexCoordBRB.z = TexCoord.s;
+	TexCoordBRB.w = TexCoord.t - deltay;
+}
+			</VertexShader>
+			<FragmentShader>
+void frag (void)
+{	
+  vec4 centerTap = texture2D_0(TexCoord);
+  vec4 edgeTap = texture2D_0(TexCoordBLL.xy) +
+				   texture2D_0(TexCoordBLL.zw) +
+				   texture2D_0(TexCoordTLT.xy) +
+				   texture2D_0(TexCoordTLT.zw) +
+				   texture2D_0(TexCoordTRR.xy) +
+				   texture2D_0(TexCoordTRR.zw) +
+				   texture2D_0(TexCoordBRB.xy) +
+				   texture2D_0(TexCoordBRB.zw);
+  vec3 edgeDetect = 8.0*(centerTap.rgb + -0.125*edgeTap.rgb);
+  edgeDetect = clamp(edgeDetect, 0.0, centerTap.a);
+
+  colorOutput(vec4(mix(centerTap.rgb, edgeDetect, amount), centerTap.a));
+}
+			</FragmentShader>
+		</Shader>
+	</Shaders>
+</Effect>
+
+
+
