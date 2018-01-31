@@ -114,6 +114,24 @@ void Q3DSProfiler::trackNewObject(QObject *obj, ObjectType type, const char *inf
     }));
 }
 
+void Q3DSProfiler::reportTotalParseBuildTime(qint64 ms)
+{
+    m_totalParseBuildTime = ms;
+}
+
+void Q3DSProfiler::reportTimeAfterBuildUntilFirstFrameAction(qint64 ms)
+{
+    m_firstFrameActionTime = ms;
+}
+
+void Q3DSProfiler::registerSubPresentationProfiler(Q3DSPresentation *subPres, Q3DSProfiler *p)
+{
+    SubPresentationProfiler sp;
+    sp.presentation = subPres;
+    sp.profiler = p;
+    m_subPresProfilers.append(sp);
+}
+
 float Q3DSProfiler::cpuLoadForCurrentProcess()
 {
     if (!m_cpuLoadTimer.isValid()) {

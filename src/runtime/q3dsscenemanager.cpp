@@ -28,6 +28,7 @@
 ****************************************************************************/
 
 #include "q3dsscenemanager.h"
+#include "q3dsengine.h"
 #include "q3dsdefaultmaterialgenerator.h"
 #include "q3dscustommaterialgenerator.h"
 #include "q3dstextmaterialgenerator_p.h"
@@ -575,6 +576,7 @@ Q3DSSceneManager::Scene Q3DSSceneManager::buildScene(Q3DSPresentation *presentat
     if (QDir(projectFontDir).exists())
         m_textRenderer->registerFonts({ projectFontDir });
 
+    m_engine = params.engine;
     m_flags = params.flags;
 
     m_presentation = presentation;
@@ -715,6 +717,9 @@ Q3DSSceneManager::Scene Q3DSSceneManager::buildScene(Q3DSPresentation *presentat
     updateAnimations(m_masterSlide, nullptr, m_currentSlide);
     updateAnimations(m_currentSlide, nullptr, m_currentSlide);
 
+    // measure the time from the end of scene building to the invocation of the first frame action
+    m_frameUpdater->startTimeFirstFrame();
+
     return sc;
 }
 
@@ -728,6 +733,8 @@ Q3DSSceneManager::Scene Q3DSSceneManager::buildScene(Q3DSPresentation *presentat
  */
 void Q3DSSceneManager::finalizeMainScene(const QVector<Q3DSSubPresentation> &subPresentations)
 {
+    Q_ASSERT(!m_flags.testFlag(SubPresentation));
+
     m_subPresentations = subPresentations;
 
     for (Q3DSLayerNode *layer3DS : m_subPresLayers) {
@@ -749,6 +756,13 @@ void Q3DSSceneManager::finalizeMainScene(const QVector<Q3DSSubPresentation> &sub
 
     for (auto p : m_subPresImages)
         setImageTextureFromSubPresentation(p.first, p.second);
+
+    for (const Q3DSSubPresentation &subPres : m_subPresentations) {
+        if (!subPres.sceneManager)
+            continue;
+        m_profiler->registerSubPresentationProfiler(subPres.sceneManager->m_presentation,
+                                                    subPres.sceneManager->m_profiler);
+    }
 }
 
 static Qt3DRender::QSortPolicy *opaquePassSortPolicy(Qt3DCore::QNode *parent = nullptr)
@@ -5787,6 +5801,20 @@ void Q3DSSceneManager::setAnimationsRunning(Q3DSSlide *slide, bool running)
 
 void Q3DSFrameUpdater::frameAction(float dt)
 {
+    if (m_firstFrameAction) {
+        m_firstFrameAction = false;
+        m_sceneManager->m_firstFrameActionTime = m_firstFrameActionTimer.elapsed();
+        qCDebug(lcScene, "Presentation %s: Time from the end of Qt3D scene building until first frame action: %lld ms",
+                qPrintable(m_sceneManager->m_presentation->sourceFile()), m_sceneManager->m_firstFrameActionTime);
+        // Now it's time to push all timing data to the profiler.
+        m_sceneManager->m_profiler->reportTimeAfterBuildUntilFirstFrameAction(m_sceneManager->m_firstFrameActionTime);
+        if (!m_sceneManager->m_flags.testFlag(Q3DSSceneManager::SubPresentation)) {
+            // total parse/build time is taken from the main presentation (since
+            // the time includes all subpresentations too)
+            m_sceneManager->m_profiler->reportTotalParseBuildTime(m_sceneManager->m_engine->totalLoadTimeMsecs());
+        }
+    }
+
     static const bool animDebug = qEnvironmentVariableIntValue("Q3DS_DEBUG") >= 3;
     if (Q_UNLIKELY(animDebug))
         qDebug().nospace() << "frame action " << m_frameCounter << ", delta=" << dt << ", applying animations and updating nodes";

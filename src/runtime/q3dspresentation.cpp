@@ -2054,6 +2054,11 @@ void Q3DSPresentation::setMasterSlide(Q3DSSlide *p)
     d->masterSlide = p;
 }
 
+void Q3DSPresentation::setLoadTime(qint64 ms)
+{
+    d->loadTime = ms;
+}
+
 void Q3DSPresentation::registerImageBuffer(const QString &sourcePath, bool hasTransparency)
 {
     d->imageBuffers[sourcePath] = hasTransparency;
@@ -2118,6 +2123,11 @@ MeshList Q3DSPresentation::mesh(const QString &assetFilename, int part)
 const Q3DSPresentation::ImageBufferMap &Q3DSPresentation::imageBuffer() const
 {
     return d->imageBuffers;
+}
+
+qint64 Q3DSPresentation::loadTimeMsecs() const
+{
+    return d->loadTime;
 }
 
 void Q3DSPresentation::applySlidePropertyChanges(Q3DSSlide *slide) const

@@ -217,6 +217,11 @@ QString Q3DSEngine::source() const
     return m_source;
 }
 
+qint64 Q3DSEngine::totalLoadTimeMsecs() const
+{
+    return m_loadTime;
+}
+
 void Q3DSEngine::setFlags(Flags flags)
 {
     // applies to the next setSource()
@@ -235,6 +240,9 @@ bool Q3DSEngine::setSource(const QString &uipOrUiaFileName)
         Q3DSUtils::showMessage("setSource: Cannot be called without setSurface");
         return false;
     }
+
+    QElapsedTimer sourceLoadTimer;
+    sourceLoadTimer.start();
 
     // no check for m_source being the same - must reload no matter what
 
@@ -321,6 +329,9 @@ bool Q3DSEngine::setSource(const QString &uipOrUiaFileName)
     if (m_aspectEngine.isNull())
         createAspectEngine();
 
+    m_loadTime = sourceLoadTimer.elapsed();
+    qCDebug(lcUip, "Total setSource time (incl. subpresentations + Qt3D scene building): %lld ms", m_loadTime);
+
     emit presentationLoaded();
     return true;
 }
@@ -402,6 +413,7 @@ bool Q3DSEngine::loadPresentation(Presentation *pres)
     params.outputSize = effectiveSize;
     params.outputDpr = effectiveDpr;
     params.surface = m_surface;
+    params.engine = this;
 
     QScopedPointer<Q3DSSceneManager> sceneManager(new Q3DSSceneManager(gfxLimits));
     pres->q3dscene = sceneManager->buildScene(pres->uipDocument->presentation(), params);

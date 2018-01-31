@@ -94,10 +94,25 @@ public:
 
     const QMultiMap<ObjectType, ObjectData> *objectData() const { return &m_objectData; }
 
+    void reportTotalParseBuildTime(qint64 ms);
+    qint64 totalParseBuildTime() const { return m_totalParseBuildTime; }
+    void reportTimeAfterBuildUntilFirstFrameAction(qint64 ms);
+    qint64 timeAfterBuildUntilFirstFrameAction() const { return m_firstFrameActionTime; }
+
+    struct SubPresentationProfiler {
+        Q3DSProfiler *profiler = nullptr;
+        Q3DSPresentation *presentation = nullptr;
+    };
+    void registerSubPresentationProfiler(Q3DSPresentation *subPres, Q3DSProfiler *p);
+    const QVector<SubPresentationProfiler> *subPresentationProfilers() const { return &m_subPresProfilers; }
+
     const Q3DSGraphicsLimits *graphicsLimits() const { return &m_gfxLimits; }
 
     const Q3DSPresentation *presentation() const { return m_presentation; }
     Q3DSPresentation *presentation() { return m_presentation; }
+
+    // note that we do not expose the scene manager to the profile ui. instead,
+    // such data is expected to be mediated through the profiler object.
 
     float cpuLoadForCurrentProcess();
     QPair<qint64, qint64> memUsageForCurrentProcess();
@@ -110,6 +125,9 @@ private:
     QVector<QMetaObject::Connection> m_objectDestroyConnections;
     Q3DSSceneManager *m_sceneManager = nullptr;
     Q3DSPresentation *m_presentation = nullptr;
+    qint64 m_totalParseBuildTime = 0;
+    qint64 m_firstFrameActionTime = 0;
+    QVector<SubPresentationProfiler> m_subPresProfilers;
 
     QElapsedTimer m_cpuLoadTimer;
     float m_lastCpuLoad = 0;
@@ -130,6 +148,7 @@ private:
 
 Q_DECLARE_TYPEINFO(Q3DSProfiler::FrameData, Q_MOVABLE_TYPE);
 Q_DECLARE_TYPEINFO(Q3DSProfiler::ObjectData, Q_MOVABLE_TYPE);
+Q_DECLARE_TYPEINFO(Q3DSProfiler::SubPresentationProfiler, Q_MOVABLE_TYPE);
 
 inline bool operator==(const Q3DSProfiler::ObjectData &lhs, const Q3DSProfiler::ObjectData &rhs) Q_DECL_NOTHROW
 {

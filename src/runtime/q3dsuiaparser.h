@@ -50,6 +50,7 @@ public:
 
         QVector<Presentation> presentations;
         QString initialPresentationId;
+        qint64 loadTimeMsecs = 0;
 
         bool isValid() const { return !presentations.isEmpty(); }
     };

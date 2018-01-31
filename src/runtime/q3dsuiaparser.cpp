@@ -56,7 +56,8 @@ Q3DSUiaParser::Uia Q3DSUiaParser::parse(const QString &filename)
         return invalidUia;
     }
 
-    qCDebug(lcUip, "%s loaded in %lld ms", qPrintable(filename), elapsedSinceSetSource());
+    m_uia.loadTimeMsecs = elapsedSinceSetSource();
+    qCDebug(lcUip, "%s loaded in %lld ms", qPrintable(filename), m_uia.loadTimeMsecs);
     return m_uia;
 }
 

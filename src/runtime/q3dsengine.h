@@ -73,6 +73,7 @@ public:
 
     bool setSource(const QString &uipOrUiaFileName);
     QString source() const;
+    qint64 totalLoadTimeMsecs() const;
 
     bool setSourceData(const QByteArray &data);
 
@@ -145,6 +146,7 @@ private:
     QVector<Presentation> m_presentations;
     QVector<QmlPresentation> m_qmlPresentations;
     QScopedPointer<QQmlEngine> m_qmlEngine;
+    qint64 m_loadTime = 0;
 
     QScopedPointer<Qt3DCore::QAspectEngine> m_aspectEngine;
 

@@ -123,7 +123,9 @@ Q3DSPresentation *Q3DSUipParser::createPresentation()
 
     resolveReferences(m_presentation->scene());
 
-    qCDebug(lcUip, "Presentation loaded in %lld ms", elapsedSinceSetSource());
+    qint64 loadTime = elapsedSinceSetSource();
+    qCDebug(lcUip, "Presentation %s loaded in %lld ms", qPrintable(m_presentation->sourceFile()), loadTime);
+    m_presentation->setLoadTime(loadTime);
 
     return m_presentation.take();
 }

@@ -36,6 +36,7 @@
 #include <QtCore/qdebug.h>
 #include <QWindow>
 #include <QStack>
+#include <QElapsedTimer>
 
 QT_BEGIN_NAMESPACE
 
@@ -48,6 +49,7 @@ class Q3DSCustomMaterialGenerator;
 class Q3DSTextMaterialGenerator;
 class Q3DSProfiler;
 class Q3DSProfileUi;
+class Q3DSEngine;
 
 namespace Qt3DCore {
 class QEntity;
@@ -483,6 +485,7 @@ public:
         qreal outputDpr = 1;
         QObject *surface = nullptr; // null for subpresentations that go into a texture
         Qt3DRender::QFrameGraphNode *frameGraphRoot = nullptr; // when !window
+        Q3DSEngine *engine = nullptr;
     };
 
     struct Scene {
@@ -655,6 +658,7 @@ private:
 
     Q3DSGraphicsLimits m_gfxLimits;
     SceneBuilderFlags m_flags = SceneBuilderFlags();
+    Q3DSEngine *m_engine;
     Q3DSPresentation *m_presentation;
     QSize m_presentationSize;
     Q3DSScene *m_scene;
@@ -683,6 +687,7 @@ private:
     Q3DSProfileUi *m_profileUi = nullptr;
     QSize m_outputPixelSize;
     QVector<std::function<void()> > m_compositorOutputSizeChangeCallbacks;
+    qint64 m_firstFrameActionTime = 0;
 
     friend class Q3DSFrameUpdater;
     friend class Q3DSProfiler;
@@ -698,13 +703,15 @@ class Q3DSFrameUpdater : public QObject
 {
 public:
     Q3DSFrameUpdater(Q3DSSceneManager *manager) : m_sceneManager(manager) { }
-
     void frameAction(float dt);
     qint64 frameCounter() const { return m_frameCounter; }
+    void startTimeFirstFrame() { m_firstFrameActionTimer.start(); }
 
 private:
     Q3DSSceneManager *m_sceneManager;
     qint64 m_frameCounter = 0;
+    QElapsedTimer m_firstFrameActionTimer;
+    bool m_firstFrameAction = true;
 };
 
 Q3DSV_EXPORT QDebug operator<<(QDebug dbg, const Q3DSSceneManager::SceneBuilderParams &p);

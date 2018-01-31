@@ -1354,6 +1354,8 @@ public:
 
     void applySlidePropertyChanges(Q3DSSlide *slide) const;
 
+    qint64 loadTimeMsecs() const;
+
 private:
     Q_DISABLE_COPY(Q3DSPresentation)
 
@@ -1366,6 +1368,7 @@ private:
     void setMaintainAspectRatio(bool b);
     void setScene(Q3DSScene *p);
     void setMasterSlide(Q3DSSlide *p);
+    void setLoadTime(qint64 ms);
     void registerImageBuffer(const QString &sourcePath, bool hasTransparency);
     void registerObject(const QByteArray &id, Q3DSGraphObject *p);
     bool loadCustomMaterial(const QStringRef &id, const QStringRef &name, const QString &assetFilename);
@@ -1384,6 +1387,7 @@ struct Q3DSPresentationData
     int presentationHeight = 0;
     Q3DSPresentation::Rotation presentationRotation = Q3DSPresentation::NoRotation;
     bool maintainAspectRatio = false;
+    qint64 loadTime = 0;
 
     Q3DSScene *scene = nullptr;
     Q3DSSlide *masterSlide = nullptr;
