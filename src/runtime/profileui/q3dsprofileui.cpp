@@ -149,15 +149,19 @@ void Q3DSProfileView::frame()
     }
 
     if (ImGui::CollapsingHeader("Perf. stats")) {
-        ImGui::Text("Total parse/build time: %u ms", (uint) m_profiler->totalParseBuildTime());
+        qint64 totalTime = m_profiler->totalParseBuildTime();
+        ImGui::Text("Combined parse/build time: %u ms", (uint) m_profiler->totalParseBuildTime());
         ImGui::Text("Time from build to first frame callback:");
         ImGui::Text("  main - %u ms", (uint) m_profiler->timeAfterBuildUntilFirstFrameAction());
+        totalTime += m_profiler->timeAfterBuildUntilFirstFrameAction();
         auto sp = m_profiler->subPresentationProfilers();
         for (const Q3DSProfiler::SubPresentationProfiler &p : *sp) {
             const QString fn = QFileInfo(p.presentation->sourceFile()).fileName();
             ImGui::Text("  %s - %u ms",
                         qPrintable(fn), (uint) p.profiler->timeAfterBuildUntilFirstFrameAction());
+            totalTime += p.profiler->timeAfterBuildUntilFirstFrameAction();
         }
+        ImGui::Text("Total: %u ms", (uint) totalTime);
         ImGui::Separator();
         const QVector<Q3DSProfiler::FrameData> *frameData = m_profiler->frameData();
         const Q3DSProfiler::FrameData *lastFrameData = !frameData->isEmpty() ? &frameData->last() : nullptr;
