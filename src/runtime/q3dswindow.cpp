@@ -30,6 +30,8 @@
 #include "q3dswindow.h"
 #include "q3dsengine.h"
 
+QT_BEGIN_NAMESPACE
+
 Q3DSWindow::Q3DSWindow(QWindow *parent)
     : QWindow(parent)
 {
