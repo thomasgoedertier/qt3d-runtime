@@ -31,6 +31,7 @@
 #include "q3dsuiaparser_p.h"
 #include "q3dsuipparser_p.h"
 #include "q3dsutils_p.h"
+#include "q3dsinputmanager_p.h"
 
 #include <QLoggingCategory>
 #include <QKeyEvent>
@@ -56,6 +57,7 @@
 #include <Qt3DRender/QRenderTarget>
 #include <Qt3DRender/QTexture>
 #include <Qt3DRender/QRenderCapture>
+#include <Qt3DRender/QScreenRayCaster>
 
 #include <Qt3DInput/QInputSettings>
 
@@ -637,6 +639,9 @@ bool Q3DSEngine::buildUipPresentationScene(UipPresentation *pres)
     pres->q3dscene.frameGraphRoot = m_capture;
     pres->q3dscene.renderSettings->setActiveFrameGraph(pres->q3dscene.frameGraphRoot);
 
+    // Setup picking backend
+    pres->q3dscene.renderSettings->pickingSettings()->setPickMethod(Qt3DRender::QPickingSettings::PrimitivePicking);
+
     // Set new root entity if the engine was already up and running.
     if (!m_aspectEngine.isNull())
         m_aspectEngine->setRootEntity(Qt3DCore::QEntityPtr(pres->q3dscene.rootEntity));
@@ -1086,16 +1091,34 @@ void Q3DSEngine::handleKeyReleaseEvent(QKeyEvent *e)
 void Q3DSEngine::handleMousePressEvent(QMouseEvent *e)
 {
     QCoreApplication::sendEvent(&m_profileUiEventSource, e);
+
+    if (m_uipPresentations.isEmpty())
+        return;
+
+    auto inputManager = m_uipPresentations[0].sceneManager->inputManager();
+    inputManager->handleMousePressEvent(e);
 }
 
 void Q3DSEngine::handleMouseMoveEvent(QMouseEvent *e)
 {
     QCoreApplication::sendEvent(&m_profileUiEventSource, e);
+
+    if (m_uipPresentations.isEmpty())
+        return;
+
+    auto inputManager = m_uipPresentations[0].sceneManager->inputManager();
+    inputManager->handleMouseMoveEvent(e);
 }
 
 void Q3DSEngine::handleMouseReleaseEvent(QMouseEvent *e)
 {
     QCoreApplication::sendEvent(&m_profileUiEventSource, e);
+
+    if (m_uipPresentations.isEmpty())
+        return;
+
+    auto inputManager = m_uipPresentations[0].sceneManager->inputManager();
+    inputManager->handleMouseReleaseEvent(e);
 }
 
 void Q3DSEngine::handleMouseDoubleClickEvent(QMouseEvent *e)

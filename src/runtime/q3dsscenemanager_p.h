@@ -64,6 +64,7 @@ class Q3DSProfileUi;
 class Q3DSEngine;
 class Q3DSMesh;
 class Q3DSSlidePlayer;
+class Q3DSInputManager;
 
 namespace Qt3DCore {
 class QEntity;
@@ -93,6 +94,7 @@ class QRenderTarget;
 class QTechnique;
 class QFilterKey;
 class QRenderState;
+class QRayCaster;
 }
 
 namespace Qt3DExtras {
@@ -225,6 +227,7 @@ public:
     Qt3DRender::QBuffer *nonAreaLightsConstantBuffer = nullptr;
     Qt3DRender::QBuffer *areaLightsConstantBuffer = nullptr;
     Qt3DRender::QParameter *lightAmbientTotalParamenter = nullptr;
+    Qt3DRender::QRayCaster *layerRayCaster = nullptr;
 
     struct DepthTextureData {
         bool enabled = false;
@@ -599,6 +602,8 @@ public:
     void setProfileUiInputEventSource(QObject *obj);
     void configureProfileUi(float scale);
 
+    Q3DSInputManager *inputManager() { return m_inputManager; }
+
     // for testing from the viewer - to be moved private later
     void setDepthTextureEnabled(Q3DSLayerNode *layer3DS, bool enabled);
     void rebuildModelMaterial(Q3DSModelNode *model3DS);
@@ -742,10 +747,12 @@ private:
     qint64 m_firstFrameActionTime = 0;
     QMutex m_logMutex;
     Q3DSSlidePlayer *m_slidePlayer = nullptr;
+    Q3DSInputManager *m_inputManager = nullptr;
 
     friend class Q3DSFrameUpdater;
     friend class Q3DSProfiler;
     friend class Q3DSSlidePlayer;
+    friend class Q3DSInputManager;
 };
 
 Q_DECLARE_OPERATORS_FOR_FLAGS(Q3DSSceneManager::SceneBuilderFlags)

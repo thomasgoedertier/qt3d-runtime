@@ -41,6 +41,7 @@
 #if QT_CONFIG(q3ds_profileui)
 #include "profileui/q3dsprofileui_p.h"
 #endif
+#include "q3dsinputmanager_p.h"
 
 #include <QDir>
 #include <QLoggingCategory>
@@ -88,6 +89,7 @@
 #include <Qt3DRender/QStencilMask>
 #include <Qt3DRender/QStencilOperation>
 #include <Qt3DRender/QStencilOperationArguments>
+#include <Qt3DRender/QRayCaster>
 
 #include <Qt3DAnimation/QClipAnimator>
 #include <Qt3DAnimation/qclock.h>
@@ -430,7 +432,8 @@ Q3DSSceneManager::Q3DSSceneManager(const Q3DSGraphicsLimits &limits)
       m_textMatGen(new Q3DSTextMaterialGenerator),
       m_textRenderer(new Q3DSTextRenderer),
       m_profiler(new Q3DSProfiler(limits)),
-      m_slidePlayer(new Q3DSSlidePlayer(this))
+      m_slidePlayer(new Q3DSSlidePlayer(this)),
+      m_inputManager(new Q3DSInputManager(this))
 {
     const QString fontDir = Q3DSUtils::resourcePrefix() + QLatin1String("res/Font");
     m_textRenderer->registerFonts({ fontDir });
@@ -449,6 +452,7 @@ Q3DSSceneManager::~Q3DSSceneManager()
     delete m_matGen;
     delete m_frameUpdater;
     delete m_profiler;
+    delete m_inputManager;
 }
 
 bool operator==(const Q3DSLayerAttached::SizeManagedTexture &a, const Q3DSLayerAttached::SizeManagedTexture &b)
@@ -1063,6 +1067,15 @@ void Q3DSSceneManager::buildLayer(Q3DSLayerNode *layer3DS,
         buildLayerScene(obj, layer3DS, layerSceneRootEntity);
         obj = obj->nextSibling();
     }
+
+    // Setup picking for layer
+    auto rayCaster = new Qt3DRender::QRayCaster(layerSceneRootEntity);
+    rayCaster->setFilterMode(Qt3DRender::QAbstractRayCaster::AcceptAnyMatchingLayers);
+    rayCaster->addLayer(layerData->opaqueTag);
+    rayCaster->addLayer(layerData->transparentTag);
+    rayCaster->setRunMode(Qt3DRender::QAbstractRayCaster::SingleShot);
+    layerSceneRootEntity->addComponent(rayCaster);
+    layerData->layerRayCaster = rayCaster;
 
     // Find the active camera for this layer and set it up
     setActiveLayerCamera(findFirstCamera(layer3DS), layer3DS);
