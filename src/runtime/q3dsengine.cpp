@@ -244,7 +244,7 @@ void Q3DSEngine::setFlag(Flag flag, bool enabled)
 bool Q3DSEngine::setSource(const QString &uipOrUiaFileName)
 {
     if (!m_surface) {
-        Q3DSUtils::showMessage("setSource: Cannot be called without setSurface");
+        Q3DSUtils::showMessage(tr("setSource: Cannot be called without setSurface"));
         return false;
     }
 
@@ -346,7 +346,7 @@ bool Q3DSEngine::setSource(const QString &uipOrUiaFileName)
 bool Q3DSEngine::setSourceData(const QByteArray &data)
 {
     if (!m_surface) {
-        Q3DSUtils::showMessage("setSourceData: Cannot be called without setSurface");
+        Q3DSUtils::showMessage(tr("setSourceData: Cannot be called without setSurface"));
         return false;
     }
 
