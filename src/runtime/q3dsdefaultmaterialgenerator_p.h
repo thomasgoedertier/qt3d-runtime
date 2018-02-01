@@ -42,6 +42,7 @@
 //
 
 #include "q3dsscenemanager_p.h"
+#include "shadergenerator/q3dsshaderprogramgenerator_p.h"
 
 QT_BEGIN_NAMESPACE
 
@@ -61,6 +62,7 @@ public:
 
     static void addDefaultApiFilter(Qt3DRender::QTechnique *technique, bool *isGLES = nullptr);
     static bool hasCompute();
+    static void fillFeatureSet(Q3DSShaderFeatureSet *features, Q3DSLayerAttached *layerData);
 };
 
 QT_END_NAMESPACE
