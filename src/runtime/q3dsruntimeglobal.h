@@ -31,6 +31,7 @@
 #define Q3DSRUNTIMEGLOBAL_H
 
 #include <qglobal.h>
+#include <QSurfaceFormat>
 
 QT_BEGIN_NAMESPACE
 
@@ -39,6 +40,10 @@ QT_BEGIN_NAMESPACE
 #else
 #define Q3DSV_EXPORT Q_DECL_IMPORT
 #endif
+
+namespace Q3DS {
+Q3DSV_EXPORT QSurfaceFormat surfaceFormat();
+}
 
 QT_END_NAMESPACE
 

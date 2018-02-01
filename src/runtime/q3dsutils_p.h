@@ -41,14 +41,14 @@
 // We mean it.
 //
 
-#include <Qt3DStudioRuntime2/q3dsruntimeglobal.h>
+#include "q3dsruntimeglobal_p.h"
 #include <QString>
 
 QT_BEGIN_NAMESPACE
 
 class Q3DSGraphObject;
 
-class Q3DSV_EXPORT Q3DSUtils
+class Q3DSV_PRIVATE_EXPORT Q3DSUtils
 {
 public:
     static void setDialogsEnabled(bool enable);

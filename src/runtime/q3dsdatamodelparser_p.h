@@ -41,14 +41,14 @@
 // We mean it.
 //
 
-#include <Qt3DStudioRuntime2/q3dsabstractxmlparser.h>
-#include <Qt3DStudioRuntime2/q3dspresentation.h>
-#include <Qt3DStudioRuntime2/q3dspresentationcommon.h>
+#include "q3dsabstractxmlparser_p.h"
+#include "q3dspresentation_p.h"
+#include "q3dspresentationcommon_p.h"
 #include <QDebug>
 
 QT_BEGIN_NAMESPACE
 
-class Q3DSV_EXPORT Q3DSDataModelParser : public Q3DSAbstractXmlParser
+class Q3DSV_PRIVATE_EXPORT Q3DSDataModelParser : public Q3DSAbstractXmlParser
 {
 public:
     struct Property

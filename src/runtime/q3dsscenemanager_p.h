@@ -27,11 +27,22 @@
 **
 ****************************************************************************/
 
-#ifndef Q3DSSCENEBUILDER_H
-#define Q3DSSCENEBUILDER_H
+#ifndef Q3DSSCENEMANAGER_P_H
+#define Q3DSSCENEMANAGER_P_H
 
-#include <Qt3DStudioRuntime2/q3dspresentation.h>
-#include <Qt3DStudioRuntime2/q3dsgraphicslimits.h>
+//
+//  W A R N I N G
+//  -------------
+//
+// This file is not part of the Qt API.  It exists purely as an
+// implementation detail.  This header file may change from version to
+// version without notice, or even be removed.
+//
+// We mean it.
+//
+
+#include "q3dspresentation_p.h"
+#include "q3dsgraphicslimits_p.h"
 
 #include <QtCore/qdebug.h>
 #include <QWindow>
@@ -469,7 +480,7 @@ struct Q3DSGuiData
     qreal outputDpr = 1;
 };
 
-class Q3DSV_EXPORT Q3DSSceneManager
+class Q3DSV_PRIVATE_EXPORT Q3DSSceneManager
 {
 public:
     enum SceneBuilderFlag {
@@ -714,8 +725,8 @@ private:
     bool m_firstFrameAction = true;
 };
 
-Q3DSV_EXPORT QDebug operator<<(QDebug dbg, const Q3DSSceneManager::SceneBuilderParams &p);
+Q3DSV_PRIVATE_EXPORT QDebug operator<<(QDebug dbg, const Q3DSSceneManager::SceneBuilderParams &p);
 
 QT_END_NAMESPACE
 
-#endif // Q3DSSCENEBUILDER_H
+#endif // Q3DSSCENEMANAGER_P_H

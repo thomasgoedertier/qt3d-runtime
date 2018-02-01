@@ -27,7 +27,7 @@
 **
 ****************************************************************************/
 
-#include "q3dsmesh.h"
+#include "q3dsmesh_p.h"
 #include <QDebug>
 
 QT_BEGIN_NAMESPACE

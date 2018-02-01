@@ -27,23 +27,31 @@
 **
 ****************************************************************************/
 
-#ifndef Q3DSGRAPHICSLIMITS_H
-#define Q3DSGRAPHICSLIMITS_H
+#ifndef Q3DSMESH_P_H
+#define Q3DSMESH_P_H
 
-#include <QByteArray>
+//
+//  W A R N I N G
+//  -------------
+//
+// This file is not part of the Qt API.  It exists purely as an
+// implementation detail.  This header file may change from version to
+// version without notice, or even be removed.
+//
+// We mean it.
+//
+
+#include <Qt3DRender/QGeometryRenderer>
 
 QT_BEGIN_NAMESPACE
 
-struct Q3DSGraphicsLimits {
-    int maxDrawBuffers = 4;
-    bool multisampleTextureSupported = false;
-    QByteArray renderer;
-    QByteArray vendor;
-    QByteArray version;
+class Q3DSMesh : public Qt3DRender::QGeometryRenderer
+{
+public:
+    Q3DSMesh(Qt3DCore::QNode *parent = nullptr);
+    ~Q3DSMesh();
 };
-
-Q_DECLARE_TYPEINFO(Q3DSGraphicsLimits, Q_MOVABLE_TYPE);
 
 QT_END_NAMESPACE
 
-#endif
+#endif // Q3DSMESH_P_H

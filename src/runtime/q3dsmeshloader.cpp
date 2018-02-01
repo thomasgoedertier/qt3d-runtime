@@ -28,7 +28,7 @@
 **
 ****************************************************************************/
 
-#include "q3dsmeshloader.h"
+#include "q3dsmeshloader_p.h"
 #include <Qt3DRender/QGeometry>
 #include <QtCore/QMap>
 #include <QtCore/QFile>

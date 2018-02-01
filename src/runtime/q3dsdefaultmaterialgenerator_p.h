@@ -27,45 +27,42 @@
 **
 ****************************************************************************/
 
-#ifndef Q3DSUIPPARSER_H
-#define Q3DSUIPPARSER_H
+#ifndef Q3DSDEFAULTMATERIALGENERATOR_P_H
+#define Q3DSDEFAULTMATERIALGENERATOR_P_H
 
-#include <Qt3DStudioRuntime2/q3dsruntimeglobal.h>
-#include <Qt3DStudioRuntime2/q3dsabstractxmlparser.h>
-#include <Qt3DStudioRuntime2/q3dspresentation.h>
+//
+//  W A R N I N G
+//  -------------
+//
+// This file is not part of the Qt API.  It exists purely as an
+// implementation detail.  This header file may change from version to
+// version without notice, or even be removed.
+//
+// We mean it.
+//
+
+#include "q3dsscenemanager_p.h"
 
 QT_BEGIN_NAMESPACE
 
-class Q3DSV_EXPORT Q3DSUipParser : public Q3DSAbstractXmlParser
+namespace Qt3DRender {
+class QParameter;
+class QMaterial;
+class QTechnique;
+}
+
+class Q3DSDefaultMaterialGenerator
 {
 public:
-    Q3DSPresentation *parse(const QString &filename);
-    Q3DSPresentation *parseData(const QByteArray &data);
+    Qt3DRender::QMaterial *generateMaterial(Q3DSDefaultMaterial *defaultMaterial,
+                                            const QVector<Qt3DRender::QParameter *> &params,
+                                            const QVector<Q3DSLightNode *> &lights,
+                                            Q3DSLayerNode *layer3DS);
 
-private:
-    Q3DSPresentation *createPresentation();
-    void parseUIP();
-    void parseProject();
-    void parseProjectSettings();
-    void parseClasses();
-    void parseCustomMaterial();
-    void parseEffect();
-    void parseBufferData();
-    void parseImageBuffer();
-    void parseGraph();
-    void parseScene();
-    void parseObjects(Q3DSGraphObject *parent);
-    void parseLogic();
-    Q3DSSlide *parseSlide(Q3DSSlide *parent = nullptr, const QByteArray &idPrefix = QByteArray());
-    void parseAddSet(Q3DSSlide *slide, bool isSet, bool isMaster);
-    void parseAnimationKeyFrames(const QString &data, Q3DSAnimationTrack *animTrack);
-
-    QByteArray getId(const QStringRef &desc, bool required = true);
-    void resolveReferences(Q3DSGraphObject *obj);
-
-    QScopedPointer<Q3DSPresentation> m_presentation;
+    static void addDefaultApiFilter(Qt3DRender::QTechnique *technique, bool *isGLES = nullptr);
+    static bool hasCompute();
 };
 
 QT_END_NAMESPACE
 
-#endif
+#endif // Q3DSDEFAULTMATERIALGENERATOR_P_H

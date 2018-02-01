@@ -27,12 +27,12 @@
 **
 ****************************************************************************/
 
-#include "q3dsscenemanager.h"
-#include "q3dsengine.h"
-#include "q3dsdefaultmaterialgenerator.h"
-#include "q3dscustommaterialgenerator.h"
+#include "q3dsscenemanager_p.h"
+#include "q3dsengine_p.h"
+#include "q3dsdefaultmaterialgenerator_p.h"
+#include "q3dscustommaterialgenerator_p.h"
 #include "q3dstextmaterialgenerator_p.h"
-#include "q3dsanimationmanager.h"
+#include "q3dsanimationmanager_p.h"
 #include "q3dstextrenderer_p.h"
 #include "q3dsutils_p.h"
 #include "q3dsprofiler_p.h"

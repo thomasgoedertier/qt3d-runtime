@@ -29,31 +29,33 @@ SOURCES += \
     q3dscustommaterialgenerator.cpp
 
 HEADERS += \
-    q3dsuipparser.h \
-    q3dsabstractxmlparser.h \
+    q3dsruntimeglobal.h \
+    q3dsruntimeglobal_p.h \
+    q3dsuipparser_p.h \
+    q3dsabstractxmlparser_p.h \
     q3dsutils_p.h \
-    q3dsmeshloader.h \
-    q3dspresentation.h \
+    q3dsmeshloader_p.h \
+    q3dspresentation_p.h \
     q3dsenummaps_p.h \
-    q3dsmesh.h \
-    q3dscustommaterial.h \
-    q3dsmaterial.h \
-    q3dseffect.h \
+    q3dsmesh_p.h \
+    q3dscustommaterial_p.h \
+    q3dsmaterial_p.h \
+    q3dseffect_p.h \
     q3dsdatamodelparser_p.h \
     q3dsgraphexplorer_p.h \
-    q3dspresentationcommon.h \
-    q3dsdefaultmaterialgenerator.h \
+    q3dspresentationcommon_p.h \
+    q3dsdefaultmaterialgenerator_p.h \
     q3dstextrenderer_p.h \
     q3dstextmaterialgenerator_p.h \
-    q3dsgraphicslimits.h \
-    q3dsengine.h \
-    q3dswindow.h \
-    q3dsuipdocument.h \
-    q3dsscenemanager.h \
-    q3dsanimationmanager.h \
-    q3dsuiaparser.h \
+    q3dsgraphicslimits_p.h \
+    q3dsengine_p.h \
+    q3dswindow_p.h \
+    q3dsuipdocument_p.h \
+    q3dsscenemanager_p.h \
+    q3dsanimationmanager_p.h \
+    q3dsuiaparser_p.h \
     q3dsprofiler_p.h \
-    q3dscustommaterialgenerator.h
+    q3dscustommaterialgenerator_p.h
 
 RESOURCES += \
     q3dsres.qrc

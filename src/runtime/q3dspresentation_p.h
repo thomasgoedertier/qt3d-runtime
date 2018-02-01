@@ -27,13 +27,24 @@
 **
 ****************************************************************************/
 
-#ifndef Q3DSPRESENTATION_H
-#define Q3DSPRESENTATION_H
+#ifndef Q3DSPRESENTATION_P_H
+#define Q3DSPRESENTATION_P_H
 
-#include <Qt3DStudioRuntime2/q3dsruntimeglobal.h>
-#include <Qt3DStudioRuntime2/q3dscustommaterial.h>
-#include <Qt3DStudioRuntime2/q3dseffect.h>
-#include <Qt3DStudioRuntime2/q3dsmeshloader.h>
+//
+//  W A R N I N G
+//  -------------
+//
+// This file is not part of the Qt API.  It exists purely as an
+// implementation detail.  This header file may change from version to
+// version without notice, or even be removed.
+//
+// We mean it.
+//
+
+#include "q3dsruntimeglobal_p.h"
+#include "q3dscustommaterial_p.h"
+#include "q3dseffect_p.h"
+#include "q3dsmeshloader_p.h"
 #include <QString>
 #include <QVector>
 #include <QSet>
@@ -68,7 +79,7 @@ class QAnimationCallback;
 class Q3DSGraphObject;
 class Q3DSSlide;
 
-class Q3DSV_EXPORT Q3DSPropertyChange
+class Q3DSV_PRIVATE_EXPORT Q3DSPropertyChange
 {
 public:
     Q3DSPropertyChange() = default;
@@ -88,7 +99,7 @@ private:
     QString m_value;
 };
 
-class Q3DSV_EXPORT Q3DSPropertyChangeList
+class Q3DSV_PRIVATE_EXPORT Q3DSPropertyChangeList
 {
 public:
     typedef const Q3DSPropertyChange *const_iterator;
@@ -131,7 +142,7 @@ private:
 
 Q_DECLARE_OPERATORS_FOR_FLAGS(Q3DSPropertyChangeList::Flags)
 
-class Q3DSV_EXPORT Q3DSGraphObjectAttached
+class Q3DSV_PRIVATE_EXPORT Q3DSGraphObjectAttached
 {
 public:
     virtual ~Q3DSGraphObjectAttached();
@@ -173,7 +184,7 @@ public:
 
 Q_DECLARE_OPERATORS_FOR_FLAGS(Q3DSGraphObjectAttached::DirtyFlags)
 
-class Q3DSV_EXPORT Q3DSGraphObject
+class Q3DSV_PRIVATE_EXPORT Q3DSGraphObject
 {
 public:
     enum Type {
@@ -269,7 +280,7 @@ private:
 
 Q_DECLARE_OPERATORS_FOR_FLAGS(Q3DSGraphObject::PropSetFlags)
 
-class Q3DSV_EXPORT Q3DSScene : public Q3DSGraphObject
+class Q3DSV_PRIVATE_EXPORT Q3DSScene : public Q3DSGraphObject
 {
 public:
     Q3DSScene();
@@ -291,7 +302,7 @@ private:
     QColor m_clearColor = Qt::black;
 };
 
-class Q3DSV_EXPORT Q3DSAnimationTrack
+class Q3DSV_PRIVATE_EXPORT Q3DSAnimationTrack
 {
 public:
     enum AnimationType {
@@ -332,7 +343,7 @@ private:
     friend class Q3DSUipParser;
 };
 
-class Q3DSV_EXPORT Q3DSSlide : public Q3DSGraphObject
+class Q3DSV_PRIVATE_EXPORT Q3DSSlide : public Q3DSGraphObject
 {
 public:
     enum PlayMode {
@@ -401,7 +412,7 @@ private:
 //
 // Similarly, getters have two variants: animatable properties have a static getter as well.
 
-class Q3DSV_EXPORT Q3DSImage : public Q3DSGraphObject
+class Q3DSV_PRIVATE_EXPORT Q3DSImage : public Q3DSGraphObject
 {
 public:
     enum MappingMode {
@@ -483,7 +494,7 @@ private:
 };
 
 class Q3DSComponentNode;
-class Q3DSV_EXPORT Q3DSNodeAttached : public Q3DSGraphObjectAttached
+class Q3DSV_PRIVATE_EXPORT Q3DSNodeAttached : public Q3DSGraphObjectAttached
 {
 public:
     Qt3DCore::QEntity *entity = nullptr;
@@ -495,7 +506,7 @@ public:
     Q3DSComponentNode *component = nullptr;
 };
 
-class Q3DSV_EXPORT Q3DSNode : public Q3DSGraphObject
+class Q3DSV_PRIVATE_EXPORT Q3DSNode : public Q3DSGraphObject
 {
 public:
     enum NodeFlag {
@@ -574,7 +585,7 @@ private:
 
 Q_DECLARE_OPERATORS_FOR_FLAGS(Q3DSNode::Flags)
 
-class Q3DSV_EXPORT Q3DSLayerNode : public Q3DSNode
+class Q3DSV_PRIVATE_EXPORT Q3DSLayerNode : public Q3DSNode
 {
 public:
     enum Flag {
@@ -790,7 +801,7 @@ private:
 
 Q_DECLARE_OPERATORS_FOR_FLAGS(Q3DSLayerNode::Flags)
 
-class Q3DSV_EXPORT Q3DSCameraNode : public Q3DSNode
+class Q3DSV_PRIVATE_EXPORT Q3DSCameraNode : public Q3DSNode
 {
 public:
     enum ScaleMode {
@@ -849,7 +860,7 @@ private:
     ScaleAnchor m_scaleAnchor = Center;
 };
 
-class Q3DSV_EXPORT Q3DSLightNode : public Q3DSNode
+class Q3DSV_PRIVATE_EXPORT Q3DSLightNode : public Q3DSNode
 {
 public:
     enum LightType {
@@ -939,7 +950,7 @@ private:
     float m_shadowMapFov = 90;
 };
 
-class Q3DSV_EXPORT Q3DSModelNode : public Q3DSNode
+class Q3DSV_PRIVATE_EXPORT Q3DSModelNode : public Q3DSNode
 {
 public:
     enum Tessellation {
@@ -984,7 +995,7 @@ private:
     float m_innerTess = 4;
 };
 
-class Q3DSV_EXPORT Q3DSGroupNode : public Q3DSNode
+class Q3DSV_PRIVATE_EXPORT Q3DSGroupNode : public Q3DSNode
 {
 public:
     Q3DSGroupNode();
@@ -1004,7 +1015,7 @@ private:
     QString m_name;
 };
 
-class Q3DSV_EXPORT Q3DSComponentNode : public Q3DSNode
+class Q3DSV_PRIVATE_EXPORT Q3DSComponentNode : public Q3DSNode
 {
 public:
     Q3DSComponentNode();
@@ -1034,7 +1045,7 @@ private:
     friend class Q3DSSceneManager;
 };
 
-class Q3DSV_EXPORT Q3DSTextNode : public Q3DSNode
+class Q3DSV_PRIVATE_EXPORT Q3DSTextNode : public Q3DSNode
 {
 public:
     enum HorizontalAlignment {
@@ -1090,7 +1101,7 @@ private:
     float m_tracking;
 };
 
-class Q3DSV_EXPORT Q3DSDefaultMaterial : public Q3DSGraphObject
+class Q3DSV_PRIVATE_EXPORT Q3DSDefaultMaterial : public Q3DSGraphObject
 {
 public:
     enum ShaderLighting {
@@ -1225,7 +1236,7 @@ private:
     float m_diffuseLightWrap = 0;
 };
 
-class Q3DSV_EXPORT Q3DSReferencedMaterial : public Q3DSGraphObject
+class Q3DSV_PRIVATE_EXPORT Q3DSReferencedMaterial : public Q3DSGraphObject
 {
 public:
     Q3DSReferencedMaterial();
@@ -1249,7 +1260,7 @@ private:
     Q3DSGraphObject *m_referencedMaterial = nullptr;
 };
 
-class Q3DSV_EXPORT Q3DSCustomMaterialInstance : public Q3DSGraphObject
+class Q3DSV_PRIVATE_EXPORT Q3DSCustomMaterialInstance : public Q3DSGraphObject
 {
 public:
     Q3DSCustomMaterialInstance();
@@ -1280,7 +1291,7 @@ private:
     Q3DSPropertyChangeList m_attrs;
 };
 
-class Q3DSV_EXPORT Q3DSEffectInstance : public Q3DSGraphObject
+class Q3DSV_PRIVATE_EXPORT Q3DSEffectInstance : public Q3DSGraphObject
 {
 public:
     Q3DSEffectInstance();
@@ -1311,7 +1322,7 @@ private:
     Q3DSPropertyChangeList m_attrs;
 };
 
-class Q3DSV_EXPORT Q3DSPresentation
+class Q3DSV_PRIVATE_EXPORT Q3DSPresentation
 {
 public:
     Q3DSPresentation();
@@ -1427,4 +1438,4 @@ inline uint qHash(const Q3DSPresentationData::MeshId &key, uint seed = 0) Q_DECL
 
 QT_END_NAMESPACE
 
-#endif // Q3DSPRESENTATION_H
+#endif // Q3DSPRESENTATION_P_H

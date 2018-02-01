@@ -31,8 +31,8 @@
 #include <QCommandLineParser>
 #include <QFileDialog>
 #include <QStandardPaths>
-#include <Q3DSEngine>
-#include <Q3DSWindow>
+#include <private/q3dsengine_p.h>
+#include <private/q3dswindow_p.h>
 #include <private/q3dsutils_p.h>
 #include "q3dsmainwindow.h"
 

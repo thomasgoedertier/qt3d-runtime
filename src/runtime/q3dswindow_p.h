@@ -27,20 +27,55 @@
 **
 ****************************************************************************/
 
-#ifndef Q3DSMESH_H
-#define Q3DSMESH_H
+#ifndef Q3DSWINDOW_P_H
+#define Q3DSWINDOW_P_H
 
-#include <Qt3DRender/QGeometryRenderer>
+//
+//  W A R N I N G
+//  -------------
+//
+// This file is not part of the Qt API.  It exists purely as an
+// implementation detail.  This header file may change from version to
+// version without notice, or even be removed.
+//
+// We mean it.
+//
+
+#include "q3dsruntimeglobal_p.h"
+#include <QWindow>
 
 QT_BEGIN_NAMESPACE
 
-class Q3DSMesh : public Qt3DRender::QGeometryRenderer
+class Q3DSEngine;
+
+class Q3DSV_PRIVATE_EXPORT Q3DSWindow : public QWindow
 {
+    Q_OBJECT
 public:
-    Q3DSMesh(Qt3DCore::QNode *parent = nullptr);
-    ~Q3DSMesh();
+    Q3DSWindow(QWindow *parent = nullptr);
+    ~Q3DSWindow();
+
+    void setEngine(Q3DSEngine *engine);
+    Q3DSEngine *engine() const;
+
+    void forceResize(const QSize &size);
+    void forceResize(int w, int h) { forceResize(QSize(w, h)); }
+
+protected:
+    void exposeEvent(QExposeEvent *) override;
+    void resizeEvent(QResizeEvent *) override;
+    void keyPressEvent(QKeyEvent *) override;
+    void keyReleaseEvent(QKeyEvent *) override;
+    void mousePressEvent(QMouseEvent *) override;
+    void mouseMoveEvent(QMouseEvent *) override;
+    void mouseReleaseEvent(QMouseEvent *) override;
+    void mouseDoubleClickEvent(QMouseEvent *) override;
+
+private:
+    Q3DSEngine *m_engine = nullptr;
+    bool m_implicitSizeTaken = false;
 };
 
 QT_END_NAMESPACE
 
-#endif // Q3DSMESH_H
+#endif // Q3DSWINDOW_P_H

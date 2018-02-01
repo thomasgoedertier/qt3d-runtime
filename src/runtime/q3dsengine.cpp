@@ -27,8 +27,8 @@
 **
 ****************************************************************************/
 
-#include "q3dsengine.h"
-#include "q3dsuiaparser.h"
+#include "q3dsengine_p.h"
+#include "q3dsuiaparser_p.h"
 #include "q3dsutils_p.h"
 
 #include <QLoggingCategory>
@@ -200,6 +200,13 @@ QSurfaceFormat Q3DSEngine::surfaceFormat()
     fmt.setStencilBufferSize(8);
     // Ignore MSAA here as that is a per-layer setting.
     return fmt;
+}
+
+namespace Q3DS {
+QSurfaceFormat surfaceFormat()
+{
+    return Q3DSEngine::surfaceFormat();
+}
 }
 
 void Q3DSEngine::createAspectEngine()

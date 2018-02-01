@@ -42,8 +42,8 @@
 //
 
 #include "q3dsshaderprogramgenerator_p.h"
-#include <Qt3DStudioRuntime2/q3dspresentation.h>
-#include <Qt3DStudioRuntime2/q3dsscenemanager.h>
+#include "q3dspresentation_p.h"
+#include "q3dsscenemanager_p.h"
 
 QT_BEGIN_NAMESPACE
 

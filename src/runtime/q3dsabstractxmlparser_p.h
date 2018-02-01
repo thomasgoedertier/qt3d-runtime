@@ -27,44 +27,52 @@
 **
 ****************************************************************************/
 
-#ifndef Q3DSWINDOW_H
-#define Q3DSWINDOW_H
+#ifndef Q3DSABSTRACTXMLPARSER_P_H
+#define Q3DSABSTRACTXMLPARSER_P_H
 
-#include <Qt3DStudioRuntime2/q3dsruntimeglobal.h>
-#include <QWindow>
+//
+//  W A R N I N G
+//  -------------
+//
+// This file is not part of the Qt API.  It exists purely as an
+// implementation detail.  This header file may change from version to
+// version without notice, or even be removed.
+//
+// We mean it.
+//
+
+#include "q3dsruntimeglobal_p.h"
+#include <QXmlStreamReader>
+#include <QFileInfo>
+#include <QFile>
+#include <QElapsedTimer>
 
 QT_BEGIN_NAMESPACE
 
-class Q3DSEngine;
-
-class Q3DSV_EXPORT Q3DSWindow : public QWindow
+class Q3DSV_PRIVATE_EXPORT Q3DSAbstractXmlParser
 {
-    Q_OBJECT
 public:
-    Q3DSWindow(QWindow *parent = nullptr);
-    ~Q3DSWindow();
+    virtual ~Q3DSAbstractXmlParser();
 
-    void setEngine(Q3DSEngine *engine);
-    Q3DSEngine *engine() const;
+    QFileInfo *sourceInfo() { return &m_sourceInfo; }
 
-    void forceResize(const QSize &size);
-    void forceResize(int w, int h) { forceResize(QSize(w, h)); }
+    quint64 elapsedSinceSetSource() const { return m_parseTimer.elapsed(); }
+    QString readerErrorString() const;
+
+    QString assetFileName(const QString &xmlFileNameRef, int *part) const;
 
 protected:
-    void exposeEvent(QExposeEvent *) override;
-    void resizeEvent(QResizeEvent *) override;
-    void keyPressEvent(QKeyEvent *) override;
-    void keyReleaseEvent(QKeyEvent *) override;
-    void mousePressEvent(QMouseEvent *) override;
-    void mouseMoveEvent(QMouseEvent *) override;
-    void mouseReleaseEvent(QMouseEvent *) override;
-    void mouseDoubleClickEvent(QMouseEvent *) override;
+    bool setSource(const QString &filename);
+    bool setSourceData(const QByteArray &data);
+    QXmlStreamReader *reader() { return &m_reader; }
 
 private:
-    Q3DSEngine *m_engine = nullptr;
-    bool m_implicitSizeTaken = false;
+    QXmlStreamReader m_reader;
+    QFileInfo m_sourceInfo;
+    QFile m_sourceFile;
+    QElapsedTimer m_parseTimer;
 };
 
 QT_END_NAMESPACE
 
-#endif // Q3DSWINDOW_H
+#endif // Q3DSABSTRACTXMLPARSER_P_H

@@ -27,7 +27,7 @@
 **
 ****************************************************************************/
 
-#include "q3dsuiaparser.h"
+#include "q3dsuiaparser_p.h"
 #include "q3dsutils_p.h"
 #include <QLoggingCategory>
 

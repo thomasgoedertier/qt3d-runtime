@@ -38,7 +38,7 @@
 #include <QOffscreenSurface>
 #include <QQmlFile>
 #include <QGuiApplication>
-#include <Q3DSEngine>
+#include <private/q3dsengine_p.h>
 #include <private/q3dsutils_p.h>
 #include <Qt3DCore/QEntity>
 #include <Qt3DRender/QRenderSurfaceSelector>

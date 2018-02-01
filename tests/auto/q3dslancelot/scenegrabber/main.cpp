@@ -34,9 +34,9 @@
 #include <QtGui/QGuiApplication>
 #include <QtGui/QImage>
 
-#include <Qt3DStudioRuntime2/Q3DSWindow>
-#include <Qt3DStudioRuntime2/Q3DSEngine>
-#include <Qt3DStudioRuntime2/private/q3dsutils_p.h>
+#include <private/q3dsengine_p.h>
+#include <private/q3dswindow_p.h>
+#include <private/q3dsutils_p.h>
 
 #include <Qt3DRender/QRenderCapture>
 #include <Qt3DRender/QRenderCaptureReply>

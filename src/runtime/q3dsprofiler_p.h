@@ -45,7 +45,7 @@
 #include <QElapsedTimer>
 #include <QMultiMap>
 #include <QObject>
-#include "q3dsgraphicslimits.h"
+#include "q3dsgraphicslimits_p.h"
 
 QT_BEGIN_NAMESPACE
 

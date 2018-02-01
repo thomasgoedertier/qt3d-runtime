@@ -29,7 +29,7 @@
 #include <QString>
 #include <QtTest>
 #include <private/q3dsutils_p.h>
-#include "q3dscustommaterial.h"
+#include <private/q3dscustommaterial_p.h>
 
 class tst_Q3DSCustomMaterialParser : public QObject
 {

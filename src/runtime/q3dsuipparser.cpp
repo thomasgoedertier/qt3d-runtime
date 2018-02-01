@@ -27,8 +27,8 @@
 **
 ****************************************************************************/
 
-#include "q3dsuipparser.h"
-#include "q3dspresentationcommon.h"
+#include "q3dsuipparser_p.h"
+#include "q3dspresentationcommon_p.h"
 #include "q3dsutils_p.h"
 #include "q3dsenummaps_p.h"
 #include <QLoggingCategory>

@@ -27,7 +27,7 @@
 **
 ****************************************************************************/
 
-#include "q3dscustommaterial.h"
+#include "q3dscustommaterial_p.h"
 #include "q3dsutils_p.h"
 
 #include <Qt3DRender/QMaterial>

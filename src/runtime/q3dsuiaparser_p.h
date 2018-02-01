@@ -27,29 +27,54 @@
 **
 ****************************************************************************/
 
-#ifndef Q3DSCUSTOMMATERIALGENERATOR_H
-#define Q3DSCUSTOMMATERIALGENERATOR_H
+#ifndef Q3DSUIAPARSER_P_H
+#define Q3DSUIAPARSER_P_H
 
-#include <Qt3DStudioRuntime2/q3dsscenemanager.h>
+//
+//  W A R N I N G
+//  -------------
+//
+// This file is not part of the Qt API.  It exists purely as an
+// implementation detail.  This header file may change from version to
+// version without notice, or even be removed.
+//
+// We mean it.
+//
+
+#include "q3dsabstractxmlparser_p.h"
 
 QT_BEGIN_NAMESPACE
 
-namespace Qt3DRender {
-class QParameter;
-class QMaterial;
-}
-
-
-class Q3DSCustomMaterialGenerator
+class Q3DSV_PRIVATE_EXPORT Q3DSUiaParser : public Q3DSAbstractXmlParser
 {
 public:
-    Qt3DRender::QMaterial *generateMaterial(Q3DSCustomMaterialInstance *customMaterial,
-                                            const QVector<Qt3DRender::QParameter *> &params,
-                                            const QVector<Q3DSLightNode *> &lights,
-                                            Q3DSLayerNode *layer3DS,
-                                            const Q3DSMaterial::Pass &pass);
+    struct Uia {
+        struct Presentation {
+            enum Type {
+                Uip,
+                Qml
+            };
+            Type type;
+            QString id;
+            QString source; // or preview for qml
+        };
+
+        QVector<Presentation> presentations;
+        QString initialPresentationId;
+        qint64 loadTimeMsecs = 0;
+
+        bool isValid() const { return !presentations.isEmpty(); }
+    };
+
+    Uia parse(const QString &filename);
+
+private:
+    void parseApplication();
+    void parsePresentations();
+
+    Uia m_uia;
 };
 
 QT_END_NAMESPACE
 
-#endif // Q3DSCUSTOMMATERIALGENERATOR_H
+#endif // Q3DSUIAPARSER_P_H

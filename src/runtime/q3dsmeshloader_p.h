@@ -27,41 +27,31 @@
 **
 ****************************************************************************/
 
-#ifndef Q3DSABSTRACTXMLPARSER_H
-#define Q3DSABSTRACTXMLPARSER_H
+#ifndef Q3DSMESHLOADER_P_H
+#define Q3DSMESHLOADER_P_H
 
-#include <Qt3DStudioRuntime2/q3dsruntimeglobal.h>
-#include <QXmlStreamReader>
-#include <QFileInfo>
-#include <QFile>
-#include <QElapsedTimer>
+//
+//  W A R N I N G
+//  -------------
+//
+// This file is not part of the Qt API.  It exists purely as an
+// implementation detail.  This header file may change from version to
+// version without notice, or even be removed.
+//
+// We mean it.
+//
+
+#include "q3dsruntimeglobal_p.h"
+#include "q3dsmesh_p.h"
 
 QT_BEGIN_NAMESPACE
 
-class Q3DSV_EXPORT Q3DSAbstractXmlParser
-{
-public:
-    virtual ~Q3DSAbstractXmlParser();
+typedef QSharedPointer<QVector<Q3DSMesh*> > MeshList;
 
-    QFileInfo *sourceInfo() { return &m_sourceInfo; }
-
-    quint64 elapsedSinceSetSource() const { return m_parseTimer.elapsed(); }
-    QString readerErrorString() const;
-
-    QString assetFileName(const QString &xmlFileNameRef, int *part) const;
-
-protected:
-    bool setSource(const QString &filename);
-    bool setSourceData(const QByteArray &data);
-    QXmlStreamReader *reader() { return &m_reader; }
-
-private:
-    QXmlStreamReader m_reader;
-    QFileInfo m_sourceInfo;
-    QFile m_sourceFile;
-    QElapsedTimer m_parseTimer;
-};
+namespace Q3DSMeshLoader {
+    Q3DSV_PRIVATE_EXPORT MeshList loadMesh(const QString &meshPath, int partId = 0, bool useQt3DAttributes = false);
+}
 
 QT_END_NAMESPACE
 
-#endif // Q3DSABSTRACTXMLPARSER_H
+#endif // Q3DSMESHLOADER_P_H

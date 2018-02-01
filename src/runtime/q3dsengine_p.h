@@ -27,15 +27,26 @@
 **
 ****************************************************************************/
 
-#ifndef Q3DSENGINE_H
-#define Q3DSENGINE_H
+#ifndef Q3DSENGINE_P_H
+#define Q3DSENGINE_P_H
+
+//
+//  W A R N I N G
+//  -------------
+//
+// This file is not part of the Qt API.  It exists purely as an
+// implementation detail.  This header file may change from version to
+// version without notice, or even be removed.
+//
+// We mean it.
+//
 
 #include <QObject>
 #include <QElapsedTimer>
 #include <QSurfaceFormat>
 #include <Qt3DCore/QAspectEngine>
-#include <Qt3DStudioRuntime2/q3dsuipdocument.h>
-#include <Qt3DStudioRuntime2/q3dsscenemanager.h>
+#include "q3dsuipdocument_p.h"
+#include "q3dsscenemanager_p.h"
 
 QT_BEGIN_NAMESPACE
 
@@ -51,7 +62,7 @@ class QScene2D;
 }
 }
 
-class Q3DSV_EXPORT Q3DSEngine : public QObject
+class Q3DSV_PRIVATE_EXPORT Q3DSEngine : public QObject
 {
     Q_OBJECT
 public:
@@ -160,4 +171,4 @@ Q_DECLARE_OPERATORS_FOR_FLAGS(Q3DSEngine::Flags)
 
 QT_END_NAMESPACE
 
-#endif // Q3DSENGINE_H
+#endif // Q3DSENGINE_P_H

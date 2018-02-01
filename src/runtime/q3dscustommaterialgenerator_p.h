@@ -27,20 +27,39 @@
 **
 ****************************************************************************/
 
-#ifndef Q3DSMESHLOADER_H
-#define Q3DSMESHLOADER_H
+#ifndef Q3DSCUSTOMMATERIALGENERATOR_P_H
+#define Q3DSCUSTOMMATERIALGENERATOR_P_H
 
-#include <Qt3DStudioRuntime2/q3dsruntimeglobal.h>
-#include <Qt3DStudioRuntime2/q3dsmesh.h>
+//
+//  W A R N I N G
+//  -------------
+//
+// This file is not part of the Qt API.  It exists purely as an
+// implementation detail.  This header file may change from version to
+// version without notice, or even be removed.
+//
+// We mean it.
+//
+
+#include "q3dsscenemanager_p.h"
 
 QT_BEGIN_NAMESPACE
 
-typedef QSharedPointer<QVector<Q3DSMesh*> > MeshList;
-
-namespace Q3DSMeshLoader {
-    Q3DSV_EXPORT MeshList loadMesh(const QString &meshPath, int partId = 0, bool useQt3DAttributes = false);
+namespace Qt3DRender {
+class QParameter;
+class QMaterial;
 }
+
+class Q3DSCustomMaterialGenerator
+{
+public:
+    Qt3DRender::QMaterial *generateMaterial(Q3DSCustomMaterialInstance *customMaterial,
+                                            const QVector<Qt3DRender::QParameter *> &params,
+                                            const QVector<Q3DSLightNode *> &lights,
+                                            Q3DSLayerNode *layer3DS,
+                                            const Q3DSMaterial::Pass &pass);
+};
 
 QT_END_NAMESPACE
 
-#endif // Q3DSMESHLOADER_H
+#endif // Q3DSCUSTOMMATERIALGENERATOR_P_H

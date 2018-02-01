@@ -28,12 +28,11 @@
 
 #include <QtTest>
 
-
-#include <Qt3DStudioRuntime2/private/q3dsutils_p.h>
-#include <Qt3DStudioRuntime2/Q3DSWindow>
-#include <Qt3DStudioRuntime2/Q3DSEngine>
-#include <Qt3DStudioRuntime2/Q3DSPresentation>
-#include <Qt3DStudioRuntime2/Q3DSSceneManager>
+#include <private/q3dsengine_p.h>
+#include <private/q3dswindow_p.h>
+#include <private/q3dsutils_p.h>
+#include <private/q3dspresentation_p.h>
+#include <private/q3dsscenemanager_p.h>
 #include <Qt3DCore/QEntity>
 #include <Qt3DRender/QLayer>
 

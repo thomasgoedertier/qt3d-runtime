@@ -27,8 +27,8 @@
 **
 ****************************************************************************/
 
-#include "q3dscustommaterialgenerator.h"
-#include "q3dsdefaultmaterialgenerator.h"
+#include "q3dscustommaterialgenerator_p.h"
+#include "q3dsdefaultmaterialgenerator_p.h"
 
 #include <Qt3DCore/QEntity>
 #include <Qt3DRender/QMaterial>

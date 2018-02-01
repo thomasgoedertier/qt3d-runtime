@@ -27,30 +27,34 @@
 **
 ****************************************************************************/
 
-#ifndef Q3DSUIPDOCUMENT_H
-#define Q3DSUIPDOCUMENT_H
+#ifndef Q3DSGRAPHICSLIMITS_P_H
+#define Q3DSGRAPHICSLIMITS_P_H
 
-#include <Qt3DStudioRuntime2/q3dsruntimeglobal.h>
-#include <Qt3DStudioRuntime2/q3dspresentation.h>
+//
+//  W A R N I N G
+//  -------------
+//
+// This file is not part of the Qt API.  It exists purely as an
+// implementation detail.  This header file may change from version to
+// version without notice, or even be removed.
+//
+// We mean it.
+//
+
+#include <QByteArray>
 
 QT_BEGIN_NAMESPACE
 
-class Q3DSV_EXPORT Q3DSUipDocument
-{
-public:
-    Q3DSUipDocument();
-
-    Q3DSPresentation *presentation() const;
-
-    bool loadUip(const QString &fileName);
-    bool loadUipData(const QByteArray &data);
-    bool saveUip(const QString &fileName);
-
-private:
-    Q_DISABLE_COPY(Q3DSUipDocument)
-    QScopedPointer<Q3DSPresentation> m_presentation;
+struct Q3DSGraphicsLimits {
+    int maxDrawBuffers = 4;
+    bool multisampleTextureSupported = false;
+    QByteArray renderer;
+    QByteArray vendor;
+    QByteArray version;
 };
+
+Q_DECLARE_TYPEINFO(Q3DSGraphicsLimits, Q_MOVABLE_TYPE);
 
 QT_END_NAMESPACE
 
-#endif // Q3DSUIPDOCUMENT_H
+#endif

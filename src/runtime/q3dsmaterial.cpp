@@ -27,7 +27,7 @@
 **
 ****************************************************************************/
 
-#include "q3dsmaterial.h"
+#include "q3dsmaterial_p.h"
 #include <QtCore/QXmlStreamReader>
 
 QT_BEGIN_NAMESPACE

@@ -27,9 +27,9 @@
 **
 ****************************************************************************/
 
-#include "q3dsanimationmanager.h"
+#include "q3dsanimationmanager_p.h"
 #include "q3dsdatamodelparser_p.h"
-#include "q3dsscenemanager.h"
+#include "q3dsscenemanager_p.h"
 
 #include <QLoggingCategory>
 

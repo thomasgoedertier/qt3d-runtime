@@ -27,15 +27,26 @@
 **
 ****************************************************************************/
 
-#ifndef Q3DSCUSTOMMATERIAL_H
-#define Q3DSCUSTOMMATERIAL_H
+#ifndef Q3DSCUSTOMMATERIAL_P_H
+#define Q3DSCUSTOMMATERIAL_P_H
+
+//
+//  W A R N I N G
+//  -------------
+//
+// This file is not part of the Qt API.  It exists purely as an
+// implementation detail.  This header file may change from version to
+// version without notice, or even be removed.
+//
+// We mean it.
+//
 
 #include <QtCore/QString>
 #include <QtCore/QMap>
 #include <Qt3DRender/QMaterial>
 
-#include <Qt3DStudioRuntime2/q3dsabstractxmlparser.h>
-#include <Qt3DStudioRuntime2/q3dsmaterial.h>
+#include "q3dsabstractxmlparser_p.h"
+#include "q3dsmaterial_p.h"
 
 QT_BEGIN_NAMESPACE
 
@@ -43,7 +54,7 @@ namespace Qt3DRender {
 class QShaderProgram;
 }
 
-class Q3DSV_EXPORT Q3DSCustomMaterial
+class Q3DSV_PRIVATE_EXPORT Q3DSCustomMaterial
 {
 public:
     Q3DSCustomMaterial();
@@ -121,7 +132,7 @@ private:
     friend class Q3DSCustomMaterialParser;
 };
 
-class Q3DSV_EXPORT Q3DSCustomMaterialParser : public Q3DSAbstractXmlParser
+class Q3DSV_PRIVATE_EXPORT Q3DSCustomMaterialParser : public Q3DSAbstractXmlParser
 {
 public:
     Q3DSCustomMaterial parse(const QString &filename, bool *ok = nullptr);
@@ -143,4 +154,4 @@ private:
 
 QT_END_NAMESPACE
 
-#endif // Q3DSCUSTOMMATERIAL_H
+#endif // Q3DSCUSTOMMATERIAL_P_H

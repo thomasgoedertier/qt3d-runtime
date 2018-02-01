@@ -28,9 +28,9 @@
 ****************************************************************************/
 
 #include "q3dsmainwindow.h"
-#include <Qt3DStudioRuntime2/q3dswindow.h>
-#include <Qt3DStudioRuntime2/q3dsengine.h>
-#include <Qt3DStudioRuntime2/private/q3dsutils_p.h>
+#include <private/q3dswindow_p.h>
+#include <private/q3dsengine_p.h>
+#include <private/q3dsutils_p.h>
 #include <QApplication>
 #include <QMenuBar>
 #include <QMenu>

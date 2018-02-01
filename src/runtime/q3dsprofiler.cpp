@@ -28,7 +28,7 @@
 ****************************************************************************/
 
 #include "q3dsprofiler_p.h"
-#include "q3dsscenemanager.h"
+#include "q3dsscenemanager_p.h"
 
 #if defined(Q_OS_WIN) && !defined(Q_OS_WINRT)
 #include <qt_windows.h>

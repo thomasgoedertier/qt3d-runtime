@@ -39,7 +39,7 @@
 #include <QtCore/QLoggingCategory>
 #include <QtGui/QOpenGLContext>
 
-#include "q3dsdefaultmaterialgenerator.h"
+#include "q3dsdefaultmaterialgenerator_p.h"
 #include "q3dsutils_p.h"
 
 #include "shadergenerator/q3dsshadermanager_p.h"

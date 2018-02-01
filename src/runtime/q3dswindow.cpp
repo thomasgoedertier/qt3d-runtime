@@ -27,8 +27,8 @@
 **
 ****************************************************************************/
 
-#include "q3dswindow.h"
-#include "q3dsengine.h"
+#include "q3dswindow_p.h"
+#include "q3dsengine_p.h"
 
 QT_BEGIN_NAMESPACE
 

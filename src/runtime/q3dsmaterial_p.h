@@ -27,14 +27,25 @@
 **
 ****************************************************************************/
 
-#ifndef Q3DSMATERIAL_H
-#define Q3DSMATERIAL_H
+#ifndef Q3DSMATERIAL_P_H
+#define Q3DSMATERIAL_P_H
+
+//
+//  W A R N I N G
+//  -------------
+//
+// This file is not part of the Qt API.  It exists purely as an
+// implementation detail.  This header file may change from version to
+// version without notice, or even be removed.
+//
+// We mean it.
+//
 
 #include <QtCore/QString>
 #include <QtCore/QVector>
 #include <QtCore/QMap>
-#include <Qt3DStudioRuntime2/q3dsruntimeglobal.h>
-#include <Qt3DStudioRuntime2/q3dspresentationcommon.h> // not q3dspresentation.h, that would be circular ref
+#include "q3dsruntimeglobal_p.h"
+#include "q3dspresentationcommon_p.h" // not q3dspresentation_p.h, that would be circular ref
 
 QT_BEGIN_NAMESPACE
 
@@ -128,7 +139,7 @@ enum ImageAccess {
 
 QString clampTypeToString(ClampType type);
 
-struct Q3DSV_EXPORT PropertyElement
+struct Q3DSV_PRIVATE_EXPORT PropertyElement
 {
     QString name;
     QString description;
@@ -161,7 +172,7 @@ struct Q3DSV_EXPORT PropertyElement
     {}
 };
 
-struct Q3DSV_EXPORT Shader // or rather, program
+struct Q3DSV_PRIVATE_EXPORT Shader // or rather, program
 {
     QString name;
     QString shared;
@@ -177,7 +188,7 @@ enum PassBufferType {
     DataBufferType
 };
 
-class Q3DSV_EXPORT PassBuffer
+class Q3DSV_PRIVATE_EXPORT PassBuffer
 {
 public:
     PassBuffer(PassBufferType type_ = UnknownBufferType)
@@ -245,19 +256,19 @@ private:
 
 // no data allowed in the PassBuffer subclasses in order to avoid object slicing
 
-class Q3DSV_EXPORT Buffer : public PassBuffer
+class Q3DSV_PRIVATE_EXPORT Buffer : public PassBuffer
 {
 public:
     Buffer() : PassBuffer(PassBufferType::BufferType) {}
 };
 
-class Q3DSV_EXPORT ImageBuffer : public PassBuffer
+class Q3DSV_PRIVATE_EXPORT ImageBuffer : public PassBuffer
 {
 public:
     ImageBuffer() : PassBuffer(PassBufferType::ImageType) {}
 };
 
-class Q3DSV_EXPORT DataBuffer : public PassBuffer
+class Q3DSV_PRIVATE_EXPORT DataBuffer : public PassBuffer
 {
 public:
     DataBuffer() : PassBuffer(PassBufferType::DataBufferType) {}
@@ -291,7 +302,7 @@ enum DepthStencilFlag {
 };
 Q_DECLARE_FLAGS(DepthStencilFlags, DepthStencilFlag)
 
-class Q3DSV_EXPORT PassCommand
+class Q3DSV_PRIVATE_EXPORT PassCommand
 {
 public:
     enum Type {
@@ -338,7 +349,7 @@ private:
     Data m_data;
 };
 
-struct Q3DSV_EXPORT Pass
+struct Q3DSV_PRIVATE_EXPORT Pass
 {
     QString shaderName;
     QString input;
@@ -389,4 +400,4 @@ Q_DECLARE_OPERATORS_FOR_FLAGS(Q3DSMaterial::DepthStencilFlags)
 
 QT_END_NAMESPACE
 
-#endif // Q3DSMATERIAL_H
+#endif // Q3DSMATERIAL_P_H

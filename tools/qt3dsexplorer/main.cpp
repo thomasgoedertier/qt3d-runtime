@@ -31,8 +31,8 @@
 #include <QApplication>
 #include <QCommandLineParser>
 #include <QFileDialog>
-#include <Q3DSEngine>
-#include <Q3DSWindow>
+#include <private/q3dsengine_p.h>
+#include <private/q3dswindow_p.h>
 #include <private/q3dsutils_p.h>
 
 int main(int argc, char *argv[])

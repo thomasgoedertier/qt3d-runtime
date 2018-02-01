@@ -27,15 +27,26 @@
 **
 ****************************************************************************/
 
-#ifndef Q3DSEFFECT_H
-#define Q3DSEFFECT_H
+#ifndef Q3DSEFFECT_P_H
+#define Q3DSEFFECT_P_H
 
-#include <Qt3DStudioRuntime2/q3dsabstractxmlparser.h>
-#include <Qt3DStudioRuntime2/q3dsmaterial.h>
+//
+//  W A R N I N G
+//  -------------
+//
+// This file is not part of the Qt API.  It exists purely as an
+// implementation detail.  This header file may change from version to
+// version without notice, or even be removed.
+//
+// We mean it.
+//
+
+#include "q3dsabstractxmlparser_p.h"
+#include "q3dsmaterial_p.h"
 
 QT_BEGIN_NAMESPACE
 
-class Q3DSV_EXPORT Q3DSEffect
+class Q3DSV_PRIVATE_EXPORT Q3DSEffect
 {
 public:
     Q3DSEffect();
@@ -58,7 +69,7 @@ private:
     friend class Q3DSEffectParser;
 };
 
-class Q3DSV_EXPORT Q3DSEffectParser : public Q3DSAbstractXmlParser
+class Q3DSV_PRIVATE_EXPORT Q3DSEffectParser : public Q3DSAbstractXmlParser
 {
 public:
     Q3DSEffect parse(const QString &filename, bool *ok = nullptr);
@@ -78,4 +89,4 @@ private:
 
 QT_END_NAMESPACE
 
-#endif // Q3DSEFFECT_H
+#endif // Q3DSEFFECT_P_H

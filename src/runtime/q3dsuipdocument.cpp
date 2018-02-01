@@ -27,15 +27,14 @@
 **
 ****************************************************************************/
 
-#include "q3dsuipdocument.h"
-#include "q3dsuipparser.h"
+#include "q3dsuipdocument_p.h"
+#include "q3dsuipparser_p.h"
 
 QT_BEGIN_NAMESPACE
 
 
 Q3DSUipDocument::Q3DSUipDocument()
 {
-
 }
 
 Q3DSPresentation *Q3DSUipDocument::presentation() const

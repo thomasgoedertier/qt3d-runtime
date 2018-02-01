@@ -28,7 +28,7 @@
 ****************************************************************************/
 
 #include "q3dstextmaterialgenerator_p.h"
-#include "q3dsdefaultmaterialgenerator.h"
+#include "q3dsdefaultmaterialgenerator_p.h"
 
 #include <Qt3DRender/QMaterial>
 #include <Qt3DRender/QEffect>

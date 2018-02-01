@@ -27,43 +27,41 @@
 **
 ****************************************************************************/
 
-#ifndef Q3DSUIAPARSER_H
-#define Q3DSUIAPARSER_H
+#ifndef Q3DSUIPDOCUMENT_P_H
+#define Q3DSUIPDOCUMENT_P_H
 
-#include <Qt3DStudioRuntime2/q3dsabstractxmlparser.h>
+//
+//  W A R N I N G
+//  -------------
+//
+// This file is not part of the Qt API.  It exists purely as an
+// implementation detail.  This header file may change from version to
+// version without notice, or even be removed.
+//
+// We mean it.
+//
+
+#include "q3dsruntimeglobal_p.h"
+#include "q3dspresentation_p.h"
 
 QT_BEGIN_NAMESPACE
 
-class Q3DSV_EXPORT Q3DSUiaParser : public Q3DSAbstractXmlParser
+class Q3DSV_PRIVATE_EXPORT Q3DSUipDocument
 {
 public:
-    struct Uia {
-        struct Presentation {
-            enum Type {
-                Uip,
-                Qml
-            };
-            Type type;
-            QString id;
-            QString source; // or preview for qml
-        };
+    Q3DSUipDocument();
 
-        QVector<Presentation> presentations;
-        QString initialPresentationId;
-        qint64 loadTimeMsecs = 0;
+    Q3DSPresentation *presentation() const;
 
-        bool isValid() const { return !presentations.isEmpty(); }
-    };
-
-    Uia parse(const QString &filename);
+    bool loadUip(const QString &fileName);
+    bool loadUipData(const QByteArray &data);
+    bool saveUip(const QString &fileName);
 
 private:
-    void parseApplication();
-    void parsePresentations();
-
-    Uia m_uia;
+    Q_DISABLE_COPY(Q3DSUipDocument)
+    QScopedPointer<Q3DSPresentation> m_presentation;
 };
 
 QT_END_NAMESPACE
 
-#endif // Q3DSUIAPARSER_H
+#endif // Q3DSUIPDOCUMENT_P_H

@@ -29,7 +29,7 @@
 
 #include "sceneexplorerwidget.h"
 
-#include <Qt3DStudioRuntime2/Q3DSPresentation>
+#include <private/q3dspresentation_p.h>
 #include <QtWidgets/QVBoxLayout>
 #include <QtWidgets/QTreeView>
 #include <QtWidgets/QSplitter>

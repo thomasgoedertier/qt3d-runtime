@@ -27,10 +27,21 @@
 **
 ****************************************************************************/
 
-#ifndef Q3DSANIMATIONBUILDER_H
-#define Q3DSANIMATIONBUILDER_H
+#ifndef Q3DSANIMATIONBUILDER_P_H
+#define Q3DSANIMATIONBUILDER_P_H
 
-#include <Qt3DStudioRuntime2/q3dspresentation.h>
+//
+//  W A R N I N G
+//  -------------
+//
+// This file is not part of the Qt API.  It exists purely as an
+// implementation detail.  This header file may change from version to
+// version without notice, or even be removed.
+//
+// We mean it.
+//
+
+#include "q3dspresentation_p.h"
 #include <QDebug>
 
 QT_BEGIN_NAMESPACE
@@ -96,4 +107,4 @@ QDebug operator<<(QDebug dbg, const Q3DSAnimationManager::Animatable &a);
 
 QT_END_NAMESPACE
 
-#endif // Q3DSANIMATIONBUILDER_H
+#endif // Q3DSANIMATIONBUILDER_P_H

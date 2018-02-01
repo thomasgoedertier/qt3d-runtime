@@ -41,7 +41,7 @@
 // We mean it.
 //
 
-#include "q3dsscenemanager.h"
+#include "q3dsscenemanager_p.h"
 
 QT_BEGIN_NAMESPACE
 

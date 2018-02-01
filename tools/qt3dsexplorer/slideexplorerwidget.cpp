@@ -28,8 +28,8 @@
 ****************************************************************************/
 
 #include "slideexplorerwidget.h"
-#include <Qt3DStudioRuntime2/q3dspresentation.h>
-#include <Qt3DStudioRuntime2/q3dsscenemanager.h>
+#include <private/q3dspresentation_p.h>
+#include <private/q3dsscenemanager_p.h>
 #include <QVBoxLayout>
 #include <QListView>
 #include <QPushButton>

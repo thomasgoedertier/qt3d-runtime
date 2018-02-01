@@ -27,31 +27,26 @@
 **
 ****************************************************************************/
 
-#ifndef Q3DSDEFAULTMATERIALGENERATOR_H
-#define Q3DSDEFAULTMATERIALGENERATOR_H
+#ifndef Q3DSRUNTIMEGLOBAL_P_H
+#define Q3DSRUNTIMEGLOBAL_P_H
 
-#include <Qt3DStudioRuntime2/q3dsscenemanager.h>
+//
+//  W A R N I N G
+//  -------------
+//
+// This file is not part of the Qt API.  It exists purely as an
+// implementation detail.  This header file may change from version to
+// version without notice, or even be removed.
+//
+// We mean it.
+//
+
+#include "q3dsruntimeglobal.h"
+
+#define Q3DSV_PRIVATE_EXPORT Q3DSV_EXPORT
 
 QT_BEGIN_NAMESPACE
 
-namespace Qt3DRender {
-class QParameter;
-class QMaterial;
-class QTechnique;
-}
-
-class Q3DSDefaultMaterialGenerator
-{
-public:
-    Qt3DRender::QMaterial *generateMaterial(Q3DSDefaultMaterial *defaultMaterial,
-                                            const QVector<Qt3DRender::QParameter *> &params,
-                                            const QVector<Q3DSLightNode *> &lights,
-                                            Q3DSLayerNode *layer3DS);
-
-    static void addDefaultApiFilter(Qt3DRender::QTechnique *technique, bool *isGLES = nullptr);
-    static bool hasCompute();
-};
-
 QT_END_NAMESPACE
 
-#endif // Q3DSDEFAULTMATERIALGENERATOR_H
+#endif // Q3DSRUNTIMEGLOBAL_P_H

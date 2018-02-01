@@ -27,36 +27,56 @@
 **
 ****************************************************************************/
 
-#ifndef Q3DSTEXTMATERIALGENERATOR_P_H
-#define Q3DSTEXTMATERIALGENERATOR_P_H
+#ifndef Q3DSUIPPARSER_P_H
+#define Q3DSUIPPARSER_P_H
 
 //
 //  W A R N I N G
 //  -------------
 //
-// This file is not part of the Qt API.  It exists for the convenience
-// of a number of Qt sources files.  This header file may change from
-// version to version without notice, or even be removed.
+// This file is not part of the Qt API.  It exists purely as an
+// implementation detail.  This header file may change from version to
+// version without notice, or even be removed.
 //
 // We mean it.
 //
 
-#include "q3dsscenemanager_p.h"
+#include "q3dsruntimeglobal_p.h"
+#include "q3dsabstractxmlparser_p.h"
+#include "q3dspresentation_p.h"
 
 QT_BEGIN_NAMESPACE
 
-namespace Qt3DRender {
-class QParameter;
-class QMaterial;
-}
-
-class Q3DSTextMaterialGenerator
+class Q3DSV_PRIVATE_EXPORT Q3DSUipParser : public Q3DSAbstractXmlParser
 {
 public:
-    Qt3DRender::QMaterial *generateMaterial(const QVector<Qt3DRender::QParameter *> &params);
+    Q3DSPresentation *parse(const QString &filename);
+    Q3DSPresentation *parseData(const QByteArray &data);
 
+private:
+    Q3DSPresentation *createPresentation();
+    void parseUIP();
+    void parseProject();
+    void parseProjectSettings();
+    void parseClasses();
+    void parseCustomMaterial();
+    void parseEffect();
+    void parseBufferData();
+    void parseImageBuffer();
+    void parseGraph();
+    void parseScene();
+    void parseObjects(Q3DSGraphObject *parent);
+    void parseLogic();
+    Q3DSSlide *parseSlide(Q3DSSlide *parent = nullptr, const QByteArray &idPrefix = QByteArray());
+    void parseAddSet(Q3DSSlide *slide, bool isSet, bool isMaster);
+    void parseAnimationKeyFrames(const QString &data, Q3DSAnimationTrack *animTrack);
+
+    QByteArray getId(const QStringRef &desc, bool required = true);
+    void resolveReferences(Q3DSGraphObject *obj);
+
+    QScopedPointer<Q3DSPresentation> m_presentation;
 };
 
 QT_END_NAMESPACE
 
-#endif // Q3DSTEXTMATERIALGENERATOR_P_H
+#endif

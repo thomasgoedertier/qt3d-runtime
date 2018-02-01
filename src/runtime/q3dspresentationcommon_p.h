@@ -27,8 +27,19 @@
 **
 ****************************************************************************/
 
-#ifndef Q3DSPRESENTATIONCOMMON_H
-#define Q3DSPRESENTATIONCOMMON_H
+#ifndef Q3DSPRESENTATIONCOMMON_P_H
+#define Q3DSPRESENTATIONCOMMON_P_H
+
+//
+//  W A R N I N G
+//  -------------
+//
+// This file is not part of the Qt API.  It exists purely as an
+// implementation detail.  This header file may change from version to
+// version without notice, or even be removed.
+//
+// We mean it.
+//
 
 #include <QString>
 #include <QVector2D>
@@ -86,4 +97,4 @@ QVariant convertToVariant(const QString &value, Q3DS::PropertyType type);
 
 QT_END_NAMESPACE
 
-#endif // Q3DSPRESENTATIONCOMMON_H
+#endif // Q3DSPRESENTATIONCOMMON_P_H

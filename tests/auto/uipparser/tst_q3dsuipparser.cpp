@@ -27,9 +27,9 @@
 ****************************************************************************/
 
 #include <QtTest/QtTest>
-#include <Qt3DStudioRuntime2/q3dsuipparser.h>
-#include <Qt3DStudioRuntime2/private/q3dsutils_p.h>
-#include <Qt3DStudioRuntime2/private/q3dsdatamodelparser_p.h>
+#include <private/q3dsuipparser_p.h>
+#include <private/q3dsutils_p.h>
+#include <private/q3dsdatamodelparser_p.h>
 
 class tst_Q3DSUipParser : public QObject
 {

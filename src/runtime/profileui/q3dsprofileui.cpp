@@ -30,7 +30,7 @@
 #include "q3dsprofileui_p.h"
 #include "q3dsimguimanager_p.h"
 #include "q3dsprofiler_p.h"
-#include "q3dspresentation.h"
+#include "q3dspresentation_p.h"
 #include <QLoggingCategory>
 #include <Qt3DRender/QTexture>
 #include <Qt3DRender/QPaintedTextureImage>

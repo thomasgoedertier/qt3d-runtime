@@ -31,7 +31,7 @@
 
 #include <Qt3DRender/QGeometry>
 #include <Qt3DRender/QAttribute>
-#include "q3dsmeshloader.h"
+#include <private/q3dsmeshloader_p.h>
 
 class tst_Q3DSMeshLoader : public QObject
 {

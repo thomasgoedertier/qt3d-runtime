@@ -30,7 +30,7 @@
 #include <QtTest>
 
 #include <private/q3dsutils_p.h>
-#include "q3dseffect.h"
+#include <private/q3dseffect_p.h>
 
 class tst_Q3DSEffectParser : public QObject
 {

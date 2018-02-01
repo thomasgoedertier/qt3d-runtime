@@ -27,7 +27,7 @@
 **
 ****************************************************************************/
 
-#include "q3dsabstractxmlparser.h"
+#include "q3dsabstractxmlparser_p.h"
 #include "q3dsutils_p.h"
 
 QT_BEGIN_NAMESPACE

@@ -41,7 +41,7 @@
 // We mean it.
 //
 
-#include <Qt3DStudioRuntime2/q3dspresentation.h>
+#include "q3dspresentation_p.h"
 
 QT_BEGIN_NAMESPACE
 
