@@ -59,6 +59,8 @@ void Q3DSProfiler::resetForNewScene(Q3DSSceneManager *sceneManager)
     for (auto c : m_objectDestroyConnections)
         QObject::disconnect(c);
 
+    m_subMeshData.clear();
+    m_subPresProfilers.clear();
     m_frameData.clear();
     m_objectData.clear();
     m_objectDestroyConnections.clear();
@@ -122,6 +124,14 @@ void Q3DSProfiler::reportTotalParseBuildTime(qint64 ms)
 void Q3DSProfiler::reportTimeAfterBuildUntilFirstFrameAction(qint64 ms)
 {
     m_firstFrameActionTime = ms;
+}
+
+void Q3DSProfiler::reportSubMeshData(Q3DSMesh *mesh, const SubMeshData &data)
+{
+    if (!m_enabled)
+        return;
+
+    m_subMeshData.insert(mesh, data);
 }
 
 void Q3DSProfiler::registerSubPresentationProfiler(Q3DSPresentation *subPres, Q3DSProfiler *p)

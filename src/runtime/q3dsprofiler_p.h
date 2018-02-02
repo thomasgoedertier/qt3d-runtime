@@ -45,12 +45,14 @@
 #include <QElapsedTimer>
 #include <QMultiMap>
 #include <QObject>
+#include <QHash>
 #include "q3dsgraphicslimits_p.h"
 
 QT_BEGIN_NAMESPACE
 
 class Q3DSSceneManager;
 class Q3DSPresentation;
+class Q3DSMesh;
 
 class Q3DSProfiler
 {
@@ -70,7 +72,8 @@ public:
         RenderTargetObject,
         Texture2DObject,
         TextureLoaderObject = Texture2DObject, // no difference in practice, will only cast to QAbstractTexture anyways
-        TextureCubeObject
+        TextureCubeObject,
+        MeshObject
     };
     void trackNewObject(QObject *obj, ObjectType type, const char *info, ...);
 
@@ -98,6 +101,12 @@ public:
     qint64 totalParseBuildTime() const { return m_totalParseBuildTime; }
     void reportTimeAfterBuildUntilFirstFrameAction(qint64 ms);
     qint64 timeAfterBuildUntilFirstFrameAction() const { return m_firstFrameActionTime; }
+
+    struct SubMeshData {
+        bool needsBlending = false;
+    };
+    void reportSubMeshData(Q3DSMesh *mesh, const SubMeshData &data);
+    SubMeshData subMeshData(Q3DSMesh *mesh) const { return m_subMeshData.value(mesh); }
 
     struct SubPresentationProfiler {
         Q3DSProfiler *profiler = nullptr;
@@ -127,6 +136,7 @@ private:
     Q3DSPresentation *m_presentation = nullptr;
     qint64 m_totalParseBuildTime = 0;
     qint64 m_firstFrameActionTime = 0;
+    QHash<Q3DSMesh *, SubMeshData> m_subMeshData;
     QVector<SubPresentationProfiler> m_subPresProfilers;
 
     QElapsedTimer m_cpuLoadTimer;
@@ -148,6 +158,7 @@ private:
 
 Q_DECLARE_TYPEINFO(Q3DSProfiler::FrameData, Q_MOVABLE_TYPE);
 Q_DECLARE_TYPEINFO(Q3DSProfiler::ObjectData, Q_MOVABLE_TYPE);
+Q_DECLARE_TYPEINFO(Q3DSProfiler::SubMeshData, Q_MOVABLE_TYPE);
 Q_DECLARE_TYPEINFO(Q3DSProfiler::SubPresentationProfiler, Q_MOVABLE_TYPE);
 
 inline bool operator==(const Q3DSProfiler::ObjectData &lhs, const Q3DSProfiler::ObjectData &rhs) Q_DECL_NOTHROW

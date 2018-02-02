@@ -3668,8 +3668,11 @@ Qt3DCore::QEntity *Q3DSSceneManager::buildModel(Q3DSModelNode *model3DS, Q3DSLay
     for (int i = 0; i < meshCount; ++i) {
         auto material = materials.at(i);
         auto mesh = meshList->at(i);
+        m_profiler->trackNewObject(mesh, Q3DSProfiler::MeshObject,
+                                   "Mesh %d for model %s", i, model3DS->id().constData());
 
         Q3DSModelAttached::SubMesh sm;
+        sm.mesh = mesh;
         sm.entity = new Qt3DCore::QEntity(entity);
         sm.entity->setObjectName(QObject::tr("model %1 submesh #%2").arg(QString::fromUtf8(model3DS->id())).arg(i));
         sm.entity->addComponent(mesh);
@@ -3842,6 +3845,7 @@ void Q3DSSceneManager::retagSubMeshes(Q3DSModelNode *model3DS)
     Q3DSModelAttached *data = static_cast<Q3DSModelAttached *>(model3DS->attached());
     Q3DSLayerAttached *layerData = static_cast<Q3DSLayerAttached *>(data->layer3DS->attached());
 
+    Q3DSProfiler::SubMeshData profData;
     for (Q3DSModelAttached::SubMesh &sm : data->subMeshes) {
         float opacity = data->globalOpacity;
         bool hasTransparency = false;
@@ -3871,6 +3875,9 @@ void Q3DSSceneManager::retagSubMeshes(Q3DSModelNode *model3DS)
             sm.entity->removeComponent(prevTag);
             sm.entity->addComponent(newTag);
         }
+
+        profData.needsBlending = sm.hasTransparency;
+        m_profiler->reportSubMeshData(sm.mesh, profData);
     }
 }
 

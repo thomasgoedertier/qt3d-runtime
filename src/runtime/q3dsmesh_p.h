@@ -47,6 +47,8 @@ QT_BEGIN_NAMESPACE
 
 class Q3DSMesh : public Qt3DRender::QGeometryRenderer
 {
+    Q_OBJECT
+
 public:
     Q3DSMesh(Qt3DCore::QNode *parent = nullptr);
     ~Q3DSMesh();

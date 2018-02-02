@@ -61,6 +61,7 @@ class Q3DSTextMaterialGenerator;
 class Q3DSProfiler;
 class Q3DSProfileUi;
 class Q3DSEngine;
+class Q3DSMesh;
 
 namespace Qt3DCore {
 class QEntity;
@@ -339,6 +340,7 @@ class Q3DSModelAttached : public Q3DSNodeAttached
 {
 public:
     struct SubMesh {
+        Q3DSMesh *mesh = nullptr;
         Qt3DRender::QMaterial *materialComponent = nullptr;
         Q3DSGraphObject *material = nullptr; // Default, Custom, Referenced
         Q3DSGraphObject *resolvedMaterial = nullptr; // Default, Custom normally, but can still be Referenced for invalid refs

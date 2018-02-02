@@ -31,9 +31,13 @@
 #include "q3dsimguimanager_p.h"
 #include "q3dsprofiler_p.h"
 #include "q3dspresentation_p.h"
+#include "q3dsmesh_p.h"
 #include <QLoggingCategory>
 #include <Qt3DRender/QTexture>
 #include <Qt3DRender/QPaintedTextureImage>
+#include <Qt3DRender/QGeometry>
+#include <Qt3DRender/QAttribute>
+#include <Qt3DRender/QBuffer>
 
 #include <imgui.h>
 
@@ -207,6 +211,67 @@ void Q3DSProfileView::frame()
         ImGui::SetNextWindowSize(ImVec2(700, 400), ImGuiCond_FirstUseEver);
         ImGui::Begin("Qt 3D objects", &m_qt3dObjectsWindowOpen, ImGuiWindowFlags_NoSavedSettings);
 
+        auto meshes = objs->values(Q3DSProfiler::MeshObject);
+        ImGui::Text("Meshes: %d", meshes.count());
+        if (ImGui::TreeNodeEx("Mesh details", meshes.isEmpty() ? 0 : ImGuiTreeNodeFlags_DefaultOpen)) {
+            ImGui::Columns(6, "meshcols");
+            ImGui::Separator();
+            ImGui::Text("Index"); ImGui::SetColumnWidth(-1, 50); ImGui::NextColumn();
+            ImGui::Text("Description"); ImGui::NextColumn();
+            ImGui::Text("Draw vertex count"); ImGui::NextColumn();
+            ImGui::Text("Vertex bytes"); ImGui::NextColumn();
+            ImGui::Text("Index bytes"); ImGui::NextColumn();
+            ImGui::Text("Blending");
+            addTip("When true, the entity belongs to the transparent pass (back-to-front sorting, blending enabled) "
+                   "instead of the opaque pass");
+            ImGui::NextColumn();
+            ImGui::Separator();
+            int idx = 0;
+            for (const Q3DSProfiler::ObjectData &objd : meshes) {
+                ImGui::Text("%d", idx);
+                ++idx;
+                ImGui::NextColumn();
+                const QByteArray info = objd.info.toUtf8();
+                ImGui::Text("%s", info.constData());
+                ImGui::NextColumn();
+
+                // show only what's relevant; for now q3dsmeshloader always creates 2 buffers (vertex, index) for each submesh
+                int drawVertexCount = 0;
+                int vertexBufferByteSize = 0;
+                int indexBufferByteSize = 0;
+                bool blending = false;
+                if (auto gr = qobject_cast<Q3DSMesh *>(objd.obj)) {
+                    drawVertexCount = gr->vertexCount();
+                    auto g = gr->geometry();
+                    for (auto attr : g->attributes()) {
+                        if (attr->attributeType() == Qt3DRender::QAttribute::IndexAttribute) {
+                            if (!drawVertexCount)
+                                drawVertexCount = attr->count();
+                            auto buf = attr->buffer();
+                            indexBufferByteSize = buf->data().size();
+                        } else if (attr->name() == QStringLiteral("attr_pos")) {
+                            auto buf = attr->buffer();
+                            vertexBufferByteSize = buf->data().size();
+                        }
+                    }
+                    auto sd = m_profiler->subMeshData(gr);
+                    blending = sd.needsBlending;
+                }
+
+                ImGui::Text("%d", drawVertexCount);
+                ImGui::NextColumn();
+                ImGui::Text("%d", vertexBufferByteSize);
+                ImGui::NextColumn();
+                ImGui::Text("%d", indexBufferByteSize);
+                ImGui::NextColumn();
+                ImGui::Text("%s", blending ? "true" : "false");
+                ImGui::NextColumn();
+            }
+            ImGui::Columns(1);
+            ImGui::Separator();
+            ImGui::TreePop();
+        }
+
         auto tex2d = objs->values(Q3DSProfiler::Texture2DObject);
         ImGui::Text("2D textures: %d", tex2d.count());
         if (ImGui::TreeNodeEx("2D texture details", tex2d.isEmpty() ? 0 : ImGuiTreeNodeFlags_DefaultOpen)) {
@@ -242,9 +307,16 @@ void Q3DSProfileView::frame()
                         }
                     }
                     if (useTexture) {
-                        ImGui::Text("%dx%d", t->width(), t->height());
+                        // ### QTBUG-65775
+                        if (t->width() == 1 && t->height() == 1)
+                            ImGui::Text("unknown");
+                        else
+                            ImGui::Text("%dx%d", t->width(), t->height());
                         ImGui::NextColumn();
-                        ImGui::Text("0x%x", t->format());
+                        if (t->format() == 0 || t->format() == 1)
+                            ImGui::Text("unknown");
+                        else
+                            ImGui::Text("0x%x", t->format());
                         ImGui::NextColumn();
                         ImGui::Text("%d", t->samples());
                         ImGui::NextColumn();
