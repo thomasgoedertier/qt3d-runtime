@@ -73,7 +73,8 @@ public:
         Texture2DObject,
         TextureLoaderObject = Texture2DObject, // no difference in practice, will only cast to QAbstractTexture anyways
         TextureCubeObject,
-        MeshObject
+        MeshObject,
+        ShaderProgramObject
     };
     void trackNewObject(QObject *obj, ObjectType type, const char *info, ...);
 

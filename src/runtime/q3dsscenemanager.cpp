@@ -593,6 +593,11 @@ Q3DSSceneManager::Scene Q3DSSceneManager::buildScene(Q3DSPresentation *presentat
 
     m_profiler->setEnabled(m_flags.testFlag(EnableProfiling));
 
+    // All shader program info goes to the main presentation's profiler,
+    // including programs from subpresentations.
+    if (!m_flags.testFlag(SubPresentation))
+        Q3DSShaderManager::instance().setProfiler(m_profiler);
+
     // Enter the first slide. (apply property changes from master+first)
     if (!m_masterSlide) {
         qWarning("Q3DSSceneBuilder: No master slide?");

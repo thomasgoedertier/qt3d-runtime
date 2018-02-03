@@ -48,8 +48,6 @@ struct ShaderGenerator : public Q3DSCustomMaterialShaderGenerator
     QString m_imageRotScale;
     QString m_imageOffset;
 
-    QString m_GeneratedShaderString;
-
     ShaderGenerator()
     {
 
@@ -97,9 +95,9 @@ struct ShaderGenerator : public Q3DSCustomMaterialShaderGenerator
         Q_UNUSED(image)
     }
 
-    void generateVertexShader(const QString &materialName)
+    void generateVertexShader(const QString &shaderName)
     {
-        Q_UNUSED(materialName)
+        Q_UNUSED(shaderName);
         // XXX TODO include vertex data (I dont think 3DS even supports this)
 
         // the pipeline opens/closes up the shaders stages
@@ -107,18 +105,18 @@ struct ShaderGenerator : public Q3DSCustomMaterialShaderGenerator
         vertexGenerator().beginVertexGeneration(nullptr);
     }
 
-    void generateFragmentShader(const QString &materialName)
+    void generateFragmentShader(const QString &shaderName)
     {
         // Get the shader source from the Q3DSCustomMaterial based
         // on the name provided.  If there is only 1 shader then
         // the name will usually be empty
         QString fragSource;
         for (const auto &shader : m_currentMaterial->shaders()) {
-            if (shader.name == materialName)
+            if (shader.name == shaderName)
                 fragSource = shader.shared + shader.fragmentShader;
         }
         if (fragSource.isEmpty() &&
-            materialName.isEmpty() &&
+            shaderName.isEmpty() &&
             m_currentMaterial->shaders().count() == 1) {
             // fallback to first shader
             auto shader = m_currentMaterial->shaders().first();
@@ -302,16 +300,15 @@ struct ShaderGenerator : public Q3DSCustomMaterialShaderGenerator
         fragmentShader << "  fragColor = rgba;\n";
     }
 
-    Qt3DRender::QShaderProgram *generateCustomMaterialShader(const QString &shaderPrefix, const QString &customMaterialName)
+    Qt3DRender::QShaderProgram *generateCustomMaterialShader(const QString &shaderName)
     {
-        m_GeneratedShaderString = shaderPrefix;
-        generateVertexShader(customMaterialName);
-        generateFragmentShader(customMaterialName);
+        generateVertexShader(shaderName);
+        generateFragmentShader(shaderName);
 
         vertexGenerator().endVertexGeneration();
         vertexGenerator().endFragmentGeneration();
 
-        return programGenerator()->compileGeneratedShader(m_GeneratedShaderString, m_currentFeatureSet);
+        return programGenerator()->compileGeneratedShader(shaderName, m_currentFeatureSet);
     }
 
     Qt3DRender::QShaderProgram *generateShader(Q3DSGraphObject &material,
@@ -319,8 +316,7 @@ struct ShaderGenerator : public Q3DSCustomMaterialShaderGenerator
                                                const Q3DSShaderFeatureSet &featureSet,
                                                const QVector<Q3DSLightNode *> &lights,
                                                bool hasTransparency,
-                                               const QString &shaderPrefix,
-                                               const QString &materialName) override
+                                               const QString &shaderName) override
     {
         if (material.type() != Q3DSGraphObject::CustomMaterial)
             return nullptr;
@@ -332,7 +328,7 @@ struct ShaderGenerator : public Q3DSCustomMaterialShaderGenerator
         m_lights = lights;
         m_hasTransparency = hasTransparency;
 
-        return generateCustomMaterialShader(shaderPrefix, materialName);
+        return generateCustomMaterialShader(shaderName);
     }
 };
 }

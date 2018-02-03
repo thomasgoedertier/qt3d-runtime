@@ -59,6 +59,7 @@ public:
     void operator=(Q3DSShaderManager const&) = delete;
 
     void invalidate();
+    void setProfiler(Q3DSProfiler *profiler);
 
     Q3DSDefaultMaterialShaderGenerator *defaultMaterialShaderGenerator();
     Q3DSCustomMaterialShaderGenerator *customMaterialShaderGenerator();

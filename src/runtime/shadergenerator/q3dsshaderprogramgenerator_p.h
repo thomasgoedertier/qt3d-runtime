@@ -46,6 +46,8 @@
 
 QT_BEGIN_NAMESPACE
 
+class Q3DSProfiler;
+
 // So far the generator is only useful for graphics stages,
 // it doesn't seem useful for compute stages.
 struct Q3DSShaderGeneratorStages
@@ -133,6 +135,7 @@ public:
     virtual void invalidate() = 0;
 
     static Q3DSAbstractShaderProgramGenerator *createProgramGenerator();
+    void setProfiler(Q3DSProfiler *profiler) { m_profiler = profiler; }
 
 #if 0
     static void outputParaboloidDepthVertex(Q3DSAbstractShaderStageGenerator &vertexShader);
@@ -146,6 +149,9 @@ public:
     static void outputCubeFaceDepthGeometry(Q3DSAbstractShaderStageGenerator &geometryShader);
     static void outputCubeFaceDepthFragment(Q3DSAbstractShaderStageGenerator &fragmentShader);
 #endif
+
+protected:
+    Q3DSProfiler *m_profiler = nullptr;
 };
 
 QT_END_NAMESPACE

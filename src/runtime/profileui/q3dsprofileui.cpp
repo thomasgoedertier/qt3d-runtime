@@ -38,6 +38,7 @@
 #include <Qt3DRender/QGeometry>
 #include <Qt3DRender/QAttribute>
 #include <Qt3DRender/QBuffer>
+#include <Qt3DRender/QShaderProgram>
 
 #include <imgui.h>
 
@@ -190,12 +191,9 @@ void Q3DSProfileView::frame()
         ImGui::Text("Layer count: %d Visible: %d Dirty: %d", totalLayerCount, visibleLayerCount, dirtyLayerCount);
     }
 
-    if (ImGui::CollapsingHeader("Qt 3D objects")) {
+    if (ImGui::CollapsingHeader("Scene info")) {
         if (ImGui::Button("Qt 3D object list"))
             m_qt3dObjectsWindowOpen = !m_qt3dObjectsWindowOpen;
-    }
-
-    if (ImGui::CollapsingHeader("Scene objects")) {
         if (ImGui::Button("Layer list"))
             m_layerWindowOpen = !m_layerWindowOpen;
     }
@@ -379,6 +377,52 @@ void Q3DSProfileView::frame()
                 ImGui::NextColumn();
                 const QByteArray info = objd.info.toUtf8();
                 ImGui::Text("%s", info.constData());
+                ImGui::NextColumn();
+            }
+            ImGui::Columns(1);
+            ImGui::Separator();
+            ImGui::TreePop();
+        }
+
+        auto progs = objs->values(Q3DSProfiler::ShaderProgramObject);
+        ImGui::Text("Shader programs: %d", progs.count());
+        if (ImGui::TreeNodeEx("Shader program details", progs.isEmpty() ? 0 : ImGuiTreeNodeFlags_DefaultOpen)) {
+            ImGui::Columns(3, "progcols");
+            ImGui::Separator();
+            ImGui::Text("Index"); ImGui::SetColumnWidth(-1, 50); ImGui::NextColumn();
+            ImGui::Text("Description"); ImGui::NextColumn();
+            ImGui::Text("Status"); ImGui::NextColumn();
+            ImGui::Separator();
+            int idx = 0;
+            for (const Q3DSProfiler::ObjectData &objd : progs) {
+                ImGui::Text("%d", idx);
+                ++idx;
+                ImGui::NextColumn();
+                const QByteArray info = objd.info.toUtf8();
+                ImGui::Text("%s", info.constData());
+                ImGui::NextColumn();
+                QString status;
+                if (auto p = qobject_cast<Qt3DRender::QShaderProgram *>(objd.obj)) {
+                    switch (p->status()) {
+                    case Qt3DRender::QShaderProgram::NotReady:
+                        status = QLatin1String("Not ready");
+                        break;
+                    case Qt3DRender::QShaderProgram::Ready:
+                        status = QLatin1String("Ready");
+                        break;
+                    case Qt3DRender::QShaderProgram::Error:
+                    {
+                        status = QLatin1String("Error: ");
+                        QString log = p->log().left(500);
+                        log.replace(QLatin1Char('\n'), QLatin1String(" "));
+                        status += log;
+                    }
+                        break;
+                    default:
+                        break;
+                    }
+                }
+                ImGui::Text("%s", qPrintable(status));
                 ImGui::NextColumn();
             }
             ImGui::Columns(1);

@@ -1047,21 +1047,15 @@ struct ShaderGenerator : public Q3DSDefaultMaterialShaderGenerator
         }
     }
 
-    Qt3DRender::QShaderProgram *generateMaterialShader(const QString &inShaderPrefix)
+    Qt3DRender::QShaderProgram *generateMaterialShader(const QString &description)
     {
-        // build a string that allows us to print out the shader we are generating to the log.
-        // This is time consuming but I feel like it doesn't happen all that often and is very
-        // useful to users
-        // looking at the log file.
-        m_GeneratedShaderString = inShaderPrefix;
-
         generateVertexShader();
         generateFragmentShader();
 
         vertexGenerator().endVertexGeneration();
         vertexGenerator().endFragmentGeneration();
 
-        return programGenerator()->compileGeneratedShader(m_GeneratedShaderString, m_CurrentFeatureSet);
+        return programGenerator()->compileGeneratedShader(description, m_CurrentFeatureSet);
     }
 
     Qt3DRender::QShaderProgram *generateShader(Q3DSGraphObject &defaultMaterial,
@@ -1069,10 +1063,8 @@ struct ShaderGenerator : public Q3DSDefaultMaterialShaderGenerator
                                                const Q3DSShaderFeatureSet &featureSet,
                                                const QVector<Q3DSLightNode*> &lights,
                                                bool hasTransparency,
-                                               const QString &shaderPrefix = QString(),
-                                               const QString &materialName = QString()) override
+                                               const QString &description) override
     {
-        Q_UNUSED(materialName)
         if (defaultMaterial.type() != Q3DSGraphObject::DefaultMaterial)
             return nullptr;
 
@@ -1083,7 +1075,7 @@ struct ShaderGenerator : public Q3DSDefaultMaterialShaderGenerator
         m_Lights = lights;
         m_HasTransparency = hasTransparency;
 
-        return generateMaterialShader(shaderPrefix);
+        return generateMaterialShader(description);
     }
 };
 

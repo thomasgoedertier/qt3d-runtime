@@ -29,6 +29,7 @@
 
 #include "q3dsshaderprogramgenerator_p.h"
 #include "q3dsutils_p.h"
+#include "q3dsprofiler_p.h"
 
 #include <QtCore/QFile>
 #include <QtCore/QTextStream>
@@ -645,6 +646,9 @@ public:
         shaderProgram->setFragmentShaderCode(fragmentShaderSource);
 
         m_cache.insert(cacheKey, shaderProgram);
+
+        if (m_profiler)
+            m_profiler->trackNewObject(shaderProgram, Q3DSProfiler::ShaderProgramObject, "Shader program %s", qPrintable(inShaderName));
 
         return shaderProgram;
     }

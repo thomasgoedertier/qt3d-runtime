@@ -56,7 +56,8 @@ Qt3DRender::QShaderProgram *Q3DSShaderManager::generateShaderProgram(Q3DSDefault
                                                                      const Q3DSShaderFeatureSet &featureSet)
 {
     Q3DSSubsetMaterialVertexPipeline pipeline(*m_materialShaderGenerator, *m_shaderProgramGenerator, false);
-    return m_materialShaderGenerator->generateShader(material, pipeline, featureSet, lights, hasTransparency);
+    return m_materialShaderGenerator->generateShader(material, pipeline, featureSet, lights, hasTransparency,
+                                                     QString(QLatin1String("default material %1")).arg(material.id().constData()));
 }
 
 Qt3DRender::QShaderProgram *Q3DSShaderManager::generateShaderProgram(Q3DSCustomMaterialInstance &material,
@@ -66,7 +67,7 @@ Qt3DRender::QShaderProgram *Q3DSShaderManager::generateShaderProgram(Q3DSCustomM
                                                                      const QString &shaderName)
 {
     Q3DSCustomMaterialVertexPipeline pipeline(*m_materialShaderGenerator, *m_shaderProgramGenerator, false);
-    return m_customMaterialShaderGenerator->generateShader(material, pipeline, featureSet, lights, hasTransparency, QString(), shaderName);
+    return m_customMaterialShaderGenerator->generateShader(material, pipeline, featureSet, lights, hasTransparency, shaderName);
 }
 
 Qt3DRender::QShaderProgram *Q3DSShaderManager::getCubeDepthNoTessShader(Qt3DCore::QNode *parent)
@@ -896,6 +897,11 @@ void Q3DSShaderManager::invalidate()
     m_blendColorDodgeShader.clear();
 
     m_shaderProgramGenerator->invalidate();
+}
+
+void Q3DSShaderManager::setProfiler(Q3DSProfiler *profiler)
+{
+    m_shaderProgramGenerator->setProfiler(profiler);
 }
 
 QT_END_NAMESPACE

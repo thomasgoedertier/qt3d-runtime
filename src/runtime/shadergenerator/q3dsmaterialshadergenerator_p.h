@@ -68,8 +68,7 @@ public:
                                                        const Q3DSShaderFeatureSet &featureSet,
                                                        const QVector<Q3DSLightNode*> &lights,
                                                        bool hasTransparency,
-                                                       const QString &shaderPrefix = QString(),
-                                                       const QString &materialName = QString()) = 0;
+                                                       const QString &description) = 0;
 };
 
 QT_END_NAMESPACE
