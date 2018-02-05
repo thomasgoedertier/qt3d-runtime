@@ -75,11 +75,16 @@ Rectangle {
         title: "Second window"
     }
 
-    MouseArea {
-        anchors.fill: parent
-        onClicked: if (s3d.parent === wroot) s3d.parent = root; else s3d.parent = wroot
-        Text {
-            text: "Click to move to other window"
+    Rectangle {
+        border.color: "black"
+        width: 300
+        height: 30
+        MouseArea {
+            anchors.fill: parent
+            onClicked: if (s3d.parent === wroot) s3d.parent = root; else s3d.parent = wroot
+            Text {
+                text: "Click to move to other window"
+            }
         }
     }
 }

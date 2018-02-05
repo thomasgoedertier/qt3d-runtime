@@ -55,9 +55,9 @@
 int main(int argc, char *argv[])
 {
     QGuiApplication app(argc, argv);
+    QSurfaceFormat::setDefaultFormat(Q3DS::surfaceFormat());
 
     QQuickView viewer;
-    viewer.setFormat(Q3DS::surfaceFormat());
     viewer.setSource(QUrl("qrc:/main.qml"));
 
     viewer.setTitle(QStringLiteral("Qt 3D Studio Example"));
