@@ -70,6 +70,9 @@ protected:
     void mouseMoveEvent(QMouseEvent *) override;
     void mouseReleaseEvent(QMouseEvent *) override;
     void mouseDoubleClickEvent(QMouseEvent *) override;
+#if QT_CONFIG(wheelevent)
+    void wheelEvent(QWheelEvent *) override;
+#endif
 
 private:
     Q3DSEngine *m_engine = nullptr;

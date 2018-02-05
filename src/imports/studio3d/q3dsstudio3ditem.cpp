@@ -53,6 +53,7 @@ Q3DSStudio3DItem::Q3DSStudio3DItem(QQuickItem *parent)
 {
     setFlag(QQuickItem::ItemHasContents, true);
     setAcceptedMouseButtons(Qt::MouseButtonMask);
+    setAcceptHoverEvents(true);
     Q3DSUtils::setDialogsEnabled(false);
 }
 
@@ -226,6 +227,58 @@ void Q3DSStudio3DItem::sendResize(const QSize &size)
         surfaceSelector->setExternalRenderTargetSize(size);
         surfaceSelector->setSurfacePixelRatio(window()->effectiveDevicePixelRatio());
     }
+}
+
+void Q3DSStudio3DItem::keyPressEvent(QKeyEvent *event)
+{
+    m_engine->handleKeyPressEvent(event);
+}
+
+void Q3DSStudio3DItem::keyReleaseEvent(QKeyEvent *event)
+{
+    m_engine->handleKeyReleaseEvent(event);
+}
+
+void Q3DSStudio3DItem::mousePressEvent(QMouseEvent *event)
+{
+    m_engine->handleMousePressEvent(event);
+}
+
+void Q3DSStudio3DItem::mouseMoveEvent(QMouseEvent *event)
+{
+    m_engine->handleMouseMoveEvent(event);
+}
+
+void Q3DSStudio3DItem::mouseReleaseEvent(QMouseEvent *event)
+{
+    m_engine->handleMouseReleaseEvent(event);
+}
+
+void Q3DSStudio3DItem::mouseDoubleClickEvent(QMouseEvent *event)
+{
+    m_engine->handleMouseDoubleClickEvent(event);
+}
+
+#if QT_CONFIG(wheelevent)
+void Q3DSStudio3DItem::wheelEvent(QWheelEvent *event)
+{
+    m_engine->handleWheelEvent(event);
+}
+#endif
+
+void Q3DSStudio3DItem::hoverMoveEvent(QHoverEvent *event)
+{
+    // Simulate the QWindow behavior, which means sending moves even when no
+    // button is down. The profile ui for example depends on this.
+
+    if (QGuiApplication::mouseButtons() != Qt::NoButton)
+        return;
+
+    const QPointF sceneOffset = mapToScene(event->pos());
+    const QPointF globalOffset = mapToGlobal(event->pos());
+    QMouseEvent e(QEvent::MouseMove, event->pos(), event->pos() + sceneOffset, event->pos() + globalOffset,
+                  Qt::NoButton, Qt::NoButton, QGuiApplication::keyboardModifiers());
+    m_engine->handleMouseMoveEvent(&e);
 }
 
 QT_END_NAMESPACE

@@ -515,7 +515,7 @@ bool Q3DSImguiInputEventFilter::eventFilter(QObject *, QEvent *event)
     case QEvent::MouseButtonRelease:
     {
         QMouseEvent *me = static_cast<QMouseEvent *>(event);
-        mousePos = me->windowPos();
+        mousePos = me->pos();
         mouseButtonsDown = me->buttons();
         modifiers = me->modifiers();
     }

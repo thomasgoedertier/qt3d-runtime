@@ -72,6 +72,18 @@ private:
     void releaseResources() override;
     void itemChange(QQuickItem::ItemChange change, const QQuickItem::ItemChangeData &changeData) override;
     void geometryChanged(const QRectF &newGeometry, const QRectF &oldGeometry) override;
+
+    void keyPressEvent(QKeyEvent *event) override;
+    void keyReleaseEvent(QKeyEvent *event) override;
+    void mousePressEvent(QMouseEvent *event) override;
+    void mouseMoveEvent(QMouseEvent *event) override;
+    void mouseReleaseEvent(QMouseEvent *event) override;
+    void mouseDoubleClickEvent(QMouseEvent *event) override;
+#if QT_CONFIG(wheelevent)
+    void wheelEvent(QWheelEvent *event) override;
+#endif
+    void hoverMoveEvent(QHoverEvent *event) override;
+
     void createEngine();
     void sendResize(const QSize &size);
 

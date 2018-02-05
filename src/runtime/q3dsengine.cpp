@@ -435,8 +435,10 @@ bool Q3DSEngine::loadPresentation(Presentation *pres)
     inputSettings->setEventSource(m_surface);
     pres->q3dscene.rootEntity->addComponent(inputSettings);
 
-    // Input (profiling UI).
-    pres->sceneManager->setProfileUiInputEventSource(m_surface);
+    // Input (profiling UI). Do not let it capture events from the window,
+    // instead use a dummy object to which we (the engine) sends events as it
+    // sees fit. This ensures a single path of receiving input events.
+    pres->sceneManager->setProfileUiInputEventSource(&m_profileUiEventSource);
 
     // Generate a resize to make sure everything size-related gets updated.
     // (avoids issues with camera upon loading new scenes)
@@ -724,6 +726,8 @@ void Q3DSEngine::resize(const QSize &size, qreal dpr)
 
 void Q3DSEngine::handleKeyPressEvent(QKeyEvent *e)
 {
+    QCoreApplication::sendEvent(&m_profileUiEventSource, e);
+
     // not ideal since the window needs focus which it often won't have. also no keyboard on embedded/mobile.
     if (e->key() == Qt::Key_F10 && !m_presentations.isEmpty()) {
         auto m = m_presentations[0].sceneManager;
@@ -733,26 +737,28 @@ void Q3DSEngine::handleKeyPressEvent(QKeyEvent *e)
 
 void Q3DSEngine::handleKeyReleaseEvent(QKeyEvent *e)
 {
-    Q_UNUSED(e);
+    QCoreApplication::sendEvent(&m_profileUiEventSource, e);
 }
 
 void Q3DSEngine::handleMousePressEvent(QMouseEvent *e)
 {
-    Q_UNUSED(e);
+    QCoreApplication::sendEvent(&m_profileUiEventSource, e);
 }
 
 void Q3DSEngine::handleMouseMoveEvent(QMouseEvent *e)
 {
-    Q_UNUSED(e);
+    QCoreApplication::sendEvent(&m_profileUiEventSource, e);
 }
 
 void Q3DSEngine::handleMouseReleaseEvent(QMouseEvent *e)
 {
-    Q_UNUSED(e);
+    QCoreApplication::sendEvent(&m_profileUiEventSource, e);
 }
 
 void Q3DSEngine::handleMouseDoubleClickEvent(QMouseEvent *e)
 {
+    QCoreApplication::sendEvent(&m_profileUiEventSource, e);
+
     // Toggle with short double-clicks. This should work both with
     // touch and with mouse emulation via gamepads on Android. Just
     // using a single double-click would be too error-prone.
@@ -770,6 +776,13 @@ void Q3DSEngine::handleMouseDoubleClickEvent(QMouseEvent *e)
         m->setProfileUiVisible(!m->isProfileUiVisible());
     }
 }
+
+#if QT_CONFIG(wheelevent)
+void Q3DSEngine::handleWheelEvent(QWheelEvent *e)
+{
+    QCoreApplication::sendEvent(&m_profileUiEventSource, e);
+}
+#endif
 
 void Q3DSEngine::requestGrab()
 {

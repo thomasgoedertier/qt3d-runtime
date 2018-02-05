@@ -103,6 +103,8 @@ void Q3DSWindow::mousePressEvent(QMouseEvent *e)
 
 void Q3DSWindow::mouseMoveEvent(QMouseEvent *e)
 {
+    // Yes, moves must be forwarded even when no button is down; the
+    // default QWindow behavior is just what we need in this respect.
     if (m_engine)
         m_engine->handleMouseMoveEvent(e);
 }
@@ -118,5 +120,13 @@ void Q3DSWindow::mouseDoubleClickEvent(QMouseEvent *e)
     if (m_engine)
         m_engine->handleMouseDoubleClickEvent(e);
 }
+
+#if QT_CONFIG(wheelevent)
+void Q3DSWindow::wheelEvent(QWheelEvent *e)
+{
+    if (m_engine)
+        m_engine->handleWheelEvent(e);
+}
+#endif
 
 QT_END_NAMESPACE

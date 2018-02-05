@@ -113,6 +113,9 @@ public:
     void handleMouseMoveEvent(QMouseEvent *e);
     void handleMouseReleaseEvent(QMouseEvent *e);
     void handleMouseDoubleClickEvent(QMouseEvent *e);
+#if QT_CONFIG(wheelevent)
+    void handleWheelEvent(QWheelEvent *e);
+#endif
 
 public Q_SLOTS:
     void requestGrab();
@@ -165,6 +168,8 @@ private:
 
     Qt3DRender::QRenderCapture *m_capture = nullptr;
     QHash<Qt3DRender::QRenderCaptureReply*, QMetaObject::Connection> m_captureConnections;
+
+    QObject m_profileUiEventSource;
 };
 
 Q_DECLARE_OPERATORS_FOR_FLAGS(Q3DSEngine::Flags)
