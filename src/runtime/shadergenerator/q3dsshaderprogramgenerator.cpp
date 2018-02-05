@@ -541,9 +541,9 @@ QString resolveShaderIncludes(const QString &shaderCode)
                     if (clipPos >= 0)
                         content.remove(0, clipPos + CopyrightHeaderEnd.count());
                 }
-                output.append(QStringLiteral("\n// begin \"") + includeName + "\"\n");
+                output.append(QStringLiteral("\n// begin \"") + includeName + QStringLiteral("\"\n"));
                 output.append(resolveShaderIncludes(content));
-                output.append(QStringLiteral("\n// end \"" ) + includeName + "\"\n");
+                output.append(QStringLiteral("\n// end \"" ) + includeName + QStringLiteral("\"\n"));
             }
             file.close();
             output.append(QLatin1String("\n"));
