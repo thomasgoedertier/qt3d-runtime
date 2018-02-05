@@ -37,6 +37,7 @@ struct ShaderGenerator : public Q3DSDefaultMaterialShaderGenerator
     Q3DSAbstractShaderProgramGenerator *m_ProgramGenerator;
 
     Q3DSDefaultMaterial *m_CurrentMaterial;
+    Q3DSReferencedMaterial *m_referencedMaterial;
 
     Q3DSDefaultVertexPipeline *m_CurrentPipeline;
     Q3DSShaderFeatureSet m_CurrentFeatureSet;
@@ -519,7 +520,7 @@ struct ShaderGenerator : public Q3DSDefaultMaterialShaderGenerator
         bool specularEnabled = m_CurrentMaterial->specularAmount() > 0.01f;
         bool fresnelEnabled = m_CurrentMaterial->fresnelPower() > 0.0f;
         bool hasLighting = m_CurrentMaterial->shaderLighting() != Q3DSDefaultMaterial::NoShaderLighting;
-        bool hasIblProbe = false;//m_DefaultMaterialShaderKeyProperties.m_HasIbl.GetValue(inKey);
+        bool hasIblProbe = false; // XXX Figure out if a IBL probe has been set
         bool hasLightmaps = false;
 
         Q3DSImage *bumpImage = m_CurrentMaterial->bumpMap();
@@ -530,8 +531,25 @@ struct ShaderGenerator : public Q3DSDefaultMaterialShaderGenerator
         Q3DSImage *translucencyImage = m_CurrentMaterial->translucencyMap();
         // lightmaps
         Q3DSImage *lightmapIndirectImage = nullptr;
+        if (m_referencedMaterial && m_referencedMaterial->lightmapIndirectMap())
+            lightmapIndirectImage = m_referencedMaterial->lightmapIndirectMap();
+        else if (m_CurrentMaterial->lightmapIndirectMap())
+            lightmapIndirectImage = m_CurrentMaterial->lightmapIndirectMap();
+
         Q3DSImage *lightmapRadiosityImage = nullptr;
-        //Q3DSImage *lightmapShadowImage = nullptr;
+        if (m_referencedMaterial && m_referencedMaterial->lightmapRadiosityMap())
+            lightmapRadiosityImage = m_referencedMaterial->lightmapRadiosityMap();
+        else if (m_CurrentMaterial->lightmapRadiosityMap())
+            lightmapRadiosityImage = m_CurrentMaterial->lightmapRadiosityMap();
+
+        Q3DSImage *lightmapShadowImage = nullptr;
+        if (m_referencedMaterial && m_referencedMaterial->lightmapShadowMap())
+            lightmapShadowImage = m_referencedMaterial->lightmapShadowMap();
+        else if (m_CurrentMaterial->lightmapShadowMap())
+            lightmapShadowImage = m_CurrentMaterial->lightmapShadowMap();
+
+        if (lightmapIndirectImage || lightmapRadiosityImage || lightmapShadowImage)
+            hasLightmaps = true;
 
         const bool hasImage = m_CurrentMaterial->diffuseMap()
                 || m_CurrentMaterial->specularReflection()
@@ -540,7 +558,10 @@ struct ShaderGenerator : public Q3DSDefaultMaterialShaderGenerator
                 || m_CurrentMaterial->normalMap()
                 || m_CurrentMaterial->displacementmap()
                 || m_CurrentMaterial->opacityMap()
-                || m_CurrentMaterial->emissiveMap();
+                || m_CurrentMaterial->emissiveMap()
+                || lightmapIndirectImage
+                || lightmapRadiosityImage
+                || lightmapShadowImage;
 
         // Environment mapping is present if any of the images have the mapping mode set to Environment
         // except for bump, specularamount, normal
@@ -1004,6 +1025,11 @@ struct ShaderGenerator : public Q3DSDefaultMaterialShaderGenerator
                 fragmentShader.append("\tglobal_diffuse_light *= texture_color;");
             }
 
+            if (lightmapShadowImage) {
+                addTexColor(QLatin1String("lightmapShadow"), lightmapShadowImage);
+                fragmentShader.append("\tglobal_diffuse_light *= texture_color;");
+            }
+
             if (m_CurrentMaterial->specularReflection()) {
                 addTexColor(QLatin1String("specularreflection"), m_CurrentMaterial->specularReflection());
                 fragmentShader.addUniform("material_specular", "vec4");
@@ -1059,6 +1085,7 @@ struct ShaderGenerator : public Q3DSDefaultMaterialShaderGenerator
     }
 
     Qt3DRender::QShaderProgram *generateShader(Q3DSGraphObject &defaultMaterial,
+                                               Q3DSReferencedMaterial *referencedMaterial,
                                                Q3DSAbstractShaderStageGenerator &vertexPipeline,
                                                const Q3DSShaderFeatureSet &featureSet,
                                                const QVector<Q3DSLightNode*> &lights,
@@ -1069,6 +1096,7 @@ struct ShaderGenerator : public Q3DSDefaultMaterialShaderGenerator
             return nullptr;
 
         m_CurrentMaterial = static_cast<Q3DSDefaultMaterial*>(&defaultMaterial);
+        m_referencedMaterial = referencedMaterial;
         m_CurrentPipeline = static_cast<Q3DSDefaultVertexPipeline*>(&vertexPipeline);
         m_ProgramGenerator = &static_cast<Q3DSVertexPipelineImpl*>(&vertexPipeline)->programGenerator();
         m_CurrentFeatureSet = featureSet;

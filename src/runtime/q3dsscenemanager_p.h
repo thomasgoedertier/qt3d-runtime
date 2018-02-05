@@ -345,6 +345,7 @@ public:
         Qt3DRender::QMaterial *materialComponent = nullptr;
         Q3DSGraphObject *material = nullptr; // Default, Custom, Referenced
         Q3DSGraphObject *resolvedMaterial = nullptr; // Default, Custom normally, but can still be Referenced for invalid refs
+        Q3DSReferencedMaterial *referencedMaterial = nullptr; // When valid, there are some overrides possible by referenced material
         Qt3DCore::QEntity *entity = nullptr;
         bool hasTransparency = false;
     };
@@ -398,6 +399,10 @@ public:
     Q3DSTextureParameters emissiveMapParams;
     Q3DSTextureParameters emissiveMap2Params;
     Q3DSTextureParameters translucencyMapParams;
+    // Lightmaps
+    Q3DSTextureParameters lightmapIndirectParams;
+    Q3DSTextureParameters lightmapRadiosityParams;
+    Q3DSTextureParameters lightmapShadowParams;
 };
 
 struct Q3DSCustomPropertyParameter {
@@ -420,6 +425,10 @@ class Q3DSCustomMaterialAttached : public Q3DSMaterialAttached
 {
 public:
     QHash<QString, Q3DSCustomPropertyParameter> params;
+    // Lightmaps
+    Q3DSTextureParameters lightmapIndirectParams;
+    Q3DSTextureParameters lightmapRadiosityParams;
+    Q3DSTextureParameters lightmapShadowParams;
 };
 
 class Q3DSEffectAttached : public Q3DSGraphObjectAttached
@@ -620,13 +629,13 @@ private:
     void buildModelMaterial(Q3DSModelNode *model3DS);
     void retagSubMeshes(Q3DSModelNode *model3DS);
     void prepareTextureParameters(Q3DSTextureParameters &textureParameters, const QString &name, Q3DSImage *image3DS);
-    QVector<Qt3DRender::QParameter *> prepareDefaultMaterial(Q3DSDefaultMaterial *m, Q3DSModelNode *model3DS);
+    QVector<Qt3DRender::QParameter *> prepareDefaultMaterial(Q3DSDefaultMaterial *m, Q3DSReferencedMaterial *rm, Q3DSModelNode *model3DS);
     Qt3DRender::QAbstractTexture *createCustomPropertyTexture(const Q3DSCustomPropertyParameter &p);
-    QVector<Qt3DRender::QParameter *> prepareCustomMaterial(Q3DSCustomMaterialInstance *m, Q3DSModelNode *model3DS);
+    QVector<Qt3DRender::QParameter *> prepareCustomMaterial(Q3DSCustomMaterialInstance *m, Q3DSReferencedMaterial *rm, Q3DSModelNode *model3DS);
     void setImageTextureFromSubPresentation(Qt3DRender::QParameter *sampler, Q3DSImage *image);
     void updateTextureParameters(Q3DSTextureParameters &textureParameters, Q3DSImage *image);
-    void updateDefaultMaterial(Q3DSDefaultMaterial *m);
-    void updateCustomMaterial(Q3DSCustomMaterialInstance *m);
+    void updateDefaultMaterial(Q3DSDefaultMaterial *m, Q3DSReferencedMaterial *rm = nullptr);
+    void updateCustomMaterial(Q3DSCustomMaterialInstance *m, Q3DSReferencedMaterial *rm = nullptr);
     void buildEffect(Q3DSEffectInstance *eff3DS, Q3DSLayerNode *layer3DS);
     void finalizeEffects(Q3DSLayerNode *layer3DS);
     void setupEffectTextureBuffer(Q3DSEffectAttached::TextureBuffer *tb, const Q3DSMaterial::PassBuffer &bufDesc, Q3DSLayerNode *layer3DS);

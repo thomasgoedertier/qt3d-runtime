@@ -51,23 +51,25 @@ Q3DSCustomMaterialShaderGenerator *Q3DSShaderManager::customMaterialShaderGenera
 }
 
 Qt3DRender::QShaderProgram *Q3DSShaderManager::generateShaderProgram(Q3DSDefaultMaterial &material,
+                                                                     Q3DSReferencedMaterial *referencedMaterial,
                                                                      const QVector<Q3DSLightNode*> &lights,
                                                                      bool hasTransparency,
                                                                      const Q3DSShaderFeatureSet &featureSet)
 {
     Q3DSSubsetMaterialVertexPipeline pipeline(*m_materialShaderGenerator, *m_shaderProgramGenerator, false);
-    return m_materialShaderGenerator->generateShader(material, pipeline, featureSet, lights, hasTransparency,
+    return m_materialShaderGenerator->generateShader(material, referencedMaterial, pipeline, featureSet, lights, hasTransparency,
                                                      QString(QLatin1String("default material %1")).arg(QString::fromLatin1(material.id())));
 }
 
 Qt3DRender::QShaderProgram *Q3DSShaderManager::generateShaderProgram(Q3DSCustomMaterialInstance &material,
+                                                                     Q3DSReferencedMaterial *referencedMaterial,
                                                                      const QVector<Q3DSLightNode *> &lights,
                                                                      bool hasTransparency,
                                                                      const Q3DSShaderFeatureSet &featureSet,
                                                                      const QString &shaderName)
 {
     Q3DSCustomMaterialVertexPipeline pipeline(*m_materialShaderGenerator, *m_shaderProgramGenerator, false);
-    return m_customMaterialShaderGenerator->generateShader(material, pipeline, featureSet, lights, hasTransparency, shaderName);
+    return m_customMaterialShaderGenerator->generateShader(material, referencedMaterial, pipeline, featureSet, lights, hasTransparency, shaderName);
 }
 
 Qt3DRender::QShaderProgram *Q3DSShaderManager::getCubeDepthNoTessShader(Qt3DCore::QNode *parent)

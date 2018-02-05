@@ -64,6 +64,7 @@ public:
                                             Q3DSImage &image) = 0;
 
     virtual Qt3DRender::QShaderProgram *generateShader(Q3DSGraphObject &material,
+                                                       Q3DSReferencedMaterial *referencedMaterial,
                                                        Q3DSAbstractShaderStageGenerator &vertexPipeline,
                                                        const Q3DSShaderFeatureSet &featureSet,
                                                        const QVector<Q3DSLightNode*> &lights,

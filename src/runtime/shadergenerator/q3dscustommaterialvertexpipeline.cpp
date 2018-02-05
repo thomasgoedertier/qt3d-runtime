@@ -36,7 +36,9 @@ namespace {
 struct ShaderGenerator : public Q3DSCustomMaterialShaderGenerator
 {
     Q3DSAbstractShaderProgramGenerator *m_programGenerator = nullptr;
+    Q3DSCustomMaterialInstance *m_materialInstance = nullptr;
     Q3DSCustomMaterial *m_currentMaterial = nullptr;
+    Q3DSReferencedMaterial *m_referencedMaterial = nullptr;
     Q3DSDefaultVertexPipeline *m_currentPipeline = nullptr;
     Q3DSShaderFeatureSet m_currentFeatureSet;
     QVector<Q3DSLightNode*> m_lights;
@@ -45,7 +47,7 @@ struct ShaderGenerator : public Q3DSCustomMaterialShaderGenerator
     QString m_imageStem;
     QString m_imageSampler;
     QString m_imageFragCoords;
-    QString m_imageRotScale;
+    QString m_imageRotations;
     QString m_imageOffset;
 
     ShaderGenerator()
@@ -72,8 +74,8 @@ struct ShaderGenerator : public Q3DSCustomMaterialShaderGenerator
         m_imageSampler.append(QLatin1String("sampler"));
         m_imageOffset = m_imageStem;
         m_imageOffset.append(QLatin1String("offsets"));
-        m_imageRotScale = m_imageStem;
-        m_imageRotScale.append(QLatin1String("rot_scale"));
+        m_imageRotations = m_imageStem;
+        m_imageRotations.append(QLatin1String("rotations"));
         m_imageFragCoords = m_imageStem;
         m_imageFragCoords.append(QLatin1String("uv_coords"));
     }
@@ -93,6 +95,112 @@ struct ShaderGenerator : public Q3DSCustomMaterialShaderGenerator
         Q_UNUSED(name)
         Q_UNUSED(uvSet)
         Q_UNUSED(image)
+    }
+
+    void generateLightmapIndirectFunc(Q3DSAbstractShaderStageGenerator &fragmentShader, Q3DSImage *indirectLightmap)
+    {
+        fragmentShader << "\n";
+        fragmentShader << "vec3 computeMaterialLightmapIndirect()\n{\n";
+        fragmentShader << "  vec4 indirect = vec4( 0.0, 0.0, 0.0, 0.0 );\n";
+        if (indirectLightmap) {
+            setupImageVariableNames(QStringLiteral("lightmapIndirect"));
+            fragmentShader.addUniform(m_imageSampler.toLatin1(), "sampler2D");
+            fragmentShader.addUniform(m_imageOffset.toLatin1(), "vec3");
+            fragmentShader.addUniform(m_imageRotations.toLatin1(), "vec4");
+
+            fragmentShader << "\n  indirect = evalIndirectLightmap( " << m_imageSampler.toLatin1()
+                             << ", varTexCoord1, ";
+            fragmentShader << m_imageRotations.toLatin1() << ", ";
+            fragmentShader << m_imageOffset.toLatin1() << " );\n\n";
+        }
+
+        fragmentShader << "  return indirect.rgb;\n";
+        fragmentShader << "}\n\n";
+    }
+
+    void generateLightmapRadiosityFunc(Q3DSAbstractShaderStageGenerator &fragmentShader, Q3DSImage *radiosityLightmap)
+    {
+        fragmentShader << "\n";
+        fragmentShader << "vec3 computeMaterialLightmapRadiosity()\n{\n";
+        fragmentShader << "  vec4 radiosity = vec4( 1.0, 1.0, 1.0, 1.0 );\n";
+        if (radiosityLightmap) {
+            setupImageVariableNames(QStringLiteral("lightmapRadiosity"));
+            fragmentShader.addUniform(m_imageSampler.toLatin1(), "sampler2D");
+            fragmentShader.addUniform(m_imageOffset.toLatin1(), "vec3");
+            fragmentShader.addUniform(m_imageRotations.toLatin1(), "vec4");
+
+            fragmentShader << "\n  radiosity = evalRadiosityLightmap( " << m_imageSampler.toLatin1()
+                             << ", varTexCoord1, ";
+            fragmentShader << m_imageRotations.toLatin1() << ", ";
+            fragmentShader << m_imageOffset.toLatin1() << " );\n\n";
+        }
+
+        fragmentShader << "  return radiosity.rgb;\n";
+        fragmentShader << "}\n\n";
+    }
+
+    void generateLightmapShadowFunc(Q3DSAbstractShaderStageGenerator &fragmentShader, Q3DSImage *shadowLightmap)
+    {
+        fragmentShader << "\n";
+        fragmentShader << "vec4 computeMaterialLightmapShadow()\n{\n";
+        fragmentShader << "  vec4 shadowMask = vec4( 1.0, 1.0, 1.0, 1.0 );\n";
+        if (shadowLightmap) {
+            setupImageVariableNames(QStringLiteral("lightmapShadow"));
+            // Add uniforms
+            fragmentShader.addUniform(m_imageSampler.toLatin1(), "sampler2D");
+            fragmentShader.addUniform(m_imageOffset.toLatin1(), "vec3");
+            fragmentShader.addUniform(m_imageRotations.toLatin1(), "vec4");
+
+            fragmentShader << "\n  shadowMask = evalShadowLightmap( " << m_imageSampler.toLatin1()
+                             << ", texCoord0, ";
+            fragmentShader << m_imageRotations.toLatin1() << ", ";
+            fragmentShader << m_imageOffset.toLatin1() << " );\n\n";
+        }
+
+        fragmentShader << "  return shadowMask;\n";
+        fragmentShader << "}\n\n";
+    }
+
+    void generateLightmapIndirectSetupCode(Q3DSAbstractShaderStageGenerator &fragmentShader,
+                                           Q3DSImage *indirectLightmap,
+                                           Q3DSImage *radiosityLightmap)
+    {
+        if (!indirectLightmap && !radiosityLightmap)
+            return;
+
+        QString finalValue;
+
+        fragmentShader << "\n";
+        fragmentShader << "void initializeLayerVariablesWithLightmap(void)\n{\n";
+        if (indirectLightmap) {
+            fragmentShader
+                << "  vec3 lightmapIndirectValue = computeMaterialLightmapIndirect( );\n";
+            finalValue.append(QStringLiteral("vec4(lightmapIndirectValue, 1.0)"));
+        }
+        if (radiosityLightmap) {
+            fragmentShader
+                << "  vec3 lightmapRadisoityValue = computeMaterialLightmapRadiosity( );\n";
+            if (finalValue.isEmpty())
+                finalValue.append(QStringLiteral("vec4(lightmapRadisoityValue, 1.0)"));
+            else
+                finalValue.append(QStringLiteral(" + vec4(lightmapRadisoityValue, 1.0)"));
+        }
+
+        finalValue.append(QStringLiteral(";\n"));
+
+        for (int idx = 0; idx < m_currentMaterial->layerCount(); idx++) {
+            fragmentShader << "  layers" << QStringLiteral("[%1]").arg(idx).toLatin1() << ".base += " << finalValue.toLatin1();
+            fragmentShader << "  layers" << QStringLiteral("[%1]").arg(idx).toLatin1() << ".layer += " << finalValue.toLatin1();
+        }
+
+        fragmentShader << "}\n\n";
+    }
+
+    void generateLightmapShadowCode(Q3DSAbstractShaderStageGenerator &fragmentShader, Q3DSImage *shadowMap)
+    {
+        if (shadowMap) {
+            fragmentShader << " tmpShadowTerm *= computeMaterialLightmapShadow( );\n\n";
+        }
     }
 
     void generateVertexShader(const QString &shaderName)
@@ -126,11 +234,25 @@ struct ShaderGenerator : public Q3DSCustomMaterialShaderGenerator
 
         // By default all custom materials have lighting enabled
         bool hasLighting = true;
-
-        // ### TODO handle light maps
-        // Lightmaps seem to be setable on any material (custom or default),
-        // but we don't actually have handles to any of them
         bool hasLightmaps = false;
+        Q3DSImage *lightmapIndirectImage = nullptr;
+        if (m_referencedMaterial && m_referencedMaterial->lightmapIndirectMap())
+            lightmapIndirectImage = m_referencedMaterial->lightmapIndirectMap();
+        else if (m_materialInstance->lightmapIndirectMap())
+            lightmapIndirectImage = m_materialInstance->lightmapIndirectMap();
+
+        Q3DSImage *lightmapRadiosityImage = nullptr;
+        if (m_referencedMaterial && m_referencedMaterial->lightmapRadiosityMap())
+            lightmapRadiosityImage = m_referencedMaterial->lightmapRadiosityMap();
+        else if (m_materialInstance->lightmapRadiosityMap())
+            lightmapRadiosityImage = m_materialInstance->lightmapRadiosityMap();
+
+        Q3DSImage *lightmapShadowImage = nullptr;
+        if (m_referencedMaterial && m_referencedMaterial->lightmapShadowMap())
+            lightmapShadowImage = m_referencedMaterial->lightmapShadowMap();
+        else if (m_materialInstance->lightmapShadowMap())
+            lightmapShadowImage = m_materialInstance->lightmapShadowMap();
+        hasLightmaps = lightmapIndirectImage || lightmapRadiosityImage || lightmapShadowImage;
 
         vertexGenerator().generateUVCoords(0);
         if (hasLightmaps)
@@ -171,20 +293,18 @@ struct ShaderGenerator : public Q3DSCustomMaterialShaderGenerator
             return;
         }
 
-        // XXX TODO special lighting
-//        if (m_currentMaterial->shaderHasLighting() && lightmapIndirectImage) {
-//            GenerateLightmapIndirectFunc(fragmentShader, &lightmapIndirectImage->m_Image);
-//        }
-//        if (Material().HasLighting() && lightmapRadisoityImage) {
-//            GenerateLightmapRadiosityFunc(fragmentShader, &lightmapRadisoityImage->m_Image);
-//        }
-//        if (Material().HasLighting() && lightmapShadowImage) {
-//            GenerateLightmapShadowFunc(fragmentShader, &lightmapShadowImage->m_Image);
-//        }
+        if (hasLighting && lightmapIndirectImage) {
+            generateLightmapIndirectFunc(fragmentShader, lightmapIndirectImage);
+        }
+        if (hasLighting && lightmapRadiosityImage) {
+            generateLightmapRadiosityFunc(fragmentShader, lightmapRadiosityImage);
+        }
+        if (hasLighting && lightmapShadowImage) {
+            generateLightmapShadowFunc(fragmentShader, lightmapShadowImage);
+        }
 
-//        if (Material().HasLighting() && (lightmapIndirectImage || lightmapRadisoityImage))
-//            GenerateLightmapIndirectSetupCode(fragmentShader, lightmapIndirectImage,
-//                                              lightmapRadisoityImage);
+        if (hasLighting && (lightmapIndirectImage || lightmapRadiosityImage))
+            generateLightmapIndirectSetupCode(fragmentShader, lightmapIndirectImage, lightmapRadiosityImage);
 
         // applyEmmisiveMask
         if (hasLighting) {
@@ -272,12 +392,12 @@ struct ShaderGenerator : public Q3DSCustomMaterialShaderGenerator
             fragmentShader << "    discard;\n";
         }
 
-//        // indirect / direct lightmap init
-//        if (hasLighting && (lightmapIndirectImage || lightmapRadisoityImage))
-//            fragmentShader << "  initializeLayerVariablesWithLightmap();" << Endl;
+        // indirect / direct lightmap init
+        if (hasLighting && (lightmapIndirectImage || lightmapRadiosityImage))
+            fragmentShader << "  initializeLayerVariablesWithLightmap();\n";
 
-//        // shadow map
-//        GenerateLightmapShadowCode(fragmentShader, lightmapShadowImage);
+        // shadow map
+        generateLightmapShadowCode(fragmentShader, lightmapShadowImage);
 
         // main Body
         fragmentShader << "#include \"customMaterialFragBodyAO.glsllib\"\n";
@@ -312,6 +432,7 @@ struct ShaderGenerator : public Q3DSCustomMaterialShaderGenerator
     }
 
     Qt3DRender::QShaderProgram *generateShader(Q3DSGraphObject &material,
+                                               Q3DSReferencedMaterial *referencedMaterial,
                                                Q3DSAbstractShaderStageGenerator &vertexPipeline,
                                                const Q3DSShaderFeatureSet &featureSet,
                                                const QVector<Q3DSLightNode *> &lights,
@@ -321,7 +442,9 @@ struct ShaderGenerator : public Q3DSCustomMaterialShaderGenerator
         if (material.type() != Q3DSGraphObject::CustomMaterial)
             return nullptr;
 
-        m_currentMaterial = const_cast<Q3DSCustomMaterial*>(static_cast<Q3DSCustomMaterialInstance*>(&material)->material());
+        m_materialInstance = static_cast<Q3DSCustomMaterialInstance*>(&material);
+        m_currentMaterial = const_cast<Q3DSCustomMaterial*>(m_materialInstance->material());
+        m_referencedMaterial = referencedMaterial;
         m_currentPipeline = static_cast<Q3DSCustomMaterialVertexPipeline*>(&vertexPipeline);
         m_programGenerator = &static_cast<Q3DSVertexPipelineImpl*>(&vertexPipeline)->programGenerator();
         m_currentFeatureSet = featureSet;

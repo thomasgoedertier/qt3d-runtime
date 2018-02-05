@@ -89,6 +89,7 @@ Q_DECLARE_LOGGING_CATEGORY(lcScene)
 
 // Caller takes ownership everything generated in the method
 Qt3DRender::QMaterial *Q3DSDefaultMaterialGenerator::generateMaterial(Q3DSDefaultMaterial *defaultMaterial,
+                                                                      Q3DSReferencedMaterial *referencedMaterial,
                                                                       const QVector<Qt3DRender::QParameter *> &params,
                                                                       const QVector<Q3DSLightNode*> &lights,
                                                                       Q3DSLayerNode *layer3DS)
@@ -105,6 +106,7 @@ Qt3DRender::QMaterial *Q3DSDefaultMaterialGenerator::generateMaterial(Q3DSDefaul
     fillFeatureSet(&features, layerData);
 
     Qt3DRender::QShaderProgram *shaderProgram = Q3DSShaderManager::instance().generateShaderProgram(*defaultMaterial,
+                                                                                                    referencedMaterial,
                                                                                                     lights,
                                                                                                     false,
                                                                                                     features);

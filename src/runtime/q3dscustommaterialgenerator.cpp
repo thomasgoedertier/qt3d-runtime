@@ -50,7 +50,7 @@ QT_BEGIN_NAMESPACE
 
 Q_DECLARE_LOGGING_CATEGORY(lcScene)
 
-Qt3DRender::QMaterial *Q3DSCustomMaterialGenerator::generateMaterial(Q3DSCustomMaterialInstance *customMaterial, const QVector<Qt3DRender::QParameter *> &params, const QVector<Q3DSLightNode *> &lights, Q3DSLayerNode *layer3DS, const Q3DSMaterial::Pass &pass)
+Qt3DRender::QMaterial *Q3DSCustomMaterialGenerator::generateMaterial(Q3DSCustomMaterialInstance *customMaterial, Q3DSReferencedMaterial *referencedMaterial, const QVector<Qt3DRender::QParameter *> &params, const QVector<Q3DSLightNode *> &lights, Q3DSLayerNode *layer3DS, const Q3DSMaterial::Pass &pass)
 {
     Qt3DRender::QMaterial *material = new Qt3DRender::QMaterial;
     Qt3DRender::QEffect *effect = new Qt3DRender::QEffect;
@@ -64,6 +64,7 @@ Qt3DRender::QMaterial *Q3DSCustomMaterialGenerator::generateMaterial(Q3DSCustomM
     Q3DSDefaultMaterialGenerator::fillFeatureSet(&features, layerData);
 
     Qt3DRender::QShaderProgram *shaderProgram = Q3DSShaderManager::instance().generateShaderProgram(*customMaterial,
+                                                                                                    referencedMaterial,
                                                                                                     lights,
                                                                                                     false,
                                                                                                     features,
@@ -91,7 +92,7 @@ Qt3DRender::QMaterial *Q3DSCustomMaterialGenerator::generateMaterial(Q3DSCustomM
 
     static const bool paramDebug = qEnvironmentVariableIntValue("Q3DS_DEBUG") >= 2;
     if (paramDebug)
-        qCDebug(lcScene) << effect << "for default material" << customMaterial->id() << "has parameters:";
+        qCDebug(lcScene) << effect << "for custom material" << customMaterial->id() << "has parameters:";
     for (Qt3DRender::QParameter *param : params) {
         effect->addParameter(param);
         if (paramDebug)

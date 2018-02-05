@@ -65,10 +65,12 @@ public:
     Q3DSCustomMaterialShaderGenerator *customMaterialShaderGenerator();
 
     Qt3DRender::QShaderProgram *generateShaderProgram(Q3DSDefaultMaterial &material,
+                                                      Q3DSReferencedMaterial *referencedMaterial,
                                                       const QVector<Q3DSLightNode*> &lights,
                                                       bool hasTransparency,
                                                       const Q3DSShaderFeatureSet &featureSet);
     Qt3DRender::QShaderProgram *generateShaderProgram(Q3DSCustomMaterialInstance &material,
+                                                      Q3DSReferencedMaterial *referencedMaterial,
                                                       const QVector<Q3DSLightNode*> &lights,
                                                       bool hasTransparency,
                                                       const Q3DSShaderFeatureSet &featureSet,

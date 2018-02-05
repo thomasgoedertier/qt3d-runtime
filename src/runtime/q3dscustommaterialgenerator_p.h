@@ -54,6 +54,7 @@ class Q3DSCustomMaterialGenerator
 {
 public:
     Qt3DRender::QMaterial *generateMaterial(Q3DSCustomMaterialInstance *customMaterial,
+                                            Q3DSReferencedMaterial *referencedMaterial,
                                             const QVector<Qt3DRender::QParameter *> &params,
                                             const QVector<Q3DSLightNode *> &lights,
                                             Q3DSLayerNode *layer3DS,
