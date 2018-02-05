@@ -64,6 +64,7 @@ class QNoDepthMask;
 class QBlendEquation;
 class QBlendEquationArguments;
 class QCullFace;
+class QColorMask;
 }
 
 class Q3DSImguiManager
@@ -122,6 +123,7 @@ private:
         Qt3DRender::QBlendEquation *blendFunc;
         Qt3DRender::QBlendEquationArguments *blendArgs;
         Qt3DRender::QCullFace *cullFace;
+        Qt3DRender::QColorMask *colorMask;
         QVector<Qt3DCore::QNode *> enabledToggle;
     } rpd;
 
