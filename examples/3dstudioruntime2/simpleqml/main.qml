@@ -61,6 +61,7 @@ Rectangle {
 
     Studio3D {
         id: s3d
+        focus: true
         anchors.margins: 60
         anchors.fill: parent
         source: "qrc:/presentation/barrel.uip"

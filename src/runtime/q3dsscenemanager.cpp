@@ -5843,10 +5843,13 @@ void Q3DSFrameUpdater::frameAction(float dt)
     ++m_frameCounter;
 }
 
-void Q3DSSceneManager::setProfileUiVisible(bool visible)
+void Q3DSSceneManager::setProfileUiVisible(bool visible, bool openLog)
 {
-    if (m_profileUi)
+    if (m_profileUi) {
         m_profileUi->setVisible(visible);
+        if (visible && openLog)
+            m_profileUi->openLog();
+    }
 }
 
 bool Q3DSSceneManager::isProfileUiVisible() const
@@ -5858,6 +5861,23 @@ void Q3DSSceneManager::setProfileUiInputEventSource(QObject *obj)
 {
     if (m_profileUi)
         m_profileUi->setInputEventSource(obj);
+}
+
+void Q3DSSceneManager::addLog(const QString &msg)
+{
+    QMutexLocker locker(&m_logMutex);
+    // the log is maintained by the main presentation's profiler; route to that
+    // even if this is a subpresentation
+    m_profiler->mainPresentationProfiler()->addLog(msg);
+}
+
+void Q3DSSceneManager::addLog(const char *fmt, ...)
+{
+    va_list ap;
+    va_start(ap, fmt);
+    const QString msg = QString::vasprintf(fmt, ap);
+    va_end(ap);
+    addLog(msg);
 }
 
 QT_END_NAMESPACE

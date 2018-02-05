@@ -57,6 +57,8 @@ public:
 
     void frame();
 
+    void openLog() { m_logWindowOpen = true; }
+
 private:
     void addAlterSceneStuff();
 
@@ -69,6 +71,8 @@ private:
 
     bool m_qt3dObjectsWindowOpen = false;
     bool m_layerWindowOpen = false;
+    bool m_logWindowOpen = false;
+    bool m_logScrollToBottomOnChange = true;
 };
 
 static void addTip(const char *s)
@@ -196,6 +200,8 @@ void Q3DSProfileView::frame()
             m_qt3dObjectsWindowOpen = !m_qt3dObjectsWindowOpen;
         if (ImGui::Button("Layer list"))
             m_layerWindowOpen = !m_layerWindowOpen;
+        if (ImGui::Button("Log window"))
+            m_logWindowOpen = !m_logWindowOpen;
     }
 
     if (ImGui::CollapsingHeader("Alter scene"))
@@ -464,6 +470,28 @@ void Q3DSProfileView::frame()
 
         ImGui::End();
     }
+
+    if (m_logWindowOpen) {
+        ImGui::SetNextWindowSize(ImVec2(500, 400), ImGuiCond_FirstUseEver);
+        ImGui::Begin("Log", &m_logWindowOpen, ImGuiWindowFlags_NoSavedSettings);
+
+        if (ImGui::Button("Clear"))
+            m_profiler->clearLog();
+        ImGui::SameLine();
+        ImGui::Checkbox("Scroll on change", &m_logScrollToBottomOnChange);
+        ImGui::Separator();
+
+        ImGui::BeginChild("scrolling", ImVec2(0, 0), false, ImGuiWindowFlags_HorizontalScrollbar);
+        const QString logText = m_profiler->log().join(QLatin1Char('\n'));
+        const QByteArray logTextBa = logText.toUtf8();
+        ImGui::TextUnformatted(logTextBa.constData());
+        if (m_logScrollToBottomOnChange && m_profiler->hasLogChanged())
+            ImGui::SetScrollHere(1.0f);
+        ImGui::EndChild();
+        ImGui::Separator();
+
+        ImGui::End();
+    }
 }
 
 static void changeProperty(Q3DSGraphObject *obj, const QString &name, const QString &value)
@@ -578,6 +606,11 @@ void Q3DSProfileUi::setVisible(bool visible)
 
     qCDebug(lcProf, "Visible = %d", m_visible);
     m_guiMgr->setEnabled(m_visible);
+}
+
+void Q3DSProfileUi::openLog()
+{
+    m_view->openLog();
 }
 
 QT_END_NAMESPACE

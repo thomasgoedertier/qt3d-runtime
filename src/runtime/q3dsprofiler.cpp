@@ -29,6 +29,7 @@
 
 #include "q3dsprofiler_p.h"
 #include "q3dsscenemanager_p.h"
+#include "q3dsengine_p.h"
 
 #if defined(Q_OS_WIN) && !defined(Q_OS_WINRT)
 #include <qt_windows.h>
@@ -139,7 +140,33 @@ void Q3DSProfiler::registerSubPresentationProfiler(Q3DSPresentation *subPres, Q3
     SubPresentationProfiler sp;
     sp.presentation = subPres;
     sp.profiler = p;
+    p->m_mainProfiler = this;
     m_subPresProfilers.append(sp);
+}
+
+Q3DSProfiler *Q3DSProfiler::mainPresentationProfiler()
+{
+    return m_mainProfiler ? m_mainProfiler : this;
+}
+
+bool Q3DSProfiler::hasLogChanged()
+{
+    bool b = m_logChanged;
+    m_logChanged = false;
+    return b;
+}
+
+void Q3DSProfiler::clearLog()
+{
+    m_log.clear();
+    Q3DSEngine::clearLog();
+    m_logChanged = true;
+}
+
+void Q3DSProfiler::addLog(const QString &msg)
+{
+    m_log.append(msg);
+    m_logChanged = true;
 }
 
 float Q3DSProfiler::cpuLoadForCurrentProcess()

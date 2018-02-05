@@ -115,6 +115,7 @@ public:
     };
     void registerSubPresentationProfiler(Q3DSPresentation *subPres, Q3DSProfiler *p);
     const QVector<SubPresentationProfiler> *subPresentationProfilers() const { return &m_subPresProfilers; }
+    Q3DSProfiler *mainPresentationProfiler();
 
     const Q3DSGraphicsLimits *graphicsLimits() const { return &m_gfxLimits; }
 
@@ -123,6 +124,11 @@ public:
 
     // note that we do not expose the scene manager to the profile ui. instead,
     // such data is expected to be mediated through the profiler object.
+
+    QStringList log() const { return m_log; }
+    bool hasLogChanged();
+    void clearLog();
+    void addLog(const QString &msg);
 
     float cpuLoadForCurrentProcess();
     QPair<qint64, qint64> memUsageForCurrentProcess();
@@ -139,6 +145,9 @@ private:
     qint64 m_firstFrameActionTime = 0;
     QHash<Q3DSMesh *, SubMeshData> m_subMeshData;
     QVector<SubPresentationProfiler> m_subPresProfilers;
+    QStringList m_log;
+    bool m_logChanged = false;
+    Q3DSProfiler *m_mainProfiler = nullptr;
 
     QElapsedTimer m_cpuLoadTimer;
     float m_lastCpuLoad = 0;

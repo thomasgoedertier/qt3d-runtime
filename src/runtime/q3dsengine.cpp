@@ -80,14 +80,72 @@ Q_DECLARE_LOGGING_CATEGORY(lcUip)
 
 static Q3DSGraphicsLimits gfxLimits;
 
+static QMutex q3ds_msg_mutex;
+static QStringList q3ds_msg_buf;
+static QtMessageHandler q3ds_prev_msg_handler = nullptr;
+static Q3DSEngine *q3ds_msg_engine = nullptr;
+
+void Q3DSEngine::clearLog()
+{
+    QMutexLocker locker(&q3ds_msg_mutex);
+    q3ds_msg_buf.clear();
+}
+
+static void q3ds_msg_handler(QtMsgType type, const QMessageLogContext &ctx, const QString &msg)
+{
+    if (q3ds_prev_msg_handler)
+        q3ds_prev_msg_handler(type, ctx, msg);
+
+    QMutexLocker locker(&q3ds_msg_mutex);
+
+    QString decoratedMsg;
+    if (ctx.category) {
+        decoratedMsg += QString::fromUtf8(ctx.category);
+        decoratedMsg += QLatin1String(": ");
+    }
+    decoratedMsg += msg.left(1000);
+
+    q3ds_msg_buf.append(decoratedMsg);
+
+    const bool canLog = q3ds_msg_engine && q3ds_msg_engine->presentationCount() && q3ds_msg_engine->sceneManager(0);
+    if (canLog) {
+        Q3DSSceneManager *sm = q3ds_msg_engine->sceneManager(0);
+        static Q3DSSceneManager *active_sm = nullptr;
+        // send buffered messages if this is the first time we see the scene manager
+        if (active_sm != sm) {
+            active_sm = sm;
+            for (const QString &oldMsg : q3ds_msg_buf)
+                sm->addLog(oldMsg);
+        }
+        sm->addLog(decoratedMsg);
+    }
+}
+
 Q3DSEngine::Q3DSEngine()
 {
     initResources();
+
+    QMutexLocker locker(&q3ds_msg_mutex);
+    q3ds_msg_engine = this;
+    // Install the message handler once, it is then set for ever. Engines come
+    // and go and their construction and destruction may overlap even. So don't
+    // be smarter than this.
+    if (!q3ds_prev_msg_handler) {
+        q3ds_prev_msg_handler = qInstallMessageHandler(q3ds_msg_handler);
+        // Here we would also need to enable all severity levels for q3ds.*
+        // (since we want to see qCDebugs in release builds etc.) but there's
+        // no need since that's the default since our category names do not
+        // start with qt.*
+    }
 }
 
 Q3DSEngine::~Q3DSEngine()
 {
     destroy();
+
+    QMutexLocker locker(&q3ds_msg_mutex);
+    if (q3ds_msg_engine == this)
+        q3ds_msg_engine = nullptr;
 }
 
 static void initGraphicsLimits(QOpenGLContext *ctx)
@@ -661,6 +719,11 @@ void Q3DSEngine::prepareForReload()
     }
 }
 
+int Q3DSEngine::presentationCount() const
+{
+    return m_presentations.count();
+}
+
 QString Q3DSEngine::uipFileName(int index) const
 {
     return (index >= 0 && index < m_presentations.count()) ? m_presentations[index].uipFileName : QString();
@@ -734,6 +797,12 @@ void Q3DSEngine::handleKeyPressEvent(QKeyEvent *e)
     if (e->key() == Qt::Key_F10 && !m_presentations.isEmpty()) {
         auto m = m_presentations[0].sceneManager;
         m->setProfileUiVisible(!m->isProfileUiVisible());
+    }
+
+    if (e->key() == Qt::Key_QuoteLeft && !m_presentations.isEmpty()) {
+        auto m = m_presentations[0].sceneManager;
+        const bool v = !m->isProfileUiVisible();
+        m->setProfileUiVisible(v, v);
     }
 }
 

@@ -44,10 +44,11 @@
 #include "q3dspresentation_p.h"
 #include "q3dsgraphicslimits_p.h"
 
-#include <QtCore/qdebug.h>
+#include <QDebug>
 #include <QWindow>
 #include <QStack>
 #include <QElapsedTimer>
+#include <QMutex>
 
 QT_BEGIN_NAMESPACE
 
@@ -559,13 +560,16 @@ public:
 
     Q3DSProfiler *profiler() { return m_profiler; }
 
-    void setProfileUiVisible(bool visible);
+    void setProfileUiVisible(bool visible, bool openLog = false);
     bool isProfileUiVisible() const;
     void setProfileUiInputEventSource(QObject *obj);
 
     // for testing from the viewer - to be moved private later
     void setDepthTextureEnabled(Q3DSLayerNode *layer3DS, bool enabled);
     void rebuildModelMaterial(Q3DSModelNode *model3DS);
+
+    void addLog(const QString &msg);
+    void addLog(const char *fmt, ...);
 
 private:
     Q_DISABLE_COPY(Q3DSSceneManager)
@@ -701,6 +705,7 @@ private:
     QSize m_outputPixelSize;
     QVector<std::function<void()> > m_compositorOutputSizeChangeCallbacks;
     qint64 m_firstFrameActionTime = 0;
+    QMutex m_logMutex;
 
     friend class Q3DSFrameUpdater;
     friend class Q3DSProfiler;

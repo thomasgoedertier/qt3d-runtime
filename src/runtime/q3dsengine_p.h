@@ -77,6 +77,7 @@ public:
     Q_DECLARE_FLAGS(Flags, Flag)
 
     static QSurfaceFormat surfaceFormat();
+    static void clearLog();
 
     Flags flags() const { return m_flags; }
     void setFlags(Flags flags);
@@ -88,6 +89,7 @@ public:
 
     bool setSourceData(const QByteArray &data);
 
+    int presentationCount() const;
     QString uipFileName(int index = 0) const;
     Q3DSUipDocument *uipDocument(int index = 0) const;
     Q3DSSceneManager *sceneManager(int index = 0) const;
