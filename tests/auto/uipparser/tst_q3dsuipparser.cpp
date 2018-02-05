@@ -39,7 +39,10 @@ private slots:
     void initTestCase();
     void cleanup();
     void testEmpty();
+    void testEmptyData();
     void testInvalid();
+    void testInvalidData();
+    void testPresentationFromData();
     void testRepeatedLoad();
     void assetRef();
     void uipAndProjectTags();
@@ -90,12 +93,68 @@ void tst_Q3DSUipParser::testEmpty()
     }
 }
 
+void tst_Q3DSUipParser::testEmptyData()
+{
+    Q3DSUipParser parser;
+    QScopedPointer<Q3DSPresentation> pres(parser.parseData(""));
+    QVERIFY(pres.isNull());
+    QVERIFY(!parser.readerErrorString().isEmpty());
+}
+
 void tst_Q3DSUipParser::testInvalid()
 {
     Q3DSUipParser parser;
     QScopedPointer<Q3DSPresentation> pres(parser.parse(QLatin1String(":/data/invalid1.uip")));
     QVERIFY(pres.isNull());
     QVERIFY(!parser.readerErrorString().isEmpty());
+}
+
+void tst_Q3DSUipParser::testInvalidData()
+{
+    Q3DSUipParser parser;
+    QScopedPointer<Q3DSPresentation> pres(parser.parseData(QByteArray("not a valid xml document")));
+    QVERIFY(pres.isNull());
+    QVERIFY(!parser.readerErrorString().isEmpty());
+}
+
+void tst_Q3DSUipParser::testPresentationFromData()
+{
+    Q3DSUipParser parser;
+    QByteArray validUipDoc = "<?xml version=\"1.0\" encoding=\"UTF-8\" ?> \
+            <UIP version=\"3\" > \
+                <Project > \
+                    <ProjectSettings author=\"\" company=\"Qt\" presentationWidth=\"800\" presentationHeight=\"480\" /> \
+                    <Graph> \
+                        <Scene id=\"Scene\" bgcolorenable=\"False\" backgroundcolor=\"1.0 1.0 1.0\" > \
+                            <Layer id=\"Layer\" > \
+                                <Camera id=\"Camera\" /> \
+                                <Light id=\"Light\" /> \
+                                <Model id=\"Cube\" > \
+                                    <Material id=\"Material\" /> \
+                                </Model> \
+                            </Layer> \
+                        </Scene> \
+                    </Graph> \
+                    <Logic > \
+                        <State name=\"Master Slide\" component=\"#Scene\" > \
+                            <Add ref=\"#Layer\" /> \
+                            <Add ref=\"#Camera\" /> \
+                            <Add ref=\"#Light\" /> \
+                            <State id=\"Scene-Slide1\" name=\"Slide1\" > \
+                                <Add ref=\"#Cube\" name=\"Cube\" scale=\"2 2 2\" sourcepath=\"#Cube\" /> \
+                                <Add ref=\"#Material\" /> \
+                            </State> \
+                        </State> \
+                    </Logic>  \
+                </Project> \
+            </UIP>";
+
+    QScopedPointer<Q3DSPresentation> pres(parser.parseData(validUipDoc));
+    QVERIFY(!pres.isNull());
+    QCOMPARE(pres->presentationWidth(), 800);
+    QCOMPARE(pres->presentationHeight(), 480);
+    QCOMPARE(pres->company(), QLatin1String("Qt"));
+    QCOMPARE(pres->author(), QString());
 }
 
 void tst_Q3DSUipParser::testRepeatedLoad()

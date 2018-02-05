@@ -29,6 +29,7 @@
 
 #include "q3dsengine_p.h"
 #include "q3dsuiaparser_p.h"
+#include "q3dsuipparser_p.h"
 #include "q3dsutils_p.h"
 
 #include <QLoggingCategory>
@@ -306,8 +307,7 @@ bool Q3DSEngine::setSource(const QString &uipOrUiaFileName)
         return false;
     }
 
-    QElapsedTimer sourceLoadTimer;
-    sourceLoadTimer.start();
+    m_sourceLoadTimer.start();
 
     // no check for m_source being the same - must reload no matter what
 
@@ -335,53 +335,126 @@ bool Q3DSEngine::setSource(const QString &uipOrUiaFileName)
             uia = maybeUia;
         }
     }
+
     if (uia.isEmpty()) {
-        Presentation pres;
-        pres.uipFileName = m_source;
-        m_presentations.append(pres);
+        UipPresentation pres;
+        pres.uipDocument = new Q3DSUipDocument;
+        pres.uipDocument->setSource(m_source);
+        m_uipPresentations.append(pres);
     } else {
         Q3DSUiaParser uiaParser;
         Q3DSUiaParser::Uia uiaDoc = uiaParser.parse(uia);
-        if (!uiaDoc.isValid()) {
+        if (!parseUiaDocument(uiaDoc, sourcePrefix)) {
             Q3DSUtils::showMessage(QObject::tr("Failed to parse application file"));
             return false;
         }
-        for (const Q3DSUiaParser::Uia::Presentation &p : uiaDoc.presentations) {
-            if (p.type == Q3DSUiaParser::Uia::Presentation::Uip) {
-                Presentation pres;
-                pres.subPres.id = p.id;
-                // assume the .uip name in the .uia is relative to the .uia's location
-                pres.uipFileName = sourcePrefix + p.source;
-                qCDebug(lcUip, "Registered subpresentation %s as %s", qPrintable(pres.uipFileName), qPrintable(p.id));
-                if (p.id == uiaDoc.initialPresentationId) // initial (main) presentation must be m_presentations[0]
-                    m_presentations.prepend(pres);
-                else
-                    m_presentations.append(pres);
-            } else if (p.type == Q3DSUiaParser::Uia::Presentation::Qml) {
-                QmlPresentation pres;
-                pres.subPres.id = p.id;
-                pres.previewFileName = sourcePrefix + p.source;
-                qCDebug(lcUip, "Registered qml subpresentation %s as %s",
-                        qPrintable(pres.previewFileName), qPrintable(p.id));
-                m_qmlPresentations.append(pres);
-            }
-        }
-        if (m_presentations.isEmpty())
-            return false;
     }
 
-    if (!loadPresentation(&m_presentations[0])) {
-        m_presentations.clear();
+    return loadPresentations();
+}
+
+bool Q3DSEngine::setDocument(const Q3DSUipDocument &uipDocument)
+{
+    if (!m_surface) {
+        Q3DSUtils::showMessage(tr("setDocument: Cannot be called without setSurface"));
         return false;
     }
 
-    for (int i = 1; i < m_presentations.count(); ++i)
-        loadSubPresentation(&m_presentations[i]);
-    for (QmlPresentation &pres : m_qmlPresentations)
-        loadQmlSubPresentation(&pres);
+    m_sourceLoadTimer.start();
+
+    prepareForReload();
+
+    if (!uipDocument.source().isEmpty()) {
+        // When document has filename set, load presentation using it
+        return setSource(uipDocument.source());
+    } else if (!uipDocument.sourceData().isEmpty()) {
+        // When document has data, load presentation using it
+        UipPresentation pres;
+        pres.uipDocument = new Q3DSUipDocument;
+        pres.uipDocument->setId(uipDocument.id());
+        pres.uipDocument->setSourceData(uipDocument.sourceData());
+        m_uipPresentations.append(pres);
+        return loadPresentations();
+    }
+
+    Q3DSUtils::showMessage(QObject::tr(
+               "Unable to load uip document without source() or sourceData()"));
+    return false;
+}
+
+bool Q3DSEngine::setDocument(const Q3DSUiaDocument &uiaDocument)
+{
+    if (!m_surface) {
+        Q3DSUtils::showMessage(tr("setDocument: Cannot be called without setSurface"));
+        return false;
+    }
+
+    m_sourceLoadTimer.start();
+
+    prepareForReload();
+
+    if (uiaDocument.uipDocuments().isEmpty()) {
+        Q3DSUtils::showMessage(QObject::tr("Unable to load uia document without uip subdocuments"));
+        return false;
+    }
+
+    for (const Q3DSUipDocument &doc : uiaDocument.uipDocuments()) {
+        UipPresentation pres;
+        pres.uipDocument = new Q3DSUipDocument;
+        pres.uipDocument->setId(doc.id());
+        pres.uipDocument->setSource(doc.source());
+        pres.uipDocument->setSourceData(doc.sourceData());
+        m_uipPresentations.append(pres);
+    }
+    for (const Q3DSQmlDocument &doc : uiaDocument.qmlDocuments()) {
+        QmlPresentation pres;
+        pres.qmlDocument = new Q3DSQmlDocument;
+        pres.qmlDocument->setId(doc.id());
+        pres.qmlDocument->setSource(doc.source());
+        pres.qmlDocument->setSourceData(doc.sourceData());
+        m_qmlPresentations.append(pres);
+    }
+
+    for (int i = 0; i < m_uipPresentations.size(); ++i) {
+        auto doc = m_uipPresentations[i];
+        doc.subPres.id = doc.uipDocument->id();
+        if (!uiaDocument.initialDocumentId().isEmpty() &&
+                doc.uipDocument->id() == uiaDocument.initialDocumentId()) {
+            // initial (main) presentation must be first
+            m_uipPresentations.move(i, 0);
+        }
+        qCDebug(lcUip, "Registered subpresentation %s as %s",
+                qPrintable(doc.uipDocument->source()), qPrintable(doc.uipDocument->id()));
+    }
+
+    for (int i = 0; i < m_qmlPresentations.size(); ++i) {
+        auto &doc = m_qmlPresentations[i];
+        doc.subPres.id = doc.qmlDocument->id();
+        qCDebug(lcUip, "Registered qml subpresentation %s as %s",
+                qPrintable(doc.qmlDocument->source()), qPrintable(doc.qmlDocument->id()));
+    }
+
+    return loadPresentations();
+}
+
+bool Q3DSEngine::loadPresentations()
+{
+    if (m_uipPresentations.isEmpty()) {
+        return false;
+    }
+
+    if (!loadUipPresentation(&m_uipPresentations[0])) {
+        m_uipPresentations.clear();
+        return false;
+    }
+
+    for (int i = 1; i < m_uipPresentations.count(); ++i)
+        loadSubUipPresentation(&m_uipPresentations[i]);
+    for (QmlPresentation &qmlDocument : m_qmlPresentations)
+        loadSubQmlPresentation(&qmlDocument);
 
     QVector<Q3DSSubPresentation> subPresentations;
-    for (const Presentation &pres : m_presentations) {
+    for (const UipPresentation &pres : m_uipPresentations) {
         if (!pres.subPres.id.isEmpty() && pres.subPres.colorTex)
             subPresentations.append(pres.subPres);
     }
@@ -389,66 +462,27 @@ bool Q3DSEngine::setSource(const QString &uipOrUiaFileName)
         if (!pres.subPres.id.isEmpty() && pres.subPres.colorTex)
             subPresentations.append(pres.subPres);
     }
-    m_presentations[0].sceneManager->finalizeMainScene(subPresentations);
+    m_uipPresentations[0].sceneManager->finalizeMainScene(subPresentations);
 
     if (m_aspectEngine.isNull())
         createAspectEngine();
 
-    m_loadTime = sourceLoadTimer.elapsed();
+    m_loadTime = m_sourceLoadTimer.elapsed();
     qCDebug(lcUip, "Total setSource time (incl. subpresentations + Qt3D scene building): %lld ms", m_loadTime);
 
     emit presentationLoaded();
     return true;
 }
 
-bool Q3DSEngine::setSourceData(const QByteArray &data)
+bool Q3DSEngine::loadUipPresentation(UipPresentation *pres)
 {
-    if (!m_surface) {
-        Q3DSUtils::showMessage(tr("setSourceData: Cannot be called without setSurface"));
-        return false;
-    }
-
-    prepareForReload();
-    m_source.clear();
-
-    // No uia supported here, data must be uip
-    Presentation pres;
-    pres.uipData = data;
-
-    m_presentations.append(pres);
-
-    if (!loadPresentation(&m_presentations[0])) {
-        m_presentations.clear();
-        return false;
-    }
-
-    QVector<Q3DSSubPresentation> emptySubPresentations;
-    m_presentations[0].sceneManager->finalizeMainScene(emptySubPresentations);
-
-    if (m_aspectEngine.isNull())
-        createAspectEngine();
-
-    emit presentationLoaded();
-    return true;
-}
-
-bool Q3DSEngine::loadPresentation(Presentation *pres)
-{
+    Q_ASSERT(pres);
+    Q_ASSERT(pres->uipDocument);
     // Parse.
-    QScopedPointer<Q3DSUipDocument> uipDocument(new Q3DSUipDocument);
-    if (!pres->uipFileName.isEmpty()) {
-        if (!uipDocument->loadUip(pres->uipFileName)) {
-            Q3DSUtils::showMessage(QObject::tr("Failed to parse main presentation from file"));
-            return false;
-        }
-    } else {
-        if (!uipDocument->loadUipData(pres->uipData)) {
-            Q3DSUtils::showMessage(QObject::tr("Failed to parse main presentation from data"));
-            return false;
-        }
+    if (!parseUipDocument(pres)) {
+        Q3DSUtils::showMessage(QObject::tr("Failed to parse main presentation"));
+        return false;
     }
-
-    pres->uipDocument = uipDocument.take();
 
     // Presentation is ready. Build the Qt3D scene. This will also activate the first sub-slide.
     Q3DSSceneManager::SceneBuilderParams params;
@@ -459,7 +493,7 @@ bool Q3DSEngine::loadPresentation(Presentation *pres)
         params.flags |= Q3DSSceneManager::EnableProfiling;
 
     // Take the size from the presentation.
-    Q3DSPresentation *pres3DS = pres->uipDocument->presentation();
+    Q3DSPresentation *pres3DS = pres->presentation;
     m_implicitSize = QSize(pres3DS->presentationWidth(), pres3DS->presentationHeight());
     if (m_implicitSize.isEmpty())
         m_implicitSize = QSize(800, 480);
@@ -481,7 +515,7 @@ bool Q3DSEngine::loadPresentation(Presentation *pres)
     params.engine = this;
 
     QScopedPointer<Q3DSSceneManager> sceneManager(new Q3DSSceneManager(gfxLimits));
-    pres->q3dscene = sceneManager->buildScene(pres->uipDocument->presentation(), params);
+    pres->q3dscene = sceneManager->buildScene(pres->presentation, params);
     if (!pres->q3dscene.rootEntity) {
         Q3DSUtils::showMessage(QObject::tr("Failed to build Qt3D scene"));
         return false;
@@ -518,25 +552,25 @@ bool Q3DSEngine::loadPresentation(Presentation *pres)
     return true;
 }
 
-bool Q3DSEngine::loadSubPresentation(Presentation *pres)
+bool Q3DSEngine::loadSubUipPresentation(UipPresentation *pres)
 {
+    Q_ASSERT(pres);
+    Q_ASSERT(pres->uipDocument);
     // Parse.
-    QScopedPointer<Q3DSUipDocument> uipDocument(new Q3DSUipDocument);
-    if (!uipDocument->loadUip(pres->uipFileName)) {
+    if (!parseUipDocument(pres)) {
         Q3DSUtils::showMessage(QObject::tr("Failed to parse subpresentation"));
         return false;
     }
-    pres->uipDocument = uipDocument.take();
 
-    Qt3DRender::QFrameGraphNode *fgParent = m_presentations[0].q3dscene.subPresFrameGraphRoot;
-    Qt3DCore::QNode *entityParent = m_presentations[0].q3dscene.rootEntity;
+    Qt3DRender::QFrameGraphNode *fgParent = m_uipPresentations[0].q3dscene.subPresFrameGraphRoot;
+    Qt3DCore::QNode *entityParent = m_uipPresentations[0].q3dscene.rootEntity;
 
     Q3DSSceneManager::SceneBuilderParams params;
     params.flags = Q3DSSceneManager::SubPresentation;
     if (m_flags.testFlag(EnableProfiling))
         params.flags |= Q3DSSceneManager::EnableProfiling;
 
-    Q3DSPresentation *pres3DS = pres->uipDocument->presentation();
+    Q3DSPresentation *pres3DS = pres->presentation;
     params.outputSize = QSize(pres3DS->presentationWidth(), pres3DS->presentationHeight());
     params.outputDpr = 1;
 
@@ -570,7 +604,7 @@ bool Q3DSEngine::loadSubPresentation(Presentation *pres)
     params.frameGraphRoot = rtSel;
 
     QScopedPointer<Q3DSSceneManager> sceneManager(new Q3DSSceneManager(gfxLimits));
-    pres->q3dscene = sceneManager->buildScene(pres->uipDocument->presentation(), params);
+    pres->q3dscene = sceneManager->buildScene(pres->presentation, params);
     if (!pres->q3dscene.rootEntity) {
         Q3DSUtils::showMessage(QObject::tr("Failed to build Qt3D scene for subpresentation"));
         return false;
@@ -583,14 +617,32 @@ bool Q3DSEngine::loadSubPresentation(Presentation *pres)
     return true;
 }
 
-bool Q3DSEngine::loadQmlSubPresentation(QmlPresentation *pres)
+bool Q3DSEngine::loadSubQmlPresentation(QmlPresentation *pres)
 {
+    Q_ASSERT(pres);
+    Q_ASSERT(pres->qmlDocument);
     if (m_qmlEngine.isNull())
         m_qmlEngine.reset(new QQmlEngine);
 
-    Qt3DCore::QNode *entityParent = m_presentations[0].q3dscene.rootEntity;
-    QQmlComponent *component = new QQmlComponent(m_qmlEngine.data(),
-                                                 QUrl::fromLocalFile(pres->previewFileName));
+    Qt3DCore::QNode *entityParent = m_uipPresentations[0].q3dscene.rootEntity;
+    QQmlComponent *component;
+    QString qmlSource = pres->qmlDocument->source();
+    if (!qmlSource.isEmpty()) {
+        QUrl sourceUrl;
+        // Support also files from resources
+        QFileInfo fi(qmlSource);
+        if (fi.isAbsolute()) {
+            sourceUrl = QUrl::fromLocalFile(fi.absoluteFilePath());
+        } else {
+            sourceUrl = qmlSource;
+        }
+        component = new QQmlComponent(m_qmlEngine.data(),
+                                      sourceUrl);
+    } else {
+        component = new QQmlComponent(m_qmlEngine.data());
+        component->setData(pres->qmlDocument->sourceData(),
+                           QUrl());
+    }
 
     if (component->isReady()) {
         int width = 0;
@@ -681,14 +733,73 @@ bool Q3DSEngine::loadQmlSubPresentation(QmlPresentation *pres)
     return true;
 }
 
+bool Q3DSEngine::parseUipDocument(UipPresentation *pres)
+{
+    if (pres->presentation) {
+        delete pres->presentation;
+        pres->presentation = nullptr;
+    }
+
+    Q3DSUipParser parser;
+    if (!pres->uipDocument->source().isEmpty())
+        pres->presentation = parser.parse(pres->uipDocument->source());
+    else if (!pres->uipDocument->sourceData().isEmpty())
+        pres->presentation = parser.parseData(pres->uipDocument->sourceData());
+
+    return (pres->presentation != nullptr);
+}
+
+bool Q3DSEngine::parseUiaDocument(Q3DSUiaParser::Uia &uiaDoc, const QString &sourcePrefix)
+{
+    if (!uiaDoc.isValid())
+        return false;
+
+    for (const Q3DSUiaParser::Uia::Presentation &p : uiaDoc.presentations) {
+        if (p.type == Q3DSUiaParser::Uia::Presentation::Uip) {
+            Q3DSUipDocument *uipDoc = new Q3DSUipDocument;
+            // assume the .uip name in the .uia is relative to the .uia's location
+            uipDoc->setSource(sourcePrefix + p.source);
+            UipPresentation pres;
+            pres.subPres.id = p.id;
+            pres.uipDocument = uipDoc;
+            qCDebug(lcUip, "Registered subpresentation %s as %s",
+                    qPrintable(uipDoc->source()), qPrintable(p.id));
+            // initial (main) presentation must be m_uipPresentations[0]
+            if (p.id == uiaDoc.initialPresentationId)
+                m_uipPresentations.prepend(pres);
+            else
+                m_uipPresentations.append(pres);
+        } else if (p.type == Q3DSUiaParser::Uia::Presentation::Qml) {
+            Q3DSQmlDocument *qmlDoc = new Q3DSQmlDocument;
+            qmlDoc->setSource(sourcePrefix + p.source);
+            QmlPresentation pres;
+            pres.subPres.id = p.id;
+            pres.qmlDocument = qmlDoc;
+            qCDebug(lcUip, "Registered qml subpresentation %s as %s",
+                    qPrintable(qmlDoc->source()), qPrintable(p.id));
+            m_qmlPresentations.append(pres);
+        }
+    }
+    if (m_uipPresentations.isEmpty())
+        return false;
+
+    return true;
+}
+
 void Q3DSEngine::destroy()
 {
-    for (Presentation &pres : m_presentations) {
+    for (UipPresentation &pres : m_uipPresentations) {
         delete pres.sceneManager;
         delete pres.uipDocument;
+        delete pres.presentation;
     }
-    m_presentations.clear();
+    m_uipPresentations.clear();
     m_capture = nullptr;
+
+    for (QmlPresentation &pres : m_qmlPresentations) {
+        delete pres.qmlDocument;
+    }
+    m_qmlPresentations.clear();
 
     // wish I knew why this is needed. Qt 3D tends not to shut down its threads correctly on exit otherwise.
     if (m_aspectEngine)
@@ -699,8 +810,8 @@ void Q3DSEngine::destroy()
 
 void Q3DSEngine::prepareForReload()
 {
-    if (!m_presentations.isEmpty()) {
-        for (Presentation &pres : m_presentations) {
+    if (!m_uipPresentations.isEmpty()) {
+        for (UipPresentation &pres : m_uipPresentations) {
             if (pres.sceneManager)
                 pres.sceneManager->prepareEngineReset();
         }
@@ -709,11 +820,10 @@ void Q3DSEngine::prepareForReload()
         Qt3DCore::QAspectEnginePrivate::get(m_aspectEngine.data())->exitSimulationLoop();
         createAspectEngine();
 
-        for (Presentation &pres : m_presentations) {
+        for (UipPresentation &pres : m_uipPresentations) {
             delete pres.sceneManager;
-            delete pres.uipDocument;
         }
-        m_presentations.clear();
+        m_uipPresentations.clear();
     } else {
         Q3DSSceneManager::prepareEngineResetGlobal();
     }
@@ -721,22 +831,31 @@ void Q3DSEngine::prepareForReload()
 
 int Q3DSEngine::presentationCount() const
 {
-    return m_presentations.count();
+    return m_uipPresentations.count();
 }
 
 QString Q3DSEngine::uipFileName(int index) const
 {
-    return (index >= 0 && index < m_presentations.count()) ? m_presentations[index].uipFileName : QString();
+    return (index >= 0 && index < m_uipPresentations.count()) ?
+                m_uipPresentations[index].uipDocument->source() : QString();
 }
 
 Q3DSUipDocument *Q3DSEngine::uipDocument(int index) const
 {
-    return (index >= 0 && index < m_presentations.count()) ? m_presentations[index].uipDocument : nullptr;
+    return (index >= 0 && index < m_uipPresentations.count()) ?
+                m_uipPresentations[index].uipDocument : nullptr;
+}
+
+Q3DSPresentation *Q3DSEngine::presentation(int index) const
+{
+    return (index >= 0 && index < m_uipPresentations.count()) ?
+                m_uipPresentations[index].presentation : nullptr;
 }
 
 Q3DSSceneManager *Q3DSEngine::sceneManager(int index) const
 {
-    return (index >= 0 && index < m_presentations.count()) ? m_presentations[index].sceneManager : nullptr;
+    return (index >= 0 && index < m_uipPresentations.count()) ?
+                m_uipPresentations[index].sceneManager : nullptr;
 }
 
 Qt3DCore::QAspectEngine *Q3DSEngine::aspectEngine() const
@@ -746,13 +865,13 @@ Qt3DCore::QAspectEngine *Q3DSEngine::aspectEngine() const
 
 Qt3DCore::QEntity *Q3DSEngine::rootEntity() const
 {
-    return m_presentations.isEmpty() ? nullptr : m_presentations[0].q3dscene.rootEntity;
+    return m_uipPresentations.isEmpty() ? nullptr : m_uipPresentations[0].q3dscene.rootEntity;
 }
 
 void Q3DSEngine::setOnDemandRendering(bool enabled)
 {
-    m_presentations[0].q3dscene.renderSettings->setRenderPolicy(enabled ? Qt3DRender::QRenderSettings::OnDemand
-                                                                        : Qt3DRender::QRenderSettings::Always);
+    m_uipPresentations[0].q3dscene.renderSettings->setRenderPolicy(enabled ?
+        Qt3DRender::QRenderSettings::OnDemand : Qt3DRender::QRenderSettings::Always);
 }
 
 QSize Q3DSEngine::implicitSize() const
@@ -772,10 +891,11 @@ QObject *Q3DSEngine::surface() const
 
 bool Q3DSEngine::start()
 {
-    if (!m_presentations.isEmpty()) {
+    if (!m_uipPresentations.isEmpty()) {
         Q_ASSERT(!m_aspectEngine.isNull());
-        if (m_aspectEngine->rootEntity() != m_presentations[0].q3dscene.rootEntity)
-            m_aspectEngine->setRootEntity(Qt3DCore::QEntityPtr(m_presentations[0].q3dscene.rootEntity));
+        if (m_aspectEngine->rootEntity() != m_uipPresentations[0].q3dscene.rootEntity)
+            m_aspectEngine->setRootEntity(
+                        Qt3DCore::QEntityPtr(m_uipPresentations[0].q3dscene.rootEntity));
         return true;
     }
     return false;
@@ -785,8 +905,8 @@ void Q3DSEngine::resize(const QSize &size, qreal dpr)
 {
     m_size = size;
     m_dpr = dpr;
-    if (!m_presentations.isEmpty())
-        m_presentations[0].sceneManager->updateSizes(m_size, m_dpr);
+    if (!m_uipPresentations.isEmpty())
+        m_uipPresentations[0].sceneManager->updateSizes(m_size, m_dpr);
 }
 
 void Q3DSEngine::handleKeyPressEvent(QKeyEvent *e)
@@ -794,13 +914,13 @@ void Q3DSEngine::handleKeyPressEvent(QKeyEvent *e)
     QCoreApplication::sendEvent(&m_profileUiEventSource, e);
 
     // not ideal since the window needs focus which it often won't have. also no keyboard on embedded/mobile.
-    if (e->key() == Qt::Key_F10 && !m_presentations.isEmpty()) {
-        auto m = m_presentations[0].sceneManager;
+    if (e->key() == Qt::Key_F10 && !m_uipPresentations.isEmpty()) {
+        auto m = m_uipPresentations[0].sceneManager;
         m->setProfileUiVisible(!m->isProfileUiVisible());
     }
 
-    if (e->key() == Qt::Key_QuoteLeft && !m_presentations.isEmpty()) {
-        auto m = m_presentations[0].sceneManager;
+    if (e->key() == Qt::Key_QuoteLeft && !m_uipPresentations.isEmpty()) {
+        auto m = m_uipPresentations[0].sceneManager;
         const bool v = !m->isProfileUiVisible();
         m->setProfileUiVisible(v, v);
     }
@@ -841,9 +961,9 @@ void Q3DSEngine::handleMouseDoubleClickEvent(QMouseEvent *e)
 
     if (m_profilerActivateTimer.restart() < 800
         && e->button() == Qt::LeftButton
-        && !m_presentations.isEmpty())
+        && !m_uipPresentations.isEmpty())
     {
-        auto m = m_presentations[0].sceneManager;
+        auto m = m_uipPresentations[0].sceneManager;
         m->setProfileUiVisible(!m->isProfileUiVisible());
     }
 }

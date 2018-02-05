@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2017 The Qt Company Ltd.
+** Copyright (C) 2018 The Qt Company Ltd.
 ** Contact: http://www.qt.io/licensing/
 **
 ** This file is part of Qt 3D Studio.
@@ -27,8 +27,44 @@
 **
 ****************************************************************************/
 
-#include "q3dsuipdocument_p.h"
+#include "q3dsuiadocument_p.h"
 
 QT_BEGIN_NAMESPACE
+
+void Q3DSUiaDocument::setInitialDocumentId(const QString &id)
+{
+    m_initialDocumentId = id;
+}
+
+QString Q3DSUiaDocument::initialDocumentId() const
+{
+    return m_initialDocumentId;
+}
+
+void Q3DSUiaDocument::addSubDocument(const Q3DSUipDocument &uipDocument)
+{
+    m_uipDocuments.append(uipDocument);
+}
+
+void Q3DSUiaDocument::addSubDocument(const Q3DSQmlDocument &qmlDocument)
+{
+    m_qmlDocuments.append(qmlDocument);
+}
+
+void Q3DSUiaDocument::clear()
+{
+    m_uipDocuments.clear();
+    m_qmlDocuments.clear();
+}
+
+const QVector<Q3DSUipDocument> Q3DSUiaDocument::uipDocuments() const
+{
+    return m_uipDocuments;
+}
+
+const QVector<Q3DSQmlDocument> Q3DSUiaDocument::qmlDocuments() const
+{
+    return m_qmlDocuments;
+}
 
 QT_END_NAMESPACE

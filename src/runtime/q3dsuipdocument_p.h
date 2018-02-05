@@ -41,25 +41,14 @@
 // We mean it.
 //
 
-#include "q3dsruntimeglobal_p.h"
-#include "q3dspresentation_p.h"
+#include "q3dsabstractdocument_p.h"
 
 QT_BEGIN_NAMESPACE
 
-class Q3DSV_PRIVATE_EXPORT Q3DSUipDocument
+class Q3DSV_PRIVATE_EXPORT Q3DSUipDocument : public Q3DSAbstractDocument
 {
 public:
-    Q3DSUipDocument();
-
-    Q3DSPresentation *presentation() const;
-
-    bool loadUip(const QString &fileName);
-    bool loadUipData(const QByteArray &data);
-    bool saveUip(const QString &fileName);
-
-private:
-    Q_DISABLE_COPY(Q3DSUipDocument)
-    QScopedPointer<Q3DSPresentation> m_presentation;
+    Q3DSUipDocument() = default;
 };
 
 QT_END_NAMESPACE

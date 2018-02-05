@@ -26,7 +26,10 @@ SOURCES += \
     q3dsanimationmanager.cpp \
     q3dsuiaparser.cpp \
     q3dsprofiler.cpp \
-    q3dscustommaterialgenerator.cpp
+    q3dscustommaterialgenerator.cpp \
+    q3dsabstractdocument.cpp \
+    q3dsuiadocument.cpp \
+    q3dsqmldocument.cpp
 
 HEADERS += \
     q3dsruntimeglobal.h \
@@ -55,7 +58,10 @@ HEADERS += \
     q3dsanimationmanager_p.h \
     q3dsuiaparser_p.h \
     q3dsprofiler_p.h \
-    q3dscustommaterialgenerator_p.h
+    q3dscustommaterialgenerator_p.h \
+    q3dsabstractdocument_p.h \
+    q3dsuiadocument_p.h \
+    q3dsqmldocument_p.h
 
 RESOURCES += \
     q3dsres.qrc

@@ -129,10 +129,10 @@ void tst_Q3DSSlides::initTestCase()
     Q3DSUtils::setDialogsEnabled(false);
     // This tests the basic Presentation (top level) slide change
     m_view->engine()->setSource(QLatin1String(":/test3.uip"));
-    QVERIFY(m_view->engine()->uipDocument()->presentation());
+    QVERIFY(m_view->engine()->presentation());
     QVERIFY(m_view->engine()->sceneManager());
 
-    m_presentation = m_view->engine()->uipDocument()->presentation();
+    m_presentation = m_view->engine()->presentation();
     m_sceneManager = m_view->engine()->sceneManager();
     m_scene = m_presentation->scene();
 

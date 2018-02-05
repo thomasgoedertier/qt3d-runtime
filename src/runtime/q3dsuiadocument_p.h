@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2017 The Qt Company Ltd.
+** Copyright (C) 2018 The Qt Company Ltd.
 ** Contact: http://www.qt.io/licensing/
 **
 ** This file is part of Qt 3D Studio.
@@ -27,8 +27,52 @@
 **
 ****************************************************************************/
 
+#ifndef Q3DSUIADOCUMENT_P_H
+#define Q3DSUIADOCUMENT_P_H
+
+//
+//  W A R N I N G
+//  -------------
+//
+// This file is not part of the Qt API.  It exists purely as an
+// implementation detail.  This header file may change from version to
+// version without notice, or even be removed.
+//
+// We mean it.
+//
+
+#include "q3dsruntimeglobal_p.h"
 #include "q3dsuipdocument_p.h"
+#include "q3dsqmldocument_p.h"
+#include <QVector>
+#include <QString>
 
 QT_BEGIN_NAMESPACE
 
+class Q3DSV_PRIVATE_EXPORT Q3DSUiaDocument
+{
+public:
+    Q3DSUiaDocument() = default;
+
+    void setInitialDocumentId(const QString &id);
+    QString initialDocumentId() const;
+
+    void addSubDocument(const Q3DSUipDocument &uipDocument);
+    void addSubDocument(const Q3DSQmlDocument &qmlDocument);
+
+    // Remove all subdocuments
+    void clear();
+
+    const QVector<Q3DSUipDocument> uipDocuments() const;
+    const QVector<Q3DSQmlDocument> qmlDocuments() const;
+
+private:
+    QString m_initialDocumentId;
+    QVector<Q3DSUipDocument> m_uipDocuments;
+    QVector<Q3DSQmlDocument> m_qmlDocuments;
+
+};
+
 QT_END_NAMESPACE
+
+#endif // Q3DSUIADOCUMENT_P_H

@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2017 The Qt Company Ltd.
+** Copyright (C) 2018 The Qt Company Ltd.
 ** Contact: http://www.qt.io/licensing/
 **
 ** This file is part of Qt 3D Studio.
@@ -27,8 +27,31 @@
 **
 ****************************************************************************/
 
-#include "q3dsuipdocument_p.h"
+#ifndef Q3DSQMLDOCUMENT_P_H
+#define Q3DSQMLDOCUMENT_P_H
+
+//
+//  W A R N I N G
+//  -------------
+//
+// This file is not part of the Qt API.  It exists purely as an
+// implementation detail.  This header file may change from version to
+// version without notice, or even be removed.
+//
+// We mean it.
+//
+
+#include "q3dsabstractdocument_p.h"
 
 QT_BEGIN_NAMESPACE
 
+class Q3DSV_PRIVATE_EXPORT Q3DSQmlDocument : public Q3DSAbstractDocument
+{
+public:
+    Q3DSQmlDocument() = default;
+
+};
+
 QT_END_NAMESPACE
+
+#endif // Q3DSQMLDOCUMENT_P_H

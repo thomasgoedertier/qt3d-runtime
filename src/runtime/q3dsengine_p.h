@@ -46,6 +46,8 @@
 #include <QSurfaceFormat>
 #include <Qt3DCore/QAspectEngine>
 #include "q3dsuipdocument_p.h"
+#include "q3dsuiadocument_p.h"
+#include "q3dsuiaparser_p.h"
 #include "q3dsscenemanager_p.h"
 
 QT_BEGIN_NAMESPACE
@@ -83,15 +85,22 @@ public:
     void setFlags(Flags flags);
     void setFlag(Flag flag, bool enabled);
 
+    // Load presentation from a uip/uia file.
     bool setSource(const QString &uipOrUiaFileName);
     QString source() const;
-    qint64 totalLoadTimeMsecs() const;
 
-    bool setSourceData(const QByteArray &data);
+    // Load presentation from a uip document object.
+    bool setDocument(const Q3DSUipDocument &uipDocument);
+
+    // Load presentation from a uia document object.
+    bool setDocument(const Q3DSUiaDocument &uiaDocument);
+
+    qint64 totalLoadTimeMsecs() const;
 
     int presentationCount() const;
     QString uipFileName(int index = 0) const;
     Q3DSUipDocument *uipDocument(int index = 0) const;
+    Q3DSPresentation *presentation(int index = 0) const;
     Q3DSSceneManager *sceneManager(int index = 0) const;
 
     Qt3DCore::QAspectEngine *aspectEngine() const;
@@ -131,25 +140,31 @@ private:
     Q_DISABLE_COPY(Q3DSEngine)
 
     struct Presentation {
-        QString uipFileName;
-        QByteArray uipData;
-        Q3DSUipDocument *uipDocument = nullptr;
-        Q3DSSceneManager *sceneManager = nullptr;
-        Q3DSSceneManager::Scene q3dscene;
         Q3DSSubPresentation subPres;
     };
 
-    struct QmlPresentation {
-        QString previewFileName;
+    struct UipPresentation : Presentation {
+        Q3DSUipDocument *uipDocument = nullptr;
+        Q3DSSceneManager::Scene q3dscene;
         Q3DSSceneManager *sceneManager = nullptr;
+        Q3DSPresentation *presentation = nullptr;
+    };
+
+    struct QmlPresentation : Presentation {
+        Q3DSQmlDocument *qmlDocument = nullptr;
         Qt3DRender::Quick::QScene2D *scene2d = nullptr;
-        Q3DSSubPresentation subPres;
     };
 
     void createAspectEngine();
-    bool loadPresentation(Presentation *pres);
-    bool loadSubPresentation(Presentation *pres);
-    bool loadQmlSubPresentation(QmlPresentation *pres);
+
+    bool loadPresentations();
+    bool loadUipPresentation(UipPresentation *pres);
+    bool loadSubUipPresentation(UipPresentation *pres);
+    bool loadSubQmlPresentation(QmlPresentation *pres);
+
+    bool parseUipDocument(UipPresentation *pres);
+    bool parseUiaDocument(Q3DSUiaParser::Uia &uiaDoc, const QString &sourcePrefix);
+
     void destroy();
     void prepareForReload();
 
@@ -159,14 +174,16 @@ private:
     qreal m_dpr = 1;
     Flags m_flags;
     QString m_source; // uip or uia file
-    QVector<Presentation> m_presentations;
+    QVector<UipPresentation> m_uipPresentations;
     QVector<QmlPresentation> m_qmlPresentations;
+
     QScopedPointer<QQmlEngine> m_qmlEngine;
     qint64 m_loadTime = 0;
 
     QScopedPointer<Qt3DCore::QAspectEngine> m_aspectEngine;
 
     QElapsedTimer m_profilerActivateTimer;
+    QElapsedTimer m_sourceLoadTimer;
 
     Qt3DRender::QRenderCapture *m_capture = nullptr;
     QHash<Qt3DRender::QRenderCaptureReply*, QMetaObject::Connection> m_captureConnections;

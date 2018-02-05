@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2017 The Qt Company Ltd.
+** Copyright (C) 2018 The Qt Company Ltd.
 ** Contact: http://www.qt.io/licensing/
 **
 ** This file is part of Qt 3D Studio.
@@ -27,8 +27,42 @@
 **
 ****************************************************************************/
 
-#include "q3dsuipdocument_p.h"
+#include "q3dsabstractdocument_p.h"
 
 QT_BEGIN_NAMESPACE
+
+Q3DSAbstractDocument::Q3DSAbstractDocument()
+{
+}
+
+void Q3DSAbstractDocument::setId(const QString &id)
+{
+    m_id = id;
+}
+
+QString Q3DSAbstractDocument::id() const
+{
+    return m_id;
+}
+
+void Q3DSAbstractDocument::setSource(const QString &source)
+{
+    m_source = source;
+}
+
+QString Q3DSAbstractDocument::source() const
+{
+    return m_source;
+}
+
+void Q3DSAbstractDocument::setSourceData(const QByteArray &data)
+{
+    m_sourceData = data;
+}
+
+QByteArray Q3DSAbstractDocument::sourceData() const
+{
+    return m_sourceData;
+}
 
 QT_END_NAMESPACE

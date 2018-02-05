@@ -121,24 +121,27 @@ Q3DStudioMainWindow::Q3DStudioMainWindow(Q3DSWindow *view, QWidget *parent)
 
     QMenu *debugMenu = menuBar()->addMenu(tr("&Debug"));
     debugMenu->addAction(tr("&Object graph..."), [=]() {
-        Q3DSUtils::showObjectGraph(view->engine()->uipDocument()->presentation()->scene());
+        Q3DSUtils::showObjectGraph(view->engine()->presentation()->scene());
     });
     debugMenu->addAction(tr("&Scene slide graph..."), [=]() {
-        Q3DSUtils::showObjectGraph(view->engine()->uipDocument()->presentation()->masterSlide());
+        Q3DSUtils::showObjectGraph(view->engine()->presentation()->masterSlide());
     });
     QAction *depthTexAction = debugMenu->addAction(tr("&Force depth texture"));
     depthTexAction->setCheckable(true);
     depthTexAction->setChecked(false);
     connect(depthTexAction, &QAction::toggled, [=]() {
-        Q3DSPresentation::forAllLayers(view->engine()->uipDocument()->presentation()->scene(), [=](Q3DSLayerNode *layer3DS) {
-            view->engine()->sceneManager()->setDepthTextureEnabled(layer3DS, depthTexAction->isChecked());
+        Q3DSPresentation::forAllLayers(view->engine()->presentation()->scene(),
+                                       [=](Q3DSLayerNode *layer3DS) {
+            view->engine()->sceneManager()->setDepthTextureEnabled(
+                        layer3DS, depthTexAction->isChecked());
         });
     });
     QAction *ssaoAction = debugMenu->addAction(tr("Force SS&AO"));
     ssaoAction->setCheckable(true);
     ssaoAction->setChecked(false);
     connect(ssaoAction, &QAction::toggled, [=]() {
-        Q3DSPresentation::forAllLayers(view->engine()->uipDocument()->presentation()->scene(), [=](Q3DSLayerNode *layer3DS) {
+        Q3DSPresentation::forAllLayers(view->engine()->presentation()->scene(),
+                                       [=](Q3DSLayerNode *layer3DS) {
             Q3DSPropertyChangeList changeList;
             const QString value = ssaoAction->isChecked() ? QLatin1String("50") : QLatin1String("0");
             changeList.append(Q3DSPropertyChange(QLatin1String("aostrength"), value));
@@ -148,15 +151,18 @@ Q3DStudioMainWindow::Q3DStudioMainWindow(Q3DSWindow *view, QWidget *parent)
     });
     QAction *rebuildMatAction = debugMenu->addAction(tr("&Rebuild model materials"));
     connect(rebuildMatAction, &QAction::triggered, [=]() {
-        Q3DSPresentation::forAllModels(view->engine()->uipDocument()->presentation()->scene(), [=](Q3DSModelNode *model3DS) {
+        Q3DSPresentation::forAllModels(view->engine()->presentation()->scene(),
+                                       [=](Q3DSModelNode *model3DS) {
             view->engine()->sceneManager()->rebuildModelMaterial(model3DS);
         });
     });
     QAction *toggleShadowAction = debugMenu->addAction(tr("&Toggle shadow casting for point lights"));
     connect(toggleShadowAction, &QAction::triggered, [=]() {
-        Q3DSPresentation::forAllObjectsOfType(view->engine()->uipDocument()->presentation()->scene(), Q3DSGraphObject::Light, [=](Q3DSGraphObject *obj) {
+        Q3DSPresentation::forAllObjectsOfType(view->engine()->presentation()->scene(),
+                                              Q3DSGraphObject::Light, [=](Q3DSGraphObject *obj) {
             Q3DSLightNode *light3DS = static_cast<Q3DSLightNode *>(obj);
-            if (light3DS->flags().testFlag(Q3DSNode::Active) && light3DS->lightType() == Q3DSLightNode::Point) {
+            if (light3DS->flags().testFlag(Q3DSNode::Active) &&
+                    light3DS->lightType() == Q3DSLightNode::Point) {
                 Q3DSPropertyChangeList changeList;
                 const QString value = light3DS->castShadow() ? QLatin1String("false") : QLatin1String("true");
                 changeList.append(Q3DSPropertyChange(QLatin1String("castshadow"), value));
@@ -167,7 +173,8 @@ Q3DStudioMainWindow::Q3DStudioMainWindow(Q3DSWindow *view, QWidget *parent)
     });
     QAction *shadowResChangeAction = debugMenu->addAction(tr("&Maximize shadow map resolution for lights"));
     connect(shadowResChangeAction, &QAction::triggered, [=]() {
-        Q3DSPresentation::forAllObjectsOfType(view->engine()->uipDocument()->presentation()->scene(), Q3DSGraphObject::Light, [=](Q3DSGraphObject *obj) {
+        Q3DSPresentation::forAllObjectsOfType(view->engine()->presentation()->scene(),
+                                              Q3DSGraphObject::Light, [=](Q3DSGraphObject *obj) {
             Q3DSLightNode *light3DS = static_cast<Q3DSLightNode *>(obj);
             if (light3DS->flags().testFlag(Q3DSNode::Active)) {
                 Q3DSPropertyChangeList changeList;
