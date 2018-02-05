@@ -53,6 +53,8 @@ import QtStudio3D 2.0
 import QtQuick.Window 2.3
 import QtQuick.Controls 2.2
 import QtQuick.Layouts 1.3
+import Qt.labs.platform 1.0
+
 Rectangle {
     id: root
     color: "lightGray"
@@ -85,5 +87,16 @@ Rectangle {
             text: "Reload"
             onClicked: s3d.reload()
         }
+        Button {
+            text: "Open"
+            onClicked: openDialog.open()
+        }
+    }
+
+    FileDialog {
+        id: openDialog
+        fileMode: FileDialog.OpenFile
+        nameFilters: ["UIP files (*.uip)", "UIA files (*.uia)"]
+        onAccepted: s3d.source = file
     }
 }

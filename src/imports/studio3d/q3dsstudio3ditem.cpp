@@ -72,6 +72,9 @@ void Q3DSStudio3DItem::setSource(const QUrl &newSource)
     if (m_source == newSource)
         return;
 
+    if (!m_source.isEmpty())
+        releaseEngineAndRenderer();
+
     m_source = newSource;
     emit sourceChanged();
 
