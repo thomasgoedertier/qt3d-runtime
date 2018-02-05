@@ -51,14 +51,15 @@
 import QtQuick 2.0
 import QtStudio3D 2.0
 import QtQuick.Window 2.3
-
+import QtQuick.Controls 2.2
+import QtQuick.Layouts 1.3
 Rectangle {
     id: root
     color: "lightGray"
 
     Studio3D {
         id: s3d
-        anchors.margins: 40
+        anchors.margins: 60
         anchors.fill: parent
         source: "qrc:/presentation/barrel.uip"
     }
@@ -75,16 +76,14 @@ Rectangle {
         title: "Second window"
     }
 
-    Rectangle {
-        border.color: "black"
-        width: 300
-        height: 30
-        MouseArea {
-            anchors.fill: parent
+    RowLayout {
+        Button {
+            text: "Move to other window"
             onClicked: if (s3d.parent === wroot) s3d.parent = root; else s3d.parent = wroot
-            Text {
-                text: "Click to move to other window"
-            }
+        }
+        Button {
+            text: "Reload"
+            onClicked: s3d.reload()
         }
     }
 }

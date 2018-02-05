@@ -43,10 +43,10 @@ Q_DECLARE_LOGGING_CATEGORY(lcStudio3D)
 class ContextSaver
 {
 public:
-    explicit ContextSaver(QOpenGLContext *context = QOpenGLContext::currentContext())
-        : m_context(context),
-          m_surface(context ? context->surface() : nullptr)
+    ContextSaver()
     {
+        m_context = QOpenGLContext::currentContext();
+        m_surface = m_context ? m_context->surface() : nullptr;
     }
 
     ~ContextSaver()
@@ -59,8 +59,8 @@ public:
     QSurface *surface() const { return m_surface; }
 
 private:
-    QOpenGLContext * const m_context;
-    QSurface * const m_surface;
+    QOpenGLContext *m_context;
+    QSurface *m_surface;
 };
 
 // the renderer object lives on the Qt Quick render thread
@@ -89,6 +89,7 @@ Q3DSStudio3DRenderer::Q3DSStudio3DRenderer(Q3DSStudio3DItem *item, Q3DSStudio3DN
 Q3DSStudio3DRenderer::~Q3DSStudio3DRenderer()
 {
     qCDebug(lcStudio3D, "[R] renderer %p dtor", this);
+    ContextSaver saver;
     m_renderAspectD->renderShutdown();
 }
 

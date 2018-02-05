@@ -79,6 +79,17 @@ void Q3DSStudio3DItem::setSource(const QUrl &newSource)
         createEngine();
 }
 
+void Q3DSStudio3DItem::reload()
+{
+    if (m_source.isEmpty())
+        return;
+
+    releaseEngineAndRenderer();
+
+    if (window())
+        createEngine();
+}
+
 void Q3DSStudio3DItem::createEngine()
 {
     // note: cannot have an engine without the source set
@@ -226,22 +237,26 @@ void Q3DSStudio3DItem::releaseResources()
     // this may not be an application exit; if this is just a window change then allow continuing
     // by eventually creating new engine and renderer objects
 
-    if (window()) {
-        // renderer must be destroyed first (on the Quick render thread)
-        if (m_renderer) {
-            if (m_renderer->thread() == QThread::currentThread()) {
-                delete m_renderer;
-                m_renderer = nullptr;
-                destroyEngine();
-            } else {
-                // by the time the runnable runs we (the item) may already be gone; that's fine, just pass the renderer ref
-                EngineReleaser *er = new EngineReleaser(m_engine);
-                RendererReleaser *rr = new RendererReleaser(m_renderer, er);
-                window()->scheduleRenderJob(rr, QQuickWindow::BeforeSynchronizingStage);
-                m_renderer = nullptr;
-                m_engine = nullptr;
-            }
-        }
+    releaseEngineAndRenderer();
+}
+
+void Q3DSStudio3DItem::releaseEngineAndRenderer()
+{
+    if (!window() || !m_renderer)
+        return;
+
+    // renderer must be destroyed first (on the Quick render thread)
+    if (m_renderer->thread() == QThread::currentThread()) {
+        delete m_renderer;
+        m_renderer = nullptr;
+        destroyEngine();
+    } else {
+        // by the time the runnable runs we (the item) may already be gone; that's fine, just pass the renderer ref
+        EngineReleaser *er = new EngineReleaser(m_engine);
+        RendererReleaser *rr = new RendererReleaser(m_renderer, er);
+        window()->scheduleRenderJob(rr, QQuickWindow::BeforeSynchronizingStage);
+        m_renderer = nullptr;
+        m_engine = nullptr;
     }
 }
 

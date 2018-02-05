@@ -60,6 +60,8 @@ public:
     QUrl source() const;
     void setSource(const QUrl &newSource);
 
+    Q_INVOKABLE void reload();
+
 signals:
     void sourceChanged();
 
@@ -86,6 +88,7 @@ private:
 
     void createEngine();
     void sendResizeToQt3D(const QSize &size);
+    void releaseEngineAndRenderer();
 
     QUrl m_source;
     Q3DSStudio3DRenderer *m_renderer = nullptr;
