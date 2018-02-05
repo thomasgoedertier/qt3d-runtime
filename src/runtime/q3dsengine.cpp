@@ -656,6 +656,8 @@ void Q3DSEngine::prepareForReload()
             delete pres.uipDocument;
         }
         m_presentations.clear();
+    } else {
+        Q3DSSceneManager::prepareEngineResetGlobal();
     }
 }
 

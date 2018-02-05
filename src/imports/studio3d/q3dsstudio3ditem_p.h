@@ -85,7 +85,7 @@ private:
     void hoverMoveEvent(QHoverEvent *event) override;
 
     void createEngine();
-    void sendResize(const QSize &size);
+    void sendResizeToQt3D(const QSize &size);
 
     QUrl m_source;
     Q3DSStudio3DRenderer *m_renderer = nullptr;

@@ -71,7 +71,8 @@ Q3DSStudio3DRenderer::Q3DSStudio3DRenderer(Q3DSStudio3DItem *item, Q3DSStudio3DN
       m_aspectEngine(aspectEngine)
 {
     QOpenGLContext *ctx = QOpenGLContext::currentContext();
-    qCDebug(lcStudio3D, "[R] new renderer, window is %p, context is %p, aspect engine %p", m_item->window(), ctx, m_aspectEngine);
+    qCDebug(lcStudio3D, "[R] new renderer %p, window is %p, context is %p, aspect engine %p",
+            this, m_item->window(), ctx, m_aspectEngine);
 
     connect(m_item->window(), &QQuickWindow::beforeRendering,
             this, &Q3DSStudio3DRenderer::renderOffscreen, Qt::DirectConnection);
@@ -87,7 +88,7 @@ Q3DSStudio3DRenderer::Q3DSStudio3DRenderer(Q3DSStudio3DItem *item, Q3DSStudio3DN
 
 Q3DSStudio3DRenderer::~Q3DSStudio3DRenderer()
 {
-    qCDebug(lcStudio3D) << "[R] renderer dtor";
+    qCDebug(lcStudio3D, "[R] renderer %p dtor", this);
     m_renderAspectD->renderShutdown();
 }
 

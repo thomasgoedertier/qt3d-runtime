@@ -54,6 +54,7 @@
 
 int main(int argc, char *argv[])
 {
+    qputenv("QSG_INFO", "1");
     QGuiApplication app(argc, argv);
     QSurfaceFormat::setDefaultFormat(Q3DS::surfaceFormat());
 

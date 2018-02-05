@@ -655,7 +655,11 @@ public:
 
     void invalidate() override
     {
-        m_cache.clear();
+        // clear() would also delete the objects in the cache - that is not
+        // wanted since with Qt3D everything gets parented somewhere, and by
+        // this stage the shader programs may have been already deleted.
+        for (auto k : m_cache.keys())
+            m_cache.take(k);
     }
 
 private:
