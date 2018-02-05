@@ -63,6 +63,8 @@ private slots:
     void text();
     void component();
     void aoProps();
+    void lightmapProps();
+    void iblProps();
 };
 
 void tst_Q3DSUipParser::initTestCase()
@@ -779,6 +781,158 @@ void tst_Q3DSUipParser::aoProps()
     QCOMPARE(layer->aoBias(), 0.2f);
 
     QCOMPARE(layer->aoDistance(), 5); // default
+}
+
+void tst_Q3DSUipParser::lightmapProps()
+{
+    Q3DSUipParser parser;
+    QScopedPointer<Q3DSPresentation> pres(parser.parse(QLatin1String(":/data/imageBasedLighting.uip")));
+    QVERIFY(!pres.isNull());
+    QVERIFY(pres->object(QByteArrayLiteral("Default")));
+    QVERIFY(pres->object(QByteArrayLiteral("Default_lightmapindirect")));
+    QVERIFY(pres->object(QByteArrayLiteral("Default_lightmapradiosity")));
+    QVERIFY(pres->object(QByteArrayLiteral("Default_lightmapshadow")));
+    QVERIFY(pres->object(QByteArrayLiteral("Default_001")));
+    QVERIFY(pres->object(QByteArrayLiteral("Default_001_lightmapindirect")));
+    QVERIFY(pres->object(QByteArrayLiteral("Default_001_lightmapradiosity")));
+    QVERIFY(pres->object(QByteArrayLiteral("Default_001_lightmapshadow")));
+    QVERIFY(pres->object(QByteArrayLiteral("Default_002")));
+    QVERIFY(pres->object(QByteArrayLiteral("Default_002_lightmapindirect")));
+    QVERIFY(pres->object(QByteArrayLiteral("Default_002_lightmapradiosity")));
+    QVERIFY(pres->object(QByteArrayLiteral("Default_002_lightmapshadow")));
+
+
+    // Default Material
+    Q3DSDefaultMaterial *defautMaterial = static_cast<Q3DSDefaultMaterial *>(pres->object(QByteArrayLiteral("Default_001")));
+    Q3DSImage *defaultMaterialLightmapIndirect = static_cast<Q3DSImage *>(pres->object(QByteArrayLiteral("Default_001_lightmapindirect")));
+    QCOMPARE(defaultMaterialLightmapIndirect->type(), Q3DSGraphObject::Image);
+    QCOMPARE(defaultMaterialLightmapIndirect->parent(), defautMaterial);
+    QCOMPARE(defaultMaterialLightmapIndirect->sourcePath(), QByteArrayLiteral(":/data/maps/Gold_01.jpg"));
+    QCOMPARE(defaultMaterialLightmapIndirect->mappingMode(), Q3DSImage::UVMapping);
+
+    Q3DSImage *defaultMaterialLightmapRadiosity = static_cast<Q3DSImage *>(pres->object(QByteArrayLiteral("Default_001_lightmapradiosity")));
+    QCOMPARE(defaultMaterialLightmapRadiosity->type(), Q3DSGraphObject::Image);
+    QCOMPARE(defaultMaterialLightmapRadiosity->parent(), defautMaterial);
+    QCOMPARE(defaultMaterialLightmapRadiosity->sourcePath(), QByteArrayLiteral(":/data/maps/Gold_01.jpg"));
+    QCOMPARE(defaultMaterialLightmapRadiosity->mappingMode(), Q3DSImage::UVMapping);
+
+    Q3DSImage *defaultMaterialLightmapShadow = static_cast<Q3DSImage *>(pres->object(QByteArrayLiteral("Default_001_lightmapshadow")));
+    QCOMPARE(defaultMaterialLightmapShadow->type(), Q3DSGraphObject::Image);
+    QCOMPARE(defaultMaterialLightmapShadow->parent(), defautMaterial);
+    QCOMPARE(defaultMaterialLightmapShadow->sourcePath(), QByteArrayLiteral(":/data/maps/Gold_01.jpg"));
+    QCOMPARE(defaultMaterialLightmapShadow->mappingMode(), Q3DSImage::UVMapping);
+
+    QCOMPARE(defautMaterial->lightmapIndirectMap(), defaultMaterialLightmapIndirect);
+    QCOMPARE(defautMaterial->lightmapRadiosityMap(), defaultMaterialLightmapRadiosity);
+    QCOMPARE(defautMaterial->lightmapShadowMap(), defaultMaterialLightmapShadow);
+
+    // Custom Material
+    Q3DSCustomMaterialInstance *customMaterial = static_cast<Q3DSCustomMaterialInstance *>(pres->object(QByteArrayLiteral("Default")));
+    Q3DSImage *customMaterialLightmapIndirect = static_cast<Q3DSImage *>(pres->object(QByteArrayLiteral("Default_lightmapindirect")));
+    QCOMPARE(customMaterialLightmapIndirect->type(), Q3DSGraphObject::Image);
+    QCOMPARE(customMaterialLightmapIndirect->parent(), customMaterial);
+    QCOMPARE(customMaterialLightmapIndirect->sourcePath(), QByteArrayLiteral(":/data/maps/Gold_01.jpg"));
+    QCOMPARE(customMaterialLightmapIndirect->mappingMode(), Q3DSImage::UVMapping);
+
+    Q3DSImage *customMaterialLightmapRadiosity = static_cast<Q3DSImage *>(pres->object(QByteArrayLiteral("Default_lightmapradiosity")));
+    QCOMPARE(customMaterialLightmapRadiosity->type(), Q3DSGraphObject::Image);
+    QCOMPARE(customMaterialLightmapRadiosity->parent(), customMaterial);
+    QCOMPARE(customMaterialLightmapRadiosity->sourcePath(), QByteArrayLiteral(":/data/maps/Gold_01.jpg"));
+    QCOMPARE(customMaterialLightmapRadiosity->mappingMode(), Q3DSImage::UVMapping);
+
+    Q3DSImage *customMaterialLightmapShadow = static_cast<Q3DSImage *>(pres->object(QByteArrayLiteral("Default_lightmapshadow")));
+    QCOMPARE(customMaterialLightmapShadow->type(), Q3DSGraphObject::Image);
+    QCOMPARE(customMaterialLightmapShadow->parent(), customMaterial);
+    QCOMPARE(customMaterialLightmapShadow->sourcePath(), QByteArrayLiteral(":/data/maps/Gold_01.jpg"));
+    QCOMPARE(customMaterialLightmapShadow->mappingMode(), Q3DSImage::UVMapping);
+
+    QCOMPARE(customMaterial->lightmapIndirectMap(), customMaterialLightmapIndirect);
+    QCOMPARE(customMaterial->lightmapRadiosityMap(), customMaterialLightmapRadiosity);
+    QCOMPARE(customMaterial->lightmapShadowMap(), customMaterialLightmapShadow);
+
+    // ReferencedMaterial
+    Q3DSReferencedMaterial *referencedMaterial = static_cast<Q3DSReferencedMaterial *>(pres->object(QByteArrayLiteral("Default_002")));
+    Q3DSImage *referencedMaterialLightmapIndirect = static_cast<Q3DSImage *>(pres->object(QByteArrayLiteral("Default_002_lightmapindirect")));
+    QCOMPARE(referencedMaterialLightmapIndirect->type(), Q3DSGraphObject::Image);
+    QCOMPARE(referencedMaterialLightmapIndirect->parent(), referencedMaterial);
+    QCOMPARE(referencedMaterialLightmapIndirect->sourcePath(), QByteArrayLiteral(":/data/maps/Metal_Bronze.png"));
+    QCOMPARE(referencedMaterialLightmapIndirect->mappingMode(), Q3DSImage::UVMapping);
+
+    Q3DSImage *referencedMaterialLightmapRadiosity = static_cast<Q3DSImage *>(pres->object(QByteArrayLiteral("Default_002_lightmapradiosity")));
+    QCOMPARE(referencedMaterialLightmapRadiosity->type(), Q3DSGraphObject::Image);
+    QCOMPARE(referencedMaterialLightmapRadiosity->parent(), referencedMaterial);
+    QCOMPARE(referencedMaterialLightmapRadiosity->sourcePath(), QByteArrayLiteral(":/data/maps/Metal_Bronze.png"));
+    QCOMPARE(referencedMaterialLightmapRadiosity->mappingMode(), Q3DSImage::UVMapping);
+
+    Q3DSImage *referencedMaterialLightmapShadow = static_cast<Q3DSImage *>(pres->object(QByteArrayLiteral("Default_002_lightmapshadow")));
+    QCOMPARE(referencedMaterialLightmapShadow->type(), Q3DSGraphObject::Image);
+    QCOMPARE(referencedMaterialLightmapShadow->parent(), referencedMaterial);
+    QCOMPARE(referencedMaterialLightmapShadow->sourcePath(), QByteArrayLiteral(":/data/maps/Metal_Bronze.png"));
+    QCOMPARE(referencedMaterialLightmapShadow->mappingMode(), Q3DSImage::UVMapping);
+
+    QCOMPARE(referencedMaterial->lightmapIndirectMap(), referencedMaterialLightmapIndirect);
+    QCOMPARE(referencedMaterial->lightmapRadiosityMap(), referencedMaterialLightmapRadiosity);
+    QCOMPARE(referencedMaterial->lightmapShadowMap(), referencedMaterialLightmapShadow);
+}
+
+void tst_Q3DSUipParser::iblProps()
+{
+    Q3DSUipParser parser;
+    QScopedPointer<Q3DSPresentation> pres(parser.parse(QLatin1String(":/data/imageBasedLighting.uip")));
+    QVERIFY(!pres.isNull());
+    QVERIFY(pres->object(QByteArrayLiteral("Layer")));
+    QVERIFY(pres->object(QByteArrayLiteral("Layer_lightprobe")));
+    QVERIFY(pres->object(QByteArrayLiteral("Layer_lightprobe2")));
+    QVERIFY(pres->object(QByteArrayLiteral("Default")));
+    QVERIFY(pres->object(QByteArrayLiteral("Default_iblprobe")));
+    QVERIFY(pres->object(QByteArrayLiteral("Default_001")));
+    QVERIFY(pres->object(QByteArrayLiteral("Default_001_iblprobe")));
+    QVERIFY(pres->object(QByteArrayLiteral("Default_002")));
+    QVERIFY(pres->object(QByteArrayLiteral("Default_002_iblprobe")));
+
+
+    // Layer
+    Q3DSLayerNode *layerNode = static_cast<Q3DSLayerNode *>(pres->object(QByteArrayLiteral("Layer")));
+    Q3DSImage *layerLightprobe1 = static_cast<Q3DSImage *>(pres->object(QByteArrayLiteral("Layer_lightprobe")));
+    QCOMPARE(layerLightprobe1->type(), Q3DSGraphObject::Image);
+    QCOMPARE(layerLightprobe1->parent(), layerNode);
+    QCOMPARE(layerLightprobe1->sourcePath(), QByteArrayLiteral(":/data/maps/TestEnvironment-512.hdr"));
+    QCOMPARE(layerLightprobe1->mappingMode(), Q3DSImage::LightProbe);
+    Q3DSImage *layerLightprobe2 = static_cast<Q3DSImage *>(pres->object(QByteArrayLiteral("Layer_lightprobe2")));
+    QCOMPARE(layerLightprobe2->type(), Q3DSGraphObject::Image);
+    QCOMPARE(layerLightprobe2->parent(), layerNode);
+    QCOMPARE(layerLightprobe2->sourcePath(), QByteArrayLiteral(":/data/maps/TestEnvironment-512.hdr"));
+    QCOMPARE(layerLightprobe2->mappingMode(), Q3DSImage::LightProbe);
+
+    QCOMPARE(layerNode->lightProbe(), layerLightprobe1);
+    QCOMPARE(layerNode->lightProbe2(), layerLightprobe2);
+
+    // Default Material
+    Q3DSDefaultMaterial *defautMaterial = static_cast<Q3DSDefaultMaterial *>(pres->object(QByteArrayLiteral("Default_001")));
+    Q3DSImage *defaultLightprobe = static_cast<Q3DSImage *>(pres->object(QByteArrayLiteral("Default_001_iblprobe")));
+    QCOMPARE(defaultLightprobe->type(), Q3DSGraphObject::Image);
+    QCOMPARE(defaultLightprobe->parent(), defautMaterial);
+    QCOMPARE(defaultLightprobe->sourcePath(), QByteArrayLiteral(":/data/maps/TestEnvironment-512.hdr"));
+    QCOMPARE(defaultLightprobe->mappingMode(), Q3DSImage::IBLOverride);
+    QCOMPARE(defautMaterial->lightProbe(), defaultLightprobe);
+
+    // Custom Material
+    Q3DSCustomMaterialInstance *customMaterial = static_cast<Q3DSCustomMaterialInstance *>(pres->object(QByteArrayLiteral("Default")));
+    Q3DSImage *customLightprobe = static_cast<Q3DSImage *>(pres->object(QByteArrayLiteral("Default_iblprobe")));
+    QCOMPARE(customLightprobe->type(), Q3DSGraphObject::Image);
+    QCOMPARE(customLightprobe->parent(), customMaterial);
+    QCOMPARE(customLightprobe->sourcePath(), QByteArrayLiteral(":/data/maps/TestEnvironment-512.hdr"));
+    QCOMPARE(customLightprobe->mappingMode(), Q3DSImage::IBLOverride);
+    QCOMPARE(customMaterial->lightProbe(), customLightprobe);
+
+    // ReferencedMaterial
+    Q3DSReferencedMaterial *referencedMaterial = static_cast<Q3DSReferencedMaterial *>(pres->object(QByteArrayLiteral("Default_002")));
+    Q3DSImage *referencedLightprobe = static_cast<Q3DSImage *>(pres->object(QByteArrayLiteral("Default_002_iblprobe")));
+    QCOMPARE(referencedLightprobe->type(), Q3DSGraphObject::Image);
+    QCOMPARE(referencedLightprobe->parent(), referencedMaterial);
+    QCOMPARE(referencedLightprobe->sourcePath(), QByteArrayLiteral(":/data/maps/TestEnvironment-512.hdr"));
+    QCOMPARE(referencedLightprobe->mappingMode(), Q3DSImage::IBLOverride);
+    QCOMPARE(referencedMaterial->lightProbe(), referencedLightprobe);
 }
 
 #include <tst_q3dsuipparser.moc>

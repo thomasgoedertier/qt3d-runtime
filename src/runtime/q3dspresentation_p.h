@@ -418,7 +418,8 @@ public:
     enum MappingMode {
         UVMapping = 0,
         EnvironmentalMapping,
-        LightProbe
+        LightProbe,
+        IBLOverride
     };
 
     enum TilingMode {
@@ -1159,6 +1160,12 @@ public:
     Q3DSImage *translucencyMap() const { return m_translucencyMap; }
     float translucentFalloff() const { return m_translucentFalloff; }
     float diffuseLightWrap() const { return m_diffuseLightWrap; }
+    // lightmaps
+    Q3DSImage *lightmapIndirectMap() const { return m_lightmapIndirectMap; }
+    Q3DSImage *lightmapRadiosityMap() const { return m_lightmapRadiosityMap; }
+    Q3DSImage *lightmapShadowMap() const { return m_lightmapShadowMap; }
+    // IBL override
+    Q3DSImage *lightProbe() const { return m_lightProbe; }
 
     QStringList gex_propertyNames() const override;
     QVariantList gex_propertyValues() const override;
@@ -1234,6 +1241,17 @@ private:
     Q3DSImage *m_translucencyMap = nullptr;
     float m_translucentFalloff = 1;
     float m_diffuseLightWrap = 0;
+    // lightmaps
+    QString m_lightmapIndirectMap_unresolved;
+    Q3DSImage *m_lightmapIndirectMap = nullptr;
+    QString m_lightmapRadiosityMap_unresolved;
+    Q3DSImage *m_lightmapRadiosityMap = nullptr;
+    QString m_lightmapShadowMap_unresolved;
+    Q3DSImage *m_lightmapShadowMap = nullptr;
+    // IBL override
+    QString m_lightProbe_unresolved;
+    Q3DSImage *m_lightProbe = nullptr;
+
 };
 
 class Q3DSV_PRIVATE_EXPORT Q3DSReferencedMaterial : public Q3DSGraphObject
@@ -1248,6 +1266,13 @@ public:
     QString name() const { return m_name; }
     Q3DSGraphObject *referencedMaterial() const { return m_referencedMaterial; }
 
+    // lightmap overrides
+    Q3DSImage *lightmapIndirectMap() const { return m_lightmapIndirectMap; }
+    Q3DSImage *lightmapRadiosityMap() const { return m_lightmapRadiosityMap; }
+    Q3DSImage *lightmapShadowMap() const { return m_lightmapShadowMap; }
+    // IBL override
+    Q3DSImage *lightProbe() const { return m_lightProbe; }
+
     QStringList gex_propertyNames() const override;
     QVariantList gex_propertyValues() const override;
 
@@ -1258,6 +1283,16 @@ private:
     QString m_name;
     QString m_referencedMaterial_unresolved;
     Q3DSGraphObject *m_referencedMaterial = nullptr;
+    // lightmap overrides
+    QString m_lightmapIndirectMap_unresolved;
+    Q3DSImage *m_lightmapIndirectMap = nullptr;
+    QString m_lightmapRadiosityMap_unresolved;
+    Q3DSImage *m_lightmapRadiosityMap = nullptr;
+    QString m_lightmapShadowMap_unresolved;
+    Q3DSImage *m_lightmapShadowMap = nullptr;
+    // IBL override
+    QString m_lightProbe_unresolved;
+    Q3DSImage *m_lightProbe = nullptr;
 };
 
 class Q3DSV_PRIVATE_EXPORT Q3DSCustomMaterialInstance : public Q3DSGraphObject
@@ -1271,6 +1306,13 @@ public:
 
     QString name() const { return m_name; }
     const Q3DSCustomMaterial *material() const { return &m_material; }
+
+    // lightmaps
+    Q3DSImage *lightmapIndirectMap() const { return m_lightmapIndirectMap; }
+    Q3DSImage *lightmapRadiosityMap() const { return m_lightmapRadiosityMap; }
+    Q3DSImage *lightmapShadowMap() const { return m_lightmapShadowMap; }
+    // IBL override
+    Q3DSImage *lightProbe() const { return m_lightProbe; }
 
     // All custom properties, either with the default or the instance-specific value.
     // Filenames are already sanitized.
@@ -1289,6 +1331,16 @@ private:
     Q3DSCustomMaterial m_material;
     QVariantMap m_materialPropertyVals;
     Q3DSPropertyChangeList m_attrs;
+    // lightmaps
+    QString m_lightmapIndirectMap_unresolved;
+    Q3DSImage *m_lightmapIndirectMap = nullptr;
+    QString m_lightmapRadiosityMap_unresolved;
+    Q3DSImage *m_lightmapRadiosityMap = nullptr;
+    QString m_lightmapShadowMap_unresolved;
+    Q3DSImage *m_lightmapShadowMap = nullptr;
+    // IBL override
+    QString m_lightProbe_unresolved;
+    Q3DSImage *m_lightProbe = nullptr;
 };
 
 class Q3DSV_PRIVATE_EXPORT Q3DSEffectInstance : public Q3DSGraphObject

@@ -225,6 +225,7 @@ static Q3DSEnumNameMap g_Imagemappingmode[] = {
     { Q3DSImage::UVMapping, "UV Mapping" },
     { Q3DSImage::EnvironmentalMapping, "Environmental Mapping" },
     { Q3DSImage::LightProbe, "Light Probe" },
+    { Q3DSImage::IBLOverride, "IBL Override" },
     { 0, nullptr }
 };
 

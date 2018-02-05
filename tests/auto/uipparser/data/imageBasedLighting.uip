@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<UIP version="3" >
+	<Project >
+		<ProjectSettings author="" company="" presentationWidth="1920" presentationHeight="1080" maintainAspect="False" >
+			<CustomColors count="16" >#ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff</CustomColors>
+		</ProjectSettings>
+		<Classes >
+			<CustomMaterial id="copper" name="copper" sourcepath="materials/copper.material" />
+		</Classes>
+		<Graph >
+			<Scene id="Scene" >
+				<Layer id="Layer" >
+					<Camera id="Camera" />
+					<Model id="Cone" >
+						<CustomMaterial id="Default" class="#copper" >
+							<Image id="Default_lightmapindirect" />
+							<Image id="Default_lightmapradiosity" />
+							<Image id="Default_lightmapshadow" />
+							<Image id="Default_iblprobe" />
+						</CustomMaterial>
+					</Model>
+					<Image id="Layer_lightprobe" />
+					<Model id="Cube" >
+						<Material id="Default_001" name="Default" >
+							<Image id="Default_001_lightmapindirect" />
+							<Image id="Default_001_lightmapradiosity" />
+							<Image id="Default_001_lightmapshadow" />
+							<Image id="Default_001_iblprobe" />
+						</Material>
+					</Model>
+					<Model id="Cylinder" >
+						<ReferencedMaterial id="Default_002" >
+							<Image id="Default_002_lightmapindirect" />
+							<Image id="Default_002_lightmapradiosity" />
+							<Image id="Default_002_lightmapshadow" />
+							<Image id="Default_002_iblprobe" />
+						</ReferencedMaterial>
+					</Model>
+					<Image id="Layer_lightprobe2" />
+				</Layer>
+			</Scene>
+		</Graph>
+		<Logic >
+			<State name="Master Slide" component="#Scene" >
+				<Add ref="#Layer" lightprobe="#Layer_lightprobe" lightprobe2="#Layer_lightprobe2" position="40 -30 0" probe2fade="0" probebright="512" />
+				<Add ref="#Camera" />
+				<Add ref="#Layer_lightprobe" mappingmode="Light Probe" sourcepath="maps/TestEnvironment-512.hdr" />
+				<Add ref="#Layer_lightprobe2" mappingmode="Light Probe" sourcepath="maps/TestEnvironment-512.hdr" />
+				<State id="Scene-Slide1" name="Slide1" >
+					<Add ref="#Cone" name="Cone" position="0 -166 0" scale="5 5 5" sourcepath="#Cone" />
+					<Add ref="#Default" name="Copper" iblprobe="#Default_iblprobe" lightmapindirect="#Default_lightmapindirect" lightmapradiosity="#Default_lightmapradiosity" lightmapshadow="#Default_lightmapshadow" roughness="0" />
+					<Add ref="#Default_lightmapindirect" sourcepath="maps/Gold_01.jpg" />
+					<Add ref="#Default_lightmapradiosity" sourcepath="maps/Gold_01.jpg" />
+					<Add ref="#Default_lightmapshadow" sourcepath="maps/Gold_01.jpg" />
+					<Add ref="#Default_iblprobe" mappingmode="IBL Override" sourcepath="maps/TestEnvironment-512.hdr" />
+					<Add ref="#Cube" name="Cube" position="-422.053 176.496 0" sourcepath="#Cube" />
+					<Add ref="#Default_001" fresnelPower="0" iblprobe="#Default_001_iblprobe" ior="0.26" lightmapindirect="#Default_001_lightmapindirect" lightmapradiosity="#Default_001_lightmapradiosity" lightmapshadow="#Default_001_lightmapshadow" specularmodel="Default" specularroughness="0.01099" />
+					<Add ref="#Default_001_lightmapindirect" sourcepath="maps/Gold_01.jpg" />
+					<Add ref="#Default_001_lightmapradiosity" sourcepath="maps/Gold_01.jpg" />
+					<Add ref="#Default_001_lightmapshadow" sourcepath="maps/Gold_01.jpg" />
+					<Add ref="#Default_001_iblprobe" mappingmode="IBL Override" sourcepath="maps/TestEnvironment-512.hdr" />
+					<Add ref="#Cylinder" name="Cylinder" position="316.901 179.294 0" sourcepath="#Cylinder" />
+					<Add ref="#Default_002" name="DefaultReferenced" iblprobe="#Default_002_iblprobe" lightmapindirect="#Default_002_lightmapindirect" lightmapradiosity="#Default_002_lightmapradiosity" lightmapshadow="#Default_002_lightmapshadow" referencedmaterial="#Default_001" />
+					<Add ref="#Default_002_lightmapindirect" sourcepath="maps/Metal_Bronze.png" />
+					<Add ref="#Default_002_lightmapradiosity" sourcepath="maps/Metal_Bronze.png" />
+					<Add ref="#Default_002_lightmapshadow" sourcepath="maps/Metal_Bronze.png" />
+					<Add ref="#Default_002_iblprobe" mappingmode="IBL Override" sourcepath="maps/TestEnvironment-512.hdr" />
+				</State>
+			</State>
+		</Logic>
+	</Project>
+</UIP>

@@ -1210,6 +1210,11 @@ void Q3DSDefaultMaterial::setProps(const V &attrs, PropSetFlags flags)
 
     parseProperty(attrs, flags, typeName, QStringLiteral("translucentfalloff"), &m_translucentFalloff);
     parseProperty(attrs, flags, typeName, QStringLiteral("diffuselightwrap"), &m_diffuseLightWrap);
+
+    parseImageProperty(attrs, flags, typeName, QStringLiteral("lightmapindirect"), &m_lightmapIndirectMap_unresolved);
+    parseImageProperty(attrs, flags, typeName, QStringLiteral("lightmapradiosity"), &m_lightmapRadiosityMap_unresolved);
+    parseImageProperty(attrs, flags, typeName, QStringLiteral("lightmapshadow"), &m_lightmapShadowMap_unresolved);
+    parseImageProperty(attrs, flags, typeName, QStringLiteral("iblprobe"), &m_lightProbe_unresolved);
 }
 
 void Q3DSDefaultMaterial::setProperties(const QXmlStreamAttributes &attrs, PropSetFlags flags)
@@ -1238,6 +1243,11 @@ void Q3DSDefaultMaterial::resolveReferences(Q3DSPresentation &pres, Q3DSUipParse
     resolveRef(m_emissiveMap_unresolved, Q3DSGraphObject::Image, &m_emissiveMap, pres);
     resolveRef(m_emissiveMap2_unresolved, Q3DSGraphObject::Image, &m_emissiveMap2, pres);
     resolveRef(m_translucencyMap_unresolved, Q3DSGraphObject::Image, &m_translucencyMap, pres);
+
+    resolveRef(m_lightmapIndirectMap_unresolved, Q3DSGraphObject::Image, &m_lightmapIndirectMap, pres);
+    resolveRef(m_lightmapRadiosityMap_unresolved, Q3DSGraphObject::Image, &m_lightmapRadiosityMap, pres);
+    resolveRef(m_lightmapShadowMap_unresolved, Q3DSGraphObject::Image, &m_lightmapShadowMap, pres);
+    resolveRef(m_lightProbe_unresolved, Q3DSGraphObject::Image, &m_lightProbe, pres);
 }
 
 QStringList Q3DSDefaultMaterial::gex_propertyNames() const
@@ -1251,7 +1261,9 @@ QStringList Q3DSDefaultMaterial::gex_propertyNames() const
       << QLatin1String("normalMap") << QLatin1String("bumpAmount") << QLatin1String("displacementMap")
       << QLatin1String("displaceAmount") << QLatin1String("opacity") << QLatin1String("opacityMap") << QLatin1String("emissiveColor")
       << QLatin1String("emissivePower") << QLatin1String("emissiveMap") << QLatin1String("emissiveMap2")
-      << QLatin1String("translucencyMap") << QLatin1String("translucentFalloff") << QLatin1String("diffuseLightWrap");
+      << QLatin1String("translucencyMap") << QLatin1String("translucentFalloff") << QLatin1String("diffuseLightWrap")
+      << QLatin1String("lightmapIndirect") << QLatin1String("lightmapRadiosity") << QLatin1String("lightmapShadow")
+      << QLatin1String("iblProbe");
     return s;
 }
 
@@ -1262,7 +1274,8 @@ QVariantList Q3DSDefaultMaterial::gex_propertyValues() const
       << m_specularReflection_unresolved << m_specularTint << m_specularAmount << m_specularMap_unresolved << m_specularModel
       << m_specularRoughness << m_fresnelPower << m_ior << m_bumpMap_unresolved << m_normalMap_unresolved << m_bumpAmount << m_displacementMap_unresolved
       << m_displaceAmount << m_opacity << m_opacityMap_unresolved << m_emissiveColor << m_emissivePower << m_emissiveMap_unresolved << m_emissiveMap2_unresolved
-      << m_translucencyMap_unresolved << m_translucentFalloff << m_diffuseLightWrap;
+      << m_translucencyMap_unresolved << m_translucentFalloff << m_diffuseLightWrap
+      << m_lightmapIndirectMap_unresolved << m_lightmapRadiosityMap_unresolved << m_lightmapShadowMap_unresolved << m_lightProbe_unresolved;
     return s;
 }
 
@@ -1277,6 +1290,11 @@ void Q3DSReferencedMaterial::setProps(const V &attrs, PropSetFlags flags)
     const QString typeName = QStringLiteral("ReferencedMaterial");
     parseProperty(attrs, flags, typeName, QStringLiteral("name"), &m_name);
     parseObjectRefProperty(attrs, flags, typeName, QStringLiteral("referencedmaterial"), &m_referencedMaterial_unresolved);
+
+    parseImageProperty(attrs, flags, typeName, QStringLiteral("lightmapindirect"), &m_lightmapIndirectMap_unresolved);
+    parseImageProperty(attrs, flags, typeName, QStringLiteral("lightmapradiosity"), &m_lightmapRadiosityMap_unresolved);
+    parseImageProperty(attrs, flags, typeName, QStringLiteral("lightmapshadow"), &m_lightmapShadowMap_unresolved);
+    parseImageProperty(attrs, flags, typeName, QStringLiteral("iblprobe"), &m_lightProbe_unresolved);
 }
 
 void Q3DSReferencedMaterial::setProperties(const QXmlStreamAttributes &attrs, PropSetFlags flags)
@@ -1295,19 +1313,27 @@ void Q3DSReferencedMaterial::resolveReferences(Q3DSPresentation &pres, Q3DSUipPa
 {
     // can be DefaultMaterial or CustomMaterial so stick with a generic object
     resolveRef(m_referencedMaterial_unresolved, Q3DSGraphObject::AnyObject, &m_referencedMaterial, pres);
+
+    resolveRef(m_lightmapIndirectMap_unresolved, Q3DSGraphObject::Image, &m_lightmapIndirectMap, pres);
+    resolveRef(m_lightmapRadiosityMap_unresolved, Q3DSGraphObject::Image, &m_lightmapRadiosityMap, pres);
+    resolveRef(m_lightmapShadowMap_unresolved, Q3DSGraphObject::Image, &m_lightmapShadowMap, pres);
+    resolveRef(m_lightProbe_unresolved, Q3DSGraphObject::Image, &m_lightProbe, pres);
 }
 
 QStringList Q3DSReferencedMaterial::gex_propertyNames() const
 {
     QStringList s = Q3DSGraphObject::gex_propertyNames();
-    s << QLatin1String("name") << QLatin1String("referencedmaterial");
+    s << QLatin1String("name") << QLatin1String("referencedmaterial")
+      << QLatin1String("translucencyMap") << QLatin1String("translucentFalloff") << QLatin1String("diffuseLightWrap")
+      << QLatin1String("lightmapIndirect") << QLatin1String("lightmapRadiosity") << QLatin1String("lightmapShadow");
     return s;
 }
 
 QVariantList Q3DSReferencedMaterial::gex_propertyValues() const
 {
     QVariantList s = Q3DSGraphObject::gex_propertyValues();
-    s << m_name << m_referencedMaterial_unresolved;
+    s << m_name << m_referencedMaterial_unresolved
+      << m_lightmapIndirectMap_unresolved << m_lightmapRadiosityMap_unresolved << m_lightmapShadowMap_unresolved << m_lightProbe_unresolved;
     return s;
 }
 
@@ -1322,6 +1348,11 @@ void Q3DSCustomMaterialInstance::setProps(const V &attrs, PropSetFlags flags)
     const QString typeName = QStringLiteral("CustomMaterial");
     parseProperty(attrs, flags, typeName, QStringLiteral("name"), &m_name);
     parseProperty(attrs, flags, typeName, QStringLiteral("class"), &m_material_unresolved);
+
+    parseImageProperty(attrs, flags, typeName, QStringLiteral("lightmapindirect"), &m_lightmapIndirectMap_unresolved);
+    parseImageProperty(attrs, flags, typeName, QStringLiteral("lightmapradiosity"), &m_lightmapRadiosityMap_unresolved);
+    parseImageProperty(attrs, flags, typeName, QStringLiteral("lightmapshadow"), &m_lightmapShadowMap_unresolved);
+    parseImageProperty(attrs, flags, typeName, QStringLiteral("iblprobe"), &m_lightProbe_unresolved);
 }
 
 void Q3DSCustomMaterialInstance::setProperties(const QXmlStreamAttributes &attrs, PropSetFlags flags)
@@ -1379,19 +1410,27 @@ void Q3DSCustomMaterialInstance::resolveReferences(Q3DSPresentation &pres, Q3DSU
         m_material = pres.customMaterial(m_material_unresolved.mid(1).toUtf8());
         fillCustomProperties(m_material.properties(), &m_materialPropertyVals, m_attrs, parser);
     }
+
+    resolveRef(m_lightmapIndirectMap_unresolved, Q3DSGraphObject::Image, &m_lightmapIndirectMap, pres);
+    resolveRef(m_lightmapRadiosityMap_unresolved, Q3DSGraphObject::Image, &m_lightmapRadiosityMap, pres);
+    resolveRef(m_lightmapShadowMap_unresolved, Q3DSGraphObject::Image, &m_lightmapShadowMap, pres);
+    resolveRef(m_lightProbe_unresolved, Q3DSGraphObject::Image, &m_lightProbe, pres);
 }
 
 QStringList Q3DSCustomMaterialInstance::gex_propertyNames() const
 {
     QStringList s = Q3DSGraphObject::gex_propertyNames();
-    s << QLatin1String("name") << QLatin1String("class");
+    s << QLatin1String("name") << QLatin1String("class")
+      << QLatin1String("translucencyMap") << QLatin1String("translucentFalloff") << QLatin1String("diffuseLightWrap")
+      << QLatin1String("lightmapIndirect") << QLatin1String("lightmapRadiosity") << QLatin1String("lightmapShadow");
     return s;
 }
 
 QVariantList Q3DSCustomMaterialInstance::gex_propertyValues() const
 {
     QVariantList s = Q3DSGraphObject::gex_propertyValues();
-    s << m_name << m_material_unresolved;
+    s << m_name << m_material_unresolved
+      << m_lightmapIndirectMap_unresolved << m_lightmapRadiosityMap_unresolved << m_lightmapShadowMap_unresolved << m_lightProbe_unresolved;
     return s;
 }
 
