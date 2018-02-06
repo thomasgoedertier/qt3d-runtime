@@ -31,9 +31,12 @@
 
 QT_BEGIN_NAMESPACE
 
+// When mapping NoXxxx to both "None" and "", "None" should come first to help
+// strFromEnum give more readable results.
+
 static Q3DSEnumNameMap g_presentationRotationMap[] = {
-    { Q3DSPresentation::NoRotation, "" },
     { Q3DSPresentation::NoRotation, "None" },
+    { Q3DSPresentation::NoRotation, "" },
     { Q3DSPresentation::NoRotation, "NoRotation" },
     { Q3DSPresentation::Clockwise90, "90" },
     { Q3DSPresentation::Clockwise180, "180" },
@@ -115,8 +118,8 @@ Q3DSEnumNameMap *Q3DSEnumParseMap<Q3DSSlide::PlayThrough>::get()
 }
 
 static Q3DSEnumNameMap g_animationTrackAnimationType[] = {
-    { Q3DSAnimationTrack::NoAnimation, "" },
     { Q3DSAnimationTrack::NoAnimation, "None" },
+    { Q3DSAnimationTrack::NoAnimation, "" },
     { Q3DSAnimationTrack::NoAnimation, "NoAnimation" },
     { Q3DSAnimationTrack::Linear, "Linear" },
     { Q3DSAnimationTrack::EaseInOut, "EaseInOut" },
@@ -130,8 +133,8 @@ Q3DSEnumNameMap *Q3DSEnumParseMap<Q3DSAnimationTrack::AnimationType>::get()
 }
 
 static Q3DSEnumNameMap g_layerNodeProgressiveAA[] = {
-    { Q3DSLayerNode::NoPAA, "" },
     { Q3DSLayerNode::NoPAA, "None" },
+    { Q3DSLayerNode::NoPAA, "" },
     { Q3DSLayerNode::PAA2x, "2x" },
     { Q3DSLayerNode::PAA4x, "4x" },
     { Q3DSLayerNode::PAA8x, "8x" },
@@ -144,8 +147,8 @@ Q3DSEnumNameMap *Q3DSEnumParseMap<Q3DSLayerNode::ProgressiveAA>::get()
 }
 
 static Q3DSEnumNameMap g_layerNodeMultisampleAA[] = {
-    { Q3DSLayerNode::NoMSAA, "" },
     { Q3DSLayerNode::NoMSAA, "None" },
+    { Q3DSLayerNode::NoMSAA, "" },
     { Q3DSLayerNode::MSAA2x, "2x" },
     { Q3DSLayerNode::MSAA4x, "4x" },
     { Q3DSLayerNode::SSAA, "SSAA" },

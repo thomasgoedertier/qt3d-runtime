@@ -221,6 +221,15 @@ public:
         }
         return false;
     }
+    template <typename T>
+    static const char *strFromEnum(T v) {
+        Q3DSEnumNameMap *nameMap = Q3DSEnumParseMap<T>::get();
+        for ( ; nameMap->str; ++nameMap) {
+            if (nameMap->value == v)
+                return nameMap->str;
+        }
+        return nullptr;
+    }
 };
 
 QT_END_NAMESPACE

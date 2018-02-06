@@ -32,6 +32,7 @@
 #include "q3dsprofiler_p.h"
 #include "q3dspresentation_p.h"
 #include "q3dsmesh_p.h"
+#include "q3dsenummaps_p.h"
 #include <QLoggingCategory>
 #include <Qt3DRender/QTexture>
 #include <Qt3DRender/QPaintedTextureImage>
@@ -440,33 +441,58 @@ void Q3DSProfileView::frame()
     }
 
     if (m_layerWindowOpen) {
-        ImGui::SetNextWindowSize(ImVec2(500, 200), ImGuiCond_FirstUseEver);
+        ImGui::SetNextWindowSize(ImVec2(640, 200), ImGuiCond_FirstUseEver);
         ImGui::Begin("Layers", &m_layerWindowOpen, ImGuiWindowFlags_NoSavedSettings);
 
         ImGui::Text("Layers");
-        ImGui::Columns(4, "layercols");
+        ImGui::Columns(6, "layercols");
         ImGui::Separator();
         ImGui::Text("ID"); ImGui::NextColumn();
         ImGui::Text("Visible"); ImGui::NextColumn();
         ImGui::Text("Size"); ImGui::NextColumn();
+        ImGui::Text("Blend mode");
+        addTip("Advanced blend modes (*) are more expensive due to "
+               "using additional render passes and targets.");
+        ImGui::NextColumn();
+        ImGui::Text("AA");
+        addTip("Multisample / Supersample / Progressive / Temporal antialiasing");
+        ImGui::NextColumn();
         ImGui::Text("Dirty"); ImGui::NextColumn();
         ImGui::Separator();
+        int activeCount = 0;
         Q3DSPresentation::forAllLayers(m_profiler->presentation()->scene(), [&](Q3DSLayerNode *layer3DS) {
             Q3DSLayerAttached *data = static_cast<Q3DSLayerAttached *>(layer3DS->attached());
             ImGui::Text("%s", layer3DS->id().constData());
             ImGui::NextColumn();
-            ImGui::Text("%s", layer3DS->flags().testFlag(Q3DSNode::Active) ? "true" : "false");
+            const bool isActive = layer3DS->flags().testFlag(Q3DSNode::Active);
+            if (isActive)
+                ++activeCount;
+            ImGui::Text("%s", isActive ? "true" : "false");
             ImGui::NextColumn();
             if (data)
                 ImGui::Text("%dx%d", data->layerSize.width(), data->layerSize.height());
             else
                 ImGui::Text("unknown");
             ImGui::NextColumn();
+            const char *blendType = Q3DSEnumMap::strFromEnum(layer3DS->blendType());
+            ImGui::Text("%s", blendType);
+            ImGui::NextColumn();
+            const QByteArray aa =
+                    QByteArrayLiteral("M/SSAA: ") + Q3DSEnumMap::strFromEnum(layer3DS->multisampleAA())
+                    + QByteArrayLiteral("\nPAA: ") + Q3DSEnumMap::strFromEnum(layer3DS->progressiveAA())
+                    + QByteArrayLiteral("\nTAA: ") + (layer3DS->layerFlags().testFlag(Q3DSLayerNode::TemporalAA) ? "Yes": "No");
+            ImGui::Text("%s", aa.constData());
+            ImGui::NextColumn();
             ImGui::Text("%s", data->wasDirty ? "true" : "false");
             ImGui::NextColumn();
         });
         ImGui::Columns(1);
         ImGui::Separator();
+        ImGui::Text("Total active layers: %d", activeCount);
+        addTip("Layers are rendered into textures and then composed together by drawing textured quads. "
+               "Therefore a large number of layers lead to lower performance. The size matters too since "
+               "a larger layer means more fragment processing work for the GPU. Antialiasing methods can also "
+               "heavily affect the performance.");
 
         ImGui::End();
     }
