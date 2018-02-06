@@ -101,6 +101,7 @@ private:
                         int indexCount, const void *indexOffset);
     void update3D();
     void updateInput();
+    void updateTheme();
 
     FrameFunc m_frame = nullptr;
     OutputInfoFunc m_outputInfoFunc = nullptr;

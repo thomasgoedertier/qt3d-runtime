@@ -141,6 +141,23 @@ void Q3DSImguiManager::initialize(Qt3DCore::QEntity *rootEntity)
 
     QImage wrapperImg((const uchar *) pixels, w, h, QImage::Format_RGBA8888);
     m_atlasTex->addTextureImage(new TextureImage(wrapperImg));
+
+    updateTheme();
+}
+
+void Q3DSImguiManager::updateTheme()
+{
+    ImVec4 *colors = ImGui::GetStyle().Colors;
+    // colors from brand.qt.io, below code is generated with imgui_demo
+    colors[ImGuiCol_TitleBg]                = ImVec4(0.09f, 0.66f, 0.10f, 0.83f);
+    colors[ImGuiCol_TitleBgActive]          = ImVec4(0.25f, 0.80f, 0.32f, 0.87f);
+    colors[ImGuiCol_TitleBgCollapsed]       = ImVec4(0.13f, 0.75f, 0.17f, 0.20f);
+    colors[ImGuiCol_ScrollbarGrab]          = ImVec4(0.13f, 0.75f, 0.17f, 0.30f);
+    colors[ImGuiCol_Button]                 = ImVec4(0.09f, 0.66f, 0.10f, 0.60f);
+    colors[ImGuiCol_Header]                 = ImVec4(0.33f, 0.35f, 0.42f, 0.45f);
+    colors[ImGuiCol_HeaderHovered]          = ImVec4(0.13f, 0.75f, 0.17f, 0.80f);
+    colors[ImGuiCol_HeaderActive]           = ImVec4(0.25f, 0.80f, 0.32f, 0.80f);
+    colors[ImGuiCol_CloseButton]            = ImVec4(0.13f, 0.16f, 0.25f, 0.50f);
 }
 
 // To be called when the Qt 3D scene goes down (and thus destroys the objects
