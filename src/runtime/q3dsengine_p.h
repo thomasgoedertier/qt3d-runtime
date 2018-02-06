@@ -115,7 +115,7 @@ public:
 
     bool start();
 
-    void resize(const QSize &size, qreal dpr = 1.0f);
+    void resize(const QSize &size, qreal dpr = qreal(1.0));
     void resize(int w, int h, qreal dpr) { resize(QSize(w, h), dpr); }
 
     void handleKeyPressEvent(QKeyEvent *e);
