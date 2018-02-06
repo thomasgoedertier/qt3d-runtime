@@ -57,7 +57,7 @@ Qt3DRender::QShaderProgram *Q3DSShaderManager::generateShaderProgram(Q3DSDefault
 {
     Q3DSSubsetMaterialVertexPipeline pipeline(*m_materialShaderGenerator, *m_shaderProgramGenerator, false);
     return m_materialShaderGenerator->generateShader(material, pipeline, featureSet, lights, hasTransparency,
-                                                     QString(QLatin1String("default material %1")).arg(material.id().constData()));
+                                                     QString(QLatin1String("default material %1")).arg(QString::fromLatin1(material.id())));
 }
 
 Qt3DRender::QShaderProgram *Q3DSShaderManager::generateShaderProgram(Q3DSCustomMaterialInstance &material,
