@@ -109,18 +109,15 @@ public:
     void reportSubMeshData(Q3DSMesh *mesh, const SubMeshData &data);
     SubMeshData subMeshData(Q3DSMesh *mesh) const { return m_subMeshData.value(mesh); }
 
-    struct SubPresentationProfiler {
-        Q3DSProfiler *profiler = nullptr;
-        Q3DSPresentation *presentation = nullptr;
-    };
-    void registerSubPresentationProfiler(Q3DSPresentation *subPres, Q3DSProfiler *p);
-    const QVector<SubPresentationProfiler> *subPresentationProfilers() const { return &m_subPresProfilers; }
+    void registerSubPresentationProfiler(Q3DSProfiler *p);
+    const QVector<Q3DSProfiler *> *subPresentationProfilers() const { return &m_subPresProfilers; }
     Q3DSProfiler *mainPresentationProfiler();
 
     const Q3DSGraphicsLimits *graphicsLimits() const { return &m_gfxLimits; }
 
     const Q3DSPresentation *presentation() const { return m_presentation; }
     Q3DSPresentation *presentation() { return m_presentation; }
+    QString presentationName() const { return m_presentationName; }
 
     // note that we do not expose the scene manager to the profile ui. instead,
     // such data is expected to be mediated through the profiler object.
@@ -141,10 +138,11 @@ private:
     QVector<QMetaObject::Connection> m_objectDestroyConnections;
     Q3DSSceneManager *m_sceneManager = nullptr;
     Q3DSPresentation *m_presentation = nullptr;
+    QString m_presentationName;
     qint64 m_totalParseBuildTime = 0;
     qint64 m_firstFrameActionTime = 0;
     QHash<Q3DSMesh *, SubMeshData> m_subMeshData;
-    QVector<SubPresentationProfiler> m_subPresProfilers;
+    QVector<Q3DSProfiler *> m_subPresProfilers;
     QStringList m_log;
     bool m_logChanged = false;
     Q3DSProfiler *m_mainProfiler = nullptr;
@@ -169,7 +167,6 @@ private:
 Q_DECLARE_TYPEINFO(Q3DSProfiler::FrameData, Q_MOVABLE_TYPE);
 Q_DECLARE_TYPEINFO(Q3DSProfiler::ObjectData, Q_MOVABLE_TYPE);
 Q_DECLARE_TYPEINFO(Q3DSProfiler::SubMeshData, Q_MOVABLE_TYPE);
-Q_DECLARE_TYPEINFO(Q3DSProfiler::SubPresentationProfiler, Q_MOVABLE_TYPE);
 
 inline bool operator==(const Q3DSProfiler::ObjectData &lhs, const Q3DSProfiler::ObjectData &rhs) Q_DECL_NOTHROW
 {

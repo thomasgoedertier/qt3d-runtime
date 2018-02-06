@@ -774,8 +774,7 @@ void Q3DSSceneManager::finalizeMainScene(const QVector<Q3DSSubPresentation> &sub
     for (const Q3DSSubPresentation &subPres : m_subPresentations) {
         if (!subPres.sceneManager)
             continue;
-        m_profiler->registerSubPresentationProfiler(subPres.sceneManager->m_presentation,
-                                                    subPres.sceneManager->m_profiler);
+        m_profiler->registerSubPresentationProfiler(subPres.sceneManager->m_profiler);
     }
 }
 

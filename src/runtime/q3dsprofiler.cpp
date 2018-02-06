@@ -30,6 +30,7 @@
 #include "q3dsprofiler_p.h"
 #include "q3dsscenemanager_p.h"
 #include "q3dsengine_p.h"
+#include <QFileInfo>
 
 #if defined(Q_OS_WIN) && !defined(Q_OS_WINRT)
 #include <qt_windows.h>
@@ -69,6 +70,7 @@ void Q3DSProfiler::resetForNewScene(Q3DSSceneManager *sceneManager)
     m_sceneManager = sceneManager;
     m_presentation = m_sceneManager->m_presentation;
     Q_ASSERT(m_presentation);
+    m_presentationName = QFileInfo(m_presentation->sourceFile()).fileName();
 }
 
 void Q3DSProfiler::setEnabled(bool enabled)
@@ -135,13 +137,10 @@ void Q3DSProfiler::reportSubMeshData(Q3DSMesh *mesh, const SubMeshData &data)
     m_subMeshData.insert(mesh, data);
 }
 
-void Q3DSProfiler::registerSubPresentationProfiler(Q3DSPresentation *subPres, Q3DSProfiler *p)
+void Q3DSProfiler::registerSubPresentationProfiler(Q3DSProfiler *p)
 {
-    SubPresentationProfiler sp;
-    sp.presentation = subPres;
-    sp.profiler = p;
     p->m_mainProfiler = this;
-    m_subPresProfilers.append(sp);
+    m_subPresProfilers.append(p);
 }
 
 Q3DSProfiler *Q3DSProfiler::mainPresentationProfiler()
