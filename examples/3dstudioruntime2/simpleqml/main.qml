@@ -65,6 +65,14 @@ Rectangle {
         anchors.margins: 60
         anchors.fill: parent
         source: "qrc:/presentation/barrel.uip"
+        NumberAnimation on opacity {
+            id: opacityAnimation
+            from: 1
+            to: 0
+            duration: 5000
+            running: false
+            onStopped: s3d.opacity = 1
+        }
     }
 
     Window {
@@ -83,6 +91,14 @@ Rectangle {
         Button {
             text: "Move to other window"
             onClicked: if (s3d.parent === wroot) s3d.parent = root; else s3d.parent = wroot
+        }
+        Button {
+            text: "Open barrel without background"
+            onClicked: s3d.source = "qrc:/presentation/barrel_no_background.uip"
+        }
+        Button {
+            text: "Animate opacity"
+            onClicked: opacityAnimation.running = true
         }
         Button {
             text: "Reload"

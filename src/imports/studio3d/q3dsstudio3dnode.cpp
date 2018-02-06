@@ -71,7 +71,6 @@ const char *Q3DSStudio3DMaterialShader::vertexShader() const
 const char *Q3DSStudio3DMaterialShader::fragmentShader() const
 {
     // Make the result have pre-multiplied alpha.
-    // ### check if this is really what's wanted
     QOpenGLContext *ctx = QOpenGLContext::currentContext();
     if (ctx->format().version() >= qMakePair(3, 2) && ctx->format().profile() == QSurfaceFormat::CoreProfile) {
         return ""
@@ -82,7 +81,8 @@ const char *Q3DSStudio3DMaterialShader::fragmentShader() const
                "out vec4 fragColor;                                 \n"
                "void main() {                                       \n"
                "   vec4 p = texture(source, qt_TexCoord);           \n"
-               "   fragColor = vec4(p.rgb * p.a, qt_Opacity * p.a); \n"
+               "   float a = qt_Opacity * p.a;                      \n"
+               "   fragColor = vec4(p.rgb * a, a);                  \n"
                "}";
     } else {
         return ""
@@ -91,7 +91,8 @@ const char *Q3DSStudio3DMaterialShader::fragmentShader() const
                "varying highp vec2 qt_TexCoord;                         \n"
                "void main() {                                           \n"
                "   highp vec4 p = texture2D(source, qt_TexCoord);       \n"
-               "   gl_FragColor = vec4(p.rgb * p.a, qt_Opacity * p.a);  \n"
+               "   highp float a = qt_Opacity * p.a;                    \n"
+               "   gl_FragColor = vec4(p.rgb * a, a);                   \n"
                "}";
     }
 }
