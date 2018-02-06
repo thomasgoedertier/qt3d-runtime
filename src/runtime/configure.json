@@ -1,0 +1,29 @@
+{
+    "module": "3dstudioruntime2",
+
+    "commandline": {
+        "options": {
+            "q3ds-profileui": "boolean"
+        }
+    },
+
+    "features": {
+        "q3ds-profileui": {
+            "label": "Profiling pane",
+            "purpose": "Enable the ImGui-based profiling pane",
+            "output": [ "privateFeature" ]
+        }
+    },
+
+    "report": [
+    ],
+
+    "summary": [
+        {
+            "section": "Qt 3D Studio Runtime",
+            "entries": [
+                "q3ds-profileui"
+            ]
+        }
+    ]
+}

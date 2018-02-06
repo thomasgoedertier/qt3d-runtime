@@ -31,6 +31,7 @@
 #define Q3DSRUNTIMEGLOBAL_H
 
 #include <qglobal.h>
+#include <Qt3DStudioRuntime2/qt3dstudioruntime2-config.h>
 #include <QSurfaceFormat>
 
 QT_BEGIN_NAMESPACE

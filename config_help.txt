@@ -1,0 +1,3 @@
+Qt 3D Studio Runtime options:
+
+  -q3ds-profileui ...... Enable the ImGui-based profiling pane [yes]

@@ -37,7 +37,9 @@
 #include "q3dsutils_p.h"
 #include "q3dsprofiler_p.h"
 #include "shadergenerator/q3dsshadermanager_p.h"
+#if QT_CONFIG(q3ds_profileui)
 #include "profileui/q3dsprofileui_p.h"
+#endif
 
 #include <QDir>
 #include <QLoggingCategory>
@@ -434,7 +436,9 @@ Q3DSSceneManager::Q3DSSceneManager(const Q3DSGraphicsLimits &limits)
 
 Q3DSSceneManager::~Q3DSSceneManager()
 {
+#if QT_CONFIG(q3ds_profileui)
     delete m_profileUi;
+#endif
     delete m_textRenderer;
     delete m_animationManager;
     delete m_textMatGen;
@@ -532,8 +536,10 @@ void Q3DSSceneManager::prepareEngineReset()
 
     m_animationManager->clearPendingChanges();
 
+#if QT_CONFIG(q3ds_profileui)
     if (m_profileUi)
         m_profileUi->releaseResources();
+#endif
 }
 
 void Q3DSSceneManager::prepareEngineResetGlobal()
@@ -676,10 +682,12 @@ Q3DSSceneManager::Scene Q3DSSceneManager::buildScene(Q3DSPresentation *presentat
     buildCompositor(frameGraphRoot, m_rootEntity);
 
     // Profiling UI
+#if QT_CONFIG(q3ds_profileui)
     if (!m_flags.testFlag(SubPresentation)) {
         buildGuiPass(frameGraphRoot, m_rootEntity);
         m_profileUi = new Q3DSProfileUi(&m_guiData, m_profiler);
     }
+#endif
 
     // Fullscreen quad for bluring the shadow map/cubemap
     Q3DSShaderManager &sm(Q3DSShaderManager::instance());
@@ -5845,39 +5853,60 @@ void Q3DSFrameUpdater::frameAction(float dt)
 
 void Q3DSSceneManager::setProfileUiVisible(bool visible, bool openLog)
 {
+#if QT_CONFIG(q3ds_profileui)
     if (m_profileUi) {
         m_profileUi->setVisible(visible);
         if (visible && openLog)
             m_profileUi->openLog();
     }
+#else
+    Q_UNUSED(visible);
+    Q_UNUSED(openLog);
+#endif
 }
 
 bool Q3DSSceneManager::isProfileUiVisible() const
 {
+#if QT_CONFIG(q3ds_profileui)
     return m_profileUi ? m_profileUi->visible() : false;
+#else
+    return false;
+#endif
 }
 
 void Q3DSSceneManager::setProfileUiInputEventSource(QObject *obj)
 {
+#if QT_CONFIG(q3ds_profileui)
     if (m_profileUi)
         m_profileUi->setInputEventSource(obj);
+#else
+    Q_UNUSED(obj);
+#endif
 }
 
 void Q3DSSceneManager::addLog(const QString &msg)
 {
+#if QT_CONFIG(q3ds_profileui)
     QMutexLocker locker(&m_logMutex);
     // the log is maintained by the main presentation's profiler; route to that
     // even if this is a subpresentation
     m_profiler->mainPresentationProfiler()->addLog(msg);
+#else
+    Q_UNUSED(msg);
+#endif
 }
 
 void Q3DSSceneManager::addLog(const char *fmt, ...)
 {
+#if QT_CONFIG(q3ds_profileui)
     va_list ap;
     va_start(ap, fmt);
     const QString msg = QString::vasprintf(fmt, ap);
     va_end(ap);
     addLog(msg);
+#else
+    Q_UNUSED(fmt);
+#endif
 }
 
 QT_END_NAMESPACE

@@ -42,6 +42,7 @@
 //
 
 #include "q3dsruntimeglobal.h"
+#include <Qt3DStudioRuntime2/private/qt3dstudioruntime2-config_p.h>
 
 #define Q3DSV_PRIVATE_EXPORT Q3DSV_EXPORT
 
