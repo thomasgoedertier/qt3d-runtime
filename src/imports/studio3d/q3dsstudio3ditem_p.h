@@ -42,38 +42,47 @@
 //
 
 #include <QQuickItem>
+#include <private/q3dspresentation_p.h>
 
 QT_BEGIN_NAMESPACE
 
 class Q3DSStudio3DRenderer;
 class Q3DSEngine;
+class Q3DSPresentationItem;
 
-class Q3DSStudio3DItem : public QQuickItem
+class Q3DSStudio3DItem : public QQuickItem, public Q3DSPresentationController
 {
     Q_OBJECT
-    Q_PROPERTY(QUrl source READ source WRITE setSource NOTIFY sourceChanged)
+    Q_PROPERTY(Q3DSPresentationItem *presentation READ presentation CONSTANT)
 
 public:
     explicit Q3DSStudio3DItem(QQuickItem *parent = 0);
     ~Q3DSStudio3DItem();
 
-    QUrl source() const;
-    void setSource(const QUrl &newSource);
-
-    Q_INVOKABLE void reload();
-
-signals:
-    void sourceChanged();
+    Q3DSPresentationItem *presentation() const;
 
 private slots:
     void startEngine();
     void destroyEngine();
 
 private:
+    void handlePresentationSource(const QUrl &source) override;
+    void handlePresentationReload() override;
+    void handlePresentationKeyPressEvent(QKeyEvent *e) override;
+    void handlePresentationKeyReleaseEvent(QKeyEvent *e) override;
+    void handlePresentationMousePressEvent(QMouseEvent *e) override;
+    void handlePresentationMouseMoveEvent(QMouseEvent *e) override;
+    void handlePresentationMouseReleaseEvent(QMouseEvent *e) override;
+    void handlePresentationMouseDoubleClickEvent(QMouseEvent *e) override;
+#if QT_CONFIG(wheelevent)
+    void handlePresentationWheelEvent(QWheelEvent *e) override;
+#endif
+
     QSGNode *updatePaintNode(QSGNode *node, UpdatePaintNodeData *nodeData) override;
     void releaseResources() override;
     void itemChange(QQuickItem::ItemChange change, const QQuickItem::ItemChangeData &changeData) override;
     void geometryChanged(const QRectF &newGeometry, const QRectF &oldGeometry) override;
+    void componentComplete() override;
 
     void keyPressEvent(QKeyEvent *event) override;
     void keyReleaseEvent(QKeyEvent *event) override;
@@ -90,9 +99,10 @@ private:
     void sendResizeToQt3D(const QSize &size);
     void releaseEngineAndRenderer();
 
-    QUrl m_source;
+    Q3DSPresentationItem *m_presentation = nullptr;
     Q3DSStudio3DRenderer *m_renderer = nullptr;
     Q3DSEngine *m_engine = nullptr;
+    QUrl m_source;
 };
 
 QT_END_NAMESPACE

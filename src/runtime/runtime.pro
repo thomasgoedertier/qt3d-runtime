@@ -1,7 +1,7 @@
 TARGET = Qt3DStudioRuntime2
 MODULE = 3dstudioruntime2
 
-QT += widgets 3dcore-private 3drender 3dinput 3dlogic 3danimation 3dextras qml 3dquick 3dquickscene2d
+QT += core-private widgets 3dcore-private 3drender 3dinput 3dlogic 3danimation 3dextras qml 3dquick 3dquickscene2d
 
 SOURCES += \
     q3dsuipparser.cpp \
@@ -68,6 +68,7 @@ RESOURCES += \
 
 mingw: LIBS += -lpsapi
 
+include(api/api.pri)
 include(shadergenerator/shadergenerator.pri)
 
 qtConfig(q3ds-profileui): include(profileui/profileui.pri)

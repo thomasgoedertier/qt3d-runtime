@@ -30,6 +30,7 @@
 #include "q3dsstudio3ditem_p.h"
 #include "q3dsstudio3drenderer_p.h"
 #include "q3dsstudio3dnode_p.h"
+#include "q3dspresentationitem_p.h"
 #include <QSGNode>
 #include <QLoggingCategory>
 #include <QThread>
@@ -62,27 +63,48 @@ Q3DSStudio3DItem::~Q3DSStudio3DItem()
 {
 }
 
-QUrl Q3DSStudio3DItem::source() const
+Q3DSPresentationItem *Q3DSStudio3DItem::presentation() const
 {
-    return m_source;
+    return m_presentation;
 }
 
-void Q3DSStudio3DItem::setSource(const QUrl &newSource)
+void Q3DSStudio3DItem::componentComplete()
 {
-    if (m_source == newSource)
+    const auto childObjs = children();
+    for (QObject *child : childObjs) {
+        if (Q3DSPresentationItem *presentation = qobject_cast<Q3DSPresentationItem *>(child)) {
+            if (m_presentation)
+                qWarning("Studio3D: Duplicate Presentation");
+            else
+                m_presentation = presentation;
+        }
+    }
+
+    if (!m_presentation)
+        m_presentation = new Q3DSPresentationItem(this);
+
+    Q3DSPresentationPrivate::get(m_presentation)->setController(this);
+
+    QQuickItem::componentComplete();
+}
+
+void Q3DSStudio3DItem::handlePresentationSource(const QUrl &source)
+{
+    if (source == m_source)
         return;
+
+    m_source = source;
 
     if (!m_source.isEmpty())
         releaseEngineAndRenderer();
 
-    m_source = newSource;
-    emit sourceChanged();
+    m_source = source;
 
     if (window()) // else defer to itemChange()
         createEngine();
 }
 
-void Q3DSStudio3DItem::reload()
+void Q3DSStudio3DItem::handlePresentationReload()
 {
     if (m_source.isEmpty())
         return;
@@ -92,6 +114,50 @@ void Q3DSStudio3DItem::reload()
     if (window())
         createEngine();
 }
+
+void Q3DSStudio3DItem::handlePresentationKeyPressEvent(QKeyEvent *e)
+{
+    if (m_engine)
+        m_engine->handleKeyPressEvent(e);
+}
+
+void Q3DSStudio3DItem::handlePresentationKeyReleaseEvent(QKeyEvent *e)
+{
+    if (m_engine)
+        m_engine->handleKeyReleaseEvent(e);
+}
+
+void Q3DSStudio3DItem::handlePresentationMousePressEvent(QMouseEvent *e)
+{
+    if (m_engine)
+        m_engine->handleMousePressEvent(e);
+}
+
+void Q3DSStudio3DItem::handlePresentationMouseMoveEvent(QMouseEvent *e)
+{
+    if (m_engine)
+        m_engine->handleMouseMoveEvent(e);
+}
+
+void Q3DSStudio3DItem::handlePresentationMouseReleaseEvent(QMouseEvent *e)
+{
+    if (m_engine)
+        m_engine->handleMouseReleaseEvent(e);
+}
+
+void Q3DSStudio3DItem::handlePresentationMouseDoubleClickEvent(QMouseEvent *e)
+{
+    if (m_engine)
+        m_engine->handleMouseDoubleClickEvent(e);
+}
+
+#if QT_CONFIG(wheelevent)
+void Q3DSStudio3DItem::handlePresentationWheelEvent(QWheelEvent *e)
+{
+    if (m_engine)
+        m_engine->handleWheelEvent(e);
+}
+#endif
 
 void Q3DSStudio3DItem::createEngine()
 {

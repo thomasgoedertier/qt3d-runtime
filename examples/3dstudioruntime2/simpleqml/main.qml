@@ -64,7 +64,10 @@ Rectangle {
         focus: true
         anchors.margins: 60
         anchors.fill: parent
-        source: "qrc:/presentation/barrel.uip"
+        Presentation {
+            id: s3dpres
+            source: "qrc:/presentation/barrel.uip"
+        }
         NumberAnimation on opacity {
             id: opacityAnimation
             from: 1
@@ -94,7 +97,7 @@ Rectangle {
         }
         Button {
             text: "Open barrel without background"
-            onClicked: s3d.source = "qrc:/presentation/barrel_no_background.uip"
+            onClicked: s3dpres.source = "qrc:/presentation/barrel_no_background.uip"
         }
         Button {
             text: "Animate opacity"
@@ -102,7 +105,7 @@ Rectangle {
         }
         Button {
             text: "Reload"
-            onClicked: s3d.reload()
+            onClicked: s3dpres.reload()
         }
         Button {
             text: "Open"
@@ -114,6 +117,6 @@ Rectangle {
         id: openDialog
         fileMode: FileDialog.OpenFile
         nameFilters: ["UIP files (*.uip)", "UIA files (*.uia)"]
-        onAccepted: s3d.source = file
+        onAccepted: s3dpres.source = file
     }
 }

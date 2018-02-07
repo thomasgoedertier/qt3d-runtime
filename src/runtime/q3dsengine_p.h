@@ -54,6 +54,7 @@ QT_BEGIN_NAMESPACE
 
 class QKeyEvent;
 class QMouseEvent;
+class QWheelEvent;
 class QQmlEngine;
 
 namespace Qt3DRender {

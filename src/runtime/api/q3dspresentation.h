@@ -1,7 +1,7 @@
 /****************************************************************************
 **
 ** Copyright (C) 2017 The Qt Company Ltd.
-** Contact: http://www.qt.io/licensing/
+** Contact: https://www.qt.io/licensing/
 **
 ** This file is part of Qt 3D Studio.
 **
@@ -27,34 +27,55 @@
 **
 ****************************************************************************/
 
-#include <QtQml/qqmlextensionplugin.h>
-#include <QtQml/qqml.h>
-#include "q3dsstudio3ditem_p.h"
-#include "q3dspresentationitem_p.h"
+#ifndef Q3DSPRESENTATION_H
+#define Q3DSPRESENTATION_H
 
-static void initResources()
-{
-#ifdef QT_STATIC
-    Q_INIT_RESOURCE(qmake_QtStudio3D_2);
-#endif
-}
+#include <Qt3DStudioRuntime2/q3dsruntimeglobal.h>
+#include <QtCore/qobject.h>
+#include <QtCore/qurl.h>
 
 QT_BEGIN_NAMESPACE
 
-class Q3DSStudio3DPlugin : public QQmlExtensionPlugin
+class Q3DSPresentationPrivate;
+class QKeyEvent;
+class QMouseEvent;
+class QWheelEvent;
+
+class Q3DSV_EXPORT Q3DSPresentation : public QObject
 {
     Q_OBJECT
-    Q_PLUGIN_METADATA(IID QQmlExtensionInterface_iid)
+    Q_PROPERTY(QUrl source READ source WRITE setSource NOTIFY sourceChanged)
 
 public:
-    Q3DSStudio3DPlugin(QObject *parent = 0) : QQmlExtensionPlugin(parent) { initResources(); }
-    void registerTypes(const char *uri) override
-    {
-        qmlRegisterType<Q3DSStudio3DItem>(uri, 2, 0, "Studio3D");
-        qmlRegisterType<Q3DSPresentationItem>(uri, 2, 0, "Presentation");
-    }
+    explicit Q3DSPresentation(QObject *parent = nullptr);
+    ~Q3DSPresentation();
+
+    QUrl source() const;
+    void setSource(const QUrl &source);
+
+    Q_INVOKABLE void reload();
+
+    void keyPressEvent(QKeyEvent *e);
+    void keyReleaseEvent(QKeyEvent *e);
+    void mousePressEvent(QMouseEvent *e);
+    void mouseMoveEvent(QMouseEvent *e);
+    void mouseReleaseEvent(QMouseEvent *e);
+    void mouseDoubleClickEvent(QMouseEvent *e);
+#if QT_CONFIG(wheelevent)
+    void wheelEvent(QWheelEvent *e);
+#endif
+
+Q_SIGNALS:
+    void sourceChanged();
+
+protected:
+    Q3DSPresentation(Q3DSPresentationPrivate &dd, QObject *parent);
+
+private:
+    Q_DISABLE_COPY(Q3DSPresentation)
+    Q_DECLARE_PRIVATE(Q3DSPresentation)
 };
 
 QT_END_NAMESPACE
 
-#include "plugin.moc"
+#endif // Q3DSPRESENTATION_H

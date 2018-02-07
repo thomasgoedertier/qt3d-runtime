@@ -1,7 +1,7 @@
 /****************************************************************************
 **
 ** Copyright (C) 2017 The Qt Company Ltd.
-** Contact: http://www.qt.io/licensing/
+** Contact: https://www.qt.io/licensing/
 **
 ** This file is part of Qt 3D Studio.
 **
@@ -27,34 +27,31 @@
 **
 ****************************************************************************/
 
-#include <QtQml/qqmlextensionplugin.h>
-#include <QtQml/qqml.h>
-#include "q3dsstudio3ditem_p.h"
 #include "q3dspresentationitem_p.h"
-
-static void initResources()
-{
-#ifdef QT_STATIC
-    Q_INIT_RESOURCE(qmake_QtStudio3D_2);
-#endif
-}
 
 QT_BEGIN_NAMESPACE
 
-class Q3DSStudio3DPlugin : public QQmlExtensionPlugin
+Q3DSPresentationItem::Q3DSPresentationItem(QObject *parent)
+    : Q3DSPresentation(parent)
 {
-    Q_OBJECT
-    Q_PLUGIN_METADATA(IID QQmlExtensionInterface_iid)
+}
 
-public:
-    Q3DSStudio3DPlugin(QObject *parent = 0) : QQmlExtensionPlugin(parent) { initResources(); }
-    void registerTypes(const char *uri) override
-    {
-        qmlRegisterType<Q3DSStudio3DItem>(uri, 2, 0, "Studio3D");
-        qmlRegisterType<Q3DSPresentationItem>(uri, 2, 0, "Presentation");
+Q3DSPresentationItem::~Q3DSPresentationItem()
+{
+}
+
+QQmlListProperty<QObject> Q3DSPresentationItem::qmlChildren()
+{
+    return QQmlListProperty<QObject>(this, nullptr, &appendQmlChildren, nullptr, nullptr, nullptr);
+}
+
+void Q3DSPresentationItem::appendQmlChildren(QQmlListProperty<QObject> *list, QObject *obj)
+{
+    auto item = qobject_cast<Q3DSPresentationItem *>(list->object);
+    if (item) {
+        Q_UNUSED(obj);
+        // ###
     }
-};
+}
 
 QT_END_NAMESPACE
-
-#include "plugin.moc"
