@@ -42,7 +42,7 @@
 //
 
 #include "q3dsabstractxmlparser_p.h"
-#include "q3dspresentation_p.h"
+#include "q3dsuippresentation_p.h"
 #include "q3dspresentationcommon_p.h"
 #include <QDebug>
 

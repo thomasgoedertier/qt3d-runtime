@@ -27,8 +27,8 @@
 **
 ****************************************************************************/
 
-#ifndef Q3DSPRESENTATION_P_H
-#define Q3DSPRESENTATION_P_H
+#ifndef Q3DSUIPPRESENTATION_P_H
+#define Q3DSUIPPRESENTATION_P_H
 
 //
 //  W A R N I N G
@@ -60,8 +60,8 @@
 QT_BEGIN_NAMESPACE
 
 class Q3DSUipParser;
-class Q3DSPresentation;
-struct Q3DSPresentationData;
+class Q3DSUipPresentation;
+struct Q3DSUipPresentationData;
 class Q3DSLayerNode;
 class Q3DSSceneManager;
 class QXmlStreamAttributes;
@@ -232,7 +232,7 @@ public:
 
     virtual void setProperties(const QXmlStreamAttributes &attrs, PropSetFlags flags);
     virtual void applyPropertyChanges(const Q3DSPropertyChangeList *);
-    virtual void resolveReferences(Q3DSPresentation &, Q3DSUipParser &) { }
+    virtual void resolveReferences(Q3DSUipPresentation &, Q3DSUipParser &) { }
 
     void notifyPropertyChanges(const Q3DSPropertyChangeList *changeList);
 
@@ -275,7 +275,7 @@ private:
     QVector<PropertyChangeCallback> m_callbacks;
     Q3DSGraphObjectAttached *m_attached = nullptr;
 
-    friend class Q3DSPresentation;
+    friend class Q3DSUipPresentation;
 };
 
 Q_DECLARE_OPERATORS_FOR_FLAGS(Q3DSGraphObject::PropSetFlags)
@@ -432,7 +432,7 @@ public:
 
     void setProperties(const QXmlStreamAttributes &attrs, PropSetFlags flags) override;
     void applyPropertyChanges(const Q3DSPropertyChangeList *changeList) override;
-    void resolveReferences(Q3DSPresentation &pres, Q3DSUipParser &parser) override;
+    void resolveReferences(Q3DSUipPresentation &pres, Q3DSUipParser &parser) override;
 
     QString name() const { return m_name; }
     QString sourcePath() const { return m_sourcePath; } // already adjusted, can be opened as-is
@@ -649,7 +649,7 @@ public:
 
     void setProperties(const QXmlStreamAttributes &attrs, PropSetFlags flags) override;
     void applyPropertyChanges(const Q3DSPropertyChangeList *changeList) override;
-    void resolveReferences(Q3DSPresentation &pres, Q3DSUipParser &parser) override;
+    void resolveReferences(Q3DSUipPresentation &pres, Q3DSUipParser &parser) override;
 
     QString name() const { return m_name; }
     Flags layerFlags() const { return m_layerFlags; }
@@ -874,7 +874,7 @@ public:
 
     void setProperties(const QXmlStreamAttributes &attrs, PropSetFlags flags) override;
     void applyPropertyChanges(const Q3DSPropertyChangeList *changeList) override;
-    void resolveReferences(Q3DSPresentation &pres, Q3DSUipParser &parser) override;
+    void resolveReferences(Q3DSUipPresentation &pres, Q3DSUipParser &parser) override;
 
     QString name() const { return m_name; }
     LightType lightType() const { return m_lightType; }
@@ -965,7 +965,7 @@ public:
 
     void setProperties(const QXmlStreamAttributes &attrs, PropSetFlags flags) override;
     void applyPropertyChanges(const Q3DSPropertyChangeList *changeList) override;
-    void resolveReferences(Q3DSPresentation &pres, Q3DSUipParser &parser) override;
+    void resolveReferences(Q3DSUipPresentation &pres, Q3DSUipParser &parser) override;
 
     QString name() const { return m_name; }
     MeshList mesh() const { return m_mesh; }
@@ -1129,7 +1129,7 @@ public:
 
     void setProperties(const QXmlStreamAttributes &attrs, PropSetFlags flags) override;
     void applyPropertyChanges(const Q3DSPropertyChangeList *changeList) override;
-    void resolveReferences(Q3DSPresentation &pres, Q3DSUipParser &parser) override;
+    void resolveReferences(Q3DSUipPresentation &pres, Q3DSUipParser &parser) override;
 
     QString name() const { return m_name; }
     ShaderLighting shaderLighting() const { return m_shaderLighting; }
@@ -1261,7 +1261,7 @@ public:
 
     void setProperties(const QXmlStreamAttributes &attrs, PropSetFlags flags) override;
     void applyPropertyChanges(const Q3DSPropertyChangeList *changeList) override;
-    void resolveReferences(Q3DSPresentation &pres, Q3DSUipParser &parser) override;
+    void resolveReferences(Q3DSUipPresentation &pres, Q3DSUipParser &parser) override;
 
     QString name() const { return m_name; }
     Q3DSGraphObject *referencedMaterial() const { return m_referencedMaterial; }
@@ -1302,7 +1302,7 @@ public:
 
     void setProperties(const QXmlStreamAttributes &attrs, PropSetFlags flags) override;
     void applyPropertyChanges(const Q3DSPropertyChangeList *changeList) override;
-    void resolveReferences(Q3DSPresentation &pres, Q3DSUipParser &parser) override;
+    void resolveReferences(Q3DSUipPresentation &pres, Q3DSUipParser &parser) override;
 
     QString name() const { return m_name; }
     const Q3DSCustomMaterial *material() const { return &m_material; }
@@ -1350,7 +1350,7 @@ public:
 
     void setProperties(const QXmlStreamAttributes &attrs, PropSetFlags flags) override;
     void applyPropertyChanges(const Q3DSPropertyChangeList *changeList) override;
-    void resolveReferences(Q3DSPresentation &pres, Q3DSUipParser &parser) override;
+    void resolveReferences(Q3DSUipPresentation &pres, Q3DSUipParser &parser) override;
 
     QString name() const { return m_name; }
     const Q3DSEffect *effect() const { return &m_effect; }
@@ -1374,11 +1374,11 @@ private:
     Q3DSPropertyChangeList m_attrs;
 };
 
-class Q3DSV_PRIVATE_EXPORT Q3DSPresentation
+class Q3DSV_PRIVATE_EXPORT Q3DSUipPresentation
 {
 public:
-    Q3DSPresentation();
-    ~Q3DSPresentation();
+    Q3DSUipPresentation();
+    ~Q3DSUipPresentation();
     void reset();
 
     enum Rotation {
@@ -1420,14 +1420,14 @@ public:
     qint64 loadTimeMsecs() const;
 
 private:
-    Q_DISABLE_COPY(Q3DSPresentation)
+    Q_DISABLE_COPY(Q3DSUipPresentation)
 
     void setSourceFile(const QString &s);
     void setAuthor(const QString &s);
     void setCompany(const QString &s);
     void setPresentationWidth(int w);
     void setPresentationHeight(int h);
-    void setPresentationRotation(Q3DSPresentation::Rotation r);
+    void setPresentationRotation(Q3DSUipPresentation::Rotation r);
     void setMaintainAspectRatio(bool b);
     void setScene(Q3DSScene *p);
     void setMasterSlide(Q3DSSlide *p);
@@ -1437,18 +1437,18 @@ private:
     bool loadCustomMaterial(const QStringRef &id, const QStringRef &name, const QString &assetFilename);
     bool loadEffect(const QStringRef &id, const QStringRef &name, const QString &assetFilename);
 
-    QScopedPointer<Q3DSPresentationData> d;
+    QScopedPointer<Q3DSUipPresentationData> d;
     friend class Q3DSUipParser;
 };
 
-struct Q3DSPresentationData
+struct Q3DSUipPresentationData
 {
     QString sourceFile;
     QString author;
     QString company;
     int presentationWidth = 0;
     int presentationHeight = 0;
-    Q3DSPresentation::Rotation presentationRotation = Q3DSPresentation::NoRotation;
+    Q3DSUipPresentation::Rotation presentationRotation = Q3DSUipPresentation::NoRotation;
     bool maintainAspectRatio = false;
     qint64 loadTime = 0;
 
@@ -1468,19 +1468,19 @@ struct Q3DSPresentationData
     QHash<MeshId, MeshList> meshes;
 };
 
-Q_DECLARE_TYPEINFO(Q3DSPresentationData::MeshId, Q_MOVABLE_TYPE);
+Q_DECLARE_TYPEINFO(Q3DSUipPresentationData::MeshId, Q_MOVABLE_TYPE);
 
-inline bool operator==(const Q3DSPresentationData::MeshId &lhs, const Q3DSPresentationData::MeshId &rhs) Q_DECL_NOTHROW
+inline bool operator==(const Q3DSUipPresentationData::MeshId &lhs, const Q3DSUipPresentationData::MeshId &rhs) Q_DECL_NOTHROW
 {
     return lhs.fn == rhs.fn && lhs.part == rhs.part;
 }
 
-inline bool operator!=(const Q3DSPresentationData::MeshId &lhs, const Q3DSPresentationData::MeshId &rhs) Q_DECL_NOTHROW
+inline bool operator!=(const Q3DSUipPresentationData::MeshId &lhs, const Q3DSUipPresentationData::MeshId &rhs) Q_DECL_NOTHROW
 {
     return !(lhs == rhs);
 }
 
-inline uint qHash(const Q3DSPresentationData::MeshId &key, uint seed = 0) Q_DECL_NOTHROW
+inline uint qHash(const Q3DSUipPresentationData::MeshId &key, uint seed = 0) Q_DECL_NOTHROW
 {
     QtPrivate::QHashCombine hash;
     seed = hash(seed, key.fn);
@@ -1490,4 +1490,4 @@ inline uint qHash(const Q3DSPresentationData::MeshId &key, uint seed = 0) Q_DECL
 
 QT_END_NAMESPACE
 
-#endif // Q3DSPRESENTATION_P_H
+#endif // Q3DSUIPPRESENTATION_P_H

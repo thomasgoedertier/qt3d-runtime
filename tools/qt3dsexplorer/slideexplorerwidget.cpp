@@ -28,7 +28,7 @@
 ****************************************************************************/
 
 #include "slideexplorerwidget.h"
-#include <private/q3dspresentation_p.h>
+#include <private/q3dsuippresentation_p.h>
 #include <private/q3dsscenemanager_p.h>
 #include <QVBoxLayout>
 #include <QListView>
@@ -145,7 +145,7 @@ SlideExplorerWidget::SlideExplorerWidget(QWidget *parent)
     init();
 }
 
-void SlideExplorerWidget::setPresentation(Q3DSPresentation *pres)
+void SlideExplorerWidget::setPresentation(Q3DSUipPresentation *pres)
 {
     m_presentation = pres;
     m_component = nullptr;

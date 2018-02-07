@@ -43,18 +43,18 @@
 
 #include "q3dsruntimeglobal_p.h"
 #include "q3dsabstractxmlparser_p.h"
-#include "q3dspresentation_p.h"
+#include "q3dsuippresentation_p.h"
 
 QT_BEGIN_NAMESPACE
 
 class Q3DSV_PRIVATE_EXPORT Q3DSUipParser : public Q3DSAbstractXmlParser
 {
 public:
-    Q3DSPresentation *parse(const QString &filename);
-    Q3DSPresentation *parseData(const QByteArray &data);
+    Q3DSUipPresentation *parse(const QString &filename);
+    Q3DSUipPresentation *parseData(const QByteArray &data);
 
 private:
-    Q3DSPresentation *createPresentation();
+    Q3DSUipPresentation *createPresentation();
     void parseUIP();
     void parseProject();
     void parseProjectSettings();
@@ -74,7 +74,7 @@ private:
     QByteArray getId(const QStringRef &desc, bool required = true);
     void resolveReferences(Q3DSGraphObject *obj);
 
-    QScopedPointer<Q3DSPresentation> m_presentation;
+    QScopedPointer<Q3DSUipPresentation> m_presentation;
 };
 
 QT_END_NAMESPACE

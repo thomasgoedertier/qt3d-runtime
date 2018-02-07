@@ -477,7 +477,7 @@ void Q3DSSceneManager::updateSizes(const QSize &size, qreal dpr)
     for (auto callback : m_compositorOutputSizeChangeCallbacks)
         callback();
 
-    Q3DSPresentation::forAllLayers(m_scene, [=](Q3DSLayerNode *layer3DS) {
+    Q3DSUipPresentation::forAllLayers(m_scene, [=](Q3DSLayerNode *layer3DS) {
         Q3DSLayerAttached *data = static_cast<Q3DSLayerAttached *>(layer3DS->attached());
         if (data) {
             // do it right away if there was no size set yet
@@ -570,7 +570,7 @@ void Q3DSSceneManager::prepareEngineResetGlobal()
     params.frameGraphRoot, and it is up to the caller to ensure out.rootEntity
     gets parented somewhere (typically to out.rootEntity from a previous buildScene call).
   */
-Q3DSSceneManager::Scene Q3DSSceneManager::buildScene(Q3DSPresentation *presentation, const SceneBuilderParams &params)
+Q3DSSceneManager::Scene Q3DSSceneManager::buildScene(Q3DSUipPresentation *presentation, const SceneBuilderParams &params)
 {
     if (!presentation->scene()) {
         qWarning("Q3DSSceneBuilder: No scene?");
@@ -672,7 +672,7 @@ Q3DSSceneManager::Scene Q3DSSceneManager::buildScene(Q3DSPresentation *presentat
     });
 
     // Build the (offscreen) Qt3D scene
-    Q3DSPresentation::forAllLayers(m_scene, [=](Q3DSLayerNode *layer3DS) {
+    Q3DSUipPresentation::forAllLayers(m_scene, [=](Q3DSLayerNode *layer3DS) {
         if (layer3DS->sourcePath().isEmpty())
             buildLayer(layer3DS, frameGraphRoot, m_outputPixelSize);
         else
@@ -724,8 +724,8 @@ Q3DSSceneManager::Scene Q3DSSceneManager::buildScene(Q3DSPresentation *presentat
     }
 
     // Set visibility of objects in the scene and start animations.
-    Q3DSPresentation::forAllObjectsOfType(m_masterSlide, Q3DSGraphObject::Slide,
-                                          [this](Q3DSGraphObject *s) {
+    Q3DSUipPresentation::forAllObjectsOfType(m_masterSlide, Q3DSGraphObject::Slide,
+                                             [this](Q3DSGraphObject *s) {
         updateSlideObjectVisibilities(static_cast<Q3DSSlide *>(s));
     });
     updateAnimations(m_masterSlide, nullptr, m_currentSlide);
@@ -1071,9 +1071,9 @@ void Q3DSSceneManager::buildLayer(Q3DSLayerNode *layer3DS,
     updateSsaoStatus(layer3DS);
 
     // Generate Qt3D material components.
-    Q3DSPresentation::forAllModels(layer3DS->firstChild(),
-                                   [this](Q3DSModelNode *model3DS) { buildModelMaterial(model3DS); },
-                                   true); // include hidden ones too
+    Q3DSUipPresentation::forAllModels(layer3DS->firstChild(),
+                                      [this](Q3DSModelNode *model3DS) { buildModelMaterial(model3DS); },
+                                      true); // include hidden ones too
 
     // Set up effects.
     finalizeEffects(layer3DS);
@@ -2903,7 +2903,7 @@ void Q3DSSceneManager::buildCompositor(Qt3DRender::QFrameGraphNode *parent, Qt3D
     new Qt3DRender::QNoDraw(clearBuffers);
 
     QVarLengthArray<Q3DSLayerNode *, 16> layers;
-    Q3DSPresentation::forAllLayers(m_scene, [&layers](Q3DSLayerNode *layer3DS) {
+    Q3DSUipPresentation::forAllLayers(m_scene, [&layers](Q3DSLayerNode *layer3DS) {
         layers.append(layer3DS);
     }, true); // process layers in reverse order
 
@@ -5339,7 +5339,7 @@ void Q3DSSceneManager::updateSubTree(Q3DSGraphObject *obj)
         bool smDidChange = false;
         updateShadowMapStatus(layer3DS, &smDidChange);
         if (smDidChange) {
-            Q3DSPresentation::forAllModels(layer3DS->firstChild(),
+            Q3DSUipPresentation::forAllModels(layer3DS->firstChild(),
                                            [this](Q3DSModelNode *model3DS) { rebuildModelMaterial(model3DS); },
                                            true); // include hidden ones too
         }
@@ -5426,14 +5426,14 @@ void Q3DSSceneManager::handleSlideChange(Q3DSSlide *prevSlide, Q3DSSlide *curren
 void Q3DSSceneManager::prepareNextFrame()
 {
     m_wasDirty = false;
-    Q3DSPresentation::forAllLayers(m_scene, [this](Q3DSLayerNode *layer3DS) {
+    Q3DSUipPresentation::forAllLayers(m_scene, [this](Q3DSLayerNode *layer3DS) {
         static_cast<Q3DSLayerAttached *>(layer3DS->attached())->wasDirty = false;
     });
 
     updateSubTree(m_scene);
 
     qint64 nextFrameNo = m_frameUpdater->frameCounter() + 1;
-    Q3DSPresentation::forAllLayers(m_scene, [this, nextFrameNo](Q3DSLayerNode *layer3DS) {
+    Q3DSUipPresentation::forAllLayers(m_scene, [this, nextFrameNo](Q3DSLayerNode *layer3DS) {
         // Dirty flags now up-to-date -> update progressive AA status
         if (layer3DS->progressiveAA() != Q3DSLayerNode::NoPAA)
             updateProgressiveAA(layer3DS);
@@ -5585,7 +5585,7 @@ void Q3DSSceneManager::updateSubTreeRecursive(Q3DSGraphObject *obj)
                 bool aoDidChange = false;
                 updateSsaoStatus(layer3DS, &aoDidChange);
                 if (aoDidChange) {
-                    Q3DSPresentation::forAllModels(layer3DS->firstChild(),
+                    Q3DSUipPresentation::forAllModels(layer3DS->firstChild(),
                                                    [this](Q3DSModelNode *model3DS) { rebuildModelMaterial(model3DS); },
                     true); // include hidden ones too
                 }

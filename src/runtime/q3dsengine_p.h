@@ -100,7 +100,7 @@ public:
     int presentationCount() const;
     QString uipFileName(int index = 0) const;
     Q3DSUipDocument *uipDocument(int index = 0) const;
-    Q3DSPresentation *presentation(int index = 0) const;
+    Q3DSUipPresentation *presentation(int index = 0) const;
     Q3DSSceneManager *sceneManager(int index = 0) const;
 
     Qt3DCore::QAspectEngine *aspectEngine() const;
@@ -147,7 +147,7 @@ private:
         Q3DSUipDocument *uipDocument = nullptr;
         Q3DSSceneManager::Scene q3dscene;
         Q3DSSceneManager *sceneManager = nullptr;
-        Q3DSPresentation *presentation = nullptr;
+        Q3DSUipPresentation *presentation = nullptr;
     };
 
     struct QmlPresentation : Presentation {

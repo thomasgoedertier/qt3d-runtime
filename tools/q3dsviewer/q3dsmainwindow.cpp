@@ -130,7 +130,7 @@ Q3DStudioMainWindow::Q3DStudioMainWindow(Q3DSWindow *view, QWidget *parent)
     depthTexAction->setCheckable(true);
     depthTexAction->setChecked(false);
     connect(depthTexAction, &QAction::toggled, [=]() {
-        Q3DSPresentation::forAllLayers(view->engine()->presentation()->scene(),
+        Q3DSUipPresentation::forAllLayers(view->engine()->presentation()->scene(),
                                        [=](Q3DSLayerNode *layer3DS) {
             view->engine()->sceneManager()->setDepthTextureEnabled(
                         layer3DS, depthTexAction->isChecked());
@@ -140,7 +140,7 @@ Q3DStudioMainWindow::Q3DStudioMainWindow(Q3DSWindow *view, QWidget *parent)
     ssaoAction->setCheckable(true);
     ssaoAction->setChecked(false);
     connect(ssaoAction, &QAction::toggled, [=]() {
-        Q3DSPresentation::forAllLayers(view->engine()->presentation()->scene(),
+        Q3DSUipPresentation::forAllLayers(view->engine()->presentation()->scene(),
                                        [=](Q3DSLayerNode *layer3DS) {
             Q3DSPropertyChangeList changeList;
             const QString value = ssaoAction->isChecked() ? QLatin1String("50") : QLatin1String("0");
@@ -151,14 +151,14 @@ Q3DStudioMainWindow::Q3DStudioMainWindow(Q3DSWindow *view, QWidget *parent)
     });
     QAction *rebuildMatAction = debugMenu->addAction(tr("&Rebuild model materials"));
     connect(rebuildMatAction, &QAction::triggered, [=]() {
-        Q3DSPresentation::forAllModels(view->engine()->presentation()->scene(),
+        Q3DSUipPresentation::forAllModels(view->engine()->presentation()->scene(),
                                        [=](Q3DSModelNode *model3DS) {
             view->engine()->sceneManager()->rebuildModelMaterial(model3DS);
         });
     });
     QAction *toggleShadowAction = debugMenu->addAction(tr("&Toggle shadow casting for point lights"));
     connect(toggleShadowAction, &QAction::triggered, [=]() {
-        Q3DSPresentation::forAllObjectsOfType(view->engine()->presentation()->scene(),
+        Q3DSUipPresentation::forAllObjectsOfType(view->engine()->presentation()->scene(),
                                               Q3DSGraphObject::Light, [=](Q3DSGraphObject *obj) {
             Q3DSLightNode *light3DS = static_cast<Q3DSLightNode *>(obj);
             if (light3DS->flags().testFlag(Q3DSNode::Active) &&
@@ -173,7 +173,7 @@ Q3DStudioMainWindow::Q3DStudioMainWindow(Q3DSWindow *view, QWidget *parent)
     });
     QAction *shadowResChangeAction = debugMenu->addAction(tr("&Maximize shadow map resolution for lights"));
     connect(shadowResChangeAction, &QAction::triggered, [=]() {
-        Q3DSPresentation::forAllObjectsOfType(view->engine()->presentation()->scene(),
+        Q3DSUipPresentation::forAllObjectsOfType(view->engine()->presentation()->scene(),
                                               Q3DSGraphObject::Light, [=](Q3DSGraphObject *obj) {
             Q3DSLightNode *light3DS = static_cast<Q3DSLightNode *>(obj);
             if (light3DS->flags().testFlag(Q3DSNode::Active)) {

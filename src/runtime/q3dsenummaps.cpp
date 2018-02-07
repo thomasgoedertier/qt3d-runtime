@@ -35,16 +35,16 @@ QT_BEGIN_NAMESPACE
 // strFromEnum give more readable results.
 
 static Q3DSEnumNameMap g_presentationRotationMap[] = {
-    { Q3DSPresentation::NoRotation, "None" },
-    { Q3DSPresentation::NoRotation, "" },
-    { Q3DSPresentation::NoRotation, "NoRotation" },
-    { Q3DSPresentation::Clockwise90, "90" },
-    { Q3DSPresentation::Clockwise180, "180" },
-    { Q3DSPresentation::Clockwise270, "270" },
+    { Q3DSUipPresentation::NoRotation, "None" },
+    { Q3DSUipPresentation::NoRotation, "" },
+    { Q3DSUipPresentation::NoRotation, "NoRotation" },
+    { Q3DSUipPresentation::Clockwise90, "90" },
+    { Q3DSUipPresentation::Clockwise180, "180" },
+    { Q3DSUipPresentation::Clockwise270, "270" },
     { 0, nullptr }
 };
 
-Q3DSEnumNameMap *Q3DSEnumParseMap<Q3DSPresentation::Rotation>::get()
+Q3DSEnumNameMap *Q3DSEnumParseMap<Q3DSUipPresentation::Rotation>::get()
 {
     return g_presentationRotationMap;
 }

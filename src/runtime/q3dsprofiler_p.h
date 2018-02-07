@@ -51,7 +51,7 @@
 QT_BEGIN_NAMESPACE
 
 class Q3DSSceneManager;
-class Q3DSPresentation;
+class Q3DSUipPresentation;
 class Q3DSMesh;
 
 class Q3DSProfiler
@@ -115,8 +115,8 @@ public:
 
     const Q3DSGraphicsLimits *graphicsLimits() const { return &m_gfxLimits; }
 
-    const Q3DSPresentation *presentation() const { return m_presentation; }
-    Q3DSPresentation *presentation() { return m_presentation; }
+    const Q3DSUipPresentation *presentation() const { return m_presentation; }
+    Q3DSUipPresentation *presentation() { return m_presentation; }
     QString presentationName() const { return m_presentationName; }
 
     // note that we do not expose the scene manager to the profile ui. instead,
@@ -137,7 +137,7 @@ private:
     QMultiMap<ObjectType, ObjectData> m_objectData;
     QVector<QMetaObject::Connection> m_objectDestroyConnections;
     Q3DSSceneManager *m_sceneManager = nullptr;
-    Q3DSPresentation *m_presentation = nullptr;
+    Q3DSUipPresentation *m_presentation = nullptr;
     QString m_presentationName;
     qint64 m_totalParseBuildTime = 0;
     qint64 m_firstFrameActionTime = 0;

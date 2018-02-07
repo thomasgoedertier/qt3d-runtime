@@ -41,7 +41,7 @@
 // We mean it.
 //
 
-#include "q3dspresentation_p.h"
+#include "q3dsuippresentation_p.h"
 #include "q3dsgraphicslimits_p.h"
 
 #include <QDebug>
@@ -513,7 +513,7 @@ public:
     Q3DSSceneManager(const Q3DSGraphicsLimits &limits);
     ~Q3DSSceneManager();
 
-    Scene buildScene(Q3DSPresentation *presentation, const SceneBuilderParams &params);
+    Scene buildScene(Q3DSUipPresentation *presentation, const SceneBuilderParams &params);
     void finalizeMainScene(const QVector<Q3DSSubPresentation> &subPresentations);
     void updateSizes(const QSize &size, qreal dpr);
 
@@ -676,7 +676,7 @@ private:
     Q3DSGraphicsLimits m_gfxLimits;
     SceneBuilderFlags m_flags = SceneBuilderFlags();
     Q3DSEngine *m_engine;
-    Q3DSPresentation *m_presentation;
+    Q3DSUipPresentation *m_presentation;
     QSize m_presentationSize;
     Q3DSScene *m_scene;
     Q3DSSlide *m_masterSlide;

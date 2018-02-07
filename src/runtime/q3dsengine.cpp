@@ -493,7 +493,7 @@ bool Q3DSEngine::loadUipPresentation(UipPresentation *pres)
         params.flags |= Q3DSSceneManager::EnableProfiling;
 
     // Take the size from the presentation.
-    Q3DSPresentation *pres3DS = pres->presentation;
+    Q3DSUipPresentation *pres3DS = pres->presentation;
     m_implicitSize = QSize(pres3DS->presentationWidth(), pres3DS->presentationHeight());
     if (m_implicitSize.isEmpty())
         m_implicitSize = QSize(800, 480);
@@ -570,7 +570,7 @@ bool Q3DSEngine::loadSubUipPresentation(UipPresentation *pres)
     if (m_flags.testFlag(EnableProfiling))
         params.flags |= Q3DSSceneManager::EnableProfiling;
 
-    Q3DSPresentation *pres3DS = pres->presentation;
+    Q3DSUipPresentation *pres3DS = pres->presentation;
     params.outputSize = QSize(pres3DS->presentationWidth(), pres3DS->presentationHeight());
     params.outputDpr = 1;
 
@@ -846,7 +846,7 @@ Q3DSUipDocument *Q3DSEngine::uipDocument(int index) const
                 m_uipPresentations[index].uipDocument : nullptr;
 }
 
-Q3DSPresentation *Q3DSEngine::presentation(int index) const
+Q3DSUipPresentation *Q3DSEngine::presentation(int index) const
 {
     return (index >= 0 && index < m_uipPresentations.count()) ?
                 m_uipPresentations[index].presentation : nullptr;

@@ -37,7 +37,6 @@ QT_BEGIN_NAMESPACE
 class Q3DSWindow;
 class SlideExplorerWidget;
 class SceneExplorerWidget;
-class Q3DSPresentation;
 class Q3DSComponentNode;
 
 class Q3DSExplorerMainWindow : public QMainWindow

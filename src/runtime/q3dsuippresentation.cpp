@@ -27,7 +27,7 @@
 **
 ****************************************************************************/
 
-#include "q3dspresentation_p.h"
+#include "q3dsuippresentation_p.h"
 #include "q3dsdatamodelparser_p.h"
 #include "q3dsenummaps_p.h"
 #include "q3dsuipparser_p.h"
@@ -801,7 +801,7 @@ bool parseProperty(const V &attrs, Q3DSGraphObject::PropSetFlags flags, const QS
 // expected to just store the string, and only look up the object in
 // resolveReferences() using this helper.
 template<typename T>
-void resolveRef(const QString &val, Q3DSGraphObject::Type type, T **obj, const Q3DSPresentation &pres)
+void resolveRef(const QString &val, Q3DSGraphObject::Type type, T **obj, const Q3DSUipPresentation &pres)
 {
     bool b = false;
     if (val.startsWith('#')) {
@@ -986,7 +986,7 @@ void Q3DSImage::applyPropertyChanges(const Q3DSPropertyChangeList *changeList)
     calculateTextureTransform();
 }
 
-void Q3DSImage::resolveReferences(Q3DSPresentation &presentation, Q3DSUipParser &parser)
+void Q3DSImage::resolveReferences(Q3DSUipPresentation &presentation, Q3DSUipParser &parser)
 {
     if (!m_sourcePath.isEmpty()) {
         // We'll use this chance to check if the image contains has an alpha channel.
@@ -1229,7 +1229,7 @@ void Q3DSDefaultMaterial::applyPropertyChanges(const Q3DSPropertyChangeList *cha
     setProps(*changeList, 0);
 }
 
-void Q3DSDefaultMaterial::resolveReferences(Q3DSPresentation &pres, Q3DSUipParser &)
+void Q3DSDefaultMaterial::resolveReferences(Q3DSUipPresentation &pres, Q3DSUipParser &)
 {
     resolveRef(m_diffuseMap_unresolved, Q3DSGraphObject::Image, &m_diffuseMap, pres);
     resolveRef(m_diffuseMap2_unresolved, Q3DSGraphObject::Image, &m_diffuseMap2, pres);
@@ -1309,7 +1309,7 @@ void Q3DSReferencedMaterial::applyPropertyChanges(const Q3DSPropertyChangeList *
     setProps(*changeList, 0);
 }
 
-void Q3DSReferencedMaterial::resolveReferences(Q3DSPresentation &pres, Q3DSUipParser &)
+void Q3DSReferencedMaterial::resolveReferences(Q3DSUipPresentation &pres, Q3DSUipParser &)
 {
     // can be DefaultMaterial or CustomMaterial so stick with a generic object
     resolveRef(m_referencedMaterial_unresolved, Q3DSGraphObject::AnyObject, &m_referencedMaterial, pres);
@@ -1404,7 +1404,7 @@ static void fillCustomProperties(const QMap<QString, Q3DSMaterial::PropertyEleme
     }
 }
 
-void Q3DSCustomMaterialInstance::resolveReferences(Q3DSPresentation &pres, Q3DSUipParser &parser)
+void Q3DSCustomMaterialInstance::resolveReferences(Q3DSUipPresentation &pres, Q3DSUipParser &parser)
 {
     if (m_material_unresolved.startsWith('#')) {
         m_material = pres.customMaterial(m_material_unresolved.mid(1).toUtf8());
@@ -1464,7 +1464,7 @@ void Q3DSEffectInstance::applyPropertyChanges(const Q3DSPropertyChangeList *chan
     setProps(*changeList, 0);
 }
 
-void Q3DSEffectInstance::resolveReferences(Q3DSPresentation &pres, Q3DSUipParser &parser)
+void Q3DSEffectInstance::resolveReferences(Q3DSUipPresentation &pres, Q3DSUipParser &parser)
 {
     if (m_effect_unresolved.startsWith('#')) {
         m_effect = pres.effect(m_effect_unresolved.mid(1).toUtf8());
@@ -1636,7 +1636,7 @@ void Q3DSLayerNode::applyPropertyChanges(const Q3DSPropertyChangeList *changeLis
     setProps(*changeList, 0);
 }
 
-void Q3DSLayerNode::resolveReferences(Q3DSPresentation &pres, Q3DSUipParser &parser)
+void Q3DSLayerNode::resolveReferences(Q3DSUipPresentation &pres, Q3DSUipParser &parser)
 {
     Q3DSNode::resolveReferences(pres, parser);
     resolveRef(m_lightProbe_unresolved, Q3DSGraphObject::Image, &m_lightProbe, pres);
@@ -1763,7 +1763,7 @@ void Q3DSLightNode::applyPropertyChanges(const Q3DSPropertyChangeList *changeLis
     setProps(*changeList, 0);
 }
 
-void Q3DSLightNode::resolveReferences(Q3DSPresentation &pres, Q3DSUipParser &parser)
+void Q3DSLightNode::resolveReferences(Q3DSUipPresentation &pres, Q3DSUipParser &parser)
 {
     Q3DSNode::resolveReferences(pres, parser);
     resolveRef(m_scope_unresolved, Q3DSGraphObject::AnyObject, &m_scope, pres);
@@ -1818,7 +1818,7 @@ void Q3DSModelNode::applyPropertyChanges(const Q3DSPropertyChangeList *changeLis
     setProps(*changeList, 0);
 }
 
-void Q3DSModelNode::resolveReferences(Q3DSPresentation &pres, Q3DSUipParser &parser)
+void Q3DSModelNode::resolveReferences(Q3DSUipPresentation &pres, Q3DSUipParser &parser)
 {
     Q3DSNode::resolveReferences(pres, parser);
     if (!m_mesh_unresolved.isEmpty()) {
@@ -1980,139 +1980,139 @@ QVariantList Q3DSTextNode::gex_propertyValues() const
     return s;
 }
 
-Q3DSPresentation::Q3DSPresentation()
-    : d(new Q3DSPresentationData)
+Q3DSUipPresentation::Q3DSUipPresentation()
+    : d(new Q3DSUipPresentationData)
 {
 }
 
-Q3DSPresentation::~Q3DSPresentation()
-{
-    delete d->scene;
-    delete d->masterSlide;
-}
-
-void Q3DSPresentation::reset()
+Q3DSUipPresentation::~Q3DSUipPresentation()
 {
     delete d->scene;
     delete d->masterSlide;
-    d.reset(new Q3DSPresentationData);
 }
 
-QString Q3DSPresentation::sourceFile() const
+void Q3DSUipPresentation::reset()
+{
+    delete d->scene;
+    delete d->masterSlide;
+    d.reset(new Q3DSUipPresentationData);
+}
+
+QString Q3DSUipPresentation::sourceFile() const
 {
     return d->sourceFile;
 }
 
-QString Q3DSPresentation::author() const
+QString Q3DSUipPresentation::author() const
 {
     return d->author;
 }
 
-QString Q3DSPresentation::company() const
+QString Q3DSUipPresentation::company() const
 {
     return d->company;
 }
 
-int Q3DSPresentation::presentationWidth() const
+int Q3DSUipPresentation::presentationWidth() const
 {
     return d->presentationWidth;
 }
 
-int Q3DSPresentation::presentationHeight() const
+int Q3DSUipPresentation::presentationHeight() const
 {
     return d->presentationHeight;
 }
 
-Q3DSPresentation::Rotation Q3DSPresentation::presentationRotation() const
+Q3DSUipPresentation::Rotation Q3DSUipPresentation::presentationRotation() const
 {
     return d->presentationRotation;
 }
 
-bool Q3DSPresentation::maintainAspectRatio() const
+bool Q3DSUipPresentation::maintainAspectRatio() const
 {
     return d->maintainAspectRatio;
 }
 
-Q3DSScene *Q3DSPresentation::scene() const
+Q3DSScene *Q3DSUipPresentation::scene() const
 {
     return d->scene;
 }
 
-Q3DSSlide *Q3DSPresentation::masterSlide() const
+Q3DSSlide *Q3DSUipPresentation::masterSlide() const
 {
     return d->masterSlide;
 }
 
-Q3DSGraphObject *Q3DSPresentation::object(const QByteArray &id) const
+Q3DSGraphObject *Q3DSUipPresentation::object(const QByteArray &id) const
 {
     return d->objects.value(id);
 }
 
-void Q3DSPresentation::setSourceFile(const QString &s)
+void Q3DSUipPresentation::setSourceFile(const QString &s)
 {
     d->sourceFile = s;
 }
 
-void Q3DSPresentation::setAuthor(const QString &s)
+void Q3DSUipPresentation::setAuthor(const QString &s)
 {
     d->author = s;
 }
 
-void Q3DSPresentation::setCompany(const QString &s)
+void Q3DSUipPresentation::setCompany(const QString &s)
 {
     d->company = s;
 }
 
-void Q3DSPresentation::setPresentationWidth(int w)
+void Q3DSUipPresentation::setPresentationWidth(int w)
 {
     d->presentationWidth = w;
 }
 
-void Q3DSPresentation::setPresentationHeight(int h)
+void Q3DSUipPresentation::setPresentationHeight(int h)
 {
     d->presentationHeight = h;
 }
 
-void Q3DSPresentation::setPresentationRotation(Q3DSPresentation::Rotation r)
+void Q3DSUipPresentation::setPresentationRotation(Q3DSUipPresentation::Rotation r)
 {
     d->presentationRotation = r;
 }
 
-void Q3DSPresentation::setMaintainAspectRatio(bool b)
+void Q3DSUipPresentation::setMaintainAspectRatio(bool b)
 {
     d->maintainAspectRatio = b;
 }
 
-void Q3DSPresentation::setScene(Q3DSScene *p)
+void Q3DSUipPresentation::setScene(Q3DSScene *p)
 {
     d->scene = p;
 }
 
-void Q3DSPresentation::setMasterSlide(Q3DSSlide *p)
+void Q3DSUipPresentation::setMasterSlide(Q3DSSlide *p)
 {
     d->masterSlide = p;
 }
 
-void Q3DSPresentation::setLoadTime(qint64 ms)
+void Q3DSUipPresentation::setLoadTime(qint64 ms)
 {
     d->loadTime = ms;
 }
 
-void Q3DSPresentation::registerImageBuffer(const QString &sourcePath, bool hasTransparency)
+void Q3DSUipPresentation::registerImageBuffer(const QString &sourcePath, bool hasTransparency)
 {
     d->imageBuffers[sourcePath] = hasTransparency;
 }
 
-void Q3DSPresentation::registerObject(const QByteArray &id, Q3DSGraphObject *p)
+void Q3DSUipPresentation::registerObject(const QByteArray &id, Q3DSGraphObject *p)
 {
     if (d->objects.contains(id))
-        qWarning("Q3DSPresentation: Multiple registrations for object id '%s'", id.constData());
+        qWarning("Q3DSUipPresentation: Multiple registrations for object id '%s'", id.constData());
 
     p->m_id = id;
     d->objects[id] = p;
 }
 
-bool Q3DSPresentation::loadCustomMaterial(const QStringRef &id, const QStringRef &, const QString &assetFilename)
+bool Q3DSUipPresentation::loadCustomMaterial(const QStringRef &id, const QStringRef &, const QString &assetFilename)
 {
     Q3DSCustomMaterialParser p;
     bool ok = false;
@@ -2125,12 +2125,12 @@ bool Q3DSPresentation::loadCustomMaterial(const QStringRef &id, const QStringRef
     return true;
 }
 
-Q3DSCustomMaterial Q3DSPresentation::customMaterial(const QByteArray &id) const
+Q3DSCustomMaterial Q3DSUipPresentation::customMaterial(const QByteArray &id) const
 {
     return d->customMaterials.value(id);
 }
 
-bool Q3DSPresentation::loadEffect(const QStringRef &id, const QStringRef &, const QString &assetFilename)
+bool Q3DSUipPresentation::loadEffect(const QStringRef &id, const QStringRef &, const QString &assetFilename)
 {
     Q3DSEffectParser p;
     bool ok = false;
@@ -2143,14 +2143,14 @@ bool Q3DSPresentation::loadEffect(const QStringRef &id, const QStringRef &, cons
     return true;
 }
 
-Q3DSEffect Q3DSPresentation::effect(const QByteArray &id) const
+Q3DSEffect Q3DSUipPresentation::effect(const QByteArray &id) const
 {
     return d->effects.value(id);
 }
 
-MeshList Q3DSPresentation::mesh(const QString &assetFilename, int part)
+MeshList Q3DSUipPresentation::mesh(const QString &assetFilename, int part)
 {
-    Q3DSPresentationData::MeshId id(assetFilename, part);
+    Q3DSUipPresentationData::MeshId id(assetFilename, part);
     if (d->meshes.contains(id))
         return d->meshes.value(id);
 
@@ -2159,17 +2159,17 @@ MeshList Q3DSPresentation::mesh(const QString &assetFilename, int part)
     return m;
 }
 
-const Q3DSPresentation::ImageBufferMap &Q3DSPresentation::imageBuffer() const
+const Q3DSUipPresentation::ImageBufferMap &Q3DSUipPresentation::imageBuffer() const
 {
     return d->imageBuffers;
 }
 
-qint64 Q3DSPresentation::loadTimeMsecs() const
+qint64 Q3DSUipPresentation::loadTimeMsecs() const
 {
     return d->loadTime;
 }
 
-void Q3DSPresentation::applySlidePropertyChanges(Q3DSSlide *slide) const
+void Q3DSUipPresentation::applySlidePropertyChanges(Q3DSSlide *slide) const
 {
     auto changeList = slide->propertyChanges();
     qCDebug(lcUip, "Applying %d property changes from slide %s", changeList->count(), slide->id().constData());
@@ -2187,7 +2187,7 @@ void Q3DSPresentation::applySlidePropertyChanges(Q3DSSlide *slide) const
         it.key()->notifyPropertyChanges(it.value());
 }
 
-void Q3DSPresentation::forAllObjectsOfType(Q3DSGraphObject *root,
+void Q3DSUipPresentation::forAllObjectsOfType(Q3DSGraphObject *root,
                                            Q3DSGraphObject::Type type,
                                            std::function<void(Q3DSGraphObject *)> f)
 {
@@ -2200,7 +2200,7 @@ void Q3DSPresentation::forAllObjectsOfType(Q3DSGraphObject *root,
     }
 }
 
-void Q3DSPresentation::forAllNodes(Q3DSGraphObject *root,
+void Q3DSUipPresentation::forAllNodes(Q3DSGraphObject *root,
                                    std::function<void(Q3DSNode *)> f)
 {
     Q3DSGraphObject *obj = root;
@@ -2212,7 +2212,7 @@ void Q3DSPresentation::forAllNodes(Q3DSGraphObject *root,
     }
 }
 
-void Q3DSPresentation::forAllLayers(Q3DSScene *scene, std::function<void(Q3DSLayerNode *)> f, bool reverse)
+void Q3DSUipPresentation::forAllLayers(Q3DSScene *scene, std::function<void(Q3DSLayerNode *)> f, bool reverse)
 {
     QVector<Q3DSLayerNode *> layers;
     Q3DSGraphObject *obj = scene->firstChild();
@@ -2235,7 +2235,7 @@ void Q3DSPresentation::forAllLayers(Q3DSScene *scene, std::function<void(Q3DSLay
     }
 }
 
-void Q3DSPresentation::forAllModels(Q3DSGraphObject *obj,
+void Q3DSUipPresentation::forAllModels(Q3DSGraphObject *obj,
                                     std::function<void(Q3DSModelNode *)> f,
                                     bool includeHidden)
 {
@@ -2250,7 +2250,7 @@ void Q3DSPresentation::forAllModels(Q3DSGraphObject *obj,
     }
 }
 
-void Q3DSPresentation::forAllImages(std::function<void (Q3DSImage *)> f)
+void Q3DSUipPresentation::forAllImages(std::function<void (Q3DSImage *)> f)
 {
     for (Q3DSGraphObject *obj : qAsConst(d->objects)) {
         if (obj->type() == Q3DSGraphObject::Image)

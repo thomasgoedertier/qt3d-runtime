@@ -34,7 +34,7 @@
 #include <QListWidget>
 #include <QPushButton>
 #include <QPlainTextEdit>
-#include "q3dsdatamodelparser.h"
+#include <private/q3dsdatamodelparser_p.h>
 
 class W : public QWidget
 {
@@ -96,7 +96,7 @@ W::W(const QString &typeName, const QVector<Q3DSDataModelParser::Property> *prop
             result += QString(QLatin1String("parseProperty(attrs, flags, typeName, QStringLiteral(\"%1\"), &m_%2);\n")).arg(prop.name).arg(prop.name);
         }
 
-        result += QString(QLatin1String("\n// q3dspresentation.h class members\n"));
+        result += QString(QLatin1String("\n// q3dsuippresentation_p.h class members\n"));
         for (QListWidgetItem *selectedItem : sel) {
             int idx = list->row(selectedItem);
             const Q3DSDataModelParser::Property &prop(props->at(idx));
@@ -111,7 +111,7 @@ W::W(const QString &typeName, const QVector<Q3DSDataModelParser::Property> *prop
         }
 
         if (hasEnums)
-            result += QString(QLatin1String("\n// enum definitions for q3dspresentation.h\n"));
+            result += QString(QLatin1String("\n// enum definitions for q3dsuippresentation_p.h\n"));
 
         for (QListWidgetItem *selectedItem : sel) {
             int idx = list->row(selectedItem);

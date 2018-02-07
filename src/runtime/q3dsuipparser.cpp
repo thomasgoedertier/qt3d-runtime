@@ -85,7 +85,7 @@ Q_LOGGING_CATEGORY(lcUip, "q3ds.uip")
  */
 
 // Returns a Presentation and does not maintain ownership
-Q3DSPresentation *Q3DSUipParser::parse(const QString &filename)
+Q3DSUipPresentation *Q3DSUipParser::parse(const QString &filename)
 {
     if (!setSource(filename))
         return nullptr;
@@ -93,7 +93,7 @@ Q3DSPresentation *Q3DSUipParser::parse(const QString &filename)
     return createPresentation();
 }
 
-Q3DSPresentation *Q3DSUipParser::parseData(const QByteArray &data)
+Q3DSUipPresentation *Q3DSUipParser::parseData(const QByteArray &data)
 {
     if (!setSourceData(data))
         return nullptr;
@@ -101,10 +101,10 @@ Q3DSPresentation *Q3DSUipParser::parseData(const QByteArray &data)
     return createPresentation();
 }
 
-Q3DSPresentation *Q3DSUipParser::createPresentation()
+Q3DSUipPresentation *Q3DSUipParser::createPresentation()
 {
     // reset (not owned by Q3DSUipParser)
-    m_presentation.reset(new Q3DSPresentation());
+    m_presentation.reset(new Q3DSUipPresentation);
 
     m_presentation->setSourceFile(sourceInfo()->absoluteFilePath());
 
@@ -193,7 +193,7 @@ void Q3DSUipParser::parseProjectSettings()
             if (Q3DS::convertToInt(attr.value(), &h, "presentation height", r))
                 m_presentation->setPresentationHeight(h);
         } else if (attr.name() == QStringLiteral("presentationRotation")) {
-            Q3DSPresentation::Rotation v;
+            Q3DSUipPresentation::Rotation v;
             if (Q3DSEnumMap::enumFromStr(attr.value(), &v))
                 m_presentation->setPresentationRotation(v);
             else

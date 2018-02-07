@@ -28,7 +28,7 @@
 ****************************************************************************/
 
 #include "q3dstextrenderer_p.h"
-#include "q3dspresentation_p.h"
+#include "q3dsuippresentation_p.h"
 
 #include <QDir>
 #include <QFile>

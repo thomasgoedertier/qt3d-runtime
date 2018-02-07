@@ -30,7 +30,7 @@
 #include "q3dsprofileui_p.h"
 #include "q3dsimguimanager_p.h"
 #include "q3dsprofiler_p.h"
-#include "q3dspresentation_p.h"
+#include "q3dsuippresentation_p.h"
 #include "q3dsmesh_p.h"
 #include "q3dsenummaps_p.h"
 #include <QLoggingCategory>
@@ -490,7 +490,7 @@ void Q3DSProfileView::addLayerWindow()
 
     Q3DSProfiler *p = selectedProfiler();
     int activeCount = 0;
-    Q3DSPresentation::forAllLayers(p->presentation()->scene(), [&](Q3DSLayerNode *layer3DS) {
+    Q3DSUipPresentation::forAllLayers(p->presentation()->scene(), [&](Q3DSLayerNode *layer3DS) {
         Q3DSLayerAttached *data = static_cast<Q3DSLayerAttached *>(layer3DS->attached());
         ImGui::Text("%s", layer3DS->id().constData());
         ImGui::NextColumn();
@@ -561,7 +561,7 @@ static void changeProperty(Q3DSGraphObject *obj, const QString &name, const QStr
 
 void Q3DSProfileView::addAlterSceneStuff()
 {
-    Q3DSPresentation *pres = m_profiler->presentation();
+    Q3DSUipPresentation *pres = m_profiler->presentation();
     if (!pres)
         return;
 
@@ -571,7 +571,7 @@ void Q3DSProfileView::addAlterSceneStuff()
 
         if (ImGui::BeginPopup("shdwdis")) {
             if (ImGui::Selectable("all shadow casting lights")) {
-                Q3DSPresentation::forAllObjectsOfType(pres->scene(), Q3DSGraphObject::Light, [this](Q3DSGraphObject *obj) {
+                Q3DSUipPresentation::forAllObjectsOfType(pres->scene(), Q3DSGraphObject::Light, [this](Q3DSGraphObject *obj) {
                     Q3DSLightNode *light3DS = static_cast<Q3DSLightNode *>(obj);
                     if (light3DS->castShadow()) {
                         m_disabledShadowCasters.append(light3DS);
@@ -583,7 +583,7 @@ void Q3DSProfileView::addAlterSceneStuff()
             // passes, while directional lights are lighter (heh) -> allow
             // toggling these separately.
             if (ImGui::Selectable("point and area only")) {
-                Q3DSPresentation::forAllObjectsOfType(pres->scene(), Q3DSGraphObject::Light, [this](Q3DSGraphObject *obj) {
+                Q3DSUipPresentation::forAllObjectsOfType(pres->scene(), Q3DSGraphObject::Light, [this](Q3DSGraphObject *obj) {
                     Q3DSLightNode *light3DS = static_cast<Q3DSLightNode *>(obj);
                     if (light3DS->castShadow() && light3DS->lightType() != Q3DSLightNode::Directional) {
                         m_disabledShadowCasters.append(light3DS);
@@ -592,7 +592,7 @@ void Q3DSProfileView::addAlterSceneStuff()
                 });
             }
             if (ImGui::Selectable("directional only")) {
-                Q3DSPresentation::forAllObjectsOfType(pres->scene(), Q3DSGraphObject::Light, [this](Q3DSGraphObject *obj) {
+                Q3DSUipPresentation::forAllObjectsOfType(pres->scene(), Q3DSGraphObject::Light, [this](Q3DSGraphObject *obj) {
                     Q3DSLightNode *light3DS = static_cast<Q3DSLightNode *>(obj);
                     if (light3DS->castShadow() && light3DS->lightType() == Q3DSLightNode::Directional) {
                         m_disabledShadowCasters.append(light3DS);

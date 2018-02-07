@@ -8,7 +8,7 @@ SOURCES += \
     q3dsabstractxmlparser.cpp \
     q3dsutils.cpp \
     q3dsmeshloader.cpp \
-    q3dspresentation.cpp \
+    q3dsuippresentation.cpp \
     q3dsenummaps.cpp \
     q3dsmesh.cpp \
     q3dscustommaterial.cpp \
@@ -38,7 +38,7 @@ HEADERS += \
     q3dsabstractxmlparser_p.h \
     q3dsutils_p.h \
     q3dsmeshloader_p.h \
-    q3dspresentation_p.h \
+    q3dsuippresentation_p.h \
     q3dsenummaps_p.h \
     q3dsmesh_p.h \
     q3dscustommaterial_p.h \

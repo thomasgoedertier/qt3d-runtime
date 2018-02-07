@@ -87,7 +87,7 @@ void tst_Q3DSUipParser::testEmpty()
 
     {
         Q3DSUipParser parser;
-        QScopedPointer<Q3DSPresentation> pres(parser.parse(QLatin1String("invalid_file")));
+        QScopedPointer<Q3DSUipPresentation> pres(parser.parse(QLatin1String("invalid_file")));
         QVERIFY(pres.isNull());
 
     }
@@ -96,7 +96,7 @@ void tst_Q3DSUipParser::testEmpty()
 void tst_Q3DSUipParser::testEmptyData()
 {
     Q3DSUipParser parser;
-    QScopedPointer<Q3DSPresentation> pres(parser.parseData(""));
+    QScopedPointer<Q3DSUipPresentation> pres(parser.parseData(""));
     QVERIFY(pres.isNull());
     QVERIFY(!parser.readerErrorString().isEmpty());
 }
@@ -104,7 +104,7 @@ void tst_Q3DSUipParser::testEmptyData()
 void tst_Q3DSUipParser::testInvalid()
 {
     Q3DSUipParser parser;
-    QScopedPointer<Q3DSPresentation> pres(parser.parse(QLatin1String(":/data/invalid1.uip")));
+    QScopedPointer<Q3DSUipPresentation> pres(parser.parse(QLatin1String(":/data/invalid1.uip")));
     QVERIFY(pres.isNull());
     QVERIFY(!parser.readerErrorString().isEmpty());
 }
@@ -112,7 +112,7 @@ void tst_Q3DSUipParser::testInvalid()
 void tst_Q3DSUipParser::testInvalidData()
 {
     Q3DSUipParser parser;
-    QScopedPointer<Q3DSPresentation> pres(parser.parseData(QByteArray("not a valid xml document")));
+    QScopedPointer<Q3DSUipPresentation> pres(parser.parseData(QByteArray("not a valid xml document")));
     QVERIFY(pres.isNull());
     QVERIFY(!parser.readerErrorString().isEmpty());
 }
@@ -149,7 +149,7 @@ void tst_Q3DSUipParser::testPresentationFromData()
                 </Project> \
             </UIP>";
 
-    QScopedPointer<Q3DSPresentation> pres(parser.parseData(validUipDoc));
+    QScopedPointer<Q3DSUipPresentation> pres(parser.parseData(validUipDoc));
     QVERIFY(!pres.isNull());
     QCOMPARE(pres->presentationWidth(), 800);
     QCOMPARE(pres->presentationHeight(), 480);
@@ -160,7 +160,7 @@ void tst_Q3DSUipParser::testPresentationFromData()
 void tst_Q3DSUipParser::testRepeatedLoad()
 {
     Q3DSUipParser parser;
-    QScopedPointer<Q3DSPresentation> pres(parser.parse(QLatin1String(":/data/invalid1.uip")));
+    QScopedPointer<Q3DSUipPresentation> pres(parser.parse(QLatin1String(":/data/invalid1.uip")));
     QVERIFY(pres.isNull());
 
     pres.reset(parser.parse(QLatin1String(":/data/modded_cube.uip")));
@@ -173,7 +173,7 @@ void tst_Q3DSUipParser::testRepeatedLoad()
 void tst_Q3DSUipParser::assetRef()
 {
     Q3DSUipParser parser;
-    QScopedPointer<Q3DSPresentation> pres(parser.parse(QLatin1String(":/data/modded_cube.uip")));
+    QScopedPointer<Q3DSUipPresentation> pres(parser.parse(QLatin1String(":/data/modded_cube.uip")));
     QVERIFY(!pres.isNull());
 
 
@@ -208,7 +208,7 @@ void tst_Q3DSUipParser::assetRef()
 void tst_Q3DSUipParser::uipAndProjectTags()
 {
     Q3DSUipParser parser;
-    QScopedPointer<Q3DSPresentation> pres(parser.parse(QLatin1String(":/data/wrong_version.uip")));
+    QScopedPointer<Q3DSUipPresentation> pres(parser.parse(QLatin1String(":/data/wrong_version.uip")));
     QVERIFY(pres.isNull());
 
     pres.reset(parser.parse(QLatin1String(":/data/wrong_projects.uip")));
@@ -218,11 +218,11 @@ void tst_Q3DSUipParser::uipAndProjectTags()
 void tst_Q3DSUipParser::projectSettings()
 {
     Q3DSUipParser parser;
-    QScopedPointer<Q3DSPresentation> pres(parser.parse(QLatin1String(":/data/modded_cube.uip")));
+    QScopedPointer<Q3DSUipPresentation> pres(parser.parse(QLatin1String(":/data/modded_cube.uip")));
     QVERIFY(!pres.isNull());
     QCOMPARE(pres->presentationWidth(), 800);
     QCOMPARE(pres->presentationHeight(), 480);
-    QCOMPARE(pres->presentationRotation(), Q3DSPresentation::Clockwise270);
+    QCOMPARE(pres->presentationRotation(), Q3DSUipPresentation::Clockwise270);
     QCOMPARE(pres->maintainAspectRatio(), true);
     QCOMPARE(pres->company(), QLatin1String("Qt"));
     QCOMPARE(pres->author(), QString());
@@ -234,7 +234,7 @@ void tst_Q3DSUipParser::projectSettings()
 void tst_Q3DSUipParser::sceneRoot()
 {
     Q3DSUipParser parser;
-    QScopedPointer<Q3DSPresentation> pres(parser.parse(QLatin1String(":/data/modded_cube.uip")));
+    QScopedPointer<Q3DSUipPresentation> pres(parser.parse(QLatin1String(":/data/modded_cube.uip")));
     QVERIFY(!pres.isNull());
     Q3DSScene *scene = pres->scene();
     QVERIFY(scene);
@@ -293,7 +293,7 @@ void tst_Q3DSUipParser::dataModelParser()
 void tst_Q3DSUipParser::nodeDefaultValues()
 {
     Q3DSUipParser parser;
-    QScopedPointer<Q3DSPresentation> pres(parser.parse(QLatin1String(":/data/modded_cube.uip")));
+    QScopedPointer<Q3DSUipPresentation> pres(parser.parse(QLatin1String(":/data/modded_cube.uip")));
     QVERIFY(!pres.isNull());
     Q3DSScene *scene = pres->scene();
     QVERIFY(scene && scene->childCount() > 0);
@@ -313,7 +313,7 @@ void tst_Q3DSUipParser::nodeDefaultValues()
 void tst_Q3DSUipParser::sceneProps()
 {
     Q3DSUipParser parser;
-    QScopedPointer<Q3DSPresentation> pres(parser.parse(QLatin1String(":/data/modded_cube.uip")));
+    QScopedPointer<Q3DSUipPresentation> pres(parser.parse(QLatin1String(":/data/modded_cube.uip")));
     QVERIFY(!pres.isNull());
     QCOMPARE(pres->scene()->type(), Q3DSGraphObject::Scene);
 
@@ -326,7 +326,7 @@ void tst_Q3DSUipParser::sceneProps()
 void tst_Q3DSUipParser::masterSlide()
 {
     Q3DSUipParser parser;
-    QScopedPointer<Q3DSPresentation> pres(parser.parse(QLatin1String(":/data/multislide.uip")));
+    QScopedPointer<Q3DSUipPresentation> pres(parser.parse(QLatin1String(":/data/multislide.uip")));
     QVERIFY(!pres.isNull());
     QVERIFY(pres->masterSlide() != nullptr);
 
@@ -377,7 +377,7 @@ void tst_Q3DSUipParser::masterSlide()
 void tst_Q3DSUipParser::graph()
 {
     Q3DSUipParser parser;
-    QScopedPointer<Q3DSPresentation> pres(parser.parse(QLatin1String(":/data/multislide.uip")));
+    QScopedPointer<Q3DSUipPresentation> pres(parser.parse(QLatin1String(":/data/multislide.uip")));
     QVERIFY(!pres.isNull());
     QVERIFY(pres->scene() != nullptr);
     QVERIFY(pres->masterSlide() != nullptr);
@@ -474,7 +474,7 @@ void tst_Q3DSUipParser::graph()
 void tst_Q3DSUipParser::slideNodeRefs()
 {
     Q3DSUipParser parser;
-    QScopedPointer<Q3DSPresentation> pres(parser.parse(QLatin1String(":/data/multislide.uip")));
+    QScopedPointer<Q3DSUipPresentation> pres(parser.parse(QLatin1String(":/data/multislide.uip")));
     QVERIFY(!pres.isNull());
     Q3DSSlide *master = pres->masterSlide();
     QVERIFY(master);
@@ -524,7 +524,7 @@ void tst_Q3DSUipParser::slideNodeRefs()
 void tst_Q3DSUipParser::slidePropertySet()
 {
     Q3DSUipParser parser;
-    QScopedPointer<Q3DSPresentation> pres(parser.parse(QLatin1String(":/data/multislide.uip")));
+    QScopedPointer<Q3DSUipPresentation> pres(parser.parse(QLatin1String(":/data/multislide.uip")));
     QVERIFY(!pres.isNull());
     Q3DSSlide *master = pres->masterSlide();
     QVERIFY(master && master->childCount() == 4);
@@ -568,7 +568,7 @@ void tst_Q3DSUipParser::slidePropertySet()
 void tst_Q3DSUipParser::animationTrack()
 {
     Q3DSUipParser parser;
-    QScopedPointer<Q3DSPresentation> pres(parser.parse(QLatin1String(":/data/multislide.uip")));
+    QScopedPointer<Q3DSUipPresentation> pres(parser.parse(QLatin1String(":/data/multislide.uip")));
     QVERIFY(!pres.isNull());
     Q3DSSlide *master = pres->masterSlide();
     QVERIFY(master && master->childCount() == 4);
@@ -635,7 +635,7 @@ void tst_Q3DSUipParser::animationTrack()
 void tst_Q3DSUipParser::layerProps()
 {
     Q3DSUipParser parser;
-    QScopedPointer<Q3DSPresentation> pres(parser.parse(QLatin1String(":/data/multislide.uip")));
+    QScopedPointer<Q3DSUipPresentation> pres(parser.parse(QLatin1String(":/data/multislide.uip")));
     QVERIFY(!pres.isNull());
     Q3DSLayerNode *layer = static_cast<Q3DSLayerNode *>(pres->scene()->firstChild());
     QVERIFY(layer->flags().testFlag(Q3DSNode::Active));
@@ -649,7 +649,7 @@ void tst_Q3DSUipParser::layerProps()
 void tst_Q3DSUipParser::imageObj()
 {
     Q3DSUipParser parser;
-    QScopedPointer<Q3DSPresentation> pres(parser.parse(QLatin1String(":/data/image.uip")));
+    QScopedPointer<Q3DSUipPresentation> pres(parser.parse(QLatin1String(":/data/image.uip")));
     QVERIFY(!pres.isNull());
     QVERIFY(pres->object(QByteArrayLiteral("Layer_lightprobe")));
     QVERIFY(pres->object(QByteArrayLiteral("Material_diffusemap")));
@@ -679,7 +679,7 @@ void tst_Q3DSUipParser::imageObj()
 void tst_Q3DSUipParser::customMaterial()
 {
     Q3DSUipParser parser;
-    QScopedPointer<Q3DSPresentation> pres(parser.parse(QLatin1String(":/data/cube_with_custom_material.uip")));
+    QScopedPointer<Q3DSUipPresentation> pres(parser.parse(QLatin1String(":/data/cube_with_custom_material.uip")));
     QVERIFY(!pres.isNull());
 
     Q3DSGraphObject *cube = pres->object(QByteArrayLiteral("Cube"));
@@ -703,7 +703,7 @@ void tst_Q3DSUipParser::customMaterial()
 void tst_Q3DSUipParser::effect()
 {
     Q3DSUipParser parser;
-    QScopedPointer<Q3DSPresentation> pres(parser.parse(QLatin1String(":/data/effect.uip")));
+    QScopedPointer<Q3DSUipPresentation> pres(parser.parse(QLatin1String(":/data/effect.uip")));
     QVERIFY(!pres.isNull());
 
     Q3DSGraphObject *eff = pres->object(QByteArrayLiteral("Depth Of Field HQ Blur_001"));
@@ -721,7 +721,7 @@ void tst_Q3DSUipParser::effect()
 void tst_Q3DSUipParser::primitiveMeshes()
 {
     Q3DSUipParser parser;
-    QScopedPointer<Q3DSPresentation> pres(parser.parse(QLatin1String(":/data/multislide.uip")));
+    QScopedPointer<Q3DSUipPresentation> pres(parser.parse(QLatin1String(":/data/multislide.uip")));
     QVERIFY(!pres.isNull());
 
     Q3DSModelNode *sphere = static_cast<Q3DSModelNode *>(pres->object(QByteArrayLiteral("Sphere")));
@@ -755,7 +755,7 @@ void tst_Q3DSUipParser::primitiveMeshes()
 void tst_Q3DSUipParser::customMesh()
 {
     Q3DSUipParser parser;
-    QScopedPointer<Q3DSPresentation> pres(parser.parse(QLatin1String(":/data/custom_mesh.uip")));
+    QScopedPointer<Q3DSUipPresentation> pres(parser.parse(QLatin1String(":/data/custom_mesh.uip")));
     QVERIFY(!pres.isNull());
     Q3DSModelNode *h = static_cast<Q3DSModelNode *>(pres->object(QByteArrayLiteral("Headphones")));
     QVERIFY(h);
@@ -770,7 +770,7 @@ void tst_Q3DSUipParser::customMesh()
 void tst_Q3DSUipParser::group()
 {
     Q3DSUipParser parser;
-    QScopedPointer<Q3DSPresentation> pres(parser.parse(QLatin1String(":/data/group.uip")));
+    QScopedPointer<Q3DSUipPresentation> pres(parser.parse(QLatin1String(":/data/group.uip")));
     QVERIFY(!pres.isNull());
     Q3DSGraphObject *obj = pres->object(QByteArrayLiteral("powerup"));
     QVERIFY(obj);
@@ -781,7 +781,7 @@ void tst_Q3DSUipParser::group()
 void tst_Q3DSUipParser::text()
 {
     Q3DSUipParser parser;
-    QScopedPointer<Q3DSPresentation> pres(parser.parse(QLatin1String(":/data/text.uip")));
+    QScopedPointer<Q3DSUipPresentation> pres(parser.parse(QLatin1String(":/data/text.uip")));
     QVERIFY(!pres.isNull());
     Q3DSGraphObject *obj = pres->object(QByteArrayLiteral("Text"));
     QVERIFY(obj);
@@ -794,7 +794,7 @@ void tst_Q3DSUipParser::text()
 void tst_Q3DSUipParser::component()
 {
     Q3DSUipParser parser;
-    QScopedPointer<Q3DSPresentation> pres(parser.parse(QLatin1String(":/data/component.uip")));
+    QScopedPointer<Q3DSUipPresentation> pres(parser.parse(QLatin1String(":/data/component.uip")));
     QVERIFY(!pres.isNull());
 
     Q3DSComponentNode *comp1 = static_cast<Q3DSComponentNode *>(pres->object(QByteArrayLiteral("CubeComp")));
@@ -829,7 +829,7 @@ void tst_Q3DSUipParser::component()
 void tst_Q3DSUipParser::aoProps()
 {
     Q3DSUipParser parser;
-    QScopedPointer<Q3DSPresentation> pres(parser.parse(QLatin1String(":/data/barrel_with_ao.uip")));
+    QScopedPointer<Q3DSUipPresentation> pres(parser.parse(QLatin1String(":/data/barrel_with_ao.uip")));
     QVERIFY(!pres.isNull());
 
     Q3DSLayerNode *layer = static_cast<Q3DSLayerNode *>(pres->scene()->firstChild());
@@ -845,7 +845,7 @@ void tst_Q3DSUipParser::aoProps()
 void tst_Q3DSUipParser::lightmapProps()
 {
     Q3DSUipParser parser;
-    QScopedPointer<Q3DSPresentation> pres(parser.parse(QLatin1String(":/data/imageBasedLighting.uip")));
+    QScopedPointer<Q3DSUipPresentation> pres(parser.parse(QLatin1String(":/data/imageBasedLighting.uip")));
     QVERIFY(!pres.isNull());
     QVERIFY(pres->object(QByteArrayLiteral("Default")));
     QVERIFY(pres->object(QByteArrayLiteral("Default_lightmapindirect")));
@@ -937,7 +937,7 @@ void tst_Q3DSUipParser::lightmapProps()
 void tst_Q3DSUipParser::iblProps()
 {
     Q3DSUipParser parser;
-    QScopedPointer<Q3DSPresentation> pres(parser.parse(QLatin1String(":/data/imageBasedLighting.uip")));
+    QScopedPointer<Q3DSUipPresentation> pres(parser.parse(QLatin1String(":/data/imageBasedLighting.uip")));
     QVERIFY(!pres.isNull());
     QVERIFY(pres->object(QByteArrayLiteral("Layer")));
     QVERIFY(pres->object(QByteArrayLiteral("Layer_lightprobe")));

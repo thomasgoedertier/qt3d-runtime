@@ -34,7 +34,7 @@
 
 QT_BEGIN_NAMESPACE
 
-class Q3DSPresentation;
+class Q3DSUipPresentation;
 class Q3DSSceneManager;
 class Q3DSComponentNode;
 class Q3DSSlide;
@@ -48,7 +48,7 @@ class SlideExplorerWidget : public QWidget
 public:
     explicit SlideExplorerWidget(QWidget *parent = nullptr);
 
-    void setPresentation(Q3DSPresentation *pres);
+    void setPresentation(Q3DSUipPresentation *pres);
     void setComponent(Q3DSComponentNode *component);
     void setSceneManager(Q3DSSceneManager *sceneManager);
 
@@ -65,7 +65,7 @@ private:
     void init();
     void updateModel();
     Q3DSComponentNode *m_component = nullptr;
-    Q3DSPresentation *m_presentation = nullptr;
+    Q3DSUipPresentation *m_presentation = nullptr;
     Q3DSSceneManager *m_sceneManager = nullptr;
     Q3DSSlide *m_masterSlide = nullptr;
     Q3DSSlide *m_currentSlide = nullptr;

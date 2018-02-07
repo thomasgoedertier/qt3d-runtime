@@ -33,7 +33,7 @@
 #include <QWidget>
 QT_BEGIN_NAMESPACE
 
-class Q3DSPresentation;
+class Q3DSUipPresentation;
 class Q3DSGraphObject;
 class QTreeView;
 class QtTreePropertyBrowser;
@@ -49,7 +49,7 @@ class SceneExplorerWidget : public QWidget
 public:
     explicit SceneExplorerWidget(QWidget *parent = nullptr);
 
-    void setPresentation(Q3DSPresentation *presentation);
+    void setPresentation(Q3DSUipPresentation *presentation);
 
     void reset();
 
@@ -62,7 +62,7 @@ private:
     void init();
     void resetPropertyViewer();
 
-    Q3DSPresentation *m_presentation = nullptr;
+    Q3DSUipPresentation *m_presentation = nullptr;
     QTreeView *m_sceneTreeView = nullptr;
     QtTreePropertyBrowser *m_propertyBrowser = nullptr;
     QtVariantPropertyManager *m_variantManager = nullptr;

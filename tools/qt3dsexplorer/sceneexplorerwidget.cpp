@@ -29,7 +29,7 @@
 
 #include "sceneexplorerwidget.h"
 
-#include <private/q3dspresentation_p.h>
+#include <private/q3dsuippresentation_p.h>
 #include <QtWidgets/QVBoxLayout>
 #include <QtWidgets/QTreeView>
 #include <QtWidgets/QSplitter>
@@ -172,7 +172,7 @@ SceneExplorerWidget::SceneExplorerWidget(QWidget *parent)
     m_sceneTreeView->expandAll();
 }
 
-void SceneExplorerWidget::setPresentation(Q3DSPresentation *presentation)
+void SceneExplorerWidget::setPresentation(Q3DSUipPresentation *presentation)
 {
     m_presentation = presentation;
     m_sceneModel->setSceneRoot(m_presentation->scene());

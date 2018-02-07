@@ -44,7 +44,7 @@
 #include "q3dsshaderprogramgenerator_p.h"
 #include "q3dsdefaultvertexpipeline_p.h"
 #include "q3dscustommaterialvertexpipeline_p.h"
-#include "q3dspresentation_p.h"
+#include "q3dsuippresentation_p.h"
 #include "q3dsgraphicslimits_p.h"
 #include <Qt3DRender/QShaderProgram>
 #include <QMap>

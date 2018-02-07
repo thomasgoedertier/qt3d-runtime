@@ -41,7 +41,7 @@
 // We mean it.
 //
 
-#include "q3dspresentation_p.h"
+#include "q3dsuippresentation_p.h"
 #include <QDebug>
 
 QT_BEGIN_NAMESPACE

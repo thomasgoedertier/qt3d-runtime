@@ -45,7 +45,7 @@
 #include <QtCore/QVector>
 #include <QtCore/QMap>
 #include "q3dsruntimeglobal_p.h"
-#include "q3dspresentationcommon_p.h" // not q3dspresentation_p.h, that would be circular ref
+#include "q3dspresentationcommon_p.h" // not q3dsuippresentation_p.h, that would be circular ref
 
 QT_BEGIN_NAMESPACE
 

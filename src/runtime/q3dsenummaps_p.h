@@ -41,7 +41,7 @@
 // We mean it.
 //
 
-#include "q3dspresentation_p.h"
+#include "q3dsuippresentation_p.h"
 
 QT_BEGIN_NAMESPACE
 
@@ -57,7 +57,7 @@ struct Q3DSEnumParseMap
 };
 
 template <>
-struct Q3DSEnumParseMap<Q3DSPresentation::Rotation>
+struct Q3DSEnumParseMap<Q3DSUipPresentation::Rotation>
 {
     static Q3DSEnumNameMap *get();
 };

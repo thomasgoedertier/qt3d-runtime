@@ -31,7 +31,7 @@
 #include <private/q3dsengine_p.h>
 #include <private/q3dswindow_p.h>
 #include <private/q3dsutils_p.h>
-#include <private/q3dspresentation_p.h>
+#include <private/q3dsuippresentation_p.h>
 #include <private/q3dsscenemanager_p.h>
 #include <Qt3DCore/QEntity>
 #include <Qt3DRender/QLayer>
@@ -63,7 +63,7 @@ private:
 
     Q3DSEngine *m_engine = nullptr;
     Q3DSWindow *m_view = nullptr;
-    Q3DSPresentation *m_presentation = nullptr;
+    Q3DSUipPresentation *m_presentation = nullptr;
     Q3DSSceneManager *m_sceneManager = nullptr;
     Q3DSScene *m_scene = nullptr;
 
