@@ -298,6 +298,21 @@ public:
         Qt3DRender::QFrameGraphNode *effectRoot = nullptr;
         QVector<Q3DSEffectInstance *> effects;
     } effectData;
+
+    struct IBLProbeData {
+        QMetaObject::Connection updateOffsetsConnection;
+        Qt3DRender::QTextureLoader *lightProbeTexture = nullptr;
+        Qt3DRender::QTextureLoader *lightProbe2Texture = nullptr;
+
+        Qt3DRender::QParameter *lightProbeSampler = nullptr;
+        Qt3DRender::QParameter *lightProbeRotation = nullptr;
+        Qt3DRender::QParameter *lightProbeOffset = nullptr;
+
+        Qt3DRender::QParameter *lightProbeProperties = nullptr;
+        Qt3DRender::QParameter *lightProbeOptions = nullptr;
+        Qt3DRender::QParameter *lightProbe2Sampler = nullptr;
+        Qt3DRender::QParameter *lightProbe2Properties = nullptr;
+    } iblProbeData;
 };
 
 Q_DECLARE_OPERATORS_FOR_FLAGS(Q3DSLayerAttached::SizeManagedTexture::Flags)
@@ -403,6 +418,12 @@ public:
     Q3DSTextureParameters lightmapIndirectParams;
     Q3DSTextureParameters lightmapRadiosityParams;
     Q3DSTextureParameters lightmapShadowParams;
+    // IBL
+    QMetaObject::Connection updateOffsetConnection;
+    Qt3DRender::QTextureLoader *lightProbeOverrideTexture = nullptr;
+    Qt3DRender::QParameter *lightProbeSampler = nullptr;
+    Qt3DRender::QParameter *lightProbeRotation = nullptr;
+    Qt3DRender::QParameter *lightProbeOffset = nullptr;
 };
 
 struct Q3DSCustomPropertyParameter {
@@ -429,6 +450,13 @@ public:
     Q3DSTextureParameters lightmapIndirectParams;
     Q3DSTextureParameters lightmapRadiosityParams;
     Q3DSTextureParameters lightmapShadowParams;
+
+    // IBL
+    QMetaObject::Connection updateOffsetConnection;
+    Qt3DRender::QTextureLoader *lightProbeOverrideTexture = nullptr;
+    Qt3DRender::QParameter *lightProbeSampler = nullptr;
+    Qt3DRender::QParameter *lightProbeRotation = nullptr;
+    Qt3DRender::QParameter *lightProbeOffset = nullptr;
 };
 
 class Q3DSEffectAttached : public Q3DSGraphObjectAttached

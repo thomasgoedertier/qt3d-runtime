@@ -42,6 +42,7 @@
 //
 
 #include "q3dsscenemanager_p.h"
+#include "shadergenerator/q3dsshaderprogramgenerator_p.h"
 
 QT_BEGIN_NAMESPACE
 
@@ -59,6 +60,11 @@ public:
                                             const QVector<Q3DSLightNode *> &lights,
                                             Q3DSLayerNode *layer3DS,
                                             const Q3DSMaterial::Pass &pass);
+    static void fillFeatureSet(Q3DSShaderFeatureSet *features,
+                               Q3DSLayerNode *layer3DS,
+                               Q3DSCustomMaterialInstance *material = nullptr,
+                               Q3DSReferencedMaterial *referencedMaterial = nullptr);
+
 };
 
 QT_END_NAMESPACE

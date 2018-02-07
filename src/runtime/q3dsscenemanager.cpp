@@ -1512,6 +1512,12 @@ static void setClearColorForClearBuffers(Qt3DRender::QClearBuffers *clearBuffers
     }
 }
 
+namespace  {
+qreal qLog2(qreal x) {
+    return qLn(x) / 0.693147180559945309417;
+}
+}
+
 // non-size-dependent properties
 void Q3DSSceneManager::setLayerProperties(Q3DSLayerNode *layer3DS)
 {
@@ -1523,6 +1529,119 @@ void Q3DSSceneManager::setLayerProperties(Q3DSLayerNode *layer3DS)
 
     if (data->compositorEntity) // may not exist if this is still buildLayer()
         data->compositorEntity->setEnabled(layer3DS->flags().testFlag(Q3DSNode::Active));
+
+    // IBL Probes
+    if (!data->iblProbeData.lightProbeProperties) {
+        data->iblProbeData.lightProbeProperties = new Qt3DRender::QParameter;
+        data->iblProbeData.lightProbeProperties->setName(QLatin1String("light_probe_props"));
+    }
+    if (!data->iblProbeData.lightProbe2Properties) {
+        data->iblProbeData.lightProbe2Properties = new Qt3DRender::QParameter;
+        data->iblProbeData.lightProbe2Properties->setName(QLatin1String("light_probe2_props"));
+    }
+    if (!data->iblProbeData.lightProbeOptions) {
+        data->iblProbeData.lightProbeOptions = new Qt3DRender::QParameter;
+        data->iblProbeData.lightProbeOptions->setName(QLatin1String("light_probe_opts"));
+
+    }
+    data->iblProbeData.lightProbeOptions->setValue(QVector4D(0.01745329251994329547f * layer3DS->probefov(), 0.0f, 0.0f, 0.0f));
+    if (layer3DS->lightProbe()) {
+        // initialize light probe parameters if necessary
+        if (!data->iblProbeData.lightProbeTexture) {
+            data->iblProbeData.lightProbeTexture = new Qt3DRender::QTextureLoader(m_rootEntity);
+            m_profiler->trackNewObject(data->iblProbeData.lightProbeTexture, Q3DSProfiler::TextureLoaderObject,
+                                       "iblProbe texture for image %s", layer3DS->lightProbe()->id().constData());
+        }
+        if (!data->iblProbeData.lightProbeSampler) {
+            data->iblProbeData.lightProbeSampler = new Qt3DRender::QParameter;
+            data->iblProbeData.lightProbeSampler->setName(QLatin1String("light_probe"));
+        }
+
+        if (!data->iblProbeData.lightProbeOffset) {
+            data->iblProbeData.lightProbeOffset = new Qt3DRender::QParameter;
+            data->iblProbeData.lightProbeOffset->setName(QLatin1String("light_probe_offset"));
+        }
+
+        if (!data->iblProbeData.lightProbeRotation) {
+            data->iblProbeData.lightProbeRotation = new Qt3DRender::QParameter;
+            data->iblProbeData.lightProbeRotation->setName(QLatin1String("light_probe_rotation"));
+        }
+
+        // Update light probe parameter values
+        data->iblProbeData.lightProbeTexture->setSource(QUrl::fromLocalFile(layer3DS->lightProbe()->sourcePath()));
+        data->iblProbeData.lightProbeSampler->setValue(QVariant::fromValue(data->iblProbeData.lightProbeTexture));
+
+        // Image probes force repeat for horizontal repeat
+        Qt3DRender::QTextureWrapMode wrapMode;
+        wrapMode.setX(Qt3DRender::QTextureWrapMode::Repeat);
+
+        switch (layer3DS->lightProbe()->verticalTiling()) {
+        case Q3DSImage::Tiled:
+            wrapMode.setY(Qt3DRender::QTextureWrapMode::Repeat);
+            break;
+        case Q3DSImage::Mirrored:
+            wrapMode.setY(Qt3DRender::QTextureWrapMode::MirroredRepeat);
+            break;
+        default:
+            wrapMode.setY(Qt3DRender::QTextureWrapMode::ClampToEdge);
+            break;
+        }
+
+        Qt3DRender::QAbstractTexture *texture = data->iblProbeData.lightProbeTexture;
+        texture->setGenerateMipMaps(true);
+        texture->setMagnificationFilter(Qt3DRender::QAbstractTexture::Linear);
+        texture->setMinificationFilter(Qt3DRender::QAbstractTexture::LinearMipMapLinear);
+        texture->setWrapMode(wrapMode);
+
+        const QMatrix4x4 &textureTransform = layer3DS->lightProbe()->textureTransform();
+        const float *m = textureTransform.constData();
+
+        // offsets.w = number of mipmaps
+        if (data->iblProbeData.updateOffsetsConnection)
+            QObject::disconnect(data->iblProbeData.updateOffsetsConnection);
+        data->iblProbeData.updateOffsetsConnection = QObject::connect(texture, &Qt3DRender::QAbstractTexture::widthChanged, [texture, m, data]() {
+           float mipLevels = float(qCeil(qLog2(qMax(texture->width(), texture->height()))) + 1);
+           QVector4D offsets(m[12], m[13], 0.0f, mipLevels);
+           data->iblProbeData.lightProbeOffset->setValue(offsets);
+        });
+
+        QVector4D rotations(m[0], m[4], m[1], m[5]);
+        data->iblProbeData.lightProbeRotation->setValue(rotations);
+
+        if (layer3DS->lightProbe2()) {
+            // Initialize light probe 2 parameters
+            if (!data->iblProbeData.lightProbe2Texture) {
+                data->iblProbeData.lightProbe2Texture = new Qt3DRender::QTextureLoader(m_rootEntity);
+                m_profiler->trackNewObject(data->iblProbeData.lightProbe2Texture, Q3DSProfiler::TextureLoaderObject,
+                                           "iblProbe2 texture for image %s", layer3DS->lightProbe2()->id().constData());
+            }
+
+            if (!data->iblProbeData.lightProbe2Sampler) {
+                data->iblProbeData.lightProbe2Sampler = new Qt3DRender::QParameter;
+                data->iblProbeData.lightProbe2Sampler->setName(QLatin1String("light_probe2"));
+            }
+
+            // Update light probe 2 parameter values
+            data->iblProbeData.lightProbe2Texture->setSource(QUrl::fromLocalFile(layer3DS->lightProbe2()->sourcePath()));
+            data->iblProbeData.lightProbe2Sampler->setValue(QVariant::fromValue(data->iblProbeData.lightProbe2Texture));
+
+            QVector4D probe2Props(layer3DS->probe2window(), layer3DS->probe2pos(), layer3DS->probe2fade(), 1.0f);
+            data->iblProbeData.lightProbe2Properties->setValue(probe2Props);
+            const QMatrix4x4 &textureTransform = layer3DS->lightProbe2()->textureTransform();
+            const float *m = textureTransform.constData();
+            QVector4D probeProps(m[12], m[13], layer3DS->probehorizon(), layer3DS->probebright() * 0.01f);
+            data->iblProbeData.lightProbeProperties->setValue(probeProps);
+        } else {
+            data->iblProbeData.lightProbe2Properties->setValue(QVector4D(0.0f, 0.0f, 0.0f, 0.0f));
+            data->iblProbeData.lightProbeProperties->setValue(QVector4D(0.0f, 0.0f, layer3DS->probehorizon(), layer3DS->probebright() * 0.01f));
+        }
+    } else {
+        // No light probes set
+        // Still need to setup some defaults since light probes can be set on
+        // individual materials
+        data->iblProbeData.lightProbeProperties->setValue(QVector4D(0.0f, 0.0f, -1.0f, 0.0f));
+        data->iblProbeData.lightProbe2Properties->setValue(QVector4D(0.0f, 0.0f, 0.0f, 0.0f));
+    }
 }
 
 Qt3DRender::QCamera *Q3DSSceneManager::buildCamera(Q3DSCameraNode *cam3DS, Q3DSLayerNode *layer3DS, Qt3DCore::QEntity *parent)
@@ -3780,6 +3899,25 @@ void Q3DSSceneManager::buildModelMaterial(Q3DSModelNode *model3DS)
 
                 addShadowSsaoParams(layerData, &params);
 
+                // Setup light probe parameters
+                if (defMatData->lightProbeOverrideTexture || modelData->layer3DS->lightProbe()) {
+                    // Always include probe properties
+                    params.append(layerData->iblProbeData.lightProbeProperties);
+                    params.append(layerData->iblProbeData.lightProbe2Properties);
+                    params.append(layerData->iblProbeData.lightProbeOptions);
+
+                    if (!defMatData->lightProbeOverrideTexture) {
+                        // There is no override (so provide everything)
+                        params.append(layerData->iblProbeData.lightProbeSampler);
+                        params.append(layerData->iblProbeData.lightProbeOffset);
+                        params.append(layerData->iblProbeData.lightProbeRotation);
+                    }
+
+                    if (modelData->layer3DS->lightProbe2()) {
+                        params.append(layerData->iblProbeData.lightProbe2Sampler);
+                    }
+                }
+
                 // Do not let the QMaterial own the (potentially not yet
                 // parented) QParameters. Parent them to some other QNode. This
                 // is important here due to rebuildModelMaterial() where
@@ -3820,6 +3958,25 @@ void Q3DSSceneManager::buildModelMaterial(Q3DSModelNode *model3DS)
                 params.append(layerData->areaLightsParam);
 
                 addShadowSsaoParams(layerData, &params);
+
+                // Setup light probe parameters
+                if (custMatData->lightProbeOverrideTexture || modelData->layer3DS->lightProbe()) {
+                    // Always include probe properties
+                    params.append(layerData->iblProbeData.lightProbeProperties);
+                    params.append(layerData->iblProbeData.lightProbe2Properties);
+                    params.append(layerData->iblProbeData.lightProbeOptions);
+
+                    if (!custMatData->lightProbeOverrideTexture) {
+                        // There is no override (so provide everything)
+                        params.append(layerData->iblProbeData.lightProbeSampler);
+                        params.append(layerData->iblProbeData.lightProbeOffset);
+                        params.append(layerData->iblProbeData.lightProbeRotation);
+                    }
+
+                    if (modelData->layer3DS->lightProbe2()) {
+                        params.append(layerData->iblProbeData.lightProbe2Sampler);
+                    }
+                }
 
                 // Like for the default material, be careful with the parent.
                 for (Qt3DRender::QParameter *param : params)
@@ -4162,6 +4319,29 @@ QVector<Qt3DRender::QParameter *> Q3DSSceneManager::prepareDefaultMaterial(Q3DSD
         static_cast<Q3DSImageAttached *>(lightmapShadow->attached())->referencingDefaultMaterials.insert(m);
     }
 
+    // IBL
+    Q3DSImage *iblOverrideImage = nullptr;
+    if (rm && rm->lightProbe())
+        iblOverrideImage = rm->lightProbe();
+    else if (m->lightProbe())
+        iblOverrideImage = m->lightProbe();
+    if (iblOverrideImage) {
+        data->lightProbeOverrideTexture = new Qt3DRender::QTextureLoader(m_rootEntity);
+        m_profiler->trackNewObject(data->lightProbeOverrideTexture, Q3DSProfiler::TextureLoaderObject,
+                                   "Texture for image %s", iblOverrideImage->id().constData());
+        data->lightProbeSampler = new Qt3DRender::QParameter;
+        data->lightProbeSampler->setName(QLatin1String("light_probe"));
+        params.append(data->lightProbeSampler);
+
+        data->lightProbeRotation = new Qt3DRender::QParameter;
+        data->lightProbeRotation->setName(QLatin1String("light_probe_rotation"));
+        params.append(data->lightProbeRotation);
+
+        data->lightProbeOffset = new Qt3DRender::QParameter;
+        data->lightProbeOffset->setName(QLatin1String("light_probe_offset"));
+        params.append(data->lightProbeOffset);
+    }
+
     return params;
 }
 
@@ -4265,6 +4445,54 @@ void Q3DSSceneManager::updateDefaultMaterial(Q3DSDefaultMaterial *m, Q3DSReferen
         lightmapShadow = m->lightmapShadowMap();
     if (lightmapShadow)
         updateTextureParameters(data->lightmapShadowParams, lightmapShadow);
+
+    // IBL Override
+    Q3DSImage *iblOverride = nullptr;
+    if (rm && rm->lightProbe())
+        iblOverride = rm->lightProbe();
+    else if (m->lightProbe())
+        iblOverride = m->lightProbe();
+
+    // IBL
+    if (iblOverride) {
+        data->lightProbeOverrideTexture->setSource(QUrl::fromLocalFile(iblOverride->sourcePath()));
+        data->lightProbeSampler->setValue(QVariant::fromValue(data->lightProbeOverrideTexture));
+
+        Qt3DRender::QTextureWrapMode wrapMode;
+        wrapMode.setX(Qt3DRender::QTextureWrapMode::Repeat);
+        switch (iblOverride->verticalTiling()) {
+        case Q3DSImage::Tiled:
+            wrapMode.setY(Qt3DRender::QTextureWrapMode::Repeat);
+            break;
+        case Q3DSImage::Mirrored:
+            wrapMode.setY(Qt3DRender::QTextureWrapMode::MirroredRepeat);
+            break;
+        default:
+            wrapMode.setY(Qt3DRender::QTextureWrapMode::ClampToEdge);
+            break;
+        }
+
+        Q_ASSERT(data->lightProbeOverrideTexture);
+        data->lightProbeOverrideTexture->setGenerateMipMaps(true);
+        data->lightProbeOverrideTexture->setMagnificationFilter(Qt3DRender::QAbstractTexture::Linear);
+        data->lightProbeOverrideTexture->setMinificationFilter(Qt3DRender::QAbstractTexture::LinearMipMapLinear);
+        data->lightProbeOverrideTexture->setWrapMode(wrapMode);
+
+        const QMatrix4x4 &textureTransform = iblOverride->textureTransform();
+        const float *m = textureTransform.constData();
+
+        // offsets.w = number of mipmaps
+        if (data->updateOffsetConnection)
+            QObject::disconnect(data->updateOffsetConnection);
+        data->updateOffsetConnection = QObject::connect(data->lightProbeOverrideTexture, &Qt3DRender::QAbstractTexture::widthChanged, [m, data]() {
+            float mipLevels = float(qCeil(qLog2(qMax(data->lightProbeOverrideTexture->width(), data->lightProbeOverrideTexture->height()))) + 1);
+            QVector4D offsets(m[12], m[13], 0.0f, mipLevels);
+            data->lightProbeOffset->setValue(offsets);
+        });
+
+        QVector4D rotations(m[0], m[4], m[1], m[5]);
+        data->lightProbeRotation->setValue(rotations);
+    }
 }
 
 typedef std::function<void(const QString &, const QVariant &, const Q3DSMaterial::PropertyElement &)> CustomPropertyCallback;
@@ -4409,6 +4637,29 @@ QVector<Qt3DRender::QParameter *> Q3DSSceneManager::prepareCustomMaterial(Q3DSCu
         paramList.append(data->lightmapShadowParams.parameters());
     }
 
+    // IBL
+    Q3DSImage *iblOverrideImage = nullptr;
+    if (rm && rm->lightProbe())
+        iblOverrideImage = rm->lightProbe();
+    else if (m->lightProbe())
+        iblOverrideImage = m->lightProbe();
+    if (iblOverrideImage) {
+        data->lightProbeOverrideTexture = new Qt3DRender::QTextureLoader(m_rootEntity);
+        m_profiler->trackNewObject(data->lightProbeOverrideTexture, Q3DSProfiler::TextureLoaderObject,
+                                   "Texture for image %s", iblOverrideImage->id().constData());
+        data->lightProbeSampler = new Qt3DRender::QParameter;
+        data->lightProbeSampler->setName(QLatin1String("light_probe"));
+        paramList.append(data->lightProbeSampler);
+
+        data->lightProbeRotation = new Qt3DRender::QParameter;
+        data->lightProbeRotation->setName(QLatin1String("light_probe_rotation"));
+        paramList.append(data->lightProbeRotation);
+
+        data->lightProbeOffset = new Qt3DRender::QParameter;
+        data->lightProbeOffset->setName(QLatin1String("light_probe_offset"));
+        paramList.append(data->lightProbeOffset);
+    }
+
     return paramList;
 }
 
@@ -4468,6 +4719,54 @@ void Q3DSSceneManager::updateCustomMaterial(Q3DSCustomMaterialInstance *m, Q3DSR
     if (lightmapShadow)
         updateTextureParameters(data->lightmapShadowParams, lightmapShadow);
 
+    // IBL Override
+    Q3DSImage *iblOverride = nullptr;
+    if (rm && rm->lightProbe())
+        iblOverride = rm->lightProbe();
+    else if (m->lightProbe())
+        iblOverride = m->lightProbe();
+
+    // IBL
+    if (iblOverride) {
+        data->lightProbeOverrideTexture->setSource(QUrl::fromLocalFile(iblOverride->sourcePath()));
+        data->lightProbeSampler->setValue(QVariant::fromValue(data->lightProbeOverrideTexture));
+
+        Qt3DRender::QTextureWrapMode wrapMode;
+        wrapMode.setX(Qt3DRender::QTextureWrapMode::Repeat);
+
+        switch (iblOverride->verticalTiling()) {
+        case Q3DSImage::Tiled:
+            wrapMode.setY(Qt3DRender::QTextureWrapMode::Repeat);
+            break;
+        case Q3DSImage::Mirrored:
+            wrapMode.setY(Qt3DRender::QTextureWrapMode::MirroredRepeat);
+            break;
+        default:
+            wrapMode.setY(Qt3DRender::QTextureWrapMode::ClampToEdge);
+            break;
+        }
+
+        Q_ASSERT(data->lightProbeOverrideTexture);
+        data->lightProbeOverrideTexture->setGenerateMipMaps(true);
+        data->lightProbeOverrideTexture->setMagnificationFilter(Qt3DRender::QAbstractTexture::Linear);
+        data->lightProbeOverrideTexture->setMinificationFilter(Qt3DRender::QAbstractTexture::LinearMipMapLinear);
+        data->lightProbeOverrideTexture->setWrapMode(wrapMode);
+
+        const QMatrix4x4 &textureTransform = iblOverride->textureTransform();
+        const float *m = textureTransform.constData();
+
+        // offsets.w = number of mipmaps
+        if (data->updateOffsetConnection)
+            QObject::disconnect(data->updateOffsetConnection);
+        data->updateOffsetConnection = QObject::connect(data->lightProbeOverrideTexture, &Qt3DRender::QAbstractTexture::widthChanged, [m, data]() {
+           float mipLevels = float(qCeil(qLog2(qMax(data->lightProbeOverrideTexture->width(), data->lightProbeOverrideTexture->height()))) + 1);
+           QVector4D offsets(m[12], m[13], 0.0f, mipLevels);
+           data->lightProbeOffset->setValue(offsets);
+        });
+
+        QVector4D rotations(m[0], m[4], m[1], m[5]);
+        data->lightProbeRotation->setValue(rotations);
+    }
 }
 
 void Q3DSSceneManager::buildEffect(Q3DSEffectInstance *eff3DS, Q3DSLayerNode *layer3DS)

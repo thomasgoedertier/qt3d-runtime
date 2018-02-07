@@ -63,7 +63,10 @@ public:
 
     static void addDefaultApiFilter(Qt3DRender::QTechnique *technique, bool *isGLES = nullptr);
     static bool hasCompute();
-    static void fillFeatureSet(Q3DSShaderFeatureSet *features, Q3DSLayerAttached *layerData);
+    static void fillFeatureSet(Q3DSShaderFeatureSet *features,
+                               Q3DSLayerNode *layer3DS,
+                               Q3DSDefaultMaterial *material = nullptr,
+                               Q3DSReferencedMaterial *referencedMaterial = nullptr);
 };
 
 QT_END_NAMESPACE

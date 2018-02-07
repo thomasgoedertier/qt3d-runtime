@@ -585,6 +585,9 @@ struct ShaderGenerator : public Q3DSDefaultMaterialShaderGenerator
                 enableSSDO = featureSet()[idx].m_enabled;
             else if (name == QStringLiteral("QT3DS_ENABLE_SSM"))
                 enableShadowMaps = featureSet()[idx].m_enabled;
+            else if (name == QStringLiteral("QT3DS_ENABLE_LIGHT_PROBE") ||
+                     name == QStringLiteral("QT3DS_ENABLE_LIGHT_PROBE_2"))
+                hasIblProbe = true;
         }
 
         bool includeSSAOSSDOVars = enableSSAO || enableSSDO || enableShadowMaps || bumpImage != nullptr || normalImage != nullptr;

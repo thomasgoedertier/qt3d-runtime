@@ -103,7 +103,7 @@ Qt3DRender::QMaterial *Q3DSDefaultMaterialGenerator::generateMaterial(Q3DSDefaul
     Q_ASSERT(layerData);
 
     Q3DSShaderFeatureSet features;
-    fillFeatureSet(&features, layerData);
+    fillFeatureSet(&features, layer3DS, defaultMaterial, referencedMaterial);
 
     Qt3DRender::QShaderProgram *shaderProgram = Q3DSShaderManager::instance().generateShaderProgram(*defaultMaterial,
                                                                                                     referencedMaterial,
@@ -169,12 +169,35 @@ bool Q3DSDefaultMaterialGenerator::hasCompute()
         return format.version() >= qMakePair(4, 3);
 }
 
-void Q3DSDefaultMaterialGenerator::fillFeatureSet(Q3DSShaderFeatureSet *features, Q3DSLayerAttached *layerData)
+void Q3DSDefaultMaterialGenerator::fillFeatureSet(Q3DSShaderFeatureSet *features,
+                                                  Q3DSLayerNode *layer3DS,
+                                                  Q3DSDefaultMaterial *material,
+                                                  Q3DSReferencedMaterial *referencedMaterial)
 {
+    Q3DSLayerAttached *layerData = static_cast<Q3DSLayerAttached *>(layer3DS->attached());
+    Q_ASSERT(layerData);
+
+    // Figure out if IBL data has been set
+    bool enableLightProbe = false;
+    bool enableLightProbe2 = false;
+    bool enableIblFov = false;
+
+    // Check Layer
+    if (layer3DS->lightProbe())
+        enableLightProbe = true;
+    if (layer3DS->lightProbe2())
+        enableLightProbe2 = true;
+    if (layer3DS->probefov() < 180.0f && enableLightProbe)
+        enableIblFov = true;
+
+    // Check for Override in material or referenced material
+    if (material->lightProbe() || (referencedMaterial && referencedMaterial->lightProbe()))
+        enableLightProbe = true;
+
     features->append(Q3DSShaderPreprocessorFeature(QLatin1String("QT3DS_ENABLE_CG_LIGHTING"), true));
-    features->append(Q3DSShaderPreprocessorFeature(QLatin1String("QT3DS_ENABLE_IBL_FOV"), false));
-    features->append(Q3DSShaderPreprocessorFeature(QLatin1String("QT3DS_ENABLE_LIGHT_PROBE"), false));
-    features->append(Q3DSShaderPreprocessorFeature(QLatin1String("QT3DS_ENABLE_LIGHT_PROBE_2"), false));
+    features->append(Q3DSShaderPreprocessorFeature(QLatin1String("QT3DS_ENABLE_IBL_FOV"), enableIblFov));
+    features->append(Q3DSShaderPreprocessorFeature(QLatin1String("QT3DS_ENABLE_LIGHT_PROBE"), enableLightProbe));
+    features->append(Q3DSShaderPreprocessorFeature(QLatin1String("QT3DS_ENABLE_LIGHT_PROBE_2"), enableLightProbe2));
     features->append(Q3DSShaderPreprocessorFeature(QLatin1String("QT3DS_ENABLE_SSDO"), false));
     features->append(Q3DSShaderPreprocessorFeature(QLatin1String("QT3DS_ENABLE_SSM"), !layerData->shadowMapData.shadowCasters.isEmpty()));
     features->append(Q3DSShaderPreprocessorFeature(QLatin1String("QT3DS_ENABLE_SSAO"), layerData->ssaoTextureData.enabled));
