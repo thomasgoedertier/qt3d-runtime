@@ -59,6 +59,10 @@ Rectangle {
     id: root
     color: "lightGray"
 
+    MessageDialog {
+        id: errorDialog
+    }
+
     Studio3D {
         id: s3d
         focus: true
@@ -68,6 +72,29 @@ Rectangle {
             id: s3dpres
             source: "qrc:/presentation/barrel.uip"
         }
+        ignoredEvents: mouseEvCb.checked ? Studio3D.EnableAllEvents : (Studio3D.IgnoreMouseEvents | Studio3D.IgnoreWheelEvents)
+        onRunningChanged: console.log("running: " + s3d.running)
+        onPresentationReady: console.log("presentationReady")
+        onErrorChanged: {
+            if (s3d.error !== "") {
+                errorDialog.text = s3d.error;
+                errorDialog.open();
+            }
+        }
+
+        property int frameCount: 0
+        onFrameUpdate: frameCount += 1
+
+        Timer {
+            running: true
+            repeat: true
+            interval: 1000
+            onTriggered: {
+                fpsCount.text = "~" + s3d.frameCount + " FPS";
+                s3d.frameCount = 0;
+            }
+        }
+
         NumberAnimation on opacity {
             id: opacityAnimation
             from: 1
@@ -111,12 +138,24 @@ Rectangle {
             text: "Open"
             onClicked: openDialog.open()
         }
+        CheckBox {
+            id: mouseEvCb
+            text: "Let mouse events through"
+            checked: true
+        }
+    }
+
+    Text {
+        id: fpsCount
+        text: "0 FPS"
+        anchors.bottom: parent.bottom
+        anchors.left: parent.left
     }
 
     FileDialog {
         id: openDialog
         fileMode: FileDialog.OpenFile
-        nameFilters: ["UIP files (*.uip)", "UIA files (*.uia)"]
+        nameFilters: ["UIP files (*.uip)", "UIA files (*.uia)", "All files (*)"]
         onAccepted: s3dpres.source = file
     }
 }

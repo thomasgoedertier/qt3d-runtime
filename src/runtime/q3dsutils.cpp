@@ -35,6 +35,7 @@
 QT_BEGIN_NAMESPACE
 
 static bool q3ds_dialogsEnabled = true;
+static Q3DSUtilsMessageRedirect *q3ds_msgRedirect = nullptr;
 
 // autotests will not want to pop up message boxes, obviously
 void Q3DSUtils::setDialogsEnabled(bool enable)
@@ -42,11 +43,37 @@ void Q3DSUtils::setDialogsEnabled(bool enable)
     q3ds_dialogsEnabled = enable;
 }
 
+Q3DSUtilsMessageRedirect::Q3DSUtilsMessageRedirect(QString *dst)
+    : m_dst(dst)
+{
+    if (m_dst)
+        setEnabled(true);
+}
+
+Q3DSUtilsMessageRedirect::~Q3DSUtilsMessageRedirect()
+{
+    if (q3ds_msgRedirect == this)
+        setEnabled(false);
+}
+
+void Q3DSUtilsMessageRedirect::setEnabled(bool enable)
+{
+    q3ds_msgRedirect = enable ? this : nullptr;
+}
+
 void Q3DSUtils::showMessage(const QString &msg)
 {
     qWarning("%s", qPrintable(msg));
-    if (q3ds_dialogsEnabled)
+    if (q3ds_msgRedirect) {
+        QString *s = q3ds_msgRedirect->destination();
+        if (s) {
+            if (!s->isEmpty())
+                *s += QLatin1Char('\n');
+            *s += msg;
+        }
+    } else if (q3ds_dialogsEnabled) {
         QMessageBox::information(nullptr, QObject::tr("Viewer"), msg);
+    }
 }
 
 QString Q3DSUtils::getInput(const QString &msg)

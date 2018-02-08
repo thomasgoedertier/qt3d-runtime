@@ -300,12 +300,17 @@ void Q3DSEngine::setFlag(Flag flag, bool enabled)
     m_flags.setFlag(flag, enabled);
 }
 
-bool Q3DSEngine::setSource(const QString &uipOrUiaFileName)
+bool Q3DSEngine::setSource(const QString &uipOrUiaFileName, QString *error)
 {
     if (!m_surface) {
         Q3DSUtils::showMessage(tr("setSource: Cannot be called without setSurface"));
         return false;
     }
+
+    // What we want from Q3DSUtils::showMessage() is to do a qWarning and then
+    // collect the string in 'error' as well. No dialog boxes.
+    // Except that error == null should still lead to the default behavior.
+    Q3DSUtilsMessageRedirect msgRedir(error);
 
     m_sourceLoadTimer.start();
 
@@ -353,12 +358,14 @@ bool Q3DSEngine::setSource(const QString &uipOrUiaFileName)
     return loadPresentations();
 }
 
-bool Q3DSEngine::setDocument(const Q3DSUipDocument &uipDocument)
+bool Q3DSEngine::setDocument(const Q3DSUipDocument &uipDocument, QString *error)
 {
     if (!m_surface) {
         Q3DSUtils::showMessage(tr("setDocument: Cannot be called without setSurface"));
         return false;
     }
+
+    Q3DSUtilsMessageRedirect msgRedir(error);
 
     m_sourceLoadTimer.start();
 
@@ -382,12 +389,14 @@ bool Q3DSEngine::setDocument(const Q3DSUipDocument &uipDocument)
     return false;
 }
 
-bool Q3DSEngine::setDocument(const Q3DSUiaDocument &uiaDocument)
+bool Q3DSEngine::setDocument(const Q3DSUiaDocument &uiaDocument, QString *error)
 {
     if (!m_surface) {
         Q3DSUtils::showMessage(tr("setDocument: Cannot be called without setSurface"));
         return false;
     }
+
+    Q3DSUtilsMessageRedirect msgRedir(error);
 
     m_sourceLoadTimer.start();
 

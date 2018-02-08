@@ -48,14 +48,14 @@
 **
 ****************************************************************************/
 
-#include <QtGui/QGuiApplication>
+#include <QtWidgets/QApplication> // for MessageDialog
 #include <QtQuick/QQuickView>
 #include <q3dsruntimeglobal.h>
 
 int main(int argc, char *argv[])
 {
     qputenv("QSG_INFO", "1");
-    QGuiApplication app(argc, argv);
+    QApplication app(argc, argv);
     QSurfaceFormat::setDefaultFormat(Q3DS::surfaceFormat());
 
     QQuickView viewer;

@@ -54,9 +54,11 @@ Q3DSStudio3DItem::Q3DSStudio3DItem(QQuickItem *parent)
     : QQuickItem(parent)
 {
     setFlag(QQuickItem::ItemHasContents, true);
-    setAcceptedMouseButtons(Qt::MouseButtonMask);
-    setAcceptHoverEvents(true);
+
+    // not strictly needed since we'll use Q3DSUtilsMessageRedirect but just in case
     Q3DSUtils::setDialogsEnabled(false);
+
+    updateEventMasks();
 }
 
 Q3DSStudio3DItem::~Q3DSStudio3DItem()
@@ -66,6 +68,42 @@ Q3DSStudio3DItem::~Q3DSStudio3DItem()
 Q3DSPresentationItem *Q3DSStudio3DItem::presentation() const
 {
     return m_presentation;
+}
+
+bool Q3DSStudio3DItem::isRunning() const
+{
+    return m_running;
+}
+
+QString Q3DSStudio3DItem::error() const
+{
+    return m_error;
+}
+
+Q3DSStudio3DItem::EventIgnoreFlags Q3DSStudio3DItem::ignoredEvents() const
+{
+    return m_eventIgnoreFlags;
+}
+
+void Q3DSStudio3DItem::setIgnoredEvents(EventIgnoreFlags flags)
+{
+    if (m_eventIgnoreFlags == flags)
+        return;
+
+    m_eventIgnoreFlags = flags;
+    updateEventMasks();
+    emit ignoredEventsChanged();
+}
+
+void Q3DSStudio3DItem::updateEventMasks()
+{
+    if (m_eventIgnoreFlags.testFlag(IgnoreMouseEvents)) {
+        setAcceptedMouseButtons(Qt::NoButton);
+        setAcceptHoverEvents(false);
+    } else {
+        setAcceptedMouseButtons(Qt::MouseButtonMask);
+        setAcceptHoverEvents(true);
+    }
 }
 
 void Q3DSStudio3DItem::componentComplete()
@@ -188,6 +226,17 @@ void Q3DSStudio3DItem::createEngine()
         }
 
         qCDebug(lcStudio3D, "created engine %p", m_engine);
+
+        connect(m_engine, &Q3DSEngine::presentationLoaded, this, [this]() {
+            if (!m_running) {
+                m_running = true;
+                emit runningChanged();
+            }
+            emit presentationReady();
+        });
+        connect(m_engine, &Q3DSEngine::nextFrameStarting, this, [this]() {
+            emit frameUpdate();
+        });
     }
 
     const QString fn = QQmlFile::urlToLocalFileOrQrc(m_source);
@@ -196,7 +245,18 @@ void Q3DSStudio3DItem::createEngine()
     if (!sz.isEmpty())
         m_engine->resize(sz);
 
-    m_engine->setSource(fn);
+    QString err;
+    m_sourceLoaded = m_engine->setSource(fn, &err);
+    if (m_sourceLoaded) {
+        if (!m_error.isEmpty()) {
+            m_error.clear();
+            emit errorChanged();
+        }
+    } else {
+        qWarning("Studio3D: Failed to load %s\n%s", qPrintable(fn), qPrintable(err));
+        m_error = err;
+        emit errorChanged();
+    }
 
     if (!sz.isEmpty())
         sendResizeToQt3D(sz);
@@ -209,9 +269,9 @@ void Q3DSStudio3DItem::createEngine()
 QSGNode *Q3DSStudio3DItem::updatePaintNode(QSGNode *node, QQuickItem::UpdatePaintNodeData *)
 {
     // this on the render thread; the engine lives on the gui thread and should
-    // be ready at this point - unless there's no source set yet
+    // be ready at this point - unless there's no source set yet (or it failed)
 
-    if (!m_engine) {
+    if (!m_engine || !m_sourceLoaded) {
         delete node;
         return nullptr;
     }
@@ -264,6 +324,10 @@ void Q3DSStudio3DItem::destroyEngine()
         qCDebug(lcStudio3D, "destroying engine %p", m_engine);
         delete m_engine; // recreate on next window change - if we are still around, that is
         m_engine = nullptr;
+        if (m_running) {
+            m_running = false;
+            emit runningChanged();
+        }
     }
 }
 
@@ -276,6 +340,10 @@ public:
     ~EngineReleaser() {
         qCDebug(lcStudio3D, "async release: destroying engine %p", m_engine);
         delete m_engine;
+
+        // Here the destruction of the old engine and the creation of a new one
+        // will overlap (if the item survives, that is). So don't bother with
+        // m_running.
     }
 
 private:
@@ -355,43 +423,53 @@ void Q3DSStudio3DItem::sendResizeToQt3D(const QSize &size)
 
 void Q3DSStudio3DItem::keyPressEvent(QKeyEvent *event)
 {
-    m_engine->handleKeyPressEvent(event);
+    if (!m_eventIgnoreFlags.testFlag(IgnoreKeyboardEvents))
+        m_engine->handleKeyPressEvent(event);
 }
 
 void Q3DSStudio3DItem::keyReleaseEvent(QKeyEvent *event)
 {
-    m_engine->handleKeyReleaseEvent(event);
+    if (!m_eventIgnoreFlags.testFlag(IgnoreKeyboardEvents))
+        m_engine->handleKeyReleaseEvent(event);
 }
 
 void Q3DSStudio3DItem::mousePressEvent(QMouseEvent *event)
 {
-    m_engine->handleMousePressEvent(event);
+    if (!m_eventIgnoreFlags.testFlag(IgnoreMouseEvents))
+        m_engine->handleMousePressEvent(event);
 }
 
 void Q3DSStudio3DItem::mouseMoveEvent(QMouseEvent *event)
 {
-    m_engine->handleMouseMoveEvent(event);
+    if (!m_eventIgnoreFlags.testFlag(IgnoreMouseEvents))
+        m_engine->handleMouseMoveEvent(event);
 }
 
 void Q3DSStudio3DItem::mouseReleaseEvent(QMouseEvent *event)
 {
-    m_engine->handleMouseReleaseEvent(event);
+    if (!m_eventIgnoreFlags.testFlag(IgnoreMouseEvents))
+        m_engine->handleMouseReleaseEvent(event);
 }
 
 void Q3DSStudio3DItem::mouseDoubleClickEvent(QMouseEvent *event)
 {
-    m_engine->handleMouseDoubleClickEvent(event);
+    if (!m_eventIgnoreFlags.testFlag(IgnoreMouseEvents))
+        m_engine->handleMouseDoubleClickEvent(event);
 }
 
 #if QT_CONFIG(wheelevent)
 void Q3DSStudio3DItem::wheelEvent(QWheelEvent *event)
 {
-    m_engine->handleWheelEvent(event);
+    if (!m_eventIgnoreFlags.testFlag(IgnoreWheelEvents))
+        m_engine->handleWheelEvent(event);
 }
 #endif
 
 void Q3DSStudio3DItem::hoverMoveEvent(QHoverEvent *event)
 {
+    if (m_eventIgnoreFlags.testFlag(IgnoreMouseEvents))
+        return;
+
     // Simulate the QWindow behavior, which means sending moves even when no
     // button is down. The profile ui for example depends on this.
 

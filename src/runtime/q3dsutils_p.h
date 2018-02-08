@@ -48,6 +48,17 @@ QT_BEGIN_NAMESPACE
 
 class Q3DSGraphObject;
 
+class Q3DSUtilsMessageRedirect
+{
+public:
+    Q3DSUtilsMessageRedirect(QString *dst);
+    ~Q3DSUtilsMessageRedirect();
+    QString *destination() const { return m_dst; }
+private:
+    void setEnabled(bool enable);
+    QString *m_dst;
+};
+
 class Q3DSV_PRIVATE_EXPORT Q3DSUtils
 {
 public:

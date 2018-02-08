@@ -87,14 +87,14 @@ public:
     void setFlag(Flag flag, bool enabled);
 
     // Load presentation from a uip/uia file.
-    bool setSource(const QString &uipOrUiaFileName);
+    bool setSource(const QString &uipOrUiaFileName, QString *error = nullptr);
     QString source() const;
 
     // Load presentation from a uip document object.
-    bool setDocument(const Q3DSUipDocument &uipDocument);
+    bool setDocument(const Q3DSUipDocument &uipDocument, QString *error = nullptr);
 
     // Load presentation from a uia document object.
-    bool setDocument(const Q3DSUiaDocument &uiaDocument);
+    bool setDocument(const Q3DSUiaDocument &uiaDocument, QString *error = nullptr);
 
     qint64 totalLoadTimeMsecs() const;
 

@@ -54,12 +54,37 @@ class Q3DSStudio3DItem : public QQuickItem, public Q3DSPresentationController
 {
     Q_OBJECT
     Q_PROPERTY(Q3DSPresentationItem *presentation READ presentation CONSTANT)
+    Q_PROPERTY(bool running READ isRunning NOTIFY runningChanged)
+    Q_PROPERTY(QString error READ error NOTIFY errorChanged)
+    Q_PROPERTY(EventIgnoreFlags ignoredEvents READ ignoredEvents WRITE setIgnoredEvents NOTIFY ignoredEventsChanged)
 
 public:
+    enum EventIgnoreFlag {
+        EnableAllEvents = 0,
+        IgnoreMouseEvents = 0x01,
+        IgnoreWheelEvents = 0x02,
+        IgnoreKeyboardEvents = 0x04,
+        IgnoreAllInputEvents = IgnoreMouseEvents | IgnoreWheelEvents | IgnoreKeyboardEvents
+    };
+    Q_DECLARE_FLAGS(EventIgnoreFlags, EventIgnoreFlag)
+    Q_FLAG(EventIgnoreFlags)
+
     explicit Q3DSStudio3DItem(QQuickItem *parent = 0);
     ~Q3DSStudio3DItem();
 
     Q3DSPresentationItem *presentation() const;
+    bool isRunning() const;
+    QString error() const;
+
+    EventIgnoreFlags ignoredEvents() const;
+    void setIgnoredEvents(EventIgnoreFlags flags);
+
+signals:
+    void runningChanged();
+    void errorChanged();
+    void ignoredEventsChanged();
+    void presentationReady();
+    void frameUpdate();
 
 private slots:
     void startEngine();
@@ -95,6 +120,7 @@ private:
 #endif
     void hoverMoveEvent(QHoverEvent *event) override;
 
+    void updateEventMasks();
     void createEngine();
     void sendResizeToQt3D(const QSize &size);
     void releaseEngineAndRenderer();
@@ -103,7 +129,13 @@ private:
     Q3DSStudio3DRenderer *m_renderer = nullptr;
     Q3DSEngine *m_engine = nullptr;
     QUrl m_source;
+    bool m_sourceLoaded = false;
+    bool m_running = false;
+    QString m_error;
+    EventIgnoreFlags m_eventIgnoreFlags;
 };
+
+Q_DECLARE_OPERATORS_FOR_FLAGS(Q3DSStudio3DItem::EventIgnoreFlags)
 
 QT_END_NAMESPACE
 
