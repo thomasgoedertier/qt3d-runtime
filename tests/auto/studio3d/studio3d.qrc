@@ -1,0 +1,6 @@
+<RCC>
+    <qresource prefix="/">
+        <file>data/primitives.uip</file>
+        <file>data/simple.qml</file>
+    </qresource>
+</RCC>

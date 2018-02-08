@@ -207,6 +207,13 @@ void Q3DSStudio3DItem::createEngine()
         QQuickWindow *w = window();
         Q_ASSERT(w);
 
+        if (w->rendererInterface()->graphicsApi() != QSGRendererInterface::OpenGL) {
+            qWarning("Studio3D: Qt Quick not running with OpenGL; this is not supported atm");
+            m_error = QLatin1String("Studio3D requires OpenGL");
+            emit errorChanged();
+            return;
+        }
+
         m_engine = new Q3DSEngine;
         // Rendering will be driven manually from the Quick render thread via the QRenderAspect.
         // We create the render aspect ourselves on the Quick render thread.
