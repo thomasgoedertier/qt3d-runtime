@@ -44,6 +44,14 @@
 class tst_Q3DSSlidePlayer : public QObject
 {
     Q_OBJECT
+    enum class Slide {
+        PlayToNext,
+        StopAtEnd,
+        PlayToPrevious,
+        Ping,
+        PingPong,
+        Looping
+    };
 
 public:
     tst_Q3DSSlidePlayer();
@@ -53,6 +61,7 @@ private Q_SLOTS:
     void cleanupTestCase();
 
     void tst_slideDeck();
+    void tst_playModes();
 
 private:
     Q3DSEngine *m_engine = nullptr;
@@ -63,10 +72,13 @@ private:
 
     // Slides
     // Presentation Slides
-    Q3DSSlide *m_presentationMasterSlide = nullptr;
-    Q3DSSlide *m_presentationSlide1 = nullptr;
-    Q3DSSlide *m_presentationSlide2 = nullptr;
-    Q3DSSlide *m_presentationSlide3 = nullptr;
+    Q3DSSlide *m_masterSlide = nullptr;
+    Q3DSSlide *m_playToNext = nullptr;
+    Q3DSSlide *m_stopAtEnd = nullptr;
+    Q3DSSlide *m_playToPrevious = nullptr;
+    Q3DSSlide *m_ping = nullptr;
+    Q3DSSlide *m_pingPong = nullptr;
+    Q3DSSlide *m_looping = nullptr;
 };
 
 tst_Q3DSSlidePlayer::tst_Q3DSSlidePlayer()
@@ -100,14 +112,20 @@ void tst_Q3DSSlidePlayer::initTestCase()
     m_scene = m_presentation->scene();
 
     // Presentation Slides
-    m_presentationMasterSlide = m_presentation->masterSlide();
-    QVERIFY(m_presentationMasterSlide->childCount() == 3);
-    m_presentationSlide1 = static_cast<Q3DSSlide *>(m_presentationMasterSlide->firstChild());
-    QVERIFY(m_presentationSlide1);
-    m_presentationSlide2 = static_cast<Q3DSSlide *>(m_presentationSlide1->nextSibling());
-    QVERIFY(m_presentationSlide2);
-    m_presentationSlide3 = static_cast<Q3DSSlide *>(m_presentationSlide2->nextSibling());
-    QVERIFY(m_presentationSlide3);
+    m_masterSlide = m_presentation->masterSlide();
+    QCOMPARE(m_masterSlide->childCount(), 6);
+    m_playToNext = static_cast<Q3DSSlide *>(m_masterSlide->firstChild());
+    QVERIFY(m_playToNext);
+    m_stopAtEnd = static_cast<Q3DSSlide *>(m_playToNext->nextSibling());
+    QVERIFY(m_stopAtEnd);
+    m_playToPrevious = static_cast<Q3DSSlide *>(m_stopAtEnd->nextSibling());
+    QVERIFY(m_playToPrevious);
+    m_ping = static_cast<Q3DSSlide *>(m_playToPrevious->nextSibling());
+    QVERIFY(m_ping);
+    m_pingPong = static_cast<Q3DSSlide *>(m_ping->nextSibling());
+    QVERIFY(m_pingPong);
+    m_looping = static_cast<Q3DSSlide *>(m_pingPong->nextSibling());
+    QVERIFY(m_looping);
 
     m_view->show();
     QVERIFY(QTest::qWaitForWindowExposed(m_view));
@@ -121,30 +139,145 @@ void tst_Q3DSSlidePlayer::cleanupTestCase()
 
 void tst_Q3DSSlidePlayer::tst_slideDeck()
 {
-    Q3DSSlideDeck slideDeck(m_presentationMasterSlide);
-    QVERIFY(slideDeck.slideCount() == 3);
-    QVERIFY(!slideDeck.isEmpty());
-    QVERIFY(slideDeck.currentSlide() == m_presentationSlide1);
-    QVERIFY(slideDeck.nextSlide() == m_presentationSlide2);
-    QVERIFY(slideDeck.currentSlide() == m_presentationSlide2);
-    QVERIFY(slideDeck.nextSlide() == m_presentationSlide3);
-    QVERIFY(slideDeck.currentSlide() == m_presentationSlide3);
-    QVERIFY(slideDeck.nextSlide() == nullptr); // No further slides, current slide is unchanged
-    QVERIFY(slideDeck.currentSlide() == m_presentationSlide3);
 
-    slideDeck.setCurrentSlide(0);
-    QVERIFY(slideDeck.currentSlide() == m_presentationSlide1);
-    slideDeck.setCurrentSlide(2);
-    QVERIFY(slideDeck.currentSlide() == m_presentationSlide3);
-    slideDeck.setCurrentSlide(-1); // Invalid, should not change the current slide
-    QVERIFY(slideDeck.currentSlide() == m_presentationSlide3);
+}
 
-    QVERIFY(slideDeck.previousSlide() == m_presentationSlide2);
-    QVERIFY(slideDeck.currentSlide() == m_presentationSlide2);
-    QVERIFY(slideDeck.previousSlide() == m_presentationSlide1);
-    QVERIFY(slideDeck.currentSlide() == m_presentationSlide1);
-    QVERIFY(slideDeck.previousSlide() == nullptr); // No further slides, current slide is unchanged
-    QVERIFY(slideDeck.currentSlide() == m_presentationSlide1);
+void tst_Q3DSSlidePlayer::tst_playModes()
+{
+    Q3DSSlidePlayer *player = m_sceneManager->slidePlayer();
+    QVERIFY(player);
+    struct LoopCounter
+    {
+        int counter = 0;
+        int pingPong = 0;
+        bool started = false;
+        void reset() { counter = 0; pingPong = 0; started = false; }
+    } loopCounter;
+
+    connect(player, &Q3DSSlidePlayer::positionChanged, [&loopCounter](float pos) {
+        if (loopCounter.started && (pos == 1.0f))
+            ++loopCounter.counter;
+        if (loopCounter.started && (pos == 0.0f))
+            ++loopCounter.pingPong;
+
+        if (!loopCounter.started)
+            loopCounter.started = true;
+    });
+    QSignalSpy slideChangedSpy(player, &Q3DSSlidePlayer::slideChanged);
+    QSignalSpy stateChangeSpy(player, &Q3DSSlidePlayer::stateChanged);
+
+    // PLAY TO NEXT
+    player->stop();
+    QTRY_COMPARE(player->state(), Q3DSSlidePlayer::PlayerState::Stopped);
+
+    stateChangeSpy.clear();
+    slideChangedSpy.clear();
+
+    player->slideDeck()->setCurrentSlide(int(Slide::PlayToNext));
+    player->play();
+    QTRY_COMPARE(player->state(), Q3DSSlidePlayer::PlayerState::Playing);
+    QTRY_COMPARE(player->state(), Q3DSSlidePlayer::PlayerState::Stopped);
+
+    // Stopped -> playing -> stopped
+    QCOMPARE(stateChangeSpy.count(), 2);
+    QCOMPARE(slideChangedSpy.count(), 1);
+    QCOMPARE(player->slideDeck()->currentSlide(), m_stopAtEnd);
+
+    // STOP AT END
+    player->stop();
+    QTRY_COMPARE(player->state(), Q3DSSlidePlayer::PlayerState::Stopped);
+
+    stateChangeSpy.clear();
+    slideChangedSpy.clear();
+
+    player->slideDeck()->setCurrentSlide(int(Slide::StopAtEnd));
+    player->play();
+    QTRY_COMPARE(player->state(), Q3DSSlidePlayer::PlayerState::Playing);
+    QTRY_COMPARE(player->state(), Q3DSSlidePlayer::PlayerState::Stopped);
+
+    // Stopped -> playing -> stopped
+    QCOMPARE(stateChangeSpy.count(), 2);
+    QCOMPARE(slideChangedSpy.count(), 0);
+    QCOMPARE(player->slideDeck()->currentSlide(), m_stopAtEnd);
+
+    // PLAY TO PREVIOUS
+    player->stop();
+    QTRY_COMPARE(player->state(), Q3DSSlidePlayer::PlayerState::Stopped);
+
+    player->slideDeck()->setCurrentSlide(int(Slide::PlayToPrevious));
+    player->stop();
+    QTRY_COMPARE(player->state(), Q3DSSlidePlayer::PlayerState::Stopped);
+
+    stateChangeSpy.clear();
+    slideChangedSpy.clear();
+
+    player->play();
+    QTRY_COMPARE(player->state(), Q3DSSlidePlayer::PlayerState::Playing);
+    QTRY_COMPARE(player->state(), Q3DSSlidePlayer::PlayerState::Stopped);
+
+    // Stopped -> playing -> stopped
+    QCOMPARE(stateChangeSpy.count(), 2);
+    QCOMPARE(slideChangedSpy.count(), 1);
+    QCOMPARE(player->slideDeck()->currentSlide(), m_stopAtEnd);
+
+    // PING
+    player->slideDeck()->setCurrentSlide(int(Slide::Ping));
+    player->stop();
+    QTRY_COMPARE(player->state(), Q3DSSlidePlayer::PlayerState::Stopped);
+
+    stateChangeSpy.clear();
+    slideChangedSpy.clear();
+    loopCounter.reset();
+
+    player->play();
+    QTRY_COMPARE(player->state(), Q3DSSlidePlayer::PlayerState::Playing);
+    QTRY_COMPARE(player->state(), Q3DSSlidePlayer::PlayerState::Stopped);
+
+    // Stopped -> playing -> stopped
+    QCOMPARE(stateChangeSpy.count(), 2);
+    QCOMPARE(slideChangedSpy.count(), 0);
+    QCOMPARE(player->slideDeck()->currentSlide(), m_ping);
+    QCOMPARE(loopCounter.pingPong, 1);
+
+    // PING PONG
+    player->slideDeck()->setCurrentSlide(int(Slide::PingPong));
+    player->stop();
+    QTRY_COMPARE(player->state(), Q3DSSlidePlayer::PlayerState::Stopped);
+
+    stateChangeSpy.clear();
+    slideChangedSpy.clear();
+    loopCounter.reset();
+
+    player->play();
+    QTRY_COMPARE(player->state(), Q3DSSlidePlayer::PlayerState::Playing);
+    QTRY_VERIFY(loopCounter.pingPong >= 2);
+    player->stop();
+    QTRY_COMPARE(player->state(), Q3DSSlidePlayer::PlayerState::Stopped);
+
+    // Stopped -> playing -> stopped
+    QCOMPARE(stateChangeSpy.count(), 2);
+    QCOMPARE(slideChangedSpy.count(), 0);
+    QCOMPARE(player->slideDeck()->currentSlide(), m_pingPong);
+
+    // LOOPING
+    player->slideDeck()->setCurrentSlide(int(Slide::Looping));
+    player->stop();
+    QTRY_COMPARE(player->state(), Q3DSSlidePlayer::PlayerState::Stopped);
+
+    stateChangeSpy.clear();
+    slideChangedSpy.clear();
+    loopCounter.reset();
+
+    player->play();
+    QTRY_COMPARE(player->state(), Q3DSSlidePlayer::PlayerState::Playing);
+    QTRY_VERIFY(loopCounter.counter >= 3);
+    player->stop();
+    QTRY_COMPARE(player->state(), Q3DSSlidePlayer::PlayerState::Stopped);
+
+    // Stopped -> playing -> stopped
+    QCOMPARE(stateChangeSpy.count(), 2);
+    QCOMPARE(slideChangedSpy.count(), 0);
+    QCOMPARE(player->slideDeck()->currentSlide(), m_looping);
 }
 
 QTEST_MAIN(tst_Q3DSSlidePlayer);
