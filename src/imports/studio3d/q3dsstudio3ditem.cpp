@@ -131,8 +131,6 @@ void Q3DSStudio3DItem::handlePresentationSource(const QUrl &source)
     if (source == m_source)
         return;
 
-    m_source = source;
-
     if (!m_source.isEmpty())
         releaseEngineAndRenderer();
 
@@ -259,16 +257,17 @@ void Q3DSStudio3DItem::createEngine()
             m_error.clear();
             emit errorChanged();
         }
+
+        if (!sz.isEmpty())
+            sendResizeToQt3D(sz);
+
+        // cannot start() here, that must be deferred
+
     } else {
         qWarning("Studio3D: Failed to load %s\n%s", qPrintable(fn), qPrintable(err));
         m_error = err;
         emit errorChanged();
     }
-
-    if (!sz.isEmpty())
-        sendResizeToQt3D(sz);
-
-    // cannot start() here, that must be deferred
 
     update();
 }
@@ -430,44 +429,44 @@ void Q3DSStudio3DItem::sendResizeToQt3D(const QSize &size)
 
 void Q3DSStudio3DItem::keyPressEvent(QKeyEvent *event)
 {
-    if (!m_eventIgnoreFlags.testFlag(IgnoreKeyboardEvents))
+    if (!m_eventIgnoreFlags.testFlag(IgnoreKeyboardEvents) && m_engine)
         m_engine->handleKeyPressEvent(event);
 }
 
 void Q3DSStudio3DItem::keyReleaseEvent(QKeyEvent *event)
 {
-    if (!m_eventIgnoreFlags.testFlag(IgnoreKeyboardEvents))
+    if (!m_eventIgnoreFlags.testFlag(IgnoreKeyboardEvents) && m_engine)
         m_engine->handleKeyReleaseEvent(event);
 }
 
 void Q3DSStudio3DItem::mousePressEvent(QMouseEvent *event)
 {
-    if (!m_eventIgnoreFlags.testFlag(IgnoreMouseEvents))
+    if (!m_eventIgnoreFlags.testFlag(IgnoreMouseEvents) && m_engine)
         m_engine->handleMousePressEvent(event);
 }
 
 void Q3DSStudio3DItem::mouseMoveEvent(QMouseEvent *event)
 {
-    if (!m_eventIgnoreFlags.testFlag(IgnoreMouseEvents))
+    if (!m_eventIgnoreFlags.testFlag(IgnoreMouseEvents) && m_engine)
         m_engine->handleMouseMoveEvent(event);
 }
 
 void Q3DSStudio3DItem::mouseReleaseEvent(QMouseEvent *event)
 {
-    if (!m_eventIgnoreFlags.testFlag(IgnoreMouseEvents))
+    if (!m_eventIgnoreFlags.testFlag(IgnoreMouseEvents) && m_engine)
         m_engine->handleMouseReleaseEvent(event);
 }
 
 void Q3DSStudio3DItem::mouseDoubleClickEvent(QMouseEvent *event)
 {
-    if (!m_eventIgnoreFlags.testFlag(IgnoreMouseEvents))
+    if (!m_eventIgnoreFlags.testFlag(IgnoreMouseEvents) && m_engine)
         m_engine->handleMouseDoubleClickEvent(event);
 }
 
 #if QT_CONFIG(wheelevent)
 void Q3DSStudio3DItem::wheelEvent(QWheelEvent *event)
 {
-    if (!m_eventIgnoreFlags.testFlag(IgnoreWheelEvents))
+    if (!m_eventIgnoreFlags.testFlag(IgnoreWheelEvents) && m_engine)
         m_engine->handleWheelEvent(event);
 }
 #endif

@@ -1,0 +1,5 @@
+<RCC>
+    <qresource prefix="/">
+        <file>data/primitives.uip</file>
+    </qresource>
+</RCC>

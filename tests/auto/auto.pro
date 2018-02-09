@@ -11,3 +11,5 @@ SUBDIRS += \
     documents
 
 qtHaveModule(quick): SUBDIRS += studio3d
+
+qtHaveModule(widgets): SUBDIRS += widget

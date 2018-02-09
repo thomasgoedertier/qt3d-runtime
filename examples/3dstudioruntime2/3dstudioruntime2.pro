@@ -1,4 +1,9 @@
 TEMPLATE = subdirs
 
-SUBDIRS += \
-    simpleqml
+qtHaveModule(quick) {
+    SUBDIRS += simpleqml
+}
+
+qtHaveModule(widgets) {
+    SUBDIRS += simplewidget
+}

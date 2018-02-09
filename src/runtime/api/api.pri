@@ -4,3 +4,11 @@ SOURCES += \
 HEADERS += \
     $$PWD/q3dspresentation.h \
     $$PWD/q3dspresentation_p.h
+
+qtHaveModule(widgets) {
+    SOURCES += \
+        $$PWD/q3dswidget.cpp
+    HEADERS += \
+        $$PWD/q3dswidget.h \
+        $$PWD/q3dswidget_p.h
+}
