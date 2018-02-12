@@ -79,6 +79,9 @@ QT_BEGIN_NAMESPACE
 
 Q_DECLARE_LOGGING_CATEGORY(lcUip)
 
+static const int MAX_LOG_MESSAGE_LENGTH = 1000;
+static const int MAX_LOG_LENGTH = 5000;
+
 static Q3DSGraphicsLimits gfxLimits;
 
 static QMutex q3ds_msg_mutex;
@@ -104,7 +107,10 @@ static void q3ds_msg_handler(QtMsgType type, const QMessageLogContext &ctx, cons
         decoratedMsg += QString::fromUtf8(ctx.category);
         decoratedMsg += QLatin1String(": ");
     }
-    decoratedMsg += msg.left(1000);
+    decoratedMsg += msg.left(MAX_LOG_MESSAGE_LENGTH);
+
+    while (q3ds_msg_buf.count() > MAX_LOG_LENGTH)
+        q3ds_msg_buf.removeFirst();
 
     q3ds_msg_buf.append(decoratedMsg);
 
@@ -799,8 +805,14 @@ void Q3DSEngine::destroy()
 {
     for (UipPresentation &pres : m_uipPresentations) {
         delete pres.sceneManager;
+        // Nulling out may seem unnecessary due to the clear() below but it is
+        // a must - code invoked from a scenemanager dtor may still call
+        // presentation(). Make sure they see a null scenemanager et al.
+        pres.sceneManager = nullptr;
         delete pres.uipDocument;
+        pres.uipDocument = nullptr;
         delete pres.presentation;
+        pres.presentation = nullptr;
     }
     m_uipPresentations.clear();
     m_capture = nullptr;
