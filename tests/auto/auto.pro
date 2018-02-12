@@ -9,7 +9,8 @@ SUBDIRS += \
     slides \
     slideplayer \
     q3dslancelot \
-    documents
+    documents \
+    surfaceviewer
 
 qtHaveModule(quick): SUBDIRS += studio3d
 

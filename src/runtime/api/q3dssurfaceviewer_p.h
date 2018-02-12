@@ -27,8 +27,8 @@
 **
 ****************************************************************************/
 
-#ifndef Q3DSWIDGET_P_H
-#define Q3DSWIDGET_P_H
+#ifndef Q3DSSURFACEVIEWER_P_H
+#define Q3DSSURFACEVIEWER_P_H
 
 //
 //  W A R N I N G
@@ -42,8 +42,10 @@
 //
 
 #include <private/q3dsruntimeglobal_p.h>
-#include "q3dswidget.h"
+#include "q3dssurfaceviewer.h"
 #include "q3dspresentation_p.h"
+#include <private/qobject_p.h>
+#include <QUrl>
 #include <QTimer>
 
 QT_BEGIN_NAMESPACE
@@ -54,19 +56,32 @@ namespace Qt3DRender {
 class QRenderAspect;
 }
 
-class Q3DSV_PRIVATE_EXPORT Q3DSWidgetPrivate : public Q3DSPresentationController
+class Q3DSSurfaceWatcher : public QObject
 {
-    Q_DECLARE_PUBLIC(Q3DSWidget)
+public:
+    Q3DSSurfaceWatcher(Q3DSSurfaceViewerPrivate *p);
+
+protected:
+    bool eventFilter(QObject *watched, QEvent *event) override;
+
+private:
+    Q3DSSurfaceViewerPrivate *d;
+};
+
+class Q3DSV_PRIVATE_EXPORT Q3DSSurfaceViewerPrivate : public QObjectPrivate, public Q3DSPresentationController
+{
+    Q_DECLARE_PUBLIC(Q3DSSurfaceViewer)
 
 public:
-    Q3DSWidgetPrivate(Q3DSWidget *q);
-    ~Q3DSWidgetPrivate();
+    Q3DSSurfaceViewerPrivate();
+    ~Q3DSSurfaceViewerPrivate();
 
-    static Q3DSWidgetPrivate *get(Q3DSWidget *w) { return w->d_func(); }
+    static Q3DSSurfaceViewerPrivate *get(Q3DSSurfaceViewer *v) { return v->d_func(); }
 
-    void createEngine();
+    bool doCreate(QSurface *s, QOpenGLContext *c, uint id, bool idValid);
+
+    bool createEngine();
     void destroyEngine();
-    void sendResizeToQt3D(const QSize &size);
 
     void handlePresentationSource(const QUrl &source) override;
     void handlePresentationReload() override;
@@ -80,18 +95,29 @@ public:
     void handlePresentationWheelEvent(QWheelEvent *e) override;
 #endif
 
-    Q3DSWidget *q_ptr;
+    void sendResizeToQt3D(const QSize &size);
+
     Q3DSPresentation *presentation;
+    uint fbo = 0;
+    QSurface *surface = nullptr;
+    QObject *windowOrOffscreenSurface = nullptr;
+    QOpenGLContext *context = nullptr;
     Q3DSEngine *engine = nullptr;
     QUrl source;
     bool sourceLoaded = false;
     QString error;
     Qt3DRender::QRenderAspect *renderAspect = nullptr;
-    bool needsInit = false;
-    int updateInterval = 0; // enable automatic updates by default
+    QScopedPointer<Q3DSSurfaceWatcher> surfaceWatcher;
+    bool autoSize = true; // follow size (when QWindow) by default
+    QSize requestedSize;
+    QSize actualSize;
+    int updateInterval = -1; // no automatic updates by default
     QTimer updateTimer;
+    bool updateTimerInitialized = false;
+    QImage grabImage;
+    bool wantsGrab = false;
 };
 
 QT_END_NAMESPACE
 
-#endif // Q3DSWIDGET_P_H
+#endif // Q3DSSURFACEVIEWER_P_H

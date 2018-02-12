@@ -1,5 +1,9 @@
 TEMPLATE = subdirs
 
+SUBDIRS += \
+    simplewindow \
+    simpleoffscreen
+
 qtHaveModule(quick) {
     SUBDIRS += simpleqml
 }

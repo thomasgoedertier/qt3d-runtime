@@ -1,0 +1,11 @@
+<RCC>
+    <qresource prefix="/">
+        <file alias="barrel.uip">../simpleqml/presentation/barrel.uip</file>
+        <file alias="barrel/meshes/Barrel.mesh">../simpleqml/presentation/barrel/meshes/Barrel.mesh</file>
+        <file alias="fonts/Arimo-Regular.ttf">../simpleqml/presentation/fonts/Arimo-Regular.ttf</file>
+        <file alias="maps/barrel_barrel_Diffuse.png">../simpleqml/presentation/maps/barrel_barrel_Diffuse.png</file>
+        <file alias="maps/barrel_barrel_Emissive.png">../simpleqml/presentation/maps/barrel_barrel_Emissive.png</file>
+        <file alias="maps/barrel_barrel_Normal.png">../simpleqml/presentation/maps/barrel_barrel_Normal.png</file>
+        <file alias="maps/barrel_barrel_Specular.png">../simpleqml/presentation/maps/barrel_barrel_Specular.png</file>
+    </qresource>
+</RCC>
