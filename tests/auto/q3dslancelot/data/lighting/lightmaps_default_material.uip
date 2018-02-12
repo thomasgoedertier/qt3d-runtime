@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<UIP version="3" >
+	<Project >
+		<ProjectSettings author="" company="" presentationWidth="1920" presentationHeight="1080" maintainAspect="False" >
+			<CustomColors count="16" >#ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff</CustomColors>
+		</ProjectSettings>
+		<BufferData >
+			<ImageBuffer sourcepath="maps/core_lightmap_radiosity.jpg" hasTransparency="True" />
+			<ImageBuffer sourcepath="maps/core_lightmap_shadow.jpg" hasTransparency="True" />
+			<ImageBuffer sourcepath="maps/cork_lightmap_indirect.jpg" hasTransparency="True" />
+		</BufferData>
+		<Graph >
+			<Scene id="Scene" >
+				<Layer id="Layer" >
+					<Camera id="Camera" />
+					<Group id="testCube2" importid="__import__root__" >
+						<Model id="Cube" name="Cube" importid="Cube" orientation="Right Handed" position="0 0 -0" rotation="-90 -0 0" rotationorder="XYZr" scale="100 100 100" sourcepath="models/testCube/meshes/Cube.mesh" >
+							<Material id="Material" name="Material" blendmode="Normal" diffuse="0.8 0.8 0.8" emissivepower="0" importid="Material" opacity="100" specularamount="0" specularroughness="20" >
+								<Image id="Material_diffusemap" />
+								<Image id="Material_lightmapindirect" />
+								<Image id="Material_lightmapradiosity" />
+								<Image id="Material_lightmapshadow" />
+							</Material>
+						</Model>
+					</Group>
+					<Group id="NoShadow" importid="__import__root__" >
+						<Model id="Cube_001" name="Cube" importid="Cube" orientation="Right Handed" position="0 0 -0" rotation="-90 -0 0" rotationorder="XYZr" scale="100 100 100" sourcepath="models/testCube/meshes/Cube.mesh" >
+							<Material id="Material_001" name="Material" blendmode="Normal" diffuse="0.8 0.8 0.8" emissivepower="0" importid="Material" opacity="100" specularamount="0" specularroughness="20" >
+								<Image id="Material_001_diffusemap" />
+								<Image id="Material_001_lightmapindirect" />
+								<Image id="Material_001_lightmapradiosity" />
+							</Material>
+						</Model>
+					</Group>
+					<Group id="IndirectOnly" importid="__import__root__" >
+						<Model id="Cube_002" name="Cube" importid="Cube" orientation="Right Handed" position="0 0 -0" rotation="-90 -0 0" rotationorder="XYZr" scale="100 100 100" sourcepath="models/testCube/meshes/Cube.mesh" >
+							<Material id="Material_002" name="Material" blendmode="Normal" diffuse="0.8 0.8 0.8" emissivepower="0" importid="Material" opacity="100" specularamount="0" specularroughness="20" >
+								<Image id="Material_002_diffusemap" />
+								<Image id="Material_002_lightmapindirect" />
+							</Material>
+						</Model>
+					</Group>
+					<Group id="RadiosityOnly" importid="__import__root__" >
+						<Model id="Cube_003" name="Cube" importid="Cube" orientation="Right Handed" position="0 0 -0" rotation="-90 -0 0" rotationorder="XYZr" scale="100 100 100" sourcepath="models/testCube/meshes/Cube.mesh" >
+							<Material id="Material_003" name="Material" blendmode="Normal" diffuse="0.8 0.8 0.8" emissivepower="0" importid="Material" opacity="100" specularamount="0" specularroughness="20" >
+								<Image id="Material_003_diffusemap" />
+								<Image id="Material_003_lightmapradiosity" />
+							</Material>
+						</Model>
+					</Group>
+					<Group id="UnLit" importid="__import__root__" >
+						<Model id="Cube_004" name="Cube" importid="Cube" orientation="Right Handed" position="0 0 -0" rotation="-90 -0 0" rotationorder="XYZr" scale="100 100 100" sourcepath="models/testCube/meshes/Cube.mesh" >
+							<Material id="Material_004" name="Material" blendmode="Normal" diffuse="0.8 0.8 0.8" emissivepower="0" importid="Material" opacity="100" specularamount="0" specularroughness="20" >
+								<Image id="Material_004_diffusemap" />
+							</Material>
+						</Model>
+					</Group>
+				</Layer>
+			</Scene>
+		</Graph>
+		<Logic >
+			<State name="Master Slide" component="#Scene" >
+				<Add ref="#Layer" />
+				<Add ref="#Camera" />
+				<Add ref="#testCube2" name="everything" importfile="models/testCube/testCube.import" position="8.92529 -33.3906 -88.9147" rotation="38.717 127.514 -31.7476" sourcepath="models/testCube/testCube.import" />
+				<Add ref="#Cube" importfile="models/testCube/testCube.import" />
+				<Add ref="#Material" diffusemap="#Material_diffusemap" importfile="models/testCube/testCube.import" lightmapindirect="#Material_lightmapindirect" lightmapradiosity="#Material_lightmapradiosity" lightmapshadow="#Material_lightmapshadow" shaderlighting="Pixel" />
+				<Add ref="#Material_diffusemap" sourcepath="maps/Cork1.jpg" />
+				<Add ref="#Material_lightmapindirect" sourcepath="maps/cork_lightmap_indirect.jpg" />
+				<Add ref="#Material_lightmapradiosity" sourcepath="maps/core_lightmap_radiosity.jpg" />
+				<Add ref="#Material_lightmapshadow" sourcepath="maps/core_lightmap_shadow.jpg" />
+				<Add ref="#NoShadow" name="NoShadow" importfile="models/testCube/testCube.import" position="-270.428 9.34266 -88.9069" rotation="38.717 127.514 -31.7476" sourcepath="models/testCube/testCube.import" />
+				<Add ref="#Cube_001" importfile="models/testCube/testCube.import" />
+				<Add ref="#Material_001" diffusemap="#Material_001_diffusemap" importfile="models/testCube/testCube.import" lightmapindirect="#Material_001_lightmapindirect" lightmapradiosity="#Material_001_lightmapradiosity" shaderlighting="Pixel" />
+				<Add ref="#Material_001_diffusemap" sourcepath="maps/Cork1.jpg" />
+				<Add ref="#Material_001_lightmapindirect" sourcepath="maps/cork_lightmap_indirect.jpg" />
+				<Add ref="#Material_001_lightmapradiosity" sourcepath="maps/core_lightmap_radiosity.jpg" />
+				<Add ref="#IndirectOnly" name="IndirectOnly" importfile="models/testCube/testCube.import" position="266.005 81.2868 -88.9395" rotation="-1.05041 -78.4043 -264.953" sourcepath="models/testCube/testCube.import" />
+				<Add ref="#Cube_002" importfile="models/testCube/testCube.import" />
+				<Add ref="#Material_002" diffusemap="#Material_002_diffusemap" importfile="models/testCube/testCube.import" lightmapindirect="#Material_002_lightmapindirect" shaderlighting="Pixel" />
+				<Add ref="#Material_002_diffusemap" sourcepath="maps/Cork1.jpg" />
+				<Add ref="#Material_002_lightmapindirect" sourcepath="maps/cork_lightmap_indirect.jpg" />
+				<Add ref="#RadiosityOnly" name="RadiosityOnly" importfile="models/testCube/testCube.import" position="223.385 -186.454 -88.9396" rotation="38.717 127.514 -31.7476" sourcepath="models/testCube/testCube.import" />
+				<Add ref="#Cube_003" importfile="models/testCube/testCube.import" />
+				<Add ref="#Material_003" diffusemap="#Material_003_diffusemap" importfile="models/testCube/testCube.import" lightmapradiosity="#Material_003_lightmapradiosity" shaderlighting="Pixel" />
+				<Add ref="#Material_003_diffusemap" sourcepath="maps/Cork1.jpg" />
+				<Add ref="#Material_003_lightmapradiosity" sourcepath="maps/core_lightmap_radiosity.jpg" />
+				<Add ref="#UnLit" name="UnLit" importfile="models/testCube/testCube.import" position="-131.581 -186.634 -245.316" rotation="38.717 127.514 -31.7476" sourcepath="models/testCube/testCube.import" />
+				<Add ref="#Cube_004" importfile="models/testCube/testCube.import" />
+				<Add ref="#Material_004" diffusemap="#Material_004_diffusemap" importfile="models/testCube/testCube.import" shaderlighting="None" />
+				<Add ref="#Material_004_diffusemap" sourcepath="maps/Cork1.jpg" />
+				<State id="Scene-Everything" name="Everything" />
+			</State>
+		</Logic>
+	</Project>
+</UIP>

@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<UIP version="3" >
+	<Project >
+		<ProjectSettings author="" company="" presentationWidth="1920" presentationHeight="1080" maintainAspect="False" >
+			<CustomColors count="16" >#ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff</CustomColors>
+		</ProjectSettings>
+		<Graph >
+			<Scene id="Scene" >
+				<Layer id="Layer" >
+					<Camera id="Camera" />
+					<Group id="testCube2" importid="__import__root__" >
+						<Model id="Cube" name="Cube" importid="Cube" orientation="Right Handed" position="0 0 -0" rotation="-90 -0 0" rotationorder="XYZr" scale="100 100 100" sourcepath="models/testCube/meshes/Cube.mesh" >
+							<Material id="Material" >
+								<Image id="Material_lightmapradiosity" />
+								<Image id="Material_lightmapshadow" />
+							</Material>
+						</Model>
+					</Group>
+					<Group id="everything" importid="__import__root__" >
+						<Model id="Cube_001" name="Cube" importid="Cube" orientation="Right Handed" position="0 0 -0" rotation="-90 -0 0" rotationorder="XYZr" scale="100 100 100" sourcepath="models/testCube/meshes/Cube.mesh" >
+							<ReferencedMaterial id="Material_001" >
+								<Image id="Material_001_lightmapradiosity" />
+								<Image id="Material_001_lightmapshadow" />
+								<Image id="Material_001_lightmapindirect" />
+							</ReferencedMaterial>
+						</Model>
+					</Group>
+				</Layer>
+			</Scene>
+		</Graph>
+		<Logic >
+			<State name="Master Slide" component="#Scene" >
+				<Add ref="#Layer" />
+				<Add ref="#Camera" />
+				<Add ref="#testCube2" name="everything" importfile="models/testCube/testCube.import" position="-189.977 8.13851 -88.9147" rotation="38.717 127.514 -31.7476" sourcepath="models/testCube/testCube.import" />
+				<Add ref="#Cube" importfile="models/testCube/testCube.import" />
+				<Add ref="#Material" name="Material" lightmapradiosity="#Material_lightmapradiosity" lightmapshadow="#Material_lightmapshadow" />
+				<Add ref="#Material_lightmapradiosity" sourcepath="maps/core_lightmap_radiosity.jpg" />
+				<Add ref="#Material_lightmapshadow" sourcepath="maps/core_lightmap_shadow.jpg" />
+				<State id="Scene-Everything" name="Everything" >
+					<Add ref="#everything" name="everything" importfile="models/testCube/testCube.import" position="157.556 -3.88307 -88.9147" rotation="38.717 127.514 -31.7476" sourcepath="models/testCube/testCube.import" />
+					<Add ref="#Cube_001" importfile="models/testCube/testCube.import" />
+					<Add ref="#Material_001" name="Material" lightmapindirect="#Material_001_lightmapindirect" lightmapradiosity="#Material_001_lightmapradiosity" lightmapshadow="#Material_001_lightmapshadow" referencedmaterial="#Material" />
+					<Add ref="#Material_001_lightmapradiosity" sourcepath="maps/core_lightmap_radiosity.jpg" />
+					<Add ref="#Material_001_lightmapshadow" sourcepath="maps/core_lightmap_shadow.jpg" />
+					<Add ref="#Material_001_lightmapindirect" sourcepath="maps/cork_lightmap_indirect.jpg" />
+				</State>
+			</State>
+		</Logic>
+	</Project>
+</UIP>

@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<UIP Version="1" >
+	<Project Revision="1" >
+		<Graph >
+			<Group id="__import__root__" >
+				<Model id="Cube" name="Cube" orientation="Right Handed" position="0 0 -0" rotation="-90 -0 0" rotationorder="XYZr" scale="100 100 100" sourcepath="meshes/Cube.mesh" >
+					<Material id="Material" name="Material" blendmode="Normal" diffuse="0.8 0.8 0.8" emissivepower="0" opacity="100" specularamount="0" specularroughness="20" />
+				</Model>
+			</Group>
+		</Graph>
+		<Import SrcFile="../../../../Blender/testCube/testCube.fbx" ImageDir="Images" MeshDir="Meshes" >
+			<Mesh >
+				<Source >Cube</Source>
+				<Dest >meshes/Cube.mesh</Dest>
+			</Mesh>
+		</Import>
+	</Project>
+</UIP>
