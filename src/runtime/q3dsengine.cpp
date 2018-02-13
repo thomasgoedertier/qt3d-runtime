@@ -66,6 +66,10 @@
 #define GL_MAX_DRAW_BUFFERS               0x8824
 #endif
 
+// The input aspect is disabled, as it's currently not used.
+// In addittion to not being used, it's causing random deadlocks in the CI...
+#define QT_3DS_ENABLE_INPUT_ASPECT 0
+
 static void initResources()
 {
     static bool done = false;
@@ -279,7 +283,9 @@ void Q3DSEngine::createAspectEngine()
     m_aspectEngine.reset(new Qt3DCore::QAspectEngine);
     if (!m_flags.testFlag(WithoutRenderAspect))
         m_aspectEngine->registerAspect(new Qt3DRender::QRenderAspect);
+#if QT_3DS_ENABLE_INPUT_ASPECT
     m_aspectEngine->registerAspect(new Qt3DInput::QInputAspect);
+#endif
     m_aspectEngine->registerAspect(new Qt3DAnimation::QAnimationAspect);
     m_aspectEngine->registerAspect(new Qt3DLogic::QLogicAspect);
 }
@@ -537,10 +543,12 @@ bool Q3DSEngine::loadUipPresentation(UipPresentation *pres)
     }
     pres->sceneManager = sceneManager.take();
 
+#if QT_3DS_ENABLE_INPUT_ASPECT
     // Input (Qt3D).
     Qt3DInput::QInputSettings *inputSettings = new Qt3DInput::QInputSettings;
     inputSettings->setEventSource(m_surface);
     pres->q3dscene.rootEntity->addComponent(inputSettings);
+#endif
 
     // Input (profiling UI). Do not let it capture events from the window,
     // instead use a dummy object to which we (the engine) sends events as it
