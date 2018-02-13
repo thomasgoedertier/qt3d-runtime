@@ -1,0 +1,169 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<UIP version="3" >
+	<Project >
+		<ProjectSettings author="" company="" presentationWidth="1920" presentationHeight="1080" maintainAspect="False" >
+			<CustomColors count="16" >#ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff</CustomColors>
+		</ProjectSettings>
+		<Classes >
+			<CustomMaterial id="copper" name="copper" sourcepath="materials/copper.material" />
+		</Classes>
+		<Graph >
+			<Scene id="Scene" >
+				<Layer id="Layer" >
+					<Camera id="Camera" />
+					<Image id="Layer_lightprobe" />
+					<Image id="Layer_lightprobe2" />
+					<Group id="Group" >
+						<Model id="Cylinder" >
+							<ReferencedMaterial id="Default" />
+						</Model>
+						<Model id="Cone" >
+							<CustomMaterial id="Default_001" class="#copper" />
+						</Model>
+						<Model id="Sphere" >
+							<Material id="Default_002" name="Default" />
+						</Model>
+						<Model id="DefaultOverride" >
+							<Material id="Default_003" name="Default" >
+								<Image id="Default_003_iblprobe" />
+							</Material>
+						</Model>
+						<Model id="ReferenceMaterialOverride" >
+							<ReferencedMaterial id="Default_004" >
+								<Image id="Default_004_iblprobe" />
+							</ReferencedMaterial>
+						</Model>
+						<Model id="CustomMaterialOverride" >
+							<CustomMaterial id="Default_005" class="#copper" >
+								<Image id="Default_005_iblprobe" />
+							</CustomMaterial>
+						</Model>
+						<Model id="DefaultMaterialSpecial" >
+							<Material id="Default_006" name="Default" >
+								<Image id="Default_006_iblprobe" />
+							</Material>
+						</Model>
+						<Model id="ReferenceMaterialSpecial" >
+							<ReferencedMaterial id="Default_007" >
+								<Image id="Default_007_iblprobe" />
+							</ReferencedMaterial>
+						</Model>
+						<Model id="CustomMaterialSpecial" >
+							<CustomMaterial id="copper_001" class="#copper" >
+								<Image id="copper_001_iblprobe" />
+							</CustomMaterial>
+						</Model>
+					</Group>
+				</Layer>
+				<Layer id="OneLightProbe" >
+					<Camera id="Camera_001" />
+					<Image id="OneLightProbe_lightprobe" />
+					<Group id="Group_001" >
+						<Model id="ReferenceMaterial" >
+							<ReferencedMaterial id="Default_008" />
+						</Model>
+						<Model id="CustomMaterial" >
+							<CustomMaterial id="copper_002" class="#copper" />
+						</Model>
+						<Model id="DefaultMaterial" >
+							<Material id="Default_009" name="Default" />
+						</Model>
+						<Model id="DefaultOverride_001" >
+							<Material id="Default_010" name="Default" >
+								<Image id="Default_010_iblprobe" />
+							</Material>
+						</Model>
+						<Model id="ReferenceMaterialOverride_001" >
+							<ReferencedMaterial id="Default_011" >
+								<Image id="Default_011_iblprobe" />
+							</ReferencedMaterial>
+						</Model>
+						<Model id="CustomMaterialOverride_001" >
+							<CustomMaterial id="copper_003" class="#copper" >
+								<Image id="copper_003_iblprobe" />
+							</CustomMaterial>
+						</Model>
+						<Model id="DefaultMaterialSpecial_001" >
+							<Material id="Default_012" name="Default" >
+								<Image id="Default_012_iblprobe" />
+							</Material>
+						</Model>
+						<Model id="ReferenceMaterialSpecial_001" >
+							<ReferencedMaterial id="Default_013" >
+								<Image id="Default_013_iblprobe" />
+							</ReferencedMaterial>
+						</Model>
+						<Model id="CustomMaterialSpecial_001" >
+							<CustomMaterial id="copper_004" class="#copper" >
+								<Image id="copper_004_iblprobe" />
+							</CustomMaterial>
+						</Model>
+					</Group>
+				</Layer>
+			</Scene>
+		</Graph>
+		<Logic >
+			<State name="Master Slide" component="#Scene" >
+				<Add ref="#Layer" name="TwoLightProbes" lightprobe="#Layer_lightprobe" lightprobe2="#Layer_lightprobe2" probe2fade="0.33" probebright="1000" width="50" />
+				<Add ref="#Camera" fov="60" />
+				<Add ref="#Layer_lightprobe" mappingmode="Light Probe" sourcepath="maps/OpenfootageNET_fieldairport-512.hdr" />
+				<Add ref="#Layer_lightprobe2" mappingmode="Light Probe" sourcepath="maps/OpenfootageNET_Gerlos-512.hdr" />
+				<State id="Scene-Slide1" name="Slide1" >
+					<Add ref="#Group" name="Group" position="468.305 -129.677 0" scale="2 2 2" />
+					<Add ref="#Cylinder" name="ReferenceMaterial" position="-448.399 78.869 0" sourcepath="#Cylinder" />
+					<Add ref="#Default" name="Default" referencedmaterial="#Default_002" />
+					<Add ref="#Cone" name="CustomMaterial" position="-452.899 -147.545 0" sourcepath="#Cone" />
+					<Add ref="#Default_001" name="Default" uBakedShadowTexture="" uEnvironmentTexture="" />
+					<Add ref="#Sphere" name="DefaultMaterial" position="-441.352 255.317 0" sourcepath="#Sphere" />
+					<Add ref="#Default_002" />
+					<Add ref="#DefaultOverride" name="DefaultOverride" position="-233.489 252.353 0" sourcepath="#Sphere" />
+					<Add ref="#Default_003" iblprobe="#Default_003_iblprobe" />
+					<Add ref="#Default_003_iblprobe" mappingmode="IBL Override" sourcepath="maps/OpenfootageNET_lowerAustria01-512.hdr" />
+					<Add ref="#ReferenceMaterialOverride" name="ReferenceMaterialOverride" position="-235.717 78.869 0" sourcepath="#Cylinder" />
+					<Add ref="#Default_004" name="Default" iblprobe="#Default_004_iblprobe" referencedmaterial="#Default_002" />
+					<Add ref="#Default_004_iblprobe" mappingmode="IBL Override" sourcepath="maps/OpenfootageNET_lowerAustria01-512.hdr" />
+					<Add ref="#CustomMaterialOverride" name="CustomMaterialOverride" position="-245.686 -147.545 0" sourcepath="#Cone" />
+					<Add ref="#Default_005" name="Default" iblprobe="#Default_005_iblprobe" uBakedShadowTexture="" uEnvironmentTexture="" />
+					<Add ref="#Default_005_iblprobe" mappingmode="IBL Override" sourcepath="maps/OpenfootageNET_lowerAustria01-512.hdr" />
+					<Add ref="#DefaultMaterialSpecial" name="DefaultMaterialSpecial" position="-18.5029 255.317 0" sourcepath="#Sphere" />
+					<Add ref="#Default_006" iblprobe="#Default_006_iblprobe" />
+					<Add ref="#Default_006_iblprobe" mappingmode="IBL Override" scaleu="20" scalev="0" sourcepath="maps/OpenfootageNET_lowerAustria01-512.hdr" />
+					<Add ref="#ReferenceMaterialSpecial" name="ReferenceMaterialSpecial" position="-14.5576 78.869 0" sourcepath="#Cylinder" />
+					<Add ref="#Default_007" name="Default" iblprobe="#Default_007_iblprobe" referencedmaterial="#Default_002" />
+					<Add ref="#Default_007_iblprobe" mappingmode="IBL Override" scaleu="20" sourcepath="maps/OpenfootageNET_lowerAustria01-512.hdr" />
+					<Add ref="#CustomMaterialSpecial" name="CustomMaterialSpecial" position="-17.4744 -147.545 0" sourcepath="#Cone" />
+					<Add ref="#copper_001" name="Default" iblprobe="#copper_001_iblprobe" uBakedShadowTexture="" uEnvironmentTexture="" />
+					<Add ref="#copper_001_iblprobe" mappingmode="IBL Override" scaleu="20" sourcepath="maps/OpenfootageNET_lowerAustria01-512.hdr" />
+					<Add ref="#OneLightProbe" name="OneLightProbe" left="50" lightprobe="#OneLightProbe_lightprobe" probe2fade="0" probebright="1000" width="50" />
+					<Add ref="#Camera_001" />
+					<Add ref="#OneLightProbe_lightprobe" mappingmode="Light Probe" sourcepath="maps/OpenfootageNET_fieldairport-512.hdr" />
+					<Add ref="#Group_001" name="Group" position="468.305 -129.677 0" scale="2 2 2" />
+					<Add ref="#ReferenceMaterial" name="ReferenceMaterial" position="-448.399 78.869 0" sourcepath="#Cylinder" />
+					<Add ref="#Default_008" name="Default" referencedmaterial="#Default_009" />
+					<Add ref="#CustomMaterial" name="CustomMaterial" position="-452.899 -147.545 0" sourcepath="#Cone" />
+					<Add ref="#copper_002" name="Default" uBakedShadowTexture="" uEnvironmentTexture="" />
+					<Add ref="#DefaultMaterial" name="DefaultMaterial" position="-441.352 255.317 0" sourcepath="#Sphere" />
+					<Add ref="#Default_009" />
+					<Add ref="#DefaultOverride_001" name="DefaultOverride" position="-233.489 252.353 0" sourcepath="#Sphere" />
+					<Add ref="#Default_010" iblprobe="#Default_010_iblprobe" />
+					<Add ref="#Default_010_iblprobe" mappingmode="IBL Override" sourcepath="maps/OpenfootageNET_lowerAustria01-512.hdr" />
+					<Add ref="#ReferenceMaterialOverride_001" name="ReferenceMaterialOverride" position="-235.717 78.869 0" sourcepath="#Cylinder" />
+					<Add ref="#Default_011" name="Default" iblprobe="#Default_011_iblprobe" referencedmaterial="#Default_009" />
+					<Add ref="#Default_011_iblprobe" mappingmode="IBL Override" sourcepath="maps/OpenfootageNET_lowerAustria01-512.hdr" />
+					<Add ref="#CustomMaterialOverride_001" name="CustomMaterialOverride" position="-245.686 -147.545 0" sourcepath="#Cone" />
+					<Add ref="#copper_003" name="Default" iblprobe="#copper_003_iblprobe" uBakedShadowTexture="" uEnvironmentTexture="" />
+					<Add ref="#copper_003_iblprobe" mappingmode="IBL Override" sourcepath="maps/OpenfootageNET_lowerAustria01-512.hdr" />
+					<Add ref="#DefaultMaterialSpecial_001" name="DefaultMaterialSpecial" position="-18.5029 255.317 0" sourcepath="#Sphere" />
+					<Add ref="#Default_012" iblprobe="#Default_012_iblprobe" />
+					<Add ref="#Default_012_iblprobe" mappingmode="IBL Override" scaleu="20" scalev="0" sourcepath="maps/OpenfootageNET_lowerAustria01-512.hdr" />
+					<Add ref="#ReferenceMaterialSpecial_001" name="ReferenceMaterialSpecial" position="-14.5576 78.869 0" sourcepath="#Cylinder" />
+					<Add ref="#Default_013" name="Default" iblprobe="#Default_013_iblprobe" referencedmaterial="#Default_009" />
+					<Add ref="#Default_013_iblprobe" mappingmode="IBL Override" scaleu="20" sourcepath="maps/OpenfootageNET_lowerAustria01-512.hdr" />
+					<Add ref="#CustomMaterialSpecial_001" name="CustomMaterialSpecial" position="-17.4744 -147.545 0" sourcepath="#Cone" />
+					<Add ref="#copper_004" name="Default" iblprobe="#copper_004_iblprobe" uBakedShadowTexture="" uEnvironmentTexture="" />
+					<Add ref="#copper_004_iblprobe" mappingmode="IBL Override" scaleu="20" sourcepath="maps/OpenfootageNET_lowerAustria01-512.hdr" />
+				</State>
+			</State>
+		</Logic>
+	</Project>
+</UIP>
