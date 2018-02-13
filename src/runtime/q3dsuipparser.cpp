@@ -36,6 +36,7 @@
 QT_BEGIN_NAMESPACE
 
 Q_LOGGING_CATEGORY(lcUip, "q3ds.uip")
+Q_DECLARE_LOGGING_CATEGORY(lcPerf)
 
 /*
  Basic structure:
@@ -124,7 +125,7 @@ Q3DSUipPresentation *Q3DSUipParser::createPresentation()
     resolveReferences(m_presentation->scene());
 
     qint64 loadTime = elapsedSinceSetSource();
-    qCDebug(lcUip, "Presentation %s loaded in %lld ms", qPrintable(m_presentation->sourceFile()), loadTime);
+    qCDebug(lcPerf, "Presentation %s loaded in %lld ms", qPrintable(m_presentation->sourceFile()), loadTime);
     m_presentation->setLoadTime(loadTime);
 
     return m_presentation.take();

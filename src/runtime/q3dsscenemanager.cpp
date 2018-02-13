@@ -99,6 +99,7 @@
 QT_BEGIN_NAMESPACE
 
 Q_LOGGING_CATEGORY(lcScene, "q3ds.scene")
+Q_LOGGING_CATEGORY(lcPerf, "q3ds.perf")
 
 /*
     Approx. scene structure:
@@ -909,7 +910,7 @@ void Q3DSSceneManager::buildLayer(Q3DSLayerNode *layer3DS,
     int ssaaScaleFactor = 1;
     if (layer3DS->multisampleAA() == Q3DSLayerNode::SSAA) {
         ssaaScaleFactor = 2;
-        qCDebug(lcScene, "Layer %s uses %dx SSAA", layer3DS->id().constData(), ssaaScaleFactor);
+        qCDebug(lcPerf, "Layer %s uses %dx SSAA", layer3DS->id().constData(), ssaaScaleFactor);
     }
 
     int msaaSampleCount = 0;
@@ -934,7 +935,7 @@ void Q3DSSceneManager::buildLayer(Q3DSLayerNode *layer3DS,
     }
 
     if (msaaSampleCount > 1)
-        qCDebug(lcScene, "Layer %s uses multisample texture", layer3DS->id().constData());
+        qCDebug(lcPerf, "Layer %s uses multisample texture", layer3DS->id().constData());
 
     // parentSize could well be (0, 0) at this stage still, nevermind that
     const QSize layerSize = calculateLayerSize(layer3DS, parentSize);
@@ -1081,7 +1082,7 @@ void Q3DSSceneManager::buildLayer(Q3DSLayerNode *layer3DS,
 
     // Gather lights for this layer.
     gatherLights(layer3DS, &layerData->allLights, &layerData->nonAreaLights, &layerData->areaLights, &layerData->lightNodes);
-    qCDebug(lcScene, "Layer %s has %d lights in total (%d non-area, %d area)", layer3DS->id().constData(),
+    qCDebug(lcPerf, "Layer %s has %d lights in total (%d non-area, %d area)", layer3DS->id().constData(),
             layerData->allLights.count(), layerData->nonAreaLights.count(), layerData->areaLights.count());
     updateShadowMapStatus(layer3DS); // must be done before generating materials below
 
@@ -1856,7 +1857,7 @@ void Q3DSSceneManager::setDepthTextureEnabled(Q3DSLayerNode *layer3DS, bool enab
         return;
 
     data->depthTextureData.enabled = enabled;
-    qCDebug(lcScene, "Depth texture enabled for layer %s is now %d", layer3DS->id().constData(), enabled);
+    qCDebug(lcPerf, "Depth texture enabled for layer %s is now %d", layer3DS->id().constData(), enabled);
     if (enabled) {
         if (!data->depthTextureData.depthTexture) {
             Qt3DRender::QTexture2D *depthTex = new Qt3DRender::QTexture2D;
@@ -1913,7 +1914,7 @@ void Q3DSSceneManager::setSsaoTextureEnabled(Q3DSLayerNode *layer3DS, bool enabl
         return;
 
     data->ssaoTextureData.enabled = enabled;
-    qCDebug(lcScene, "SSAO enabled for layer %s is now %d", layer3DS->id().constData(), enabled);
+    qCDebug(lcPerf, "SSAO enabled for layer %s is now %d", layer3DS->id().constData(), enabled);
 
     if (enabled) {
         setDepthTextureEnabled(layer3DS, true);
@@ -2337,7 +2338,7 @@ void Q3DSSceneManager::updateShadowMapStatus(Q3DSLayerNode *layer3DS, bool *smDi
                     needsNewTextures = true;
             }
             if (needsNewTextures) {
-                qCDebug(lcScene, "Slow path! Recreating shadow map textures for light %s", light3DS->id().constData());
+                qCDebug(lcPerf, "Slow path! Recreating shadow map textures for light %s", light3DS->id().constData());
                 d->shadowDS = nullptr;
                 d->shadowMapTexture = nullptr;
                 // Regenerate the whole framegraph. A change in shadow map resolution
@@ -2593,7 +2594,7 @@ void Q3DSSceneManager::updateShadowMapStatus(Q3DSLayerNode *layer3DS, bool *smDi
         *smDidChange = newShadowCasterCount != oldShadowCasterCount;
 
     if (newShadowCasterCount != oldShadowCasterCount)
-        qCDebug(lcScene, "Layer %s has %d shadow casting lights", layer3DS->id().constData(), layerData->shadowMapData.shadowCasters.count());
+        qCDebug(lcPerf, "Layer %s has %d shadow casting lights", layer3DS->id().constData(), layerData->shadowMapData.shadowCasters.count());
 }
 
 static void offsetProjectionMatrix(QMatrix4x4 *m, const QVector2D &vertexOffset)
@@ -2724,7 +2725,7 @@ void Q3DSSceneManager::updateProgressiveAA(Q3DSLayerNode *layer3DS)
 
     data->progAA.enabled = true;
     if (factorsIdx == 0)
-        qCDebug(lcScene, "Kicking off progressive AA for layer %s", layer3DS->id().constData());
+        qCDebug(lcPerf, "Kicking off progressive AA for layer %s", layer3DS->id().constData());
 
     // Alter the camera's projection matrix by a little movement based on the current vertexOffset.
     // This applies to the camera used by the main layer passes.
@@ -3045,6 +3046,9 @@ void Q3DSSceneManager::buildCompositor(Qt3DRender::QFrameGraphNode *parent, Qt3D
         layers.append(layer3DS);
     }, true); // process layers in reverse order
 
+    qCDebug(lcPerf, "Composing %d layers in presentation %s",
+            layers.count(), qPrintable(m_profiler->presentationName()));
+
     auto layerNeedsAdvancedBlending = [](Q3DSLayerNode *layer3DS) {
         return layer3DS->layerBackground() == Q3DSLayerNode::Transparent
                 && (layer3DS->blendType() == Q3DSLayerNode::Overlay
@@ -3073,6 +3077,10 @@ void Q3DSSceneManager::buildCompositor(Qt3DRender::QFrameGraphNode *parent, Qt3D
             buildLayerQuadEntity(layer3DS, parentEntity, tag, flags, nullptr);
         }
     } else {
+        qCDebug(lcPerf, "Some layers use an advanced blend mode in presentation %s. "
+                        "This is slower due to an extra blit and a custom blend shader.",
+                qPrintable(m_profiler->presentationName()));
+
         /*
             1. get a fullscreen texture (screen_texture), clear it either to (0, 0, 0, 0) or (scene.clearColor, 1)
             2. for each layer:
@@ -4021,7 +4029,7 @@ void Q3DSSceneManager::rebuildModelMaterial(Q3DSModelNode *model3DS)
 
     for (Q3DSModelAttached::SubMesh &sm : modelData->subMeshes) {
         if (sm.resolvedMaterial && sm.materialComponent) {
-            qCDebug(lcScene, "Rebuilding material for %s (entity %p)", model3DS->id().constData(), sm.entity);
+            qCDebug(lcPerf, "Rebuilding material for %s (entity %p)", model3DS->id().constData(), sm.entity);
             delete sm.materialComponent;
             sm.materialComponent = nullptr;
         }
@@ -4942,7 +4950,7 @@ void Q3DSSceneManager::finalizeEffects(Q3DSLayerNode *layer3DS)
 
     for (Q3DSEffectInstance *eff3DS : layerData->effectData.effects) {
         Q3DSEffectAttached *effData = static_cast<Q3DSEffectAttached *>(eff3DS->attached());
-        qCDebug(lcScene, "Applying post-processing effect %s to layer %s",
+        qCDebug(lcPerf, "Applying post-processing effect %s to layer %s",
                 eff3DS->id().constData(), layer3DS->id().constData());
 
         // Set up textures for Buffers
@@ -6185,8 +6193,8 @@ void Q3DSFrameUpdater::frameAction(float dt)
     if (m_firstFrameAction) {
         m_firstFrameAction = false;
         m_sceneManager->m_firstFrameActionTime = m_firstFrameActionTimer.elapsed();
-        qCDebug(lcScene, "Presentation %s: Time from the end of Qt3D scene building until first frame action: %lld ms",
-                qPrintable(m_sceneManager->m_presentation->sourceFile()), m_sceneManager->m_firstFrameActionTime);
+        qCDebug(lcPerf, "Presentation %s: Time from the end of Qt3D scene building until first frame action: %lld ms",
+                qPrintable(m_sceneManager->m_profiler->presentationName()), m_sceneManager->m_firstFrameActionTime);
         // Now it's time to push all timing data to the profiler.
         m_sceneManager->m_profiler->reportTimeAfterBuildUntilFirstFrameAction(m_sceneManager->m_firstFrameActionTime);
         if (!m_sceneManager->m_flags.testFlag(Q3DSSceneManager::SubPresentation)) {

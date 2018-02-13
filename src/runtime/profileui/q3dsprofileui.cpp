@@ -547,9 +547,14 @@ void Q3DSProfileView::addLogWindow()
     ImGui::Separator();
 
     ImGui::BeginChild("scrolling", ImVec2(0, 0), false, ImGuiWindowFlags_HorizontalScrollbar);
-    const QString logText = m_profiler->log().join(QLatin1Char('\n'));
-    const QByteArray logTextBa = logText.toUtf8();
-    ImGui::TextUnformatted(logTextBa.constData());
+    for (const QString &msg : m_profiler->log()) {
+        const QByteArray msgBa = msg.toUtf8() + '\n';
+        static const ImVec4 perfHighlightColor(1, 0, 0, 1);
+        if (msgBa.startsWith(QByteArrayLiteral("q3ds.perf")))
+            ImGui::TextColored(perfHighlightColor, "%s", msgBa.constData());
+        else
+            ImGui::TextUnformatted(msgBa.constData());
+    }
     if (m_logScrollToBottomOnChange && m_profiler->hasLogChanged())
         ImGui::SetScrollHere(1.0f);
     ImGui::EndChild();

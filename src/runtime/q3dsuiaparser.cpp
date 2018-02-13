@@ -34,6 +34,7 @@
 QT_BEGIN_NAMESPACE
 
 Q_DECLARE_LOGGING_CATEGORY(lcUip)
+Q_DECLARE_LOGGING_CATEGORY(lcPerf)
 
 Q3DSUiaParser::Uia Q3DSUiaParser::parse(const QString &filename)
 {
@@ -57,7 +58,7 @@ Q3DSUiaParser::Uia Q3DSUiaParser::parse(const QString &filename)
     }
 
     m_uia.loadTimeMsecs = elapsedSinceSetSource();
-    qCDebug(lcUip, "%s loaded in %lld ms", qPrintable(filename), m_uia.loadTimeMsecs);
+    qCDebug(lcPerf, "%s loaded in %lld ms", qPrintable(filename), m_uia.loadTimeMsecs);
     return m_uia;
 }
 

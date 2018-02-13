@@ -41,6 +41,7 @@
 QT_BEGIN_NAMESPACE
 
 Q_DECLARE_LOGGING_CATEGORY(lcUip)
+Q_DECLARE_LOGGING_CATEGORY(lcPerf)
 
 namespace Q3DS {
 
@@ -1072,7 +1073,7 @@ namespace  {
             return false;
 
         if (textureImage.width() > 1024 || textureImage.height() > 1024)
-            qCDebug(lcUip, "Perf. hint: Scanning image of size %dx%d manually for transparency. "
+            qCDebug(lcPerf, "Perf. hint: Scanning image of size %dx%d manually for transparency. "
                     "Prefer setting hasTransparency in the ImageBuffer element instead.",
                     textureImage.width(), textureImage.height());
 
