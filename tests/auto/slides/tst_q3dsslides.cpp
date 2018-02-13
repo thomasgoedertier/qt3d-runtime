@@ -36,6 +36,9 @@
 #include <Qt3DCore/QEntity>
 #include <Qt3DRender/QLayer>
 
+#include <QtGui/private/qguiapplication_p.h>
+#include <qpa/qplatformintegration.h>
+
 class tst_Q3DSSlides : public QObject
 {
     Q_OBJECT
@@ -111,11 +114,6 @@ private:
 
 tst_Q3DSSlides::tst_Q3DSSlides()
 {
-    QSurfaceFormat::setDefaultFormat(Q3DSEngine::surfaceFormat());
-    m_engine = new Q3DSEngine;
-    m_view = new Q3DSWindow;
-    m_view->setEngine(m_engine);
-    m_view->forceResize(640, 480);
 }
 
 tst_Q3DSSlides::~tst_Q3DSSlides()
@@ -126,6 +124,15 @@ tst_Q3DSSlides::~tst_Q3DSSlides()
 
 void tst_Q3DSSlides::initTestCase()
 {
+    if (!QGuiApplicationPrivate::instance()->platformIntegration()->hasCapability(QPlatformIntegration::OpenGL))
+        QSKIP("This platform does not support OpenGL");
+
+    QSurfaceFormat::setDefaultFormat(Q3DSEngine::surfaceFormat());
+    m_engine = new Q3DSEngine;
+    m_view = new Q3DSWindow;
+    m_view->setEngine(m_engine);
+    m_view->forceResize(640, 480);
+
     Q3DSUtils::setDialogsEnabled(false);
     // This tests the basic Presentation (top level) slide change
     m_view->engine()->setSource(QLatin1String(":/test3.uip"));
@@ -208,7 +215,8 @@ void tst_Q3DSSlides::initTestCase()
 
 void tst_Q3DSSlides::cleanupTestCase()
 {
-    m_view->close();
+    if (m_view)
+        m_view->close();
 }
 
 void tst_Q3DSSlides::setPresentationSlides()
