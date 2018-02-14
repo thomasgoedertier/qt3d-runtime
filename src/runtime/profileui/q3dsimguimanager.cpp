@@ -301,6 +301,8 @@ void Q3DSImguiManager::update3D()
             resizePool(&m_cmdList[n], 0);
     }
 
+    d->ScaleClipRects(ImVec2(m_scale, m_scale));
+
     // CmdLists is in back-to-front order, assign z values accordingly
     const float zstep = 0.01f;
     float z = -1000;
@@ -354,9 +356,9 @@ void Q3DSImguiManager::update3D()
 
                 Qt3DRender::QScissorTest *scissor = e->cmds[i].scissor;
                 scissor->setLeft(cmd->ClipRect.x);
-                scissor->setBottom(io.DisplaySize.y - cmd->ClipRect.w * m_scale);
-                scissor->setWidth(cmd->ClipRect.z * m_scale - cmd->ClipRect.x);
-                scissor->setHeight(cmd->ClipRect.w * m_scale - cmd->ClipRect.y);
+                scissor->setBottom(io.DisplaySize.y - cmd->ClipRect.w);
+                scissor->setWidth(cmd->ClipRect.z - cmd->ClipRect.x);
+                scissor->setHeight(cmd->ClipRect.w - cmd->ClipRect.y);
 
                 Qt3DCore::QTransform *transform = e->cmds[i].transform;
                 transform->setScale(m_scale);
