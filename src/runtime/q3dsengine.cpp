@@ -82,6 +82,7 @@ static void initResources()
 QT_BEGIN_NAMESPACE
 
 Q_DECLARE_LOGGING_CATEGORY(lcUip)
+Q_DECLARE_LOGGING_CATEGORY(lcPerf)
 
 static const int MAX_LOG_MESSAGE_LENGTH = 1000;
 static const int MAX_LOG_LENGTH = 10000;
@@ -489,7 +490,7 @@ bool Q3DSEngine::loadPresentations()
         createAspectEngine();
 
     m_loadTime = m_sourceLoadTimer.elapsed();
-    qCDebug(lcUip, "Total setSource time (incl. subpresentations + Qt3D scene building): %lld ms", m_loadTime);
+    qCDebug(lcPerf, "Total setSource time (incl. subpresentations + Qt3D scene building): %lld ms", m_loadTime);
 
     emit presentationLoaded();
     return true;
