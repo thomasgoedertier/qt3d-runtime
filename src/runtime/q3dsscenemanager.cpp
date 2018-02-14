@@ -6245,6 +6245,16 @@ void Q3DSSceneManager::setProfileUiInputEventSource(QObject *obj)
 #endif
 }
 
+void Q3DSSceneManager::configureProfileUi(float scale)
+{
+#if QT_CONFIG(q3ds_profileui)
+    if (m_profileUi)
+        m_profileUi->configure(scale);
+#else
+    Q_UNUSED(scale);
+#endif
+}
+
 void Q3DSSceneManager::addLog(const QString &msg)
 {
 #if QT_CONFIG(q3ds_profileui)

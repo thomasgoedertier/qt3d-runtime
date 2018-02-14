@@ -59,6 +59,7 @@
 #include <QColorMask>
 #include <QScissorTest>
 #include <QFrameAction>
+#include <QTransform>
 
 QT_BEGIN_NAMESPACE
 
@@ -183,8 +184,11 @@ void Q3DSImguiManager::resizePool(CmdListEntry *e, int newSize)
             entity->addComponent(buildMaterial(&e->cmds[i].scissor));
             Qt3DRender::QGeometryRenderer *geomRenderer = new Qt3DRender::QGeometryRenderer;
             entity->addComponent(geomRenderer);
+            Qt3DCore::QTransform *transform = new Qt3DCore::QTransform;
+            entity->addComponent(transform);
             e->cmds[i].entity = entity;
             e->cmds[i].geomRenderer = geomRenderer;
+            e->cmds[i].transform = transform;
         }
     }
 
@@ -350,9 +354,12 @@ void Q3DSImguiManager::update3D()
 
                 Qt3DRender::QScissorTest *scissor = e->cmds[i].scissor;
                 scissor->setLeft(cmd->ClipRect.x);
-                scissor->setBottom(io.DisplaySize.y - cmd->ClipRect.w);
-                scissor->setWidth(cmd->ClipRect.z - cmd->ClipRect.x);
-                scissor->setHeight(cmd->ClipRect.w - cmd->ClipRect.y);
+                scissor->setBottom(io.DisplaySize.y - cmd->ClipRect.w * m_scale);
+                scissor->setWidth(cmd->ClipRect.z * m_scale - cmd->ClipRect.x);
+                scissor->setHeight(cmd->ClipRect.w * m_scale - cmd->ClipRect.y);
+
+                Qt3DCore::QTransform *transform = e->cmds[i].transform;
+                transform->setScale(m_scale);
             } else {
                 cmd->UserCallback(cmdList, cmd);
             }
@@ -368,10 +375,11 @@ static const char *vertSrcES2 =
         "varying vec2 uv;\n"
         "varying vec4 color;\n"
         "uniform mat4 projectionMatrix;\n"
+        "uniform mat4 modelMatrix;\n"
         "void main() {\n"
         "    uv = vertexTexCoord;\n"
         "    color = vertexColor;\n"
-        "    gl_Position = projectionMatrix * vec4(vertexPosition.xy, 0.0, 1.0);\n"
+        "    gl_Position = projectionMatrix * modelMatrix * vec4(vertexPosition.xy, 0.0, 1.0);\n"
         "}\n";
 
 static const char *fragSrcES2 =
@@ -390,10 +398,11 @@ static const char *vertSrcGL3 =
         "out vec2 uv;\n"
         "out vec4 color;\n"
         "uniform mat4 projectionMatrix;\n"
+        "uniform mat4 modelMatrix;\n"
         "void main() {\n"
         "    uv = vertexTexCoord;\n"
         "    color = vertexColor;\n"
-        "    gl_Position = projectionMatrix * vec4(vertexPosition.xy, 0.0, 1.0);\n"
+        "    gl_Position = projectionMatrix * modelMatrix * vec4(vertexPosition.xy, 0.0, 1.0);\n"
         "}\n";
 
 static const char *fragSrcGL3 =
@@ -625,7 +634,7 @@ void Q3DSImguiManager::updateInput()
 
     Q3DSImguiInputEventFilter *w = m_inputEventFilter;
 
-    io.MousePos = ImVec2(w->mousePos.x(), w->mousePos.y());
+    io.MousePos = ImVec2(w->mousePos.x() / m_scale, w->mousePos.y() / m_scale);
 
     io.MouseDown[0] = w->mouseButtonsDown.testFlag(Qt::LeftButton);
     io.MouseDown[1] = w->mouseButtonsDown.testFlag(Qt::RightButton);
@@ -663,6 +672,11 @@ void Q3DSImguiManager::setEnabled(bool enabled)
 
     if (m_inputEventFilter)
         m_inputEventFilter->enabled = m_enabled;
+}
+
+void Q3DSImguiManager::setScale(float scale)
+{
+    m_scale = scale;
 }
 
 QT_END_NAMESPACE

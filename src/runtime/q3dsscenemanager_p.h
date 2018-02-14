@@ -600,6 +600,7 @@ public:
     void setProfileUiVisible(bool visible, bool openLog = false);
     bool isProfileUiVisible() const;
     void setProfileUiInputEventSource(QObject *obj);
+    void configureProfileUi(float scale);
 
     // for testing from the viewer - to be moved private later
     void setDepthTextureEnabled(Q3DSLayerNode *layer3DS, bool enabled);

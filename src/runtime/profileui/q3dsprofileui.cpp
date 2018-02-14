@@ -646,6 +646,11 @@ void Q3DSProfileUi::setInputEventSource(QObject *obj)
     m_guiMgr->setInputEventSource(obj);
 }
 
+void Q3DSProfileUi::configure(float scale)
+{
+    m_guiMgr->setScale(scale);
+}
+
 void Q3DSProfileUi::releaseResources()
 {
     m_guiMgr->releaseResources();

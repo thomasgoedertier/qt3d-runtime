@@ -192,6 +192,7 @@ private:
 
     QObject m_profileUiEventSource;
     bool m_autoStart = true;
+    float m_profileUiScale = 1;
 };
 
 Q_DECLARE_OPERATORS_FOR_FLAGS(Q3DSEngine::Flags)

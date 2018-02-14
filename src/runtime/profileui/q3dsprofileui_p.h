@@ -56,6 +56,7 @@ public:
     ~Q3DSProfileUi();
 
     void setInputEventSource(QObject *obj);
+    void configure(float scale);
 
     void releaseResources();
 

@@ -953,16 +953,26 @@ void Q3DSEngine::handleKeyPressEvent(QKeyEvent *e)
 {
     QCoreApplication::sendEvent(&m_profileUiEventSource, e);
 
+    Q3DSSceneManager *sm = !m_uipPresentations.isEmpty() ? m_uipPresentations[0].sceneManager : nullptr;
+
     // not ideal since the window needs focus which it often won't have. also no keyboard on embedded/mobile.
-    if (e->key() == Qt::Key_F10 && !m_uipPresentations.isEmpty()) {
-        auto m = m_uipPresentations[0].sceneManager;
-        m->setProfileUiVisible(!m->isProfileUiVisible());
+    Qt::KeyboardModifiers mods = e->modifiers();
+    if (sm && e->key() == Qt::Key_F10 && mods == Qt::NoModifier)
+        sm->setProfileUiVisible(!sm->isProfileUiVisible());
+
+    if (sm && e->key() == Qt::Key_QuoteLeft) {
+        const bool v = !sm->isProfileUiVisible();
+        sm->setProfileUiVisible(v, v);
     }
 
-    if (e->key() == Qt::Key_QuoteLeft && !m_uipPresentations.isEmpty()) {
-        auto m = m_uipPresentations[0].sceneManager;
-        const bool v = !m->isProfileUiVisible();
-        m->setProfileUiVisible(v, v);
+    if (sm && e->key() == Qt::Key_F10 && mods == Qt::AltModifier) {
+        m_profileUiScale -= 0.2f;
+        sm->configureProfileUi(m_profileUiScale);
+    }
+
+    if (sm && e->key() == Qt::Key_F10 && mods == Qt::ControlModifier) {
+        m_profileUiScale += 0.2f;
+        sm->configureProfileUi(m_profileUiScale);
     }
 }
 
