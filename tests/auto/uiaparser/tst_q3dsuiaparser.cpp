@@ -41,6 +41,7 @@ private slots:
     void testInvalid_data();
     void testInvalid();
     void testMixed();
+    void testDataInput();
 };
 
 void tst_Q3DSUiaParser::initTestCase()
@@ -70,6 +71,7 @@ void tst_Q3DSUiaParser::testInvalid_data()
     QTest::addColumn<QString>("fn");
     QTest::newRow("1") << QString(QLatin1String(":/data/invalid1.uia"));
     QTest::newRow("2") << QString(QLatin1String(":/data/invalid2.uia"));
+    QTest::newRow("3") << QString(QLatin1String(":/data/invalid_datainput.uia"));
 }
 
 void tst_Q3DSUiaParser::testInvalid()
@@ -102,6 +104,29 @@ void tst_Q3DSUiaParser::testMixed()
     QCOMPARE(data.presentations[3].type, Q3DSUiaParser::Uia::Presentation::Qml);
     QCOMPARE(data.presentations[3].id, QStringLiteral("quick"));
     QCOMPARE(data.presentations[3].source, QStringLiteral("quick-preview.qml"));
+}
+
+void tst_Q3DSUiaParser::testDataInput()
+{
+    Q3DSUiaParser parser;
+    Q3DSUiaParser::Uia data = parser.parse(QLatin1String(":/data/datainput.uia"));
+    QVERIFY(data.isValid());
+
+    QCOMPARE(data.initialPresentationId, QStringLiteral("Barrel"));
+    QCOMPARE(data.presentations.count(), 1);
+    QCOMPARE(data.dataInputEntries.count(), 3);
+
+    auto di = data.dataInputEntries;
+    QCOMPARE(di[0].name, QStringLiteral("newDataInput"));
+    QCOMPARE(di[0].type, Q3DSDataInputEntry::TypeRangedNumber);
+    QCOMPARE(di[0].minValue, 0.0f);
+    QCOMPARE(di[0].maxValue, 10.0f);
+    QCOMPARE(di[1].name, QStringLiteral("newDataInput_001"));
+    QCOMPARE(di[1].type, Q3DSDataInputEntry::TypeString);
+    QCOMPARE(di[2].name, QStringLiteral("newDataInput_002"));
+    QCOMPARE(di[2].type, Q3DSDataInputEntry::TypeRangedNumber);
+    QCOMPARE(di[2].minValue, 42.0f);
+    QCOMPARE(di[2].maxValue, 123.45f);
 }
 
 #include <tst_q3dsuiaparser.moc>

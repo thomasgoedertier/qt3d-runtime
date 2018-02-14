@@ -42,6 +42,7 @@
 //
 
 #include "q3dsabstractxmlparser_p.h"
+#include "q3dsuiadocument_p.h"
 
 QT_BEGIN_NAMESPACE
 
@@ -61,6 +62,7 @@ public:
 
         QVector<Presentation> presentations;
         QString initialPresentationId;
+        QVector<Q3DSDataInputEntry> dataInputEntries;
         qint64 loadTimeMsecs = 0;
 
         bool isValid() const { return !presentations.isEmpty(); }

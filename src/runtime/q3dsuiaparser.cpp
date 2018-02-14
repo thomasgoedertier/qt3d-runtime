@@ -96,6 +96,7 @@ void Q3DSUiaParser::parsePresentations()
                     m_uia.initialPresentationId = pres.id;
             } else {
                 r->raiseError(QObject::tr("Malformed presentation element"));
+                m_uia.presentations.clear();
             }
         } else if (r->name() == QStringLiteral("presentation-qml")) {
             QXmlStreamAttributes attrs = r->attributes();
@@ -107,6 +108,32 @@ void Q3DSUiaParser::parsePresentations()
                 pres.id = id.toString();
                 pres.source = args.toString();
                 m_uia.presentations.append(pres);
+            }
+        } else if (r->name() == QStringLiteral("dataInput")) {
+            QXmlStreamAttributes attrs = r->attributes();
+            QStringRef name = attrs.value(QLatin1String("name"));
+            QStringRef type = attrs.value(QLatin1String("type"));
+            QStringRef minValue = attrs.value(QLatin1String("min"));
+            QStringRef maxValue = attrs.value(QLatin1String("max"));
+            if (name.isEmpty() || type.isEmpty()) {
+                r->raiseError(QObject::tr("Malformed dataInput element"));
+                m_uia.presentations.clear();
+            } else {
+                Q3DSDataInputEntry e;
+                e.name = name.toString();
+                if (type == QStringLiteral("String")) {
+                    e.type = Q3DSDataInputEntry::TypeString;
+                } else if (type == QLatin1String("Ranged Number")) {
+                    e.type = Q3DSDataInputEntry::TypeRangedNumber;
+                } else {
+                    r->raiseError(QObject::tr("Unknown type in dataInput element"));
+                    m_uia.presentations.clear();
+                }
+                if (!minValue.isEmpty())
+                    e.minValue = minValue.toFloat();
+                if (!maxValue.isEmpty())
+                    e.maxValue = maxValue.toFloat();
+                m_uia.dataInputEntries.append(e);
             }
         }
         r->skipCurrentElement();

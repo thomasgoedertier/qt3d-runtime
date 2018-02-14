@@ -49,6 +49,21 @@
 
 QT_BEGIN_NAMESPACE
 
+struct Q3DSV_PRIVATE_EXPORT Q3DSDataInputEntry
+{
+    enum Type {
+        TypeString,
+        TypeRangedNumber
+    };
+
+    QString name;
+    Type type = TypeString;
+    float minValue = 0;
+    float maxValue = 0;
+};
+
+Q_DECLARE_TYPEINFO(Q3DSDataInputEntry, Q_MOVABLE_TYPE);
+
 class Q3DSV_PRIVATE_EXPORT Q3DSUiaDocument
 {
 public:
@@ -56,6 +71,9 @@ public:
 
     void setInitialDocumentId(const QString &id);
     QString initialDocumentId() const;
+
+    void setDataInputEntries(const QVector<Q3DSDataInputEntry> &entries);
+    const QVector<Q3DSDataInputEntry> dataInputEntries() const;
 
     void addSubDocument(const Q3DSUipDocument &uipDocument);
     void addSubDocument(const Q3DSQmlDocument &qmlDocument);
@@ -70,7 +88,7 @@ private:
     QString m_initialDocumentId;
     QVector<Q3DSUipDocument> m_uipDocuments;
     QVector<Q3DSQmlDocument> m_qmlDocuments;
-
+    QVector<Q3DSDataInputEntry> m_dataInputEntries;
 };
 
 QT_END_NAMESPACE

@@ -41,6 +41,16 @@ QString Q3DSUiaDocument::initialDocumentId() const
     return m_initialDocumentId;
 }
 
+void Q3DSUiaDocument::setDataInputEntries(const QVector<Q3DSDataInputEntry> &entries)
+{
+    m_dataInputEntries = entries;
+}
+
+const QVector<Q3DSDataInputEntry> Q3DSUiaDocument::dataInputEntries() const
+{
+    return m_dataInputEntries;
+}
+
 void Q3DSUiaDocument::addSubDocument(const Q3DSUipDocument &uipDocument)
 {
     m_uipDocuments.append(uipDocument);
@@ -55,6 +65,7 @@ void Q3DSUiaDocument::clear()
 {
     m_uipDocuments.clear();
     m_qmlDocuments.clear();
+    m_dataInputEntries.clear();
 }
 
 const QVector<Q3DSUipDocument> Q3DSUiaDocument::uipDocuments() const
