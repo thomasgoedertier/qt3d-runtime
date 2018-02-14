@@ -34,6 +34,8 @@
 #include "q3dsmesh_p.h"
 #include "q3dsenummaps_p.h"
 #include <QLoggingCategory>
+#include <QGuiApplication>
+#include <QClipboard>
 #include <Qt3DRender/QTexture>
 #include <Qt3DRender/QPaintedTextureImage>
 #include <Qt3DRender/QGeometry>
@@ -47,14 +49,13 @@ QT_BEGIN_NAMESPACE
 
 Q_LOGGING_CATEGORY(lcProf, "q3ds.profileui")
 
-const int MAX_FRAME_DELTA_COUNT = 1000; // plot the last 1000 frame deltas at most
+static const int MAX_FRAME_DELTA_COUNT = 1000; // plot the last 1000 frame deltas at most
+static const int MAX_LOG_FILTER_ENTRIES = 20;
 
 class Q3DSProfileView
 {
 public:
-    Q3DSProfileView(Q3DSProfiler *profiler)
-        : m_profiler(profiler)
-    { }
+    Q3DSProfileView(Q3DSProfiler *profiler);
 
     void frame();
 
@@ -67,6 +68,7 @@ private:
     void addAlterSceneStuff();
     void addPresentationSelector();
     Q3DSProfiler *selectedProfiler() const;
+    bool isFiltered(const QString &s) const;
 
     Q3DSProfiler *m_profiler;
     int m_frameDeltaCount = 100; // last 100 frames
@@ -80,7 +82,44 @@ private:
     bool m_logWindowOpen = false;
     bool m_logScrollToBottomOnChange = true;
     int m_currentPresentationIndex = 0;
+    bool m_logFilterWindowOpen = false;
+    const char *m_logFilterPrefixes[MAX_LOG_FILTER_ENTRIES];
+    bool m_logFilterEnabled[MAX_LOG_FILTER_ENTRIES];
 };
+
+Q3DSProfileView::Q3DSProfileView(Q3DSProfiler *profiler)
+    : m_profiler(profiler)
+{
+    int i = 0;
+    m_logFilterPrefixes[i] = "q3ds.perf";
+    m_logFilterEnabled[i] = true;
+    ++i;
+    m_logFilterPrefixes[i] = "q3ds.uip";
+    m_logFilterEnabled[i] = true;
+    ++i;
+    m_logFilterPrefixes[i] = "q3ds.uipprop";
+    m_logFilterEnabled[i] = true;
+    ++i;
+    m_logFilterPrefixes[i] = "q3ds.scene";
+    m_logFilterEnabled[i] = true;
+    ++i;
+    m_logFilterPrefixes[i] = "q3ds.slideplayer";
+    m_logFilterEnabled[i] = true;
+    ++i;
+    m_logFilterPrefixes[i] = "q3ds.profileui";
+    m_logFilterEnabled[i] = true;
+    ++i;
+    m_logFilterPrefixes[i] = "q3ds.studio3d";
+    m_logFilterEnabled[i] = true;
+    ++i;
+    m_logFilterPrefixes[i] = "q3ds.surface";
+    m_logFilterEnabled[i] = true;
+    ++i;
+    m_logFilterPrefixes[i] = "q3ds.widget";
+    m_logFilterEnabled[i] = true;
+    ++i;
+    m_logFilterPrefixes[i] = nullptr;
+}
 
 static void addTip(const char *s)
 {
@@ -112,6 +151,17 @@ Q3DSProfiler *Q3DSProfileView::selectedProfiler() const
         return m_profiler;
 
     return m_profiler->subPresentationProfilers()->at(m_currentPresentationIndex - 1);
+}
+
+bool Q3DSProfileView::isFiltered(const QString &s) const
+{
+    for (int i = 0; i < MAX_LOG_FILTER_ENTRIES; ++i) {
+        if (!m_logFilterPrefixes[i])
+            break;
+        if (!m_logFilterEnabled[i] && s.startsWith(QString::fromLatin1(m_logFilterPrefixes[i])))
+            return true;
+    }
+    return false;
 }
 
 void Q3DSProfileView::frame()
@@ -543,11 +593,21 @@ void Q3DSProfileView::addLogWindow()
     if (ImGui::Button("Clear"))
         m_profiler->clearLog();
     ImGui::SameLine();
+#ifndef QT_NO_CLIPBOARD
+    if (ImGui::Button("Copy"))
+        QGuiApplication::clipboard()->setText(m_profiler->log().join('\n'));
+    ImGui::SameLine();
+#endif
+    if (ImGui::Button("Filter"))
+        m_logFilterWindowOpen = !m_logFilterWindowOpen;
+    ImGui::SameLine();
     ImGui::Checkbox("Scroll on change", &m_logScrollToBottomOnChange);
     ImGui::Separator();
 
     ImGui::BeginChild("scrolling", ImVec2(0, 0), false, ImGuiWindowFlags_HorizontalScrollbar);
     for (const QString &msg : m_profiler->log()) {
+        if (isFiltered(msg))
+            continue;
         const QByteArray msgBa = msg.toUtf8() + '\n';
         static const ImVec4 perfHighlightColor(1, 0, 0, 1);
         if (msgBa.startsWith(QByteArrayLiteral("q3ds.perf")))
@@ -561,6 +621,20 @@ void Q3DSProfileView::addLogWindow()
     ImGui::Separator();
 
     ImGui::End();
+
+    if (m_logFilterWindowOpen) {
+        ImGui::Begin("Filter log", &m_logFilterWindowOpen,
+                     ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings);
+        ImGui::Text("Select which log entries to show");
+        ImGui::Separator();
+        for (int i = 0; i < MAX_LOG_FILTER_ENTRIES; ++i) {
+            if (!m_logFilterPrefixes[i])
+                break;
+            ImGui::Selectable(m_logFilterPrefixes[i], &m_logFilterEnabled[i]);
+        }
+        ImGui::Separator();
+        ImGui::End();
+    }
 }
 
 static void changeProperty(Q3DSGraphObject *obj, const QString &name, const QString &value)

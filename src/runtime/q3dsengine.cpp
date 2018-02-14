@@ -84,7 +84,7 @@ QT_BEGIN_NAMESPACE
 Q_DECLARE_LOGGING_CATEGORY(lcUip)
 
 static const int MAX_LOG_MESSAGE_LENGTH = 1000;
-static const int MAX_LOG_LENGTH = 5000;
+static const int MAX_LOG_LENGTH = 10000;
 
 static Q3DSGraphicsLimits gfxLimits;
 

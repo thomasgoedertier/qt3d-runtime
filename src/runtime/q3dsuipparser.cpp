@@ -36,6 +36,7 @@
 QT_BEGIN_NAMESPACE
 
 Q_LOGGING_CATEGORY(lcUip, "q3ds.uip")
+Q_LOGGING_CATEGORY(lcUipProp, "q3ds.uipprop")
 Q_DECLARE_LOGGING_CATEGORY(lcPerf)
 
 /*

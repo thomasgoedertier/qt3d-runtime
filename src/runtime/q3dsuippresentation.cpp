@@ -41,6 +41,7 @@
 QT_BEGIN_NAMESPACE
 
 Q_DECLARE_LOGGING_CATEGORY(lcUip)
+Q_DECLARE_LOGGING_CATEGORY(lcUipProp)
 Q_DECLARE_LOGGING_CATEGORY(lcPerf)
 
 namespace Q3DS {
@@ -2188,9 +2189,9 @@ void Q3DSUipPresentation::applySlidePropertyChanges(Q3DSSlide *slide) const
         return;
 
     for (auto it = changeList->cbegin(), ite = changeList->cend(); it != ite; ++it) {
-        for (auto change = it.value()->begin(); change != it.value()->end(); change++) {
-            qCDebug(lcUip) << "\t" << it.key() << "applying property change:" << change->name() << change->value();
-        }
+        for (auto change = it.value()->begin(); change != it.value()->end(); change++)
+            qCDebug(lcUipProp) << "\t" << it.key() << "applying property change:" << change->name() << change->value();
+
         it.key()->applyPropertyChanges(it.value());
     }
 
