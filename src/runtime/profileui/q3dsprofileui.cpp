@@ -186,13 +186,20 @@ void Q3DSProfileView::frame()
     if (ImGui::CollapsingHeader("Perf. stats")) {
         qint64 totalTime = m_profiler->totalParseBuildTime();
         ImGui::Text("Combined parse/build time: %u ms", (uint) m_profiler->totalParseBuildTime());
-        ImGui::Text("Time from build to first frame callback:");
+        ImGui::Text("Per presentation times:");
+        ImGui::Text("parse/build - of which mesh I/O - then to first frame");
         const QString mainPresName = m_profiler->presentationName();
-        ImGui::Text("  %s - %u ms", qPrintable(mainPresName), (uint) m_profiler->timeAfterBuildUntilFirstFrameAction());
+        ImGui::Text("  %s - %u ms - %u ms - %u ms", qPrintable(mainPresName),
+                    (uint) m_profiler->presentation()->loadTimeMsecs(),
+                    (uint) m_profiler->presentation()->meshesLoadTimeMsecs(),
+                    (uint) m_profiler->timeAfterBuildUntilFirstFrameAction());
         totalTime += m_profiler->timeAfterBuildUntilFirstFrameAction();
         for (Q3DSProfiler *subPresProfiler : *m_profiler->subPresentationProfilers()) {
             const QString subPresName = subPresProfiler->presentationName();
-            ImGui::Text("  %s - %u ms", qPrintable(subPresName), (uint) subPresProfiler->timeAfterBuildUntilFirstFrameAction());
+            ImGui::Text("  %s - %u ms - %u ms - %u ms", qPrintable(subPresName),
+                        (uint) subPresProfiler->presentation()->loadTimeMsecs(),
+                        (uint) subPresProfiler->presentation()->meshesLoadTimeMsecs(),
+                        (uint) subPresProfiler->timeAfterBuildUntilFirstFrameAction());
             totalTime += subPresProfiler->timeAfterBuildUntilFirstFrameAction();
         }
         ImGui::Text("Total: %u ms", (uint) totalTime);

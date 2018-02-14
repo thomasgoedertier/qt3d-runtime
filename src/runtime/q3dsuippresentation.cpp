@@ -2154,7 +2154,12 @@ MeshList Q3DSUipPresentation::mesh(const QString &assetFilename, int part)
     if (d->meshes.contains(id))
         return d->meshes.value(id);
 
+    QElapsedTimer t;
+    t.start();
     MeshList m = Q3DSMeshLoader::loadMesh(assetFilename, part, false);
+    qCDebug(lcPerf, "Mesh %s loaded in %lld ms", qPrintable(assetFilename), t.elapsed());
+    d->meshesLoadTime += t.elapsed();
+
     d->meshes.insert(id, m);
     return m;
 }
@@ -2167,6 +2172,11 @@ const Q3DSUipPresentation::ImageBufferMap &Q3DSUipPresentation::imageBuffer() co
 qint64 Q3DSUipPresentation::loadTimeMsecs() const
 {
     return d->loadTime;
+}
+
+qint64 Q3DSUipPresentation::meshesLoadTimeMsecs() const
+{
+    return d->meshesLoadTime;
 }
 
 void Q3DSUipPresentation::applySlidePropertyChanges(Q3DSSlide *slide) const

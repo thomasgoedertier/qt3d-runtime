@@ -1417,6 +1417,7 @@ public:
     void applySlidePropertyChanges(Q3DSSlide *slide) const;
 
     qint64 loadTimeMsecs() const;
+    qint64 meshesLoadTimeMsecs() const;
 
 private:
     Q_DISABLE_COPY(Q3DSUipPresentation)
@@ -1450,6 +1451,7 @@ struct Q3DSUipPresentationData
     Q3DSUipPresentation::Rotation presentationRotation = Q3DSUipPresentation::NoRotation;
     bool maintainAspectRatio = false;
     qint64 loadTime = 0;
+    qint64 meshesLoadTime = 0;
 
     Q3DSScene *scene = nullptr;
     Q3DSSlide *masterSlide = nullptr;
