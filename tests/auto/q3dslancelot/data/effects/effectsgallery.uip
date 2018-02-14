@@ -23,7 +23,6 @@
 			<Effect id="FullScreenTextureOverlay" name="FullScreenTextureOverlay" sourcepath="effects/FullScreenTextureOverlay.effect" />
 			<Effect id="Gaussian Blur" name="Gaussian Blur" sourcepath="effects/Gaussian Blur.effect" />
 			<Effect id="HDRBloomTonemap" name="HDRBloomTonemap" sourcepath="effects/HDRBloomTonemap.effect" />
-			<Effect id="Motion Blur" name="Motion Blur" sourcepath="effects/Motion Blur.effect" />
 			<Effect id="SCurveTonemap" name="SCurveTonemap" sourcepath="effects/SCurveTonemap.effect" />
 			<Effect id="Screen Space AO" name="Screen Space AO" sourcepath="effects/Screen Space AO.effect" />
 			<Effect id="Sepia" name="Sepia" sourcepath="effects/Sepia.effect" />
@@ -251,7 +250,6 @@
 					<Model id="Sphere_019" >
 						<Material id="Default_039" name="Default" />
 					</Model>
-					<Effect id="Motion Blur_001" class="#Motion Blur" />
 				</Layer>
 				<Layer id="Layer21" >
 					<Camera id="Camera_020" />
@@ -472,7 +470,6 @@
 					<Add ref="#Default_038" />
 					<Add ref="#Sphere_019" name="Sphere" position="192.771 17.3205 0" rotation="71.3254 -100.135 -168.32" scale="2.5 2 2" sourcepath="#Sphere" />
 					<Add ref="#Default_039" />
-					<Add ref="#Motion Blur_001" name="Motion Blur" fadeAmount="0.0833333" />
 					<Add ref="#Layer21" name="Layer21" height="20" top="80" width="20" />
 					<Add ref="#Camera_020" />
 					<Add ref="#Light_020" />
