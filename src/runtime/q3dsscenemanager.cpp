@@ -2911,7 +2911,7 @@ static void setLayerBlending(Qt3DRender::QBlendEquation *blendFunc,
 }
 
 void Q3DSSceneManager::buildLayerQuadEntity(Q3DSLayerNode *layer3DS, Qt3DCore::QEntity *parentEntity,
-                                            Qt3DRender::QLayer *tag, BuildLayerQuadFlags flags,
+                                            Qt3DRender::QLayer *tag, BuildLayerQuadFlags flags, int layerDepth,
                                             Qt3DRender::QRenderPass **outRenderPass)
 {
     Q3DSLayerAttached *data = static_cast<Q3DSLayerAttached *>(layer3DS->attached());
@@ -2932,7 +2932,7 @@ void Q3DSSceneManager::buildLayerQuadEntity(Q3DSLayerNode *layer3DS, Qt3DCore::Q
     transform->setRotationX(90);
 
     // defer the sizing and positioning
-    data->updateCompositorCalculations = [data, layerQuadEntity, tag, mesh, transform]() {
+    data->updateCompositorCalculations = [data, layerQuadEntity, tag, mesh, transform, layerDepth]() {
         if (data->layerSize.isEmpty()) {
             layerQuadEntity->removeComponent(tag);
             return;
@@ -2946,7 +2946,7 @@ void Q3DSSceneManager::buildLayerQuadEntity(Q3DSLayerNode *layer3DS, Qt3DCore::Q
         const float y = -data->layerPos.y() / float(data->parentSize.height()) * 2;
         transform->setTranslation(QVector3D(-(2.0f - mesh->width()) / 2 + x,
                                             (2.0f - mesh->height()) / 2 + y,
-                                            0));
+                                            0 - layerDepth * 0.0001f));
     };
 
     Qt3DRender::QMaterial *material = new Qt3DRender::QMaterial;
@@ -2966,10 +2966,8 @@ void Q3DSSceneManager::buildLayerQuadEntity(Q3DSLayerNode *layer3DS, Qt3DCore::Q
     }
 
     Qt3DRender::QDepthTest *depthTest = new Qt3DRender::QDepthTest;
-    depthTest->setDepthFunction(Qt3DRender::QDepthTest::Always);
+    depthTest->setDepthFunction(Qt3DRender::QDepthTest::Less);
     renderPass->addRenderState(depthTest);
-    Qt3DRender::QNoDepthMask *noDepthWrite = new Qt3DRender::QNoDepthMask;
-    renderPass->addRenderState(noDepthWrite);
 
     if (outRenderPass)
         *outRenderPass = renderPass;
@@ -3069,12 +3067,13 @@ void Q3DSSceneManager::buildCompositor(Qt3DRender::QFrameGraphNode *parent, Qt3D
         Qt3DRender::QLayer *tag = new Qt3DRender::QLayer;
         layerFilter->addLayer(tag);
 
+        int layerDepth = 1;
         for (Q3DSLayerNode *layer3DS : layers) {
             BuildLayerQuadFlags flags = 0;
             if (layer3DS->layerBackground() == Q3DSLayerNode::Transparent)
                 flags |= LayerQuadBlend;
 
-            buildLayerQuadEntity(layer3DS, parentEntity, tag, flags, nullptr);
+            buildLayerQuadEntity(layer3DS, parentEntity, tag, flags, layerDepth++);
         }
     } else {
         qCDebug(lcPerf, "Some layers use an advanced blend mode in presentation %s. "
@@ -3097,7 +3096,7 @@ void Q3DSSceneManager::buildCompositor(Qt3DRender::QFrameGraphNode *parent, Qt3D
             long as the blits are performed via blitFramebuffer. (would not
             work with a draw quad)
          */
-
+        int layerDepth = 1;
         for (Q3DSLayerNode *layer3DS : layers) {
             if (layerNeedsAdvancedBlending(layer3DS)) {
                 Q3DSLayerAttached *data = static_cast<Q3DSLayerAttached *>(layer3DS->attached());
@@ -3153,7 +3152,7 @@ void Q3DSSceneManager::buildCompositor(Qt3DRender::QFrameGraphNode *parent, Qt3D
                 // Now we do not need normal blending and will provide a custom shader program.
                 Qt3DRender::QRenderPass *renderPass;
                 BuildLayerQuadFlags flags = LayerQuadCustomShader;
-                buildLayerQuadEntity(layer3DS, parentEntity, tag, flags, &renderPass);
+                buildLayerQuadEntity(layer3DS, parentEntity, tag, flags, layerDepth++, &renderPass);
 
                 switch (layer3DS->blendType()) {
                 case Q3DSLayerNode::Overlay:
@@ -3187,7 +3186,7 @@ void Q3DSSceneManager::buildCompositor(Qt3DRender::QFrameGraphNode *parent, Qt3D
                 if (layer3DS->layerBackground() == Q3DSLayerNode::Transparent)
                     flags |= LayerQuadBlend;
 
-                buildLayerQuadEntity(layer3DS, parentEntity, tag, flags, nullptr);
+                buildLayerQuadEntity(layer3DS, parentEntity, tag, flags, layerDepth++);
             }
         }
     }

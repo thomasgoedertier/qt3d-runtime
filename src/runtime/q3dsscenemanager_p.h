@@ -682,7 +682,7 @@ private:
     void updateModel(Q3DSModelNode *model3DS);
 
     void buildLayerQuadEntity(Q3DSLayerNode *layer3DS, Qt3DCore::QEntity *parentEntity, Qt3DRender::QLayer *tag,
-                              BuildLayerQuadFlags flags, Qt3DRender::QRenderPass **renderPass);
+                              BuildLayerQuadFlags flags, int layerDepth = 0, Qt3DRender::QRenderPass **renderPass = nullptr);
     void buildCompositor(Qt3DRender::QFrameGraphNode *parent, Qt3DCore::QEntity *parentEntity);
     void buildGuiPass(Qt3DRender::QFrameGraphNode *parent, Qt3DCore::QEntity *parentEntity);
 
