@@ -306,7 +306,9 @@ void Q3DSUipParser::parseScene()
 
     auto scene = new Q3DSScene;
     scene->setProperties(r->attributes(), Q3DSGraphObject::PropSetDefaults);
+    scene->setDataInputControlledProperties(getDataInputControlledProperties());
     m_presentation->registerObject(id, scene);
+    m_presentation->registerDataInputTarget(scene);
     m_presentation->setScene(scene);
 
     while (r->readNextStartElement()) {
@@ -358,7 +360,9 @@ void Q3DSUipParser::parseObjects(Q3DSGraphObject *parent)
     }
 
     obj->setProperties(r->attributes(), Q3DSGraphObject::PropSetDefaults);
+    obj->setDataInputControlledProperties(getDataInputControlledProperties());
     m_presentation->registerObject(id, obj);
+    m_presentation->registerDataInputTarget(obj);
     parent->appendChildNode(obj);
 
     while (r->readNextStartElement())
@@ -416,7 +420,9 @@ Q3DSSlide *Q3DSUipParser::parseSlide(Q3DSSlide *parent, const QByteArray &idPref
 
     Q3DSSlide *slide = new Q3DSSlide;
     slide->setProperties(r->attributes(), Q3DSGraphObject::PropSetDefaults);
+    slide->setDataInputControlledProperties(getDataInputControlledProperties());
     m_presentation->registerObject(id, slide);
+    m_presentation->registerDataInputTarget(slide);
     if (parent)
         parent->appendChildNode(slide);
 
@@ -582,6 +588,23 @@ QByteArray Q3DSUipParser::getId(const QStringRef &desc, bool required)
     if (id.isEmpty() && required)
         reader()->raiseError(QObject::tr("Missing %1 id.").arg(desc.toString()));
     return id;
+}
+
+Q3DSGraphObject::DataInputControlledProperties Q3DSUipParser::getDataInputControlledProperties()
+{
+    Q3DSGraphObject::DataInputControlledProperties dataInputControlledProperties;
+    const QStringRef cp = reader()->attributes().value(QLatin1String("controlledproperty"));
+    if (!cp.isEmpty()) {
+        QVector<QStringRef> nameTargetPairs = cp.trimmed().split(' ', QString::SkipEmptyParts);
+        for (int i = 0; i < nameTargetPairs.count(); i += 2) {
+            if (i + 1 == nameTargetPairs.count()) {
+                reader()->raiseError(QObject::tr("Malformed controlledproperty attribute: %1").arg(cp.toString()));
+                return dataInputControlledProperties;
+            }
+            dataInputControlledProperties.insert(nameTargetPairs[i].toString(), nameTargetPairs[i + 1].toString());
+        }
+    }
+    return dataInputControlledProperties;
 }
 
 void Q3DSUipParser::resolveReferences(Q3DSGraphObject *obj)

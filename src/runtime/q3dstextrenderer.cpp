@@ -176,7 +176,7 @@ QSize Q3DSTextRenderer::textImageSize(Q3DSTextNode *text3DS)
     QVector<float> lineWidths;
     QRectF boundingBox = textBoundingBox(text3DS, fm, lineList, &lineWidths);
     if (boundingBox.isEmpty())
-        return QSize();
+        boundingBox.setSize(QSizeF(4, 4));
 
     return QSize(nextMultipleOf4(boundingBox.width()), nextMultipleOf4(boundingBox.height()));
 }
@@ -191,8 +191,9 @@ void Q3DSTextRenderer::renderText(QPainter *painter, Q3DSTextNode *text3DS)
     QFontMetricsF fm(font->font);
     const QStringList lineList = text3DS->text().split('\n');
     QVector<float> lineWidths;
-    const QRectF boundingBox = textBoundingBox(text3DS, fm, lineList, &lineWidths);
-    Q_ASSERT(!boundingBox.isEmpty());
+    QRectF boundingBox = textBoundingBox(text3DS, fm, lineList, &lineWidths);
+    if (boundingBox.isEmpty())
+        boundingBox.setSize(QSizeF(4, 4));
 
     const QSize sz(nextMultipleOf4(boundingBox.width()), nextMultipleOf4(boundingBox.height()));
     painter->setCompositionMode(QPainter::CompositionMode_Source);

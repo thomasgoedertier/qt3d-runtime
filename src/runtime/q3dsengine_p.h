@@ -178,6 +178,7 @@ private:
     QString m_source; // uip or uia file
     QVector<UipPresentation> m_uipPresentations;
     QVector<QmlPresentation> m_qmlPresentations;
+    Q3DSDataInputEntry::Map m_dataInputEntries;
 
     QScopedPointer<QQmlEngine> m_qmlEngine;
     qint64 m_loadTime = 0;

@@ -125,6 +125,10 @@ void Q3DSUiaParser::parsePresentations()
                     e.type = Q3DSDataInputEntry::TypeString;
                 } else if (type == QLatin1String("Ranged Number")) {
                     e.type = Q3DSDataInputEntry::TypeRangedNumber;
+                } else if (type == QLatin1String("Vector2")) {
+                    e.type = Q3DSDataInputEntry::TypeVec2;
+                } else if (type == QLatin1String("Vector3")) {
+                    e.type = Q3DSDataInputEntry::TypeVec3;
                 } else {
                     r->raiseError(QObject::tr("Unknown type in dataInput element"));
                     m_uia.presentations.clear();
@@ -133,7 +137,7 @@ void Q3DSUiaParser::parsePresentations()
                     e.minValue = minValue.toFloat();
                 if (!maxValue.isEmpty())
                     e.maxValue = maxValue.toFloat();
-                m_uia.dataInputEntries.append(e);
+                m_uia.dataInputEntries.insert(e.name, e);
             }
         }
         r->skipCurrentElement();

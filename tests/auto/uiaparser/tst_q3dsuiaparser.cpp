@@ -117,16 +117,25 @@ void tst_Q3DSUiaParser::testDataInput()
     QCOMPARE(data.dataInputEntries.count(), 3);
 
     auto di = data.dataInputEntries;
-    QCOMPARE(di[0].name, QStringLiteral("newDataInput"));
-    QCOMPARE(di[0].type, Q3DSDataInputEntry::TypeRangedNumber);
-    QCOMPARE(di[0].minValue, 0.0f);
-    QCOMPARE(di[0].maxValue, 10.0f);
-    QCOMPARE(di[1].name, QStringLiteral("newDataInput_001"));
-    QCOMPARE(di[1].type, Q3DSDataInputEntry::TypeString);
-    QCOMPARE(di[2].name, QStringLiteral("newDataInput_002"));
-    QCOMPARE(di[2].type, Q3DSDataInputEntry::TypeRangedNumber);
-    QCOMPARE(di[2].minValue, 42.0f);
-    QCOMPARE(di[2].maxValue, 123.45f);
+    QVERIFY(di.contains(QStringLiteral("newDataInput")));
+    QVERIFY(di.contains(QStringLiteral("newDataInput_001")));
+    QVERIFY(di.contains(QStringLiteral("newDataInput_002")));
+
+    auto diEntry = di[QStringLiteral("newDataInput")];
+    QCOMPARE(diEntry.name, QStringLiteral("newDataInput"));
+    QCOMPARE(diEntry.type, Q3DSDataInputEntry::TypeRangedNumber);
+    QCOMPARE(diEntry.minValue, 0.0f);
+    QCOMPARE(diEntry.maxValue, 10.0f);
+
+    diEntry = di[QStringLiteral("newDataInput_001")];
+    QCOMPARE(diEntry.name, QStringLiteral("newDataInput_001"));
+    QCOMPARE(diEntry.type, Q3DSDataInputEntry::TypeString);
+
+    diEntry = di[QStringLiteral("newDataInput_002")];
+    QCOMPARE(diEntry.name, QStringLiteral("newDataInput_002"));
+    QCOMPARE(diEntry.type, Q3DSDataInputEntry::TypeRangedNumber);
+    QCOMPARE(diEntry.minValue, 42.0f);
+    QCOMPARE(diEntry.maxValue, 123.45f);
 }
 
 #include <tst_q3dsuiaparser.moc>

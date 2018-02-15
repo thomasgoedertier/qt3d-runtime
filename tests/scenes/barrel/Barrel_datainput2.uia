@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<application xmlns="http://qt.io/qt3dstudio/uia">
+        <assets initial="Barrel_datainput">
+                <presentation id="Barrel_datainput"     src="Barrel_datainput2.uip"/>
+                        <dataInput name="di_text" type="String"/>
+                        <dataInput name="di_time" type="Ranged Number" min="0" max="50"/>
+        </assets>
+
+        <statemachine ref="#logic">
+                <visual-states>
+                        <state ref="Initial">
+                                <enter>
+                                        <goto-slide element="main:Scene" rel="next"/>
+                                </enter>
+                        </state>
+                </visual-states>
+        </statemachine>
+</application>

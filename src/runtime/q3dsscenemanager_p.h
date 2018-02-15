@@ -340,6 +340,7 @@ public:
 class Q3DSTextAttached : public Q3DSNodeAttached
 {
 public:
+    Qt3DExtras::QPlaneMesh *mesh = nullptr;
     Qt3DRender::QParameter *opacityParam = nullptr;
     Qt3DRender::QParameter *colorParam = nullptr;
     Qt3DRender::QParameter *textureParam = nullptr;
@@ -610,6 +611,8 @@ public:
     void addLog(const char *fmt, ...);
     Q3DSSlidePlayer *slidePlayer() const { return m_slidePlayer; }
     Qt3DCore::QEntity *getRootEntity() const { return m_rootEntity; }
+
+    void setDataInputValue(const QString &dataInputName, const QVariant &value);
 
 private:
     Q_DISABLE_COPY(Q3DSSceneManager)

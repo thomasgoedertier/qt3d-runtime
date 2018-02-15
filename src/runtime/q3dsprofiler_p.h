@@ -127,6 +127,8 @@ public:
     void clearLog();
     void addLog(const QString &msg);
 
+    void sendDataInputValueChange(const QString &dataInputName, const QVariant &value);
+
     float cpuLoadForCurrentProcess();
     QPair<qint64, qint64> memUsageForCurrentProcess();
 

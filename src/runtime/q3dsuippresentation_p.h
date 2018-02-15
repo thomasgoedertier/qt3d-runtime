@@ -45,6 +45,7 @@
 #include "q3dscustommaterial_p.h"
 #include "q3dseffect_p.h"
 #include "q3dsmeshloader_p.h"
+#include "q3dsdatainputentry_p.h"
 #include <QString>
 #include <QVector>
 #include <QSet>
@@ -252,6 +253,12 @@ public:
     T *attached() { return static_cast<T *>(m_attached); }
     void setAttached(Q3DSGraphObjectAttached *attached_) { m_attached = attached_; }
 
+    typedef QMultiHash<QString, QString> DataInputControlledProperties; // data input entry name - property name
+    const DataInputControlledProperties *dataInputControlledProperties() const
+    { return &m_dataInputControlledProperties; }
+    void setDataInputControlledProperties(const DataInputControlledProperties &props)
+    { m_dataInputControlledProperties = props; }
+
     // for the built-in graph explorer
     QString gex_typeAsString() const;
     virtual QStringList gex_propertyNames() const;
@@ -274,6 +281,7 @@ private:
     QByteArray m_id;
     QVector<PropertyChangeCallback> m_callbacks;
     Q3DSGraphObjectAttached *m_attached = nullptr;
+    DataInputControlledProperties m_dataInputControlledProperties;
 
     friend class Q3DSUipPresentation;
 };
@@ -1419,6 +1427,14 @@ public:
     qint64 loadTimeMsecs() const;
     qint64 meshesLoadTimeMsecs() const;
 
+    void setDataInputEntries(const Q3DSDataInputEntry::Map *entries);
+    const Q3DSDataInputEntry::Map *dataInputEntries() const;
+
+    typedef QMultiHash<QString, Q3DSGraphObject *> DataInputMap; // data input entry name - target object
+    const DataInputMap *dataInputMap() const;
+    void registerDataInputTarget(Q3DSGraphObject *obj);
+    void removeDataInputTarget(Q3DSGraphObject *obj);
+
 private:
     Q_DISABLE_COPY(Q3DSUipPresentation)
 
@@ -1467,6 +1483,9 @@ struct Q3DSUipPresentationData
         int part;
     };
     QHash<MeshId, MeshList> meshes;
+
+    const Q3DSDataInputEntry::Map *dataInputEntries = nullptr;
+    Q3DSUipPresentation::DataInputMap dataInputMap;
 };
 
 Q_DECLARE_TYPEINFO(Q3DSUipPresentationData::MeshId, Q_MOVABLE_TYPE);

@@ -208,6 +208,9 @@ Q3DSGraphExplorer::Q3DSGraphExplorer(Q3DSGraphObject *root, QWidget *parent)
         Q_ASSERT(pnames.count() == pvalues.count());
         for (int i = 0; i < pnames.count(); ++i)
             s += tr("\n%1: %2").arg(pnames[i]).arg(varStr(pvalues[i]));
+        auto diProps = obj->dataInputControlledProperties();
+        for (auto it = diProps->cbegin(); it != diProps->cend(); ++it)
+            s += tr("\nproperty %2 is controlled by data input entry %1").arg(it.key()).arg(it.value());
         if (obj->isNode() && obj->type() != Q3DSGraphObject::Camera) {
             Q3DSNodeAttached *attached = static_cast<Q3DSNodeAttached *>(obj->attached());
             if (attached && attached->transform) {

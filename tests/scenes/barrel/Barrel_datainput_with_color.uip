@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<UIP version="3" >
+	<Project >
+		<ProjectSettings author="" company="" presentationWidth="800" presentationHeight="480" maintainAspect="False" >
+			<CustomColors count="16" >#ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff</CustomColors>
+		</ProjectSettings>
+		<Graph >
+			<Scene id="Scene" controlledproperty="di_slide @slide di_time @timeline" >
+				<Layer id="Layer" >
+					<Camera id="Camera" />
+					<Light id="Light" />
+					<Model id="Barrel" >
+						<Material id="Material" >
+							<Image id="Material_diffusemap" />
+							<Image id="Material_normalmap" />
+							<Image id="Material_emissivemap" />
+							<Image id="Material_specularmap" />
+						</Material>
+					</Model>
+					<Text id="Text" />
+					<Text id="Text2" controlledproperty="di_text textstring di_textcolor textcolor" />
+				</Layer>
+			</Scene>
+		</Graph>
+		<Logic >
+			<State name="Master Slide" component="#Scene" >
+				<Add ref="#Layer" />
+				<Add ref="#Camera" />
+				<Add ref="#Light" />
+				<State id="Scene-Slide1" name="Slide1" playmode="Looping" >
+					<Add ref="#Barrel" name="Barrel" position="0 -42 -483" rotation="90 0 0" scale="100 100 100" sourcepath=".\barrel\meshes\Barrel.mesh#1" >
+						<AnimationTrack property="opacity" type="EaseInOut" />
+						<AnimationTrack property="rotation.x" type="EaseInOut" >0 90 100 100 5 64 100 100 10 90 100 100</AnimationTrack>
+						<AnimationTrack property="rotation.y" type="EaseInOut" >0 0 100 100 5 -302 100 100 10 0 100 100</AnimationTrack>
+						<AnimationTrack property="rotation.z" type="EaseInOut" >0 0 100 100 5 0 100 100 10 0 100 100</AnimationTrack>
+					</Add>
+					<Add ref="#Material" bumpamount="0" diffusemap="#Material_diffusemap" emissivemap="#Material_emissivemap" fresnelPower="25" normalmap="#Material_normalmap" specularamount="4" specularmap="#Material_specularmap" specularmodel="Default" specularroughness="0.001" >
+						<AnimationTrack property="bumpamount" type="EaseInOut" >0 0 100 100 5 1 100 100</AnimationTrack>
+					</Add>
+					<Add ref="#Material_diffusemap" sourcepath=".\maps\barrel_barrel_Diffuse.png" />
+					<Add ref="#Material_normalmap" sourcepath=".\maps\barrel_barrel_Normal.png" />
+					<Add ref="#Material_emissivemap" sourcepath=".\maps\barrel_barrel_Emissive.png" />
+					<Add ref="#Material_specularmap" sourcepath=".\maps\barrel_barrel_Specular.png" />
+					<Add ref="#Text" name="Text" font="Arimo-Regular" position="-486.418 297.128 50.5569" textcolor="0 1 0" textstring="Barrel!" tracking="0" >
+						<AnimationTrack property="opacity" type="EaseInOut" >0 100 100 100 5.009 43.75 100 100 10 100 100 100</AnimationTrack>
+						<AnimationTrack property="rotation.x" type="EaseInOut" >0 0 100 100 4.997 0 100 100 5.009 0 100 100 10 0 100 100</AnimationTrack>
+						<AnimationTrack property="rotation.y" type="EaseInOut" >0 0 100 100 4.997 0 100 100 5.009 0 100 100 10 360 100 100</AnimationTrack>
+						<AnimationTrack property="rotation.z" type="EaseInOut" >0 0 100 100 4.997 0 100 100 5.009 0 100 100 10 0 100 100</AnimationTrack>
+						<AnimationTrack property="textcolor.x" type="EaseInOut" >0 0 100 100 5.009 0.501961 100 100 10 0 100 100</AnimationTrack>
+						<AnimationTrack property="textcolor.y" type="EaseInOut" >0 1 100 100 5.009 0.235294 100 100 10 1 100 100</AnimationTrack>
+						<AnimationTrack property="textcolor.z" type="EaseInOut" >0 0 100 100 5.009 0.333333 100 100 10 0 100 100</AnimationTrack>
+					</Add>
+					<Add ref="#Text2" name="Text2" font="Arimo-Regular" position="-463.324 67.8387 0" />
+				</State>
+			</State>
+		</Logic>
+	</Project>
+</UIP>

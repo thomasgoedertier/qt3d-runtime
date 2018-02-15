@@ -41,12 +41,12 @@ QString Q3DSUiaDocument::initialDocumentId() const
     return m_initialDocumentId;
 }
 
-void Q3DSUiaDocument::setDataInputEntries(const QVector<Q3DSDataInputEntry> &entries)
+void Q3DSUiaDocument::setDataInputEntries(const Q3DSDataInputEntry::Map &entries)
 {
     m_dataInputEntries = entries;
 }
 
-const QVector<Q3DSDataInputEntry> Q3DSUiaDocument::dataInputEntries() const
+const Q3DSDataInputEntry::Map Q3DSUiaDocument::dataInputEntries() const
 {
     return m_dataInputEntries;
 }

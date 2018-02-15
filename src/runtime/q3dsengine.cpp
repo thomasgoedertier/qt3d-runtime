@@ -456,6 +456,9 @@ bool Q3DSEngine::setDocument(const Q3DSUiaDocument &uiaDocument, QString *error)
                 qPrintable(doc.qmlDocument->source()), qPrintable(doc.qmlDocument->id()));
     }
 
+    m_dataInputEntries = uiaDocument.dataInputEntries();
+    qCDebug(lcUip, "Registered %d data input entries", m_dataInputEntries.count());
+
     return loadPresentations();
 }
 
@@ -776,6 +779,10 @@ bool Q3DSEngine::parseUipDocument(UipPresentation *pres)
     else if (!pres->uipDocument->sourceData().isEmpty())
         pres->presentation = parser.parseData(pres->uipDocument->sourceData());
 
+    // Expose the data input metadata to the presentation.
+    if (pres->presentation)
+        pres->presentation->setDataInputEntries(&m_dataInputEntries);
+
     return (pres->presentation != nullptr);
 }
 
@@ -812,6 +819,9 @@ bool Q3DSEngine::parseUiaDocument(Q3DSUiaParser::Uia &uiaDoc, const QString &sou
     }
     if (m_uipPresentations.isEmpty())
         return false;
+
+    m_dataInputEntries = uiaDoc.dataInputEntries;
+    qCDebug(lcUip, "Registered %d data input entries", m_dataInputEntries.count());
 
     return true;
 }

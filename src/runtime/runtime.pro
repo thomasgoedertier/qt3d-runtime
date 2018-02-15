@@ -63,7 +63,8 @@ HEADERS += \
     q3dsabstractdocument_p.h \
     q3dsuiadocument_p.h \
     q3dsqmldocument_p.h \
-    q3dsslideplayer_p.h
+    q3dsslideplayer_p.h \
+    q3dsdatainputentry_p.h
 
 RESOURCES += \
     q3dsres.qrc

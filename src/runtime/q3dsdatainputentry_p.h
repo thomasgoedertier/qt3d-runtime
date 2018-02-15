@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2017 The Qt Company Ltd.
+** Copyright (C) 2018 The Qt Company Ltd.
 ** Contact: http://www.qt.io/licensing/
 **
 ** This file is part of Qt 3D Studio.
@@ -27,8 +27,8 @@
 **
 ****************************************************************************/
 
-#ifndef Q3DSUIPPARSER_P_H
-#define Q3DSUIPPARSER_P_H
+#ifndef Q3DSDATAINPUTENTRY_P_H
+#define Q3DSDATAINPUTENTRY_P_H
 
 //
 //  W A R N I N G
@@ -42,42 +42,33 @@
 //
 
 #include "q3dsruntimeglobal_p.h"
-#include "q3dsabstractxmlparser_p.h"
-#include "q3dsuippresentation_p.h"
+#include <QVector>
+#include <QString>
+#include <QHash>
 
 QT_BEGIN_NAMESPACE
 
-class Q3DSV_PRIVATE_EXPORT Q3DSUipParser : public Q3DSAbstractXmlParser
+struct Q3DSV_PRIVATE_EXPORT Q3DSDataInputEntry
 {
-public:
-    Q3DSUipPresentation *parse(const QString &filename);
-    Q3DSUipPresentation *parseData(const QByteArray &data);
+    typedef QHash<QString, Q3DSDataInputEntry> Map;
 
-private:
-    Q3DSUipPresentation *createPresentation();
-    void parseUIP();
-    void parseProject();
-    void parseProjectSettings();
-    void parseClasses();
-    void parseCustomMaterial();
-    void parseEffect();
-    void parseBufferData();
-    void parseImageBuffer();
-    void parseGraph();
-    void parseScene();
-    void parseObjects(Q3DSGraphObject *parent);
-    void parseLogic();
-    Q3DSSlide *parseSlide(Q3DSSlide *parent = nullptr, const QByteArray &idPrefix = QByteArray());
-    void parseAddSet(Q3DSSlide *slide, bool isSet, bool isMaster);
-    void parseAnimationKeyFrames(const QString &data, Q3DSAnimationTrack *animTrack);
+    enum Type {
+        TypeString,
+        TypeRangedNumber,
+        TypeVec2,
+        TypeVec3
+    };
 
-    QByteArray getId(const QStringRef &desc, bool required = true);
-    Q3DSGraphObject::DataInputControlledProperties getDataInputControlledProperties();
-    void resolveReferences(Q3DSGraphObject *obj);
+    QString name;
+    Type type = TypeString;
+    float minValue = 0;
+    float maxValue = 0;
 
-    QScopedPointer<Q3DSUipPresentation> m_presentation;
+    bool hasMinMax() const { return maxValue >= minValue && (minValue != 0 || maxValue != 0); }
 };
+
+Q_DECLARE_TYPEINFO(Q3DSDataInputEntry, Q_MOVABLE_TYPE);
 
 QT_END_NAMESPACE
 
-#endif
+#endif // Q3DSDATAINPUTENTRY_P_H

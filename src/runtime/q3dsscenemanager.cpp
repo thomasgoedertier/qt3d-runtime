@@ -100,6 +100,7 @@ QT_BEGIN_NAMESPACE
 
 Q_LOGGING_CATEGORY(lcScene, "q3ds.scene")
 Q_LOGGING_CATEGORY(lcPerf, "q3ds.perf")
+Q_DECLARE_LOGGING_CATEGORY(lcUipProp)
 
 /*
     Approx. scene structure:
@@ -3587,11 +3588,11 @@ Qt3DCore::QEntity *Q3DSSceneManager::buildText(Q3DSTextNode *text3DS, Q3DSLayerN
     if (sz.isEmpty())
         return entity;
 
-    Qt3DExtras::QPlaneMesh *mesh = new Qt3DExtras::QPlaneMesh;
-    mesh->setWidth(sz.width());
-    mesh->setHeight(sz.height());
-    mesh->setMirrored(true);
-    entity->addComponent(mesh);
+    data->mesh = new Qt3DExtras::QPlaneMesh;
+    data->mesh->setWidth(sz.width());
+    data->mesh->setHeight(sz.height());
+    data->mesh->setMirrored(true);
+    entity->addComponent(data->mesh);
 
     data->opacityParam = new Qt3DRender::QParameter;
     data->opacityParam->setName(QLatin1String("opacity"));
@@ -3628,8 +3629,16 @@ void Q3DSSceneManager::updateText(Q3DSTextNode *text3DS, bool needsNewImage)
 
     data->colorParam->setValue(text3DS->color());
 
-    if (needsNewImage) // textstring, leading, tracking
+    if (needsNewImage) {
+        // textstring, leading, tracking
+        const QSize sz = m_textRenderer->textImageSize(text3DS);
+        if (!sz.isEmpty()) {
+            data->mesh->setWidth(sz.width());
+            data->mesh->setHeight(sz.height());
+            data->textureImage->setSize(sz);
+        }
         data->textureImage->update();
+    }
 }
 
 Qt3DCore::QEntity *Q3DSSceneManager::buildLight(Q3DSLightNode *light3DS, Q3DSLayerNode *layer3DS, Qt3DCore::QEntity *parent)
@@ -6285,6 +6294,88 @@ void Q3DSSceneManager::addLog(const char *fmt, ...)
 #else
     Q_UNUSED(fmt);
 #endif
+}
+
+void Q3DSSceneManager::setDataInputValue(const QString &dataInputName, const QVariant &value)
+{
+    auto dataInputMap = m_presentation->dataInputMap();
+    auto it = dataInputMap->constFind(dataInputName);
+    auto dataInputEntries = m_presentation->dataInputEntries();
+    Q_ASSERT(dataInputEntries);
+    const Q3DSDataInputEntry &meta((*dataInputEntries)[dataInputName]);
+
+    while (it != dataInputMap->constEnd() && it.key() == dataInputName) {
+        Q3DSGraphObject *obj = it.value();
+        Q3DS::PropertyType type = Q3DS::String;
+        if (dataInputEntries) {
+            switch (meta.type) {
+            case Q3DSDataInputEntry::TypeString:
+                type = Q3DS::String;
+                break;
+            case Q3DSDataInputEntry::TypeRangedNumber:
+                type = Q3DS::Float;
+                break;
+            case Q3DSDataInputEntry::TypeVec2:
+                type = Q3DS::Float2;
+                break;
+            case Q3DSDataInputEntry::TypeVec3:
+                type = Q3DS::Vector;
+                break;
+            default:
+                break;
+            }
+        }
+
+        const QString strValue = Q3DS::convertFromVariant(value, type);
+        Q3DSPropertyChangeList changeList;
+
+        // Remember that we have QMultiHash everywhere since one data input
+        // entry can control multiple properties, on the same object even.
+        for (const QString &propName : obj->dataInputControlledProperties()->values(dataInputName)) {
+            qCDebug(lcUipProp, "Data input: object %s property %s value %s",
+                    obj->id().constData(), qPrintable(propName), qPrintable(strValue));
+            if (propName.startsWith(QLatin1Char('@'))) {
+                if (propName == QStringLiteral("@slide")) {
+                    if (obj->type() == Q3DSGraphObject::Scene) {
+                        const QByteArray slideName = strValue.toUtf8();
+                        bool slideFound = false;
+                        Q3DSUipPresentation::forAllObjectsOfType(m_masterSlide, Q3DSGraphObject::Slide,
+                                                                 [this, slideName, &slideFound](Q3DSGraphObject *obj) {
+                            Q3DSSlide *slide = static_cast<Q3DSSlide *>(obj);
+                            if (slide->id() == slideName) {
+                                setCurrentSlide(slide);
+                                slideFound = true;
+                            }
+                        });
+                        if (!slideFound)
+                            qWarning("Invalid target in slide data input: %s", slideName.constData());
+                    } else {
+                        qWarning("Object %s with slide data input is not Scene", obj->id().constData());
+                    }
+                } else if (propName == QStringLiteral("@timeline")) {
+                    if (obj->type() == Q3DSGraphObject::Scene) {
+                        // Normalize the value to dataInput range (just because 3DS1 does it)
+                        // Input value is assumed to be in milliseconds.
+                        float seekTimeMs = meta.hasMinMax()
+                                ? (value.toFloat() - meta.minValue) / (meta.maxValue - meta.minValue)
+                                : value.toFloat();
+                        const float normalizedMs = seekTimeMs / m_slidePlayer->duration();
+                        m_slidePlayer->seek(normalizedMs);
+                    } else {
+                        qWarning("Object %s with timeline data input is not Scene", obj->id().constData());
+                    }
+                }
+            } else {
+                changeList.append(Q3DSPropertyChange(propName, strValue));
+            }
+        }
+
+        if (!changeList.isEmpty()) {
+            obj->applyPropertyChanges(&changeList);
+            obj->notifyPropertyChanges(&changeList);
+        }
+        ++it;
+    }
 }
 
 QT_END_NAMESPACE

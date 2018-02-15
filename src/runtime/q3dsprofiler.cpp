@@ -168,6 +168,11 @@ void Q3DSProfiler::addLog(const QString &msg)
     m_logChanged = true;
 }
 
+void Q3DSProfiler::sendDataInputValueChange(const QString &dataInputName, const QVariant &value)
+{
+    m_sceneManager->setDataInputValue(dataInputName, value);
+}
+
 float Q3DSProfiler::cpuLoadForCurrentProcess()
 {
     if (!m_cpuLoadTimer.isValid()) {

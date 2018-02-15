@@ -62,7 +62,7 @@ public:
 
         QVector<Presentation> presentations;
         QString initialPresentationId;
-        QVector<Q3DSDataInputEntry> dataInputEntries;
+        Q3DSDataInputEntry::Map dataInputEntries;
         qint64 loadTimeMsecs = 0;
 
         bool isValid() const { return !presentations.isEmpty(); }

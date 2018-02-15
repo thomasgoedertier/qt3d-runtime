@@ -328,6 +328,71 @@ QVariant convertToVariant(const QString &value, const Q3DSMaterial::PropertyElem
     return QVariant();
 }
 
+QString convertFromVariant(const QVariant &value, Q3DS::PropertyType type)
+{
+    switch (type) {
+    // string
+    case StringList:
+    case Slide:
+    case Font:
+    case String:
+    case MultiLineString:
+    case ObjectRef:
+    case Image:
+    case Mesh:
+    case Import:
+    case Texture:
+    case Image2D:
+    case Buffer:
+    case Guid:
+    case StringListOrInt:
+    case Renderable:
+    case PathBuffer:
+    // int
+    case LongRange:
+    case Long:
+    // float
+    case FloatRange:
+    case Float:
+    case FontSize:
+        return value.toString();
+    case Float2:
+    {
+        const QVector2D v = value.value<QVector2D>();
+        return QString(QLatin1String("%1 %2"))
+                .arg(QString::number(v.x())).arg(QString::number(v.y()));
+    }
+    case Vector:
+    case Scale:
+    case Rotation:
+    {
+        const QVector3D v = value.value<QVector3D>();
+        return QString(QLatin1String("%1 %2 %3"))
+                .arg(QString::number(v.x())).arg(QString::number(v.y())).arg(QString::number(v.z()));
+    }
+    case Color:
+    {
+        QVector3D v;
+        if (value.canConvert<QColor>()) {
+            QColor c = value.value<QColor>();
+            v = QVector3D(c.redF(), c.greenF(), c.blueF());
+        } else {
+            v = value.value<QVector3D>();
+        }
+        return QString(QLatin1String("%1 %2 %3"))
+                .arg(QString::number(v.x())).arg(QString::number(v.y())).arg(QString::number(v.z()));
+    }
+    case Boolean:
+    {
+        return value.toBool() ? QLatin1String("true") : QLatin1String("false");
+    }
+    default:
+        break;
+    }
+
+    return QString();
+}
+
 } // namespace Q3DS
 
 Q3DSGraphObjectAttached::~Q3DSGraphObjectAttached()
@@ -2179,6 +2244,41 @@ qint64 Q3DSUipPresentation::loadTimeMsecs() const
 qint64 Q3DSUipPresentation::meshesLoadTimeMsecs() const
 {
     return d->meshesLoadTime;
+}
+
+void Q3DSUipPresentation::setDataInputEntries(const Q3DSDataInputEntry::Map *entries)
+{
+    d->dataInputEntries = entries;
+}
+
+const Q3DSDataInputEntry::Map *Q3DSUipPresentation::dataInputEntries() const
+{
+    return d->dataInputEntries;
+}
+
+// Each Q3DSGraphObject has a table of the properties that are controlled
+// by data input. However, walking the scene graph on every data input
+// value change is not ideal. Therefore we maintain a central map in the
+// presentation as well.
+
+const Q3DSUipPresentation::DataInputMap *Q3DSUipPresentation::dataInputMap() const
+{
+    return &d->dataInputMap;
+}
+
+void Q3DSUipPresentation::registerDataInputTarget(Q3DSGraphObject *obj)
+{
+    auto di = obj->dataInputControlledProperties();
+    for (auto it = di->cbegin(); it != di->cend(); ++it)
+        d->dataInputMap.insert(it.key(), obj);
+}
+
+void Q3DSUipPresentation::removeDataInputTarget(Q3DSGraphObject *obj)
+{
+    for (auto it = d->dataInputMap.begin(); it != d->dataInputMap.end(); ++it) {
+        if (it.value() == obj)
+            d->dataInputMap.erase(it);
+    }
 }
 
 void Q3DSUipPresentation::applySlidePropertyChanges(Q3DSSlide *slide) const

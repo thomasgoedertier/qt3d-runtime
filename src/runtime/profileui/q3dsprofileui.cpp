@@ -35,6 +35,7 @@
 #include "q3dsenummaps_p.h"
 #include <QLoggingCategory>
 #include <QGuiApplication>
+#include <QHash>
 #include <QClipboard>
 #include <Qt3DRender/QTexture>
 #include <Qt3DRender/QPaintedTextureImage>
@@ -85,6 +86,11 @@ private:
     bool m_logFilterWindowOpen = false;
     const char *m_logFilterPrefixes[MAX_LOG_FILTER_ENTRIES];
     bool m_logFilterEnabled[MAX_LOG_FILTER_ENTRIES];
+    bool m_dataInputWindowOpen = false;
+    QHash<QString, QByteArray> m_dataInputTextBuf;
+    QHash<QString, float> m_dataInputFloatBuf;
+    QHash<QString, QVector2D> m_dataInputVec2Buf;
+    QHash<QString, QVector3D> m_dataInputVec3Buf;
 };
 
 Q3DSProfileView::Q3DSProfileView(Q3DSProfiler *profiler)
@@ -651,6 +657,9 @@ void Q3DSProfileView::addAlterSceneStuff()
     if (!pres)
         return;
 
+    if (ImGui::Button("Data input"))
+        m_dataInputWindowOpen = !m_dataInputWindowOpen;
+
     if (m_disabledShadowCasters.isEmpty()) {
         if (ImGui::Button("Disable shadows for..."))
             ImGui::OpenPopup("shdwdis");
@@ -694,6 +703,82 @@ void Q3DSProfileView::addAlterSceneStuff()
                 changeProperty(light3DS, QLatin1String("castshadow"), QLatin1String("true"));
             m_disabledShadowCasters.clear();
         }
+    }
+
+    if (m_dataInputWindowOpen) {
+        ImGui::Begin("Data input", &m_dataInputWindowOpen,
+                     ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings);
+
+        addPresentationSelector();
+
+        Q3DSProfiler *p = selectedProfiler();
+        const Q3DSDataInputEntry::Map *diMetaMap = p->presentation()->dataInputEntries();
+        const Q3DSUipPresentation::DataInputMap *diL1 = p->presentation()->dataInputMap();
+        int idx = 0;
+        for (const QString &diName : diL1->uniqueKeys()) {
+            if (!diMetaMap || !diMetaMap->contains(diName))
+                continue;
+
+            ImGui::PushID(idx++); // because of the Apply buttons with the same label/id
+            const Q3DSDataInputEntry &diMeta((*diMetaMap)[diName]);
+            switch (diMeta.type) {
+            case Q3DSDataInputEntry::TypeString:
+            {
+                QByteArray *buf;
+                if (m_dataInputTextBuf.contains(diName)) {
+                    buf = &m_dataInputTextBuf[diName];
+                } else {
+                    buf = &m_dataInputTextBuf[diName];
+                    buf->resize(255);
+                    buf->data()[0] = '\0';
+                }
+                ImGui::InputText(qPrintable(diName), buf->data(), 255);
+                ImGui::SameLine();
+                if (ImGui::Button("Apply"))
+                    p->sendDataInputValueChange(diName, QString::fromUtf8(*buf));
+            }
+                break;
+            case Q3DSDataInputEntry::TypeRangedNumber:
+            {
+                float &buf(m_dataInputFloatBuf[diName]);
+                ImGui::InputFloat(qPrintable(diName), &buf);
+                ImGui::SameLine();
+                if (ImGui::Button("Apply"))
+                    p->sendDataInputValueChange(diName, buf);
+            }
+                break;
+            case Q3DSDataInputEntry::TypeVec2:
+            {
+                QVector2D &buf(m_dataInputVec2Buf[diName]); // QVector2D is two floats in practice
+                ImGui::InputFloat2(qPrintable(diName), reinterpret_cast<float *>(&buf));
+                ImGui::SameLine();
+                if (ImGui::Button("Apply"))
+                    p->sendDataInputValueChange(diName, buf);
+            }
+                break;
+            case Q3DSDataInputEntry::TypeVec3:
+            {
+                QVector3D &buf(m_dataInputVec3Buf[diName]); // QVector3D is three floats in practice
+                ImGui::InputFloat3(qPrintable(diName), reinterpret_cast<float *>(&buf));
+                ImGui::SameLine();
+                if (ImGui::Button("Apply"))
+                    p->sendDataInputValueChange(diName, buf);
+            }
+                break;
+            default:
+                break;
+            }
+
+            for (Q3DSGraphObject *diTarget : diL1->values(diName)) {
+                const Q3DSGraphObject::DataInputControlledProperties *diL2 = diTarget->dataInputControlledProperties();
+                for (const QString &propName : diL2->values(diName))
+                    ImGui::Text("  target: %s.%s", diTarget->id().constData(), qPrintable(propName));
+            }
+
+            ImGui::PopID();
+        }
+
+        ImGui::End();
     }
 }
 
