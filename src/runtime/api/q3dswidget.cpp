@@ -194,7 +194,7 @@ void Q3DSWidget::paintGL()
         return;
 
     auto renderAspectD = static_cast<Qt3DRender::QRenderAspectPrivate *>(Qt3DRender::QRenderAspectPrivate::get(d->renderAspect));
-    renderAspectD->renderSynchronous();
+    renderAspectD->tryRenderSynchronous();
     makeCurrent();
 
     emit frameUpdate();
