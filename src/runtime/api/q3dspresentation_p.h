@@ -44,6 +44,7 @@
 #include <private/q3dsruntimeglobal_p.h>
 #include "q3dspresentation.h"
 #include <private/qobject_p.h>
+#include <QVariant>
 
 QT_BEGIN_NAMESPACE
 
@@ -54,6 +55,7 @@ public:
 
     virtual void handlePresentationSource(const QUrl &source) = 0;
     virtual void handlePresentationReload() = 0;
+    virtual void handleDataInputValue(const QString &name, const QVariant &value) = 0;
 
     virtual void handlePresentationKeyPressEvent(QKeyEvent *e) = 0;
     virtual void handlePresentationKeyReleaseEvent(QKeyEvent *e) = 0;

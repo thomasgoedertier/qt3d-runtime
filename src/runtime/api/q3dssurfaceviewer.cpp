@@ -410,6 +410,12 @@ void Q3DSSurfaceViewerPrivate::handlePresentationReload()
         createEngine();
 }
 
+void Q3DSSurfaceViewerPrivate::handleDataInputValue(const QString &name, const QVariant &value)
+{
+    if (engine)
+        engine->setDataInputValue(name, value);
+}
+
 void Q3DSSurfaceViewerPrivate::handlePresentationKeyPressEvent(QKeyEvent *e)
 {
     if (engine)

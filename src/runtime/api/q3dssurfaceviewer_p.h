@@ -85,6 +85,7 @@ public:
 
     void handlePresentationSource(const QUrl &source) override;
     void handlePresentationReload() override;
+    void handleDataInputValue(const QString &name, const QVariant &value) override;
     void handlePresentationKeyPressEvent(QKeyEvent *e) override;
     void handlePresentationKeyReleaseEvent(QKeyEvent *e) override;
     void handlePresentationMousePressEvent(QMouseEvent *e) override;

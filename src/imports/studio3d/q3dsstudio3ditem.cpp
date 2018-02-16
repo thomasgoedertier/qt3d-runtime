@@ -151,6 +151,12 @@ void Q3DSStudio3DItem::handlePresentationReload()
         createEngine();
 }
 
+void Q3DSStudio3DItem::handleDataInputValue(const QString &name, const QVariant &value)
+{
+    if (m_engine)
+        m_engine->setDataInputValue(name, value);
+}
+
 void Q3DSStudio3DItem::handlePresentationKeyPressEvent(QKeyEvent *e)
 {
     if (m_engine)

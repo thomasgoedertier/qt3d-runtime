@@ -297,6 +297,12 @@ void Q3DSWidgetPrivate::handlePresentationReload()
     q_ptr->update();
 }
 
+void Q3DSWidgetPrivate::handleDataInputValue(const QString &name, const QVariant &value)
+{
+    if (engine)
+        engine->setDataInputValue(name, value);
+}
+
 void Q3DSWidgetPrivate::handlePresentationKeyPressEvent(QKeyEvent *e)
 {
     if (engine)

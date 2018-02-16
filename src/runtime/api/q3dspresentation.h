@@ -54,6 +54,7 @@ public:
     void setSource(const QUrl &source);
 
     Q_INVOKABLE void reload();
+    Q_INVOKABLE void setDataInputValue(const QString &name, const QVariant &value);
 
     void keyPressEvent(QKeyEvent *e);
     void keyReleaseEvent(QKeyEvent *e);

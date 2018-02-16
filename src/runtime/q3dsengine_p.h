@@ -123,6 +123,8 @@ public:
     void resize(int w, int h, qreal dpr) { resize(QSize(w, h), dpr); }
     void setAutoStart(bool autoStart);
 
+    void setDataInputValue(const QString &name, const QVariant &value);
+
     void handleKeyPressEvent(QKeyEvent *e);
     void handleKeyReleaseEvent(QKeyEvent *e);
     void handleMousePressEvent(QMouseEvent *e);

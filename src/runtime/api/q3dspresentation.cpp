@@ -80,6 +80,13 @@ void Q3DSPresentation::reload()
         d->controller->handlePresentationReload();
 }
 
+void Q3DSPresentation::setDataInputValue(const QString &name, const QVariant &value)
+{
+    Q_D(Q3DSPresentation);
+    if (d->controller)
+        d->controller->handleDataInputValue(name, value);
+}
+
 // These event forwarders are not stricly needed, Studio3D et al are fine
 // without them. However, they are there in 3DS1 and can become handy to feed
 // arbitrary, application-generated events into the engine.

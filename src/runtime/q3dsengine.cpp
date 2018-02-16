@@ -1111,4 +1111,12 @@ void Q3DSEngine::requestGrab()
     }
 }
 
+void Q3DSEngine::setDataInputValue(const QString &name, const QVariant &value)
+{
+    for (const UipPresentation &pres : qAsConst(m_uipPresentations)) {
+        if (pres.sceneManager)
+            pres.sceneManager->setDataInputValue(name, value);
+    }
+}
+
 QT_END_NAMESPACE
