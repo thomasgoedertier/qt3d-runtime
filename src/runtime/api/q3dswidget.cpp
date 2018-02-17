@@ -30,6 +30,7 @@
 #include "q3dswidget_p.h"
 #include <private/q3dsengine_p.h>
 #include <QLoggingCategory>
+#include <QScopedValueRollback>
 #include <Qt3DCore/QEntity>
 #include <Qt3DRender/QRenderSurfaceSelector>
 #include <Qt3DRender/private/qrendersurfaceselector_p.h>
@@ -171,7 +172,8 @@ void Q3DSWidget::paintGL()
     // render target logic. We don't care if QOpenGLFBO::bindDefault() binds
     // the wrong FBO anyway since we'll do a makeCurrent+bind each time after
     // crossing over to Qt3D land.
-    QOpenGLContextPrivate::get(context())->defaultFboRedirect = 0;
+    QOpenGLContextPrivate *ctxD = QOpenGLContextPrivate::get(context());
+    QScopedValueRollback<GLuint> defaultFboRedirectRollback(ctxD->defaultFboRedirect, 0);
 
     if (d->needsInit) {
         d->needsInit = false;
