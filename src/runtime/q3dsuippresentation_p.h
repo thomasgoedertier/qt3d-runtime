@@ -115,21 +115,10 @@ public:
     const_reverse_iterator rend() const Q_DECL_NOTHROW { return const_reverse_iterator(begin()); }
     const_reverse_iterator crend() const Q_DECL_NOTHROW { return rend(); }
 
-    enum Flag {
-        NodeTransformChanges = 0x01,
-        NodeOpacityChanges = 0x02,
-        EyeballChanges = 0x04,
-        TextTextureImageDepChanges = 0x08,
-        AoOrShadowChanges = 0x10,
-        BlendModeChanges = 0x20
-    };
-    Q_DECLARE_FLAGS(Flags, Flag)
-
     bool isEmpty() const { return m_changes.isEmpty(); }
     int count() const { return m_changes.count(); }
     void append(const Q3DSPropertyChange &change);
     QSet<QString> keys() const { return m_keys; }
-    Flags flags() const { return m_flags; }
 
     static const int ALL_CHANGE_FLAGS = 0xFFFF;
 
@@ -138,10 +127,7 @@ public:
 private:
     QVector<Q3DSPropertyChange> m_changes;
     QSet<QString> m_keys;
-    Flags m_flags = Flags();
 };
-
-Q_DECLARE_OPERATORS_FOR_FLAGS(Q3DSPropertyChangeList::Flags)
 
 class Q3DSV_PRIVATE_EXPORT Q3DSGraphObjectAttached
 {
@@ -179,8 +165,8 @@ public:
     };
     Q_DECLARE_FLAGS(DirtyFlags, DirtyFlag)
 
-    DirtyFlags dirty = DirtyFlags();
-    Q3DSPropertyChangeList::Flags changeFlags = Q3DSPropertyChangeList::Flags();
+    DirtyFlags dirty;
+    int changeFlags = 0;
 };
 
 Q_DECLARE_OPERATORS_FOR_FLAGS(Q3DSGraphObjectAttached::DirtyFlags)
@@ -235,6 +221,7 @@ public:
     virtual void applyPropertyChanges(const Q3DSPropertyChangeList *);
     virtual void resolveReferences(Q3DSUipPresentation &, Q3DSUipParser &) { }
 
+    virtual int mapChangeFlags(const Q3DSPropertyChangeList *changeList);
     void notifyPropertyChanges(const Q3DSPropertyChangeList *changeList);
 
     QByteArray id() const { return m_id; }
@@ -543,10 +530,18 @@ public:
         RightHanded
     };
 
+    enum NodePropertyChanges {
+        TransformChanges = 1 << 0,
+        OpacityChanges = 1 << 1,
+        EyeballChanges = 1 << 2
+    };
+    static const int FIRST_FREE_PROPERTY_CHANGE_BIT = 3;
+
     Q3DSNode(Type type);
 
     void setProperties(const QXmlStreamAttributes &attrs, PropSetFlags flags) override;
     void applyPropertyChanges(const Q3DSPropertyChangeList *changeList) override;
+    int mapChangeFlags(const Q3DSPropertyChangeList *changeList) override;
 
     Flags flags() const { return m_flags; }
     QVector3D rotation() const { return m_rotation; } // degrees
@@ -652,11 +647,16 @@ public:
         Pixels
     };
 
+    enum LayerPropertyChanges {
+        AoOrShadowChanges = 1 << Q3DSNode::FIRST_FREE_PROPERTY_CHANGE_BIT
+    };
+
     Q3DSLayerNode();
 
     void setProperties(const QXmlStreamAttributes &attrs, PropSetFlags flags) override;
     void applyPropertyChanges(const Q3DSPropertyChangeList *changeList) override;
     void resolveReferences(Q3DSUipPresentation &pres, Q3DSUipParser &parser) override;
+    int mapChangeFlags(const Q3DSPropertyChangeList *changeList) override;
 
     QString name() const { return m_name; }
     Flags layerFlags() const { return m_layerFlags; }
@@ -1068,10 +1068,15 @@ public:
         Bottom
     };
 
+    enum TextPropertyChanges {
+        TextureImageDepChanges = 1 << Q3DSNode::FIRST_FREE_PROPERTY_CHANGE_BIT
+    };
+
     Q3DSTextNode();
 
     void setProperties(const QXmlStreamAttributes &attrs, PropSetFlags flags) override;
     void applyPropertyChanges(const Q3DSPropertyChangeList *changeList) override;
+    int mapChangeFlags(const Q3DSPropertyChangeList *changeList) override;
 
     QString name() const { return m_name; }
     QString text() const { return m_text; }
@@ -1132,11 +1137,16 @@ public:
         KWard
     };
 
+    enum DefaultMaterialPropertyChanges {
+        BlendModeChanges = 1 << 0
+    };
+
     Q3DSDefaultMaterial();
 
     void setProperties(const QXmlStreamAttributes &attrs, PropSetFlags flags) override;
     void applyPropertyChanges(const Q3DSPropertyChangeList *changeList) override;
     void resolveReferences(Q3DSUipPresentation &pres, Q3DSUipParser &parser) override;
+    int mapChangeFlags(const Q3DSPropertyChangeList *changeList) override;
 
     QString name() const { return m_name; }
     ShaderLighting shaderLighting() const { return m_shaderLighting; }

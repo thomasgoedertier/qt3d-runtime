@@ -504,13 +504,31 @@ void Q3DSGraphObject::removePropertyChangeObserver(int callbackId)
     m_callbacks[callbackId] = nullptr;
 }
 
+int Q3DSGraphObject::mapChangeFlags(const Q3DSPropertyChangeList *changeList)
+{
+    // Property change handlers may not want to rely on changeList->keys().
+    // Let's give subclasses the possibility to look at the property names here
+    // and create a (class-specific) bitmask accordingly. For example, Q3DSNode
+    // can check if position or rotation or scale is present in the list, and
+    // set a NodeTransformChanges bit, if so. Subclasses of Q3DSNode are free
+    // to use custom mask values starting from
+    // (1 << Q3DSNode::FIRST_FREE_PROPERTY_CHANGE_BIT).
+    // The property change handler can then just check for the bit in question.
+    //
+    // Note that for many types of changes there won't be anything to do here
+    // since it is often enough to know that _something_ has changed.
+
+    Q_UNUSED(changeList);
+    return 0;
+}
+
 void Q3DSGraphObject::notifyPropertyChanges(const Q3DSPropertyChangeList *changeList)
 {
     const QSet<QString> keys = changeList->keys();
-    const Q3DSPropertyChangeList::Flags flags = changeList->flags();
+    const int changeFlags = mapChangeFlags(changeList);
     for (auto f : m_callbacks) {
         if (f)
-            f(this, keys, int(flags));
+            f(this, keys, changeFlags);
     }
 }
 
@@ -935,29 +953,6 @@ void Q3DSPropertyChangeList::append(const Q3DSPropertyChange &change)
 {
     m_changes.append(change);
     m_keys.insert(change.nameStr());
-
-    if (change.nameStr() == QStringLiteral("position")
-            || change.nameStr() == QStringLiteral("rotation")
-            || change.nameStr() == QStringLiteral("scale"))
-    {
-        m_flags |= NodeTransformChanges;
-    } else if (change.nameStr() == QStringLiteral("opacity")) {
-        m_flags |= NodeOpacityChanges;
-    } else if (change.nameStr() == QStringLiteral("eyeball")) {
-        m_flags |= EyeballChanges;
-    } else if (change.nameStr() == QStringLiteral("textstring")
-               || change.nameStr() == QStringLiteral("leading")
-               || change.nameStr() == QStringLiteral("tracking"))
-    {
-        m_flags |= TextTextureImageDepChanges;
-    } else if (change.nameStr().startsWith(QStringLiteral("ao"))
-               || change.nameStr().startsWith(QStringLiteral("shadow")))
-    {
-        m_flags |= AoOrShadowChanges;
-    } else if (change.nameStr() == QStringLiteral("blendmode"))
-    {
-        m_flags |= BlendModeChanges;
-    }
 }
 
 Q3DSSlide::Q3DSSlide()
@@ -1317,6 +1312,16 @@ void Q3DSDefaultMaterial::resolveReferences(Q3DSUipPresentation &pres, Q3DSUipPa
     resolveRef(m_lightProbe_unresolved, Q3DSGraphObject::Image, &m_lightProbe, pres);
 }
 
+int Q3DSDefaultMaterial::mapChangeFlags(const Q3DSPropertyChangeList *changeList)
+{
+    int changeFlags = Q3DSGraphObject::mapChangeFlags(changeList);
+    for (auto it = changeList->cbegin(), itEnd = changeList->cend(); it != itEnd; ++it) {
+        if (it->nameStr() == QStringLiteral("blendmode"))
+            changeFlags |= BlendModeChanges;
+    }
+    return changeFlags;
+}
+
 QStringList Q3DSDefaultMaterial::gex_propertyNames() const
 {
     QStringList s = Q3DSGraphObject::gex_propertyNames();
@@ -1602,6 +1607,24 @@ void Q3DSNode::applyPropertyChanges(const Q3DSPropertyChangeList *changeList)
     setProps(*changeList, 0);
 }
 
+int Q3DSNode::mapChangeFlags(const Q3DSPropertyChangeList *changeList)
+{
+    int changeFlags = Q3DSGraphObject::mapChangeFlags(changeList);
+    for (auto it = changeList->cbegin(), itEnd = changeList->cend(); it != itEnd; ++it) {
+        if (it->nameStr() == QStringLiteral("position")
+                || it->nameStr() == QStringLiteral("rotation")
+                || it->nameStr() == QStringLiteral("scale"))
+        {
+            changeFlags |= TransformChanges;
+        } else if (it->nameStr() == QStringLiteral("opacity")) {
+            changeFlags |= OpacityChanges;
+        } else if (it->nameStr() == QStringLiteral("eyeball")) {
+            changeFlags |= EyeballChanges;
+        }
+    }
+    return changeFlags;
+}
+
 QStringList Q3DSNode::gex_propertyNames() const
 {
     QStringList s = Q3DSGraphObject::gex_propertyNames();
@@ -1708,6 +1731,19 @@ void Q3DSLayerNode::resolveReferences(Q3DSUipPresentation &pres, Q3DSUipParser &
     Q3DSNode::resolveReferences(pres, parser);
     resolveRef(m_lightProbe_unresolved, Q3DSGraphObject::Image, &m_lightProbe, pres);
     resolveRef(m_lightProbe2_unresolved, Q3DSGraphObject::Image, &m_lightProbe2, pres);
+}
+
+int Q3DSLayerNode::mapChangeFlags(const Q3DSPropertyChangeList *changeList)
+{
+    int changeFlags = Q3DSNode::mapChangeFlags(changeList);
+    for (auto it = changeList->cbegin(), itEnd = changeList->cend(); it != itEnd; ++it) {
+        if (it->nameStr().startsWith(QStringLiteral("ao"))
+               || it->nameStr().startsWith(QStringLiteral("shadow")))
+        {
+            changeFlags |= AoOrShadowChanges;
+        }
+    }
+    return changeFlags;
 }
 
 QStringList Q3DSLayerNode::gex_propertyNames() const
@@ -2030,6 +2066,20 @@ void Q3DSTextNode::applyPropertyChanges(const Q3DSPropertyChangeList *changeList
 {
     Q3DSNode::applyPropertyChanges(changeList);
     setProps(*changeList, 0);
+}
+
+int Q3DSTextNode::mapChangeFlags(const Q3DSPropertyChangeList *changeList)
+{
+    int changeFlags = Q3DSNode::mapChangeFlags(changeList);
+    for (auto it = changeList->cbegin(), itEnd = changeList->cend(); it != itEnd; ++it) {
+        if (it->nameStr() == QStringLiteral("textstring")
+                || it->nameStr() == QStringLiteral("leading")
+                || it->nameStr() == QStringLiteral("tracking"))
+        {
+            changeFlags |= TextureImageDepChanges;
+        }
+    }
+    return changeFlags;
 }
 
 QStringList Q3DSTextNode::gex_propertyNames() const

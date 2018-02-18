@@ -536,7 +536,7 @@ void tst_Q3DSUipParser::slidePropertySet()
     bool gotPropertyChange = false;
     int id = sphere->addPropertyChangeObserver([&](Q3DSGraphObject *obj, const QSet<QString> &keys, int changeFlags) {
         if (obj == sphere && keys.count() == 1
-            && keys.contains(QStringLiteral("position")) && (changeFlags & Q3DSPropertyChangeList::NodeTransformChanges))
+            && keys.contains(QStringLiteral("position")) && (changeFlags & Q3DSNode::TransformChanges))
             gotPropertyChange = true;
     });
     QVERIFY(id >= 0);

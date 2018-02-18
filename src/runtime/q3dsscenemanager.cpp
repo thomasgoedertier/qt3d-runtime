@@ -1732,8 +1732,7 @@ void Q3DSSceneManager::setCameraProperties(Q3DSCameraNode *camNode, int changeFl
     camera->setNearPlane(camNode->clipNear());
     camera->setFarPlane(camNode->clipFar());
 
-    const Q3DSPropertyChangeList::Flags cf = Q3DSPropertyChangeList::Flags(changeFlags);
-    if (!cf.testFlag(Q3DSPropertyChangeList::NodeTransformChanges))
+    if (!(changeFlags & Q3DSNode::TransformChanges))
         return;
 
     // Q3DSCameraNode is like an ordinary node with pos/rot/scale, whereas Qt3D needs a position + view center
@@ -5688,84 +5687,83 @@ void Q3DSSceneManager::updateModel(Q3DSModelNode *model3DS)
 // when entering a slide, or when animating a property
 void Q3DSSceneManager::handlePropertyChange(Q3DSGraphObject *obj, const QSet<QString> &keys, int changeFlags)
 {
+    // 'keys' is not used here, rely rather on the pre-baked changeFlags to
+    // determine certain special cases. For others it is enough to
+    // know that _something_ has changed.
     Q_UNUSED(keys);
+
     Q3DSGraphObjectAttached *data = obj->attached();
     if (!data) // Qt3D stuff not yet built for this object -> nothing to do
         return;
-
-    // 'keys' is not used in general, rely rather on Q3DSPropertyChangeList's
-    // pre-baked flags to determine certain special cases. For most other cases
-    // it is enough to know that _something_ has changed.
-    const Q3DSPropertyChangeList::Flags cf = Q3DSPropertyChangeList::Flags(changeFlags);
 
     // all actual processing must be deferred to updateSubTreeRecursive()
     switch (obj->type()) {
     case Q3DSGraphObject::Layer:
     {
         data->dirty |= Q3DSGraphObjectAttached::LayerDirty;
-        data->changeFlags |= cf;
+        data->changeFlags |= changeFlags;
     }
         break;
     case Q3DSGraphObject::Camera:
     {
         data->dirty |= Q3DSGraphObjectAttached::CameraDirty;
-        data->changeFlags |= cf;
+        data->changeFlags |= changeFlags;
     }
         break;
 
     case Q3DSGraphObject::DefaultMaterial:
     {
         data->dirty |= Q3DSGraphObjectAttached::DefaultMaterialDirty;
-        data->changeFlags |= cf;
+        data->changeFlags |= changeFlags;
     }
         break;
     case Q3DSGraphObject::CustomMaterial:
     {
         data->dirty |= Q3DSGraphObjectAttached::CustomMaterialDirty;
-        data->changeFlags |= cf;
+        data->changeFlags |= changeFlags;
     }
         break;
     case Q3DSGraphObject::Effect:
     {
         data->dirty |= Q3DSGraphObjectAttached::EffectDirty;
-        data->changeFlags |= cf;
+        data->changeFlags |= changeFlags;
     }
         break;
     case Q3DSGraphObject::Image:
     {
         data->dirty |= Q3DSGraphObjectAttached::ImageDirty;
-        data->changeFlags |= cf;
+        data->changeFlags |= changeFlags;
     }
         break;
 
     case Q3DSGraphObject::Group:
     {
         data->dirty |= Q3DSGraphObjectAttached::GroupDirty;
-        data->changeFlags |= cf;
+        data->changeFlags |= changeFlags;
     }
         break;
     case Q3DSGraphObject::Component:
     {
         data->dirty |= Q3DSGraphObjectAttached::ComponentDirty;
-        data->changeFlags |= cf;
+        data->changeFlags |= changeFlags;
     }
         break;
     case Q3DSGraphObject::Light:
     {
         data->dirty |= Q3DSGraphObjectAttached::LightDirty;
-        data->changeFlags |= cf;
+        data->changeFlags |= changeFlags;
     }
         break;
     case Q3DSGraphObject::Model:
     {
         data->dirty |= Q3DSGraphObjectAttached::ModelDirty;
-        data->changeFlags |= cf;
+        data->changeFlags |= changeFlags;
     }
         break;
     case Q3DSGraphObject::Text:
     {
         data->dirty |= Q3DSGraphObjectAttached::TextDirty;
-        data->changeFlags |= cf;
+        data->changeFlags |= changeFlags;
     }
         break;
 
@@ -5963,7 +5961,7 @@ void Q3DSSceneManager::updateSubTreeRecursive(Q3DSGraphObject *obj)
         if (data) {
             updateNodeFromChangeFlags(text3DS, data->transform, data->changeFlags);
             if (data->dirty & (Q3DSGraphObjectAttached::TextDirty | Q3DSGraphObjectAttached::GlobalOpacityDirty)) {
-                const bool needsNewImage = data->changeFlags.testFlag(Q3DSPropertyChangeList::TextTextureImageDepChanges);
+                const bool needsNewImage = data->changeFlags & Q3DSTextNode::TextureImageDepChanges;
                 updateText(text3DS, needsNewImage);
                 m_wasDirty = true;
                 markLayerForObjectDirty(text3DS);
@@ -5979,7 +5977,7 @@ void Q3DSSceneManager::updateSubTreeRecursive(Q3DSGraphObject *obj)
             updateNodeFromChangeFlags(light3DS, data->transform, data->changeFlags);
             if (data->dirty & (Q3DSGraphObjectAttached::LightDirty | Q3DSGraphObjectAttached::GlobalTransformDirty)) {
                 setLightProperties(light3DS);
-                if (!data->changeFlags.testFlag(Q3DSPropertyChangeList::EyeballChanges)) // already done if eyeball changed
+                if (!(data->changeFlags & Q3DSNode::EyeballChanges)) // already done if eyeball changed
                     m_layersWithDirtyLights.insert(data->layer3DS);
                 m_wasDirty = true;
                 markLayerForObjectDirty(light3DS);
@@ -6009,7 +6007,7 @@ void Q3DSSceneManager::updateSubTreeRecursive(Q3DSGraphObject *obj)
             updateNodeFromChangeFlags(cam3DS, data->transform, data->changeFlags);
             if (data->dirty & Q3DSGraphObjectAttached::CameraDirty) {
                 // Change the camera if necessary
-                if (data->changeFlags.testFlag(Q3DSPropertyChangeList::EyeballChanges)) {
+                if (data->changeFlags & Q3DSNode::EyeballChanges) {
                     updateLayerCamera(data->layer3DS);
                 }
                 setCameraProperties(cam3DS, data->changeFlags); // handles both Node- and Camera-level properties
@@ -6027,7 +6025,7 @@ void Q3DSSceneManager::updateSubTreeRecursive(Q3DSGraphObject *obj)
         if (data && (data->dirty & Q3DSGraphObjectAttached::LayerDirty)) {
             updateSizesForLayer(layer3DS, data->parentSize);
             setLayerProperties(layer3DS);
-            if (data->changeFlags.testFlag(Q3DSPropertyChangeList::AoOrShadowChanges)) {
+            if (data->changeFlags & Q3DSLayerNode::AoOrShadowChanges) {
                 bool aoDidChange = false;
                 updateSsaoStatus(layer3DS, &aoDidChange);
                 if (aoDidChange) {
@@ -6051,7 +6049,7 @@ void Q3DSSceneManager::updateSubTreeRecursive(Q3DSGraphObject *obj)
             updateDefaultMaterial(mat3DS);
             m_wasDirty = true;
             markLayerForObjectDirty(mat3DS);
-            if (data->changeFlags.testFlag(Q3DSPropertyChangeList::BlendModeChanges))
+            if (data->changeFlags & Q3DSDefaultMaterial::BlendModeChanges)
                 m_pendingDefMatRebuild.insert(mat3DS);
         }
     }
@@ -6113,16 +6111,15 @@ void Q3DSSceneManager::updateSubTreeRecursive(Q3DSGraphObject *obj)
 
 void Q3DSSceneManager::updateNodeFromChangeFlags(Q3DSNode *node, Qt3DCore::QTransform *transform, int changeFlags)
 {
-    const Q3DSPropertyChangeList::Flags cf = Q3DSPropertyChangeList::Flags(changeFlags);
-    if (cf.testFlag(Q3DSPropertyChangeList::NodeTransformChanges)
-            || cf.testFlag(Q3DSPropertyChangeList::NodeOpacityChanges))
+    if ((changeFlags & Q3DSNode::TransformChanges)
+            || (changeFlags & Q3DSNode::OpacityChanges))
     {
         setNodeProperties(node, nullptr, transform, NodePropUpdateGlobalsRecursively);
         m_wasDirty = true;
         markLayerForObjectDirty(node);
     }
 
-    if (cf.testFlag(Q3DSPropertyChangeList::EyeballChanges)) {
+    if (changeFlags & Q3DSNode::EyeballChanges) {
         // Special case: objects on master slide that get an eyeball change in
         // a subslide. These must be tracked so that obj->masterRollbackList()
         // can be applied since otherwise there's nothing ensuring the
