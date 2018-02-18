@@ -84,20 +84,26 @@ class Q3DSV_PRIVATE_EXPORT Q3DSPropertyChange
 {
 public:
     Q3DSPropertyChange() = default;
+    Q3DSPropertyChange(const QString &name_)
+        : m_name(name_)
+    { }
     Q3DSPropertyChange(const QString &name_, const QString &value_)
-        : m_name(name_), m_value(value_)
+        : m_name(name_), m_value(value_), m_hasValue(true)
     { }
 
     // name() and value() must be source compatible with QXmlStreamAttribute
     QStringRef name() const { return QStringRef(&m_name); }
-    QStringRef value() const { return QStringRef(&m_value); }
+    QStringRef value() const { Q_ASSERT(m_hasValue); return QStringRef(&m_value); }
 
     QString nameStr() const { return m_name; }
-    QString valueStr() const { return m_value; }
+    QString valueStr() const { Q_ASSERT(m_hasValue); return m_value; }
+
+    bool hasValue() const { return m_hasValue; }
 
 private:
     QString m_name;
     QString m_value;
+    bool m_hasValue = false;
 };
 
 class Q3DSV_PRIVATE_EXPORT Q3DSPropertyChangeList

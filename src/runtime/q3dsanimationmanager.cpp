@@ -794,7 +794,7 @@ void Q3DSAnimationManager::applyChanges()
             if (Q_UNLIKELY(animDebug))
                 qDebug() << "animate:" << target->id() << it->name << it->value;
             it->setter(target, it->value, it->name);
-            changeList.append(Q3DSPropertyChange(it->name, QString()));
+            changeList.append(Q3DSPropertyChange(it->name));
             ++it;
         }
         if (!changeList.isEmpty())
