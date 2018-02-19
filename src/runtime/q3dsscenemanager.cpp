@@ -6323,7 +6323,7 @@ void Q3DSSceneManager::setDataInputValue(const QString &dataInputName, const QVa
             }
         }
 
-        const QString strValue = Q3DS::convertFromVariant(value, type);
+        QString strValue = Q3DS::convertFromVariant(value, type);
         Q3DSPropertyChangeList changeList;
 
         // Remember that we have QMultiHash everywhere since one data input
@@ -6363,6 +6363,12 @@ void Q3DSSceneManager::setDataInputValue(const QString &dataInputName, const QVa
                     }
                 }
             } else {
+                if (type == Q3DS::Float && meta.hasMinMax()) {
+                    // Keep value between min&max
+                    float val = strValue.toFloat();
+                    val = std::min(meta.maxValue, std::max(meta.minValue, val));
+                    strValue = QString::number(val);
+                }
                 changeList.append(Q3DSPropertyChange(propName, strValue));
             }
         }
