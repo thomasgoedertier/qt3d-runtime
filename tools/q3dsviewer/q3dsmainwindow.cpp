@@ -148,8 +148,8 @@ Q3DStudioMainWindow::Q3DStudioMainWindow(Q3DSWindow *view, QWidget *parent)
             Q3DSPropertyChangeList changeList;
             const QString value = ssaoAction->isChecked() ? QLatin1String("50") : QLatin1String("0");
             changeList.append(Q3DSPropertyChange(QLatin1String("aostrength"), value));
-            layer3DS->applyPropertyChanges(&changeList);
-            layer3DS->notifyPropertyChanges(&changeList);
+            layer3DS->applyPropertyChanges(changeList);
+            layer3DS->notifyPropertyChanges(changeList);
         });
     });
     QAction *rebuildMatAction = debugMenu->addAction(tr("&Rebuild model materials"));
@@ -169,8 +169,8 @@ Q3DStudioMainWindow::Q3DStudioMainWindow(Q3DSWindow *view, QWidget *parent)
                 Q3DSPropertyChangeList changeList;
                 const QString value = light3DS->castShadow() ? QLatin1String("false") : QLatin1String("true");
                 changeList.append(Q3DSPropertyChange(QLatin1String("castshadow"), value));
-                light3DS->applyPropertyChanges(&changeList);
-                light3DS->notifyPropertyChanges(&changeList);
+                light3DS->applyPropertyChanges(changeList);
+                light3DS->notifyPropertyChanges(changeList);
             }
         });
     });
@@ -183,8 +183,8 @@ Q3DStudioMainWindow::Q3DStudioMainWindow(Q3DSWindow *view, QWidget *parent)
                 Q3DSPropertyChangeList changeList;
                 const QString value = QLatin1String("11"); // 8..11
                 changeList.append(Q3DSPropertyChange(QLatin1String("shdwmapres"), value));
-                light3DS->applyPropertyChanges(&changeList);
-                light3DS->notifyPropertyChanges(&changeList);
+                light3DS->applyPropertyChanges(changeList);
+                light3DS->notifyPropertyChanges(changeList);
             }
         });
     });

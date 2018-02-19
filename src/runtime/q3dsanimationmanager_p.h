@@ -80,7 +80,7 @@ private:
 
 
     void gatherAnimatableMeta(const QString &type, AnimatableTab *dst);
-    void gatherDynamicProperties(const QVariantMap *dynProps,
+    void gatherDynamicProperties(const QVariantMap &dynProps,
                                  const QMap<QString, Q3DSMaterial::PropertyElement> &propMeta,
                                  AnimatableTab *dst);
     template<class T>

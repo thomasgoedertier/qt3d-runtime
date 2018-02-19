@@ -52,79 +52,79 @@ static struct AnimatableExtraMeta {
     Q3DSAnimationManager::SetterFunc setter;
     Q3DSAnimationManager::GetterFunc getter;
 } extraMeta[] = {
-    { QLatin1String("Node"), QLatin1String("position"), &Q3DSNode::setPosition, &Q3DSNode::getPosition },
-    { QLatin1String("Node"), QLatin1String("rotation"), &Q3DSNode::setRotation, &Q3DSNode::getRotation },
-    { QLatin1String("Node"), QLatin1String("scale"), &Q3DSNode::setScale, &Q3DSNode::getScale },
-    { QLatin1String("Node"), QLatin1String("pivot"), &Q3DSNode::setPivot, &Q3DSNode::getPivot },
-    { QLatin1String("Node"), QLatin1String("opacity"), &Q3DSNode::setLocalOpacity, &Q3DSNode::getLocalOpacity },
+    { QLatin1String("Node"), QLatin1String("position"), &Q3DSNodeAnimator::setPosition, &Q3DSNodeAnimator::getPosition },
+    { QLatin1String("Node"), QLatin1String("rotation"), &Q3DSNodeAnimator::setRotation, &Q3DSNodeAnimator::getRotation },
+    { QLatin1String("Node"), QLatin1String("scale"), &Q3DSNodeAnimator::setScale, &Q3DSNodeAnimator::getScale },
+    { QLatin1String("Node"), QLatin1String("pivot"), &Q3DSNodeAnimator::setPivot, &Q3DSNodeAnimator::getPivot },
+    { QLatin1String("Node"), QLatin1String("opacity"), &Q3DSNodeAnimator::setLocalOpacity, &Q3DSNodeAnimator::getLocalOpacity },
 
-    { QLatin1String("Material"), QLatin1String("diffuse"), &Q3DSDefaultMaterial::setDiffuse, &Q3DSDefaultMaterial::getDiffuse },
-    { QLatin1String("Material"), QLatin1String("speculartint"), &Q3DSDefaultMaterial::setSpecularTint, &Q3DSDefaultMaterial::getSpecularTint },
-    { QLatin1String("Material"), QLatin1String("specularamount"), &Q3DSDefaultMaterial::setSpecularAmount, &Q3DSDefaultMaterial::getSpecularAmount },
-    { QLatin1String("Material"), QLatin1String("specularroughness"), &Q3DSDefaultMaterial::setSpecularRoughness, &Q3DSDefaultMaterial::getSpecularRoughness },
-    { QLatin1String("Material"), QLatin1String("fresnelPower"), &Q3DSDefaultMaterial::setFresnelPower, &Q3DSDefaultMaterial::getFresnelPower },
-    { QLatin1String("Material"), QLatin1String("displaceamount"), &Q3DSDefaultMaterial::setDisplaceAmount, &Q3DSDefaultMaterial::getDisplaceAmount },
-    { QLatin1String("Material"), QLatin1String("opacity"), &Q3DSDefaultMaterial::setOpacity, &Q3DSDefaultMaterial::getOpacity },
-    { QLatin1String("Material"), QLatin1String("emissivecolor"), &Q3DSDefaultMaterial::setEmissiveColor, &Q3DSDefaultMaterial::getEmissiveColor },
-    { QLatin1String("Material"), QLatin1String("emissivepower"), &Q3DSDefaultMaterial::setEmissivePower, &Q3DSDefaultMaterial::getEmissivePower },
-    { QLatin1String("Material"), QLatin1String("bumpamount"), &Q3DSDefaultMaterial::setBumpAmount, &Q3DSDefaultMaterial::getBumpAmount },
-    { QLatin1String("Material"), QLatin1String("translucentfalloff"), &Q3DSDefaultMaterial::setTranslucentFalloff, &Q3DSDefaultMaterial::getTranslucentFalloff },
-    { QLatin1String("Material"), QLatin1String("diffuselightwrap"), &Q3DSDefaultMaterial::setDiffuseLightWrap, &Q3DSDefaultMaterial::getDiffuseLightWrap },
+    { QLatin1String("Material"), QLatin1String("diffuse"), &Q3DSDefaultMaterialAnimator::setDiffuse, &Q3DSDefaultMaterialAnimator::getDiffuse },
+    { QLatin1String("Material"), QLatin1String("speculartint"), &Q3DSDefaultMaterialAnimator::setSpecularTint, &Q3DSDefaultMaterialAnimator::getSpecularTint },
+    { QLatin1String("Material"), QLatin1String("specularamount"), &Q3DSDefaultMaterialAnimator::setSpecularAmount, &Q3DSDefaultMaterialAnimator::getSpecularAmount },
+    { QLatin1String("Material"), QLatin1String("specularroughness"), &Q3DSDefaultMaterialAnimator::setSpecularRoughness, &Q3DSDefaultMaterialAnimator::getSpecularRoughness },
+    { QLatin1String("Material"), QLatin1String("fresnelPower"), &Q3DSDefaultMaterialAnimator::setFresnelPower, &Q3DSDefaultMaterialAnimator::getFresnelPower },
+    { QLatin1String("Material"), QLatin1String("displaceamount"), &Q3DSDefaultMaterialAnimator::setDisplaceAmount, &Q3DSDefaultMaterialAnimator::getDisplaceAmount },
+    { QLatin1String("Material"), QLatin1String("opacity"), &Q3DSDefaultMaterialAnimator::setOpacity, &Q3DSDefaultMaterialAnimator::getOpacity },
+    { QLatin1String("Material"), QLatin1String("emissivecolor"), &Q3DSDefaultMaterialAnimator::setEmissiveColor, &Q3DSDefaultMaterialAnimator::getEmissiveColor },
+    { QLatin1String("Material"), QLatin1String("emissivepower"), &Q3DSDefaultMaterialAnimator::setEmissivePower, &Q3DSDefaultMaterialAnimator::getEmissivePower },
+    { QLatin1String("Material"), QLatin1String("bumpamount"), &Q3DSDefaultMaterialAnimator::setBumpAmount, &Q3DSDefaultMaterialAnimator::getBumpAmount },
+    { QLatin1String("Material"), QLatin1String("translucentfalloff"), &Q3DSDefaultMaterialAnimator::setTranslucentFalloff, &Q3DSDefaultMaterialAnimator::getTranslucentFalloff },
+    { QLatin1String("Material"), QLatin1String("diffuselightwrap"), &Q3DSDefaultMaterialAnimator::setDiffuseLightWrap, &Q3DSDefaultMaterialAnimator::getDiffuseLightWrap },
 
-    { QLatin1String("Camera"), QLatin1String("fov"), &Q3DSCameraNode::setFov, &Q3DSCameraNode::getFov },
-    { QLatin1String("Camera"), QLatin1String("clipnear"), &Q3DSCameraNode::setClipNear, &Q3DSCameraNode::getClipNear },
-    { QLatin1String("Camera"), QLatin1String("clipfar"), &Q3DSCameraNode::setClipFar, &Q3DSCameraNode::getClipFar },
+    { QLatin1String("Camera"), QLatin1String("fov"), &Q3DSCameraNodeAnimator::setFov, &Q3DSCameraNodeAnimator::getFov },
+    { QLatin1String("Camera"), QLatin1String("clipnear"), &Q3DSCameraNodeAnimator::setClipNear, &Q3DSCameraNodeAnimator::getClipNear },
+    { QLatin1String("Camera"), QLatin1String("clipfar"), &Q3DSCameraNodeAnimator::setClipFar, &Q3DSCameraNodeAnimator::getClipFar },
 
-    { QLatin1String("Light"), QLatin1String("lightdiffuse"), &Q3DSLightNode::setDiffuse, &Q3DSLightNode::getDiffuse },
-    { QLatin1String("Light"), QLatin1String("lightspecular"), &Q3DSLightNode::setSpecular, &Q3DSLightNode::getSpecular },
-    { QLatin1String("Light"), QLatin1String("lightambient"), &Q3DSLightNode::setAmbient, &Q3DSLightNode::getAmbient },
-    { QLatin1String("Light"), QLatin1String("brightness"), &Q3DSLightNode::setBrightness, &Q3DSLightNode::getBrightness },
-    { QLatin1String("Light"), QLatin1String("linearfade"), &Q3DSLightNode::setLinearFade, &Q3DSLightNode::getLinearFade },
-    { QLatin1String("Light"), QLatin1String("expfade"), &Q3DSLightNode::setExpFade, &Q3DSLightNode::getExpFade },
-    { QLatin1String("Light"), QLatin1String("areawidth"), &Q3DSLightNode::setAreaWidth, &Q3DSLightNode::getAreaWidth },
-    { QLatin1String("Light"), QLatin1String("areaheight"), &Q3DSLightNode::setAreaHeight, &Q3DSLightNode::getAreaHeight },
-    { QLatin1String("Light"), QLatin1String("shdwfactor"), &Q3DSLightNode::setShadowFactor, &Q3DSLightNode::getShadowFactor },
-    { QLatin1String("Light"), QLatin1String("shdwfilter"), &Q3DSLightNode::setShadowFilter, &Q3DSLightNode::getShadowFilter },
-    { QLatin1String("Light"), QLatin1String("shdwbias"), &Q3DSLightNode::setShadowBias, &Q3DSLightNode::getShadowBias },
-    { QLatin1String("Light"), QLatin1String("shdwmapfar"), &Q3DSLightNode::setShadowMapFar, &Q3DSLightNode::getShadowMapFar },
-    { QLatin1String("Light"), QLatin1String("shdwmapfov"), &Q3DSLightNode::setShadowMapFov, &Q3DSLightNode::getShadowMapFov },
+    { QLatin1String("Light"), QLatin1String("lightdiffuse"), &Q3DSLightNodeAnimator::setDiffuse, &Q3DSLightNodeAnimator::getDiffuse },
+    { QLatin1String("Light"), QLatin1String("lightspecular"), &Q3DSLightNodeAnimator::setSpecular, &Q3DSLightNodeAnimator::getSpecular },
+    { QLatin1String("Light"), QLatin1String("lightambient"), &Q3DSLightNodeAnimator::setAmbient, &Q3DSLightNodeAnimator::getAmbient },
+    { QLatin1String("Light"), QLatin1String("brightness"), &Q3DSLightNodeAnimator::setBrightness, &Q3DSLightNodeAnimator::getBrightness },
+    { QLatin1String("Light"), QLatin1String("linearfade"), &Q3DSLightNodeAnimator::setLinearFade, &Q3DSLightNodeAnimator::getLinearFade },
+    { QLatin1String("Light"), QLatin1String("expfade"), &Q3DSLightNodeAnimator::setExpFade, &Q3DSLightNodeAnimator::getExpFade },
+    { QLatin1String("Light"), QLatin1String("areawidth"), &Q3DSLightNodeAnimator::setAreaWidth, &Q3DSLightNodeAnimator::getAreaWidth },
+    { QLatin1String("Light"), QLatin1String("areaheight"), &Q3DSLightNodeAnimator::setAreaHeight, &Q3DSLightNodeAnimator::getAreaHeight },
+    { QLatin1String("Light"), QLatin1String("shdwfactor"), &Q3DSLightNodeAnimator::setShadowFactor, &Q3DSLightNodeAnimator::getShadowFactor },
+    { QLatin1String("Light"), QLatin1String("shdwfilter"), &Q3DSLightNodeAnimator::setShadowFilter, &Q3DSLightNodeAnimator::getShadowFilter },
+    { QLatin1String("Light"), QLatin1String("shdwbias"), &Q3DSLightNodeAnimator::setShadowBias, &Q3DSLightNodeAnimator::getShadowBias },
+    { QLatin1String("Light"), QLatin1String("shdwmapfar"), &Q3DSLightNodeAnimator::setShadowMapFar, &Q3DSLightNodeAnimator::getShadowMapFar },
+    { QLatin1String("Light"), QLatin1String("shdwmapfov"), &Q3DSLightNodeAnimator::setShadowMapFov, &Q3DSLightNodeAnimator::getShadowMapFov },
 
-    { QLatin1String("Model"), QLatin1String("edgetess"), &Q3DSModelNode::setEdgeTess, &Q3DSModelNode::getEdgeTess },
-    { QLatin1String("Model"), QLatin1String("innertess"), &Q3DSModelNode::setInnerTess, &Q3DSModelNode::getInnerTess },
+    { QLatin1String("Model"), QLatin1String("edgetess"), &Q3DSModelNodeAnimator::setEdgeTess, &Q3DSModelNodeAnimator::getEdgeTess },
+    { QLatin1String("Model"), QLatin1String("innertess"), &Q3DSModelNodeAnimator::setInnerTess, &Q3DSModelNodeAnimator::getInnerTess },
 
-    { QLatin1String("Text"), QLatin1String("textcolor"), &Q3DSTextNode::setColor, &Q3DSTextNode::getColor },
-    { QLatin1String("Text"), QLatin1String("leading"), &Q3DSTextNode::setLeading, &Q3DSTextNode::getLeading },
-    { QLatin1String("Text"), QLatin1String("tracking"), &Q3DSTextNode::setTracking, &Q3DSTextNode::getTracking },
+    { QLatin1String("Text"), QLatin1String("textcolor"), &Q3DSTextNodeAnimator::setColor, &Q3DSTextNodeAnimator::getColor },
+    { QLatin1String("Text"), QLatin1String("leading"), &Q3DSTextNodeAnimator::setLeading, &Q3DSTextNodeAnimator::getLeading },
+    { QLatin1String("Text"), QLatin1String("tracking"), &Q3DSTextNodeAnimator::setTracking, &Q3DSTextNodeAnimator::getTracking },
 
-    { QLatin1String("Image"), QLatin1String("scaleu"), &Q3DSImage::setScaleU, &Q3DSImage::getScaleU },
-    { QLatin1String("Image"), QLatin1String("scalev"), &Q3DSImage::setScaleV, &Q3DSImage::getScaleV },
-    { QLatin1String("Image"), QLatin1String("rotationuv"), &Q3DSImage::setRotationUV, &Q3DSImage::getRotationUV },
-    { QLatin1String("Image"), QLatin1String("positionu"), &Q3DSImage::setPositionU, &Q3DSImage::getPositionU },
-    { QLatin1String("Image"), QLatin1String("positionv"), &Q3DSImage::setPositionV, &Q3DSImage::getPositionV },
-    { QLatin1String("Image"), QLatin1String("pivotu"), &Q3DSImage::setPivotU, &Q3DSImage::getPivotU },
-    { QLatin1String("Image"), QLatin1String("pivotv"), &Q3DSImage::setPivotV, &Q3DSImage::getPivotV },
+    { QLatin1String("Image"), QLatin1String("scaleu"), &Q3DSImageAnimator::setScaleU, &Q3DSImageAnimator::getScaleU },
+    { QLatin1String("Image"), QLatin1String("scalev"), &Q3DSImageAnimator::setScaleV, &Q3DSImageAnimator::getScaleV },
+    { QLatin1String("Image"), QLatin1String("rotationuv"), &Q3DSImageAnimator::setRotationUV, &Q3DSImageAnimator::getRotationUV },
+    { QLatin1String("Image"), QLatin1String("positionu"), &Q3DSImageAnimator::setPositionU, &Q3DSImageAnimator::getPositionU },
+    { QLatin1String("Image"), QLatin1String("positionv"), &Q3DSImageAnimator::setPositionV, &Q3DSImageAnimator::getPositionV },
+    { QLatin1String("Image"), QLatin1String("pivotu"), &Q3DSImageAnimator::setPivotU, &Q3DSImageAnimator::getPivotU },
+    { QLatin1String("Image"), QLatin1String("pivotv"), &Q3DSImageAnimator::setPivotV, &Q3DSImageAnimator::getPivotV },
 
-    { QLatin1String("Layer"), QLatin1String("left"), &Q3DSLayerNode::setLeft, &Q3DSLayerNode::getLeft },
-    { QLatin1String("Layer"), QLatin1String("right"), &Q3DSLayerNode::setRight, &Q3DSLayerNode::getRight },
-    { QLatin1String("Layer"), QLatin1String("width"), &Q3DSLayerNode::setWidth, &Q3DSLayerNode::getWidth },
-    { QLatin1String("Layer"), QLatin1String("height"), &Q3DSLayerNode::setHeight, &Q3DSLayerNode::getHeight },
-    { QLatin1String("Layer"), QLatin1String("top"), &Q3DSLayerNode::setTop, &Q3DSLayerNode::getTop },
-    { QLatin1String("Layer"), QLatin1String("bottom"), &Q3DSLayerNode::setBottom, &Q3DSLayerNode::getBottom },
-    { QLatin1String("Layer"), QLatin1String("aostrength"), &Q3DSLayerNode::setAoStrength, &Q3DSLayerNode::getAoStrength },
-    { QLatin1String("Layer"), QLatin1String("aodistance"), &Q3DSLayerNode::setAoDistance, &Q3DSLayerNode::getAoDistance },
-    { QLatin1String("Layer"), QLatin1String("aosoftness"), &Q3DSLayerNode::setAoSoftness, &Q3DSLayerNode::getAoSoftness },
-    { QLatin1String("Layer"), QLatin1String("aobias"), &Q3DSLayerNode::setAoBias, &Q3DSLayerNode::getAoBias },
-    { QLatin1String("Layer"), QLatin1String("aosamplerate"), &Q3DSLayerNode::setAoSampleRate, &Q3DSLayerNode::getAoSampleRate },
-    { QLatin1String("Layer"), QLatin1String("shadowstrength"), &Q3DSLayerNode::setShadowStrength, &Q3DSLayerNode::getShadowStrength },
-    { QLatin1String("Layer"), QLatin1String("shadowdist"), &Q3DSLayerNode::setShadowDist, &Q3DSLayerNode::getShadowDist },
-    { QLatin1String("Layer"), QLatin1String("shadowsoftness"), &Q3DSLayerNode::setShadowSoftness, &Q3DSLayerNode::getShadowSoftness },
-    { QLatin1String("Layer"), QLatin1String("shadowbias"), &Q3DSLayerNode::setShadowBias, &Q3DSLayerNode::getShadowBias },
-    { QLatin1String("Layer"), QLatin1String("probebright"), &Q3DSLayerNode::setProbeBright, &Q3DSLayerNode::getProbeBright },
-    { QLatin1String("Layer"), QLatin1String("probehorizon"), &Q3DSLayerNode::setProbeHorizon, &Q3DSLayerNode::getProbeHorizon },
-    { QLatin1String("Layer"), QLatin1String("probefov"), &Q3DSLayerNode::setProbeFov, &Q3DSLayerNode::getProbeFov },
-    { QLatin1String("Layer"), QLatin1String("probe2fade"), &Q3DSLayerNode::setProbe2Fade, &Q3DSLayerNode::getProbe2Fade },
-    { QLatin1String("Layer"), QLatin1String("probe2window"), &Q3DSLayerNode::setProbe2Window, &Q3DSLayerNode::getProbe2Window },
-    { QLatin1String("Layer"), QLatin1String("probe2pos"), &Q3DSLayerNode::setProbe2Pos, &Q3DSLayerNode::getProbe2Pos }
+    { QLatin1String("Layer"), QLatin1String("left"), &Q3DSLayerNodeAnimator::setLeft, &Q3DSLayerNodeAnimator::getLeft },
+    { QLatin1String("Layer"), QLatin1String("right"), &Q3DSLayerNodeAnimator::setRight, &Q3DSLayerNodeAnimator::getRight },
+    { QLatin1String("Layer"), QLatin1String("width"), &Q3DSLayerNodeAnimator::setWidth, &Q3DSLayerNodeAnimator::getWidth },
+    { QLatin1String("Layer"), QLatin1String("height"), &Q3DSLayerNodeAnimator::setHeight, &Q3DSLayerNodeAnimator::getHeight },
+    { QLatin1String("Layer"), QLatin1String("top"), &Q3DSLayerNodeAnimator::setTop, &Q3DSLayerNodeAnimator::getTop },
+    { QLatin1String("Layer"), QLatin1String("bottom"), &Q3DSLayerNodeAnimator::setBottom, &Q3DSLayerNodeAnimator::getBottom },
+    { QLatin1String("Layer"), QLatin1String("aostrength"), &Q3DSLayerNodeAnimator::setAoStrength, &Q3DSLayerNodeAnimator::getAoStrength },
+    { QLatin1String("Layer"), QLatin1String("aodistance"), &Q3DSLayerNodeAnimator::setAoDistance, &Q3DSLayerNodeAnimator::getAoDistance },
+    { QLatin1String("Layer"), QLatin1String("aosoftness"), &Q3DSLayerNodeAnimator::setAoSoftness, &Q3DSLayerNodeAnimator::getAoSoftness },
+    { QLatin1String("Layer"), QLatin1String("aobias"), &Q3DSLayerNodeAnimator::setAoBias, &Q3DSLayerNodeAnimator::getAoBias },
+    { QLatin1String("Layer"), QLatin1String("aosamplerate"), &Q3DSLayerNodeAnimator::setAoSampleRate, &Q3DSLayerNodeAnimator::getAoSampleRate },
+    { QLatin1String("Layer"), QLatin1String("shadowstrength"), &Q3DSLayerNodeAnimator::setShadowStrength, &Q3DSLayerNodeAnimator::getShadowStrength },
+    { QLatin1String("Layer"), QLatin1String("shadowdist"), &Q3DSLayerNodeAnimator::setShadowDist, &Q3DSLayerNodeAnimator::getShadowDist },
+    { QLatin1String("Layer"), QLatin1String("shadowsoftness"), &Q3DSLayerNodeAnimator::setShadowSoftness, &Q3DSLayerNodeAnimator::getShadowSoftness },
+    { QLatin1String("Layer"), QLatin1String("shadowbias"), &Q3DSLayerNodeAnimator::setShadowBias, &Q3DSLayerNodeAnimator::getShadowBias },
+    { QLatin1String("Layer"), QLatin1String("probebright"), &Q3DSLayerNodeAnimator::setProbeBright, &Q3DSLayerNodeAnimator::getProbeBright },
+    { QLatin1String("Layer"), QLatin1String("probehorizon"), &Q3DSLayerNodeAnimator::setProbeHorizon, &Q3DSLayerNodeAnimator::getProbeHorizon },
+    { QLatin1String("Layer"), QLatin1String("probefov"), &Q3DSLayerNodeAnimator::setProbeFov, &Q3DSLayerNodeAnimator::getProbeFov },
+    { QLatin1String("Layer"), QLatin1String("probe2fade"), &Q3DSLayerNodeAnimator::setProbe2Fade, &Q3DSLayerNodeAnimator::getProbe2Fade },
+    { QLatin1String("Layer"), QLatin1String("probe2window"), &Q3DSLayerNodeAnimator::setProbe2Window, &Q3DSLayerNodeAnimator::getProbe2Window },
+    { QLatin1String("Layer"), QLatin1String("probe2pos"), &Q3DSLayerNodeAnimator::setProbe2Pos, &Q3DSLayerNodeAnimator::getProbe2Pos }
 
     // CustomMaterial and Effect are not listed here since they are handled
     // differently. There all dynamic properties are assumed to be animatable
@@ -166,40 +166,34 @@ void Q3DSAnimationManager::gatherAnimatableMeta(const QString &type, AnimatableT
 
 static void dynamicPropertySetter(Q3DSGraphObject *obj, const QVariant &value, const QString &name)
 {
-    QVariantMap *p = nullptr;
     if (obj->type() == Q3DSGraphObject::CustomMaterial) {
         Q3DSCustomMaterialInstance *mat3DS = static_cast<Q3DSCustomMaterialInstance *>(obj);
-        p = mat3DS->materialPropertyValues();
+        mat3DS->setCustomProperty(name, value);
     } else if (obj->type() == Q3DSGraphObject::Effect) {
         Q3DSEffectInstance *eff3DS = static_cast<Q3DSEffectInstance *>(obj);
-        p = eff3DS->effectPropertyValues();
-    }
-    if (p) {
-        Q_ASSERT(p->contains(name));
-        (*p)[name] = value;
+        eff3DS->setCustomProperty(name, value);
     }
 }
 
 static QVariant dynamicPropertyGetter(Q3DSGraphObject *obj, const QString &name)
 {
-    const QVariantMap *p = nullptr;
     if (obj->type() == Q3DSGraphObject::CustomMaterial) {
         Q3DSCustomMaterialInstance *mat3DS = static_cast<Q3DSCustomMaterialInstance *>(obj);
-        p = mat3DS->materialPropertyValues();
+        return mat3DS->customProperty(name);
     } else if (obj->type() == Q3DSGraphObject::Effect) {
         Q3DSEffectInstance *eff3DS = static_cast<Q3DSEffectInstance *>(obj);
-        p = eff3DS->effectPropertyValues();
+        return eff3DS->customProperty(name);
     }
-    return p ? p->value(name) : QVariant();
+    return QVariant();
 }
 
-void Q3DSAnimationManager::gatherDynamicProperties(const QVariantMap *dynProps,
+void Q3DSAnimationManager::gatherDynamicProperties(const QVariantMap &dynProps,
                                                    const QMap<QString, Q3DSMaterial::PropertyElement> &propMeta,
                                                    AnimatableTab *dst)
 {
     // dynProps is the name - value map with the actual (or the default) values for the custom material or effect instance
     // propMeta is the metadata for all the dynamic properties of the custom material or effect
-    for (auto propIt = dynProps->cbegin(), propItEnd = dynProps->cend(); propIt != propItEnd; ++propIt) {
+    for (auto propIt = dynProps.cbegin(), propItEnd = dynProps.cend(); propIt != propItEnd; ++propIt) {
         Animatable a;
         a.name = propIt.key();
         Q_ASSERT(propMeta.contains(a.name));
@@ -757,7 +751,7 @@ void Q3DSAnimationManager::updateAnimations(Q3DSSlide *slide)
         AnimatableTab customMaterialAnimatables;
         for (auto it = customMatAnims.cbegin(), itEnd = customMatAnims.cend(); it != itEnd; ++it) {
             Q3DSCustomMaterialInstance *mat3DS = it.key();
-            gatherDynamicProperties(mat3DS->materialPropertyValues(), mat3DS->material()->properties(), &customMaterialAnimatables);
+            gatherDynamicProperties(mat3DS->customProperties(), mat3DS->material()->properties(), &customMaterialAnimatables);
         }
         updateAnimationHelper(customMatAnims, &customMaterialAnimatables, slide);
     }
@@ -765,7 +759,7 @@ void Q3DSAnimationManager::updateAnimations(Q3DSSlide *slide)
         AnimatableTab effectAnimatables;
         for (auto it = effectAnims.cbegin(), itEnd = effectAnims.cend(); it != itEnd; ++it) {
             Q3DSEffectInstance *eff3DS = it.key();
-            gatherDynamicProperties(eff3DS->effectPropertyValues(), eff3DS->effect()->properties(), &effectAnimatables);
+            gatherDynamicProperties(eff3DS->customProperties(), eff3DS->effect()->properties(), &effectAnimatables);
         }
         updateAnimationHelper(effectAnims, &effectAnimatables, slide);
     }
@@ -798,7 +792,7 @@ void Q3DSAnimationManager::applyChanges()
             ++it;
         }
         if (!changeList.isEmpty())
-            target->notifyPropertyChanges(&changeList);
+            target->notifyPropertyChanges(changeList);
     }
     m_changes.clear();
 }

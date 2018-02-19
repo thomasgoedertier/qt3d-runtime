@@ -98,6 +98,12 @@ public:
     QString nameStr() const { return m_name; }
     QString valueStr() const { Q_ASSERT(m_hasValue); return m_value; }
 
+    // A setter can return an invalid change when the new value is the same as
+    // before. Such changes are ignored by the changelist.
+    bool isValid() const { return !m_name.isEmpty(); }
+
+    // A change without value can only be used with notifyPropertyChanges, not
+    // with applyPropertyChanges.
     bool hasValue() const { return m_hasValue; }
 
 private:
@@ -106,11 +112,18 @@ private:
     bool m_hasValue = false;
 };
 
+Q_DECLARE_TYPEINFO(Q3DSPropertyChange, Q_MOVABLE_TYPE);
+
 class Q3DSV_PRIVATE_EXPORT Q3DSPropertyChangeList
 {
 public:
     typedef const Q3DSPropertyChange *const_iterator;
     typedef std::reverse_iterator<const_iterator> const_reverse_iterator;
+
+    Q3DSPropertyChangeList() { }
+#ifdef Q_COMPILER_INITIALIZER_LISTS
+    Q3DSPropertyChangeList(std::initializer_list<Q3DSPropertyChange> args);
+#endif
 
     const_iterator begin() const Q_DECL_NOTHROW { return m_changes.begin(); }
     const_iterator cbegin() const Q_DECL_NOTHROW { return begin(); }
@@ -125,8 +138,6 @@ public:
     int count() const { return m_changes.count(); }
     void append(const Q3DSPropertyChange &change);
     QSet<QString> keys() const { return m_keys; }
-
-    static const int ALL_CHANGE_FLAGS = 0xFFFF;
 
     typedef Q3DSPropertyChange value_type;
 
@@ -224,17 +235,13 @@ public:
     void appendChildNode(Q3DSGraphObject *node);
 
     virtual void setProperties(const QXmlStreamAttributes &attrs, PropSetFlags flags);
-    virtual void applyPropertyChanges(const Q3DSPropertyChangeList *);
+    virtual void applyPropertyChanges(const Q3DSPropertyChangeList &changeList);
     virtual void resolveReferences(Q3DSUipPresentation &, Q3DSUipParser &) { }
 
-    virtual int mapChangeFlags(const Q3DSPropertyChangeList *changeList);
-    void notifyPropertyChanges(const Q3DSPropertyChangeList *changeList);
+    virtual int mapChangeFlags(const Q3DSPropertyChangeList &changeList);
+    void notifyPropertyChanges(const Q3DSPropertyChangeList &changeList);
 
-    QByteArray id() const { return m_id; }
     bool isNode() const { return m_type >= Q3DSGraphObject::_FirstNodeType; }
-
-    qint32 startTime() const { return m_startTime; }
-    qint32 endTime() const { return m_endTime; }
 
     typedef std::function<void(Q3DSGraphObject *, const QSet<QString> &, int)> PropertyChangeCallback;
     int addPropertyChangeObserver(PropertyChangeCallback callback);
@@ -257,7 +264,17 @@ public:
     virtual QStringList gex_propertyNames() const;
     virtual QVariantList gex_propertyValues() const;
 
+    // Properties
+    QByteArray id() const { return m_id; }
+    qint32 startTime() const { return m_startTime; }
+    qint32 endTime() const { return m_endTime; }
+
+    // There is no setId(). Use Q3DSUipPresentation::registerObject() instead.
+    Q3DSPropertyChange setStartTime(qint32 v);
+    Q3DSPropertyChange setEndTime(qint32 v);
+
 protected:
+    QByteArray m_id;
     qint32 m_startTime = 0;
     qint32 m_endTime = 10000;
 
@@ -271,7 +288,6 @@ private:
     Q3DSGraphObject *m_lastChild = nullptr;
     Q3DSGraphObject *m_nextSibling = nullptr;
     Q3DSGraphObject *m_previousSibling = nullptr;
-    QByteArray m_id;
     QVector<PropertyChangeCallback> m_callbacks;
     Q3DSGraphObjectAttached *m_attached = nullptr;
     DataInputControlledProperties m_dataInputControlledProperties;
@@ -288,12 +304,17 @@ public:
 
     void setProperties(const QXmlStreamAttributes &attrs, PropSetFlags flags) override;
 
+    QStringList gex_propertyNames() const override;
+    QVariantList gex_propertyValues() const override;
+
+    // Properties
     QString name() const { return m_name; }
     bool useClearColor() const { return m_useClearColor; }
     QColor clearColor() const { return m_clearColor; }
 
-    QStringList gex_propertyNames() const override;
-    QVariantList gex_propertyValues() const override;
+    Q3DSPropertyChange setName(const QString &v);
+    Q3DSPropertyChange setUseClearColor(bool v);
+    Q3DSPropertyChange setClearColor(const QColor &v);
 
 private:
     Q_DISABLE_COPY(Q3DSScene)
@@ -370,6 +391,22 @@ public:
 
     void setProperties(const QXmlStreamAttributes &attrs, PropSetFlags flags) override;
 
+    const QSet<Q3DSGraphObject *> *objects() const { return &m_objects; } // NB does not include objects from master
+    void addObject(Q3DSGraphObject *obj);
+    void removeObject(Q3DSGraphObject *obj);
+
+    const QHash<Q3DSGraphObject *, Q3DSPropertyChangeList *> *propertyChanges() const { return &m_propChanges; }
+    void addPropertyChange(Q3DSGraphObject *target, Q3DSPropertyChangeList *changeList);
+    void removePropertyChange(Q3DSGraphObject *target);
+
+    const QVector<Q3DSAnimationTrack> *animations() const { return &m_anims; }
+    void addAnimation(const Q3DSAnimationTrack &track);
+    // ### void removeAnimation(...)
+
+    QStringList gex_propertyNames() const override;
+    QVariantList gex_propertyValues() const override;
+
+    // Properties
     QString name() const { return m_name; }
     PlayMode playMode() const { return m_playMode; }
     InitialPlayState initialPlayState() const { return m_initialPlayState; }
@@ -377,15 +414,11 @@ public:
     PlayThrough playThrough() const { return m_playThrough; }
     int playThroughValue() const { return m_playThroughValue; }
 
-    const QSet<Q3DSGraphObject *> *objects() const { return &m_objects; } // NB does not include objects from master
-    const QHash<Q3DSGraphObject *, Q3DSPropertyChangeList *> *propertyChanges() const { return &m_propChanges; }
-    const QVector<Q3DSAnimationTrack> *animations() const { return &m_anims; }
-
-    QStringList gex_propertyNames() const override;
-    QVariantList gex_propertyValues() const override;
-
-protected:
-    void addObject(Q3DSGraphObject *obj);
+    Q3DSPropertyChange setName(const QString &v);
+    Q3DSPropertyChange setPlayMode(PlayMode v);
+    Q3DSPropertyChange setInitialPlayState(InitialPlayState v);
+    Q3DSPropertyChange setPlayThrough(PlayThrough v);
+    Q3DSPropertyChange setPlayThroughValue(int v);
 
 private:
     Q_DISABLE_COPY(Q3DSSlide)
@@ -405,11 +438,12 @@ private:
 
 // Node/material/resource-like GraphObjects have 3 types of setters:
 //
-// 1. virtual setProperties -> initialize from XML (all properties)
-// 2. virtual applyPropertyChanges -> just update the value of the given properties, mainly when changing slide
-// 3. static setters -> used by the animation system
+// 1. setProperties -> initialize from XML (all properties)
+// 2. applyPropertyChanges -> just update the value of the given properties, used when changing slides
+// 3. normal setters, with the twist of returning a Q3DSPropertyChange
+// 4. static setters in a separate Q3DSXxxxAnimator -> used by the animation system
 //
-// None of these invoke the property change callbacks -> needs an explicit notifyPropertyChanges()
+// None of these invoke the property change callbacks -> that needs an explicit notifyPropertyChanges()
 //
 // Similarly, getters have two variants: animatable properties have a static getter as well.
 
@@ -432,9 +466,18 @@ public:
     Q3DSImage();
 
     void setProperties(const QXmlStreamAttributes &attrs, PropSetFlags flags) override;
-    void applyPropertyChanges(const Q3DSPropertyChangeList *changeList) override;
+    void applyPropertyChanges(const Q3DSPropertyChangeList &changeList) override;
     void resolveReferences(Q3DSUipPresentation &pres, Q3DSUipParser &parser) override;
 
+    QStringList gex_propertyNames() const override;
+    QVariantList gex_propertyValues() const override;
+
+    void calculateTextureTransform();
+    const QMatrix4x4 &textureTransform() const { return m_textureTransform; }
+
+    bool hasTransparency();
+
+    // Properties
     QString name() const { return m_name; }
     QString sourcePath() const { return m_sourcePath; } // already adjusted, can be opened as-is
     float scaleU() const { return m_scaleU; }
@@ -449,33 +492,24 @@ public:
     float pivotV() const { return m_pivotV; }
     QString subPresentation() const { return m_subPresentation; }
 
-    QStringList gex_propertyNames() const override;
-    QVariantList gex_propertyValues() const override;
-
-    void calculateTextureTransform();
-    const QMatrix4x4 &textureTransform() const { return m_textureTransform; }
-
-    bool hasTransparency();
-
-    static void setScaleU(Q3DSGraphObject *obj, const QVariant &v, const QString &) { static_cast<Q3DSImage *>(obj)->m_scaleU = v.toFloat(); }
-    static void setScaleV(Q3DSGraphObject *obj, const QVariant &v, const QString &) { static_cast<Q3DSImage *>(obj)->m_scaleV = v.toFloat(); }
-    static void setRotationUV(Q3DSGraphObject *obj, const QVariant &v, const QString &) { static_cast<Q3DSImage *>(obj)->m_rotationUV = v.toFloat(); }
-    static void setPositionU(Q3DSGraphObject *obj, const QVariant &v, const QString &) { static_cast<Q3DSImage *>(obj)->m_positionU = v.toFloat(); }
-    static void setPositionV(Q3DSGraphObject *obj, const QVariant &v, const QString &) { static_cast<Q3DSImage *>(obj)->m_positionV = v.toFloat(); }
-    static void setPivotU(Q3DSGraphObject *obj, const QVariant &v, const QString &) { static_cast<Q3DSImage *>(obj)->m_pivotU = v.toFloat(); }
-    static void setPivotV(Q3DSGraphObject *obj, const QVariant &v, const QString &) { static_cast<Q3DSImage *>(obj)->m_pivotV = v.toFloat(); }
-
-    static QVariant getScaleU(Q3DSGraphObject *obj, const QString &) { return static_cast<Q3DSImage *>(obj)->m_scaleU; }
-    static QVariant getScaleV(Q3DSGraphObject *obj, const QString &) { return static_cast<Q3DSImage *>(obj)->m_scaleV; }
-    static QVariant getRotationUV(Q3DSGraphObject *obj, const QString &) { return static_cast<Q3DSImage *>(obj)->m_rotationUV; }
-    static QVariant getPositionU(Q3DSGraphObject *obj, const QString &) { return static_cast<Q3DSImage *>(obj)->m_positionU; }
-    static QVariant getPositionV(Q3DSGraphObject *obj, const QString &) { return static_cast<Q3DSImage *>(obj)->m_positionV; }
-    static QVariant getPivotU(Q3DSGraphObject *obj, const QString &) { return static_cast<Q3DSImage *>(obj)->m_pivotU; }
-    static QVariant getPivotV(Q3DSGraphObject *obj, const QString &) { return static_cast<Q3DSImage *>(obj)->m_pivotV; }
+    Q3DSPropertyChange setName(const QString &v);
+    Q3DSPropertyChange setSourcePath(const QString &v);
+    Q3DSPropertyChange setScaleU(float v);
+    Q3DSPropertyChange setScaleV(float v);
+    Q3DSPropertyChange setMappingMode(MappingMode v);
+    Q3DSPropertyChange setHorizontalTiling(TilingMode v);
+    Q3DSPropertyChange setVerticalTiling(TilingMode v);
+    Q3DSPropertyChange setRotationUV(float v);
+    Q3DSPropertyChange setPositionU(float v);
+    Q3DSPropertyChange setPositionV(float v);
+    Q3DSPropertyChange setPivotU(float v);
+    Q3DSPropertyChange setPivotV(float v);
+    Q3DSPropertyChange setSubPresentation(const QString &v);
 
 private:
     Q_DISABLE_COPY(Q3DSImage)
     template<typename V> void setProps(const V &attrs, PropSetFlags flags);
+    friend class Q3DSImageAnimator;
 
     QString m_name;
     QString m_sourcePath;
@@ -495,7 +529,28 @@ private:
     bool m_scannedForTransparency = false;
 };
 
+class Q3DSV_PRIVATE_EXPORT Q3DSImageAnimator
+{
+public:
+    static void setScaleU(Q3DSGraphObject *obj, const QVariant &v, const QString &) { static_cast<Q3DSImage *>(obj)->m_scaleU = v.toFloat(); }
+    static void setScaleV(Q3DSGraphObject *obj, const QVariant &v, const QString &) { static_cast<Q3DSImage *>(obj)->m_scaleV = v.toFloat(); }
+    static void setRotationUV(Q3DSGraphObject *obj, const QVariant &v, const QString &) { static_cast<Q3DSImage *>(obj)->m_rotationUV = v.toFloat(); }
+    static void setPositionU(Q3DSGraphObject *obj, const QVariant &v, const QString &) { static_cast<Q3DSImage *>(obj)->m_positionU = v.toFloat(); }
+    static void setPositionV(Q3DSGraphObject *obj, const QVariant &v, const QString &) { static_cast<Q3DSImage *>(obj)->m_positionV = v.toFloat(); }
+    static void setPivotU(Q3DSGraphObject *obj, const QVariant &v, const QString &) { static_cast<Q3DSImage *>(obj)->m_pivotU = v.toFloat(); }
+    static void setPivotV(Q3DSGraphObject *obj, const QVariant &v, const QString &) { static_cast<Q3DSImage *>(obj)->m_pivotV = v.toFloat(); }
+
+    static QVariant getScaleU(Q3DSGraphObject *obj, const QString &) { return static_cast<Q3DSImage *>(obj)->m_scaleU; }
+    static QVariant getScaleV(Q3DSGraphObject *obj, const QString &) { return static_cast<Q3DSImage *>(obj)->m_scaleV; }
+    static QVariant getRotationUV(Q3DSGraphObject *obj, const QString &) { return static_cast<Q3DSImage *>(obj)->m_rotationUV; }
+    static QVariant getPositionU(Q3DSGraphObject *obj, const QString &) { return static_cast<Q3DSImage *>(obj)->m_positionU; }
+    static QVariant getPositionV(Q3DSGraphObject *obj, const QString &) { return static_cast<Q3DSImage *>(obj)->m_positionV; }
+    static QVariant getPivotU(Q3DSGraphObject *obj, const QString &) { return static_cast<Q3DSImage *>(obj)->m_pivotU; }
+    static QVariant getPivotV(Q3DSGraphObject *obj, const QString &) { return static_cast<Q3DSImage *>(obj)->m_pivotV; }
+};
+
 class Q3DSComponentNode;
+
 class Q3DSV_PRIVATE_EXPORT Q3DSNodeAttached : public Q3DSGraphObjectAttached
 {
 public:
@@ -546,9 +601,15 @@ public:
     Q3DSNode(Type type);
 
     void setProperties(const QXmlStreamAttributes &attrs, PropSetFlags flags) override;
-    void applyPropertyChanges(const Q3DSPropertyChangeList *changeList) override;
-    int mapChangeFlags(const Q3DSPropertyChangeList *changeList) override;
+    void applyPropertyChanges(const Q3DSPropertyChangeList &changeList) override;
+    int mapChangeFlags(const Q3DSPropertyChangeList &changeList) override;
 
+    const Q3DSPropertyChangeList *masterRollbackList() const { return m_masterRollbackList.data(); }
+
+    QStringList gex_propertyNames() const override;
+    QVariantList gex_propertyValues() const override;
+
+    // Properties
     Flags flags() const { return m_flags; }
     QVector3D rotation() const { return m_rotation; } // degrees
     QVector3D position() const { return m_position; }
@@ -558,22 +619,16 @@ public:
     qint32 skeletonId() const { return m_skeletonId; }
     RotationOrder rotationOrder() const { return m_rotationOrder; }
     Orientation orientation() const { return m_orientation; }
-    const Q3DSPropertyChangeList *masterRollbackList() const { return m_masterRollbackList.data(); }
 
-    QStringList gex_propertyNames() const override;
-    QVariantList gex_propertyValues() const override;
-
-    static void setRotation(Q3DSGraphObject *obj, const QVariant &v, const QString &) { static_cast<Q3DSNode *>(obj)->m_rotation = v.value<QVector3D>(); }
-    static void setPosition(Q3DSGraphObject *obj, const QVariant &v, const QString &) { static_cast<Q3DSNode *>(obj)->m_position = v.value<QVector3D>(); }
-    static void setScale(Q3DSGraphObject *obj, const QVariant &v, const QString &) { static_cast<Q3DSNode *>(obj)->m_scale = v.value<QVector3D>(); }
-    static void setPivot(Q3DSGraphObject *obj, const QVariant &v, const QString &) { static_cast<Q3DSNode *>(obj)->m_pivot = v.value<QVector3D>(); }
-    static void setLocalOpacity(Q3DSGraphObject *obj, const QVariant &v, const QString &) { static_cast<Q3DSNode *>(obj)->m_localOpacity = v.toFloat() / 100.0f; }
-
-    static QVariant getRotation(Q3DSGraphObject *obj, const QString &) { return static_cast<Q3DSNode *>(obj)->m_rotation; }
-    static QVariant getPosition(Q3DSGraphObject *obj, const QString &) { return static_cast<Q3DSNode *>(obj)->m_position; }
-    static QVariant getScale(Q3DSGraphObject *obj, const QString &) { return static_cast<Q3DSNode *>(obj)->m_scale; }
-    static QVariant getPivot(Q3DSGraphObject *obj, const QString &) { return static_cast<Q3DSNode *>(obj)->m_pivot; }
-    static QVariant getLocalOpacity(Q3DSGraphObject *obj, const QString &) { return static_cast<Q3DSNode *>(obj)->m_localOpacity * 100.0f; }
+    Q3DSPropertyChange setFlag(NodeFlag flag, bool v);
+    Q3DSPropertyChange setRotation(const QVector3D &v);
+    Q3DSPropertyChange setPosition(const QVector3D &v);
+    Q3DSPropertyChange setScale(const QVector3D &v);
+    Q3DSPropertyChange setPivot(const QVector3D &v);
+    Q3DSPropertyChange setLocalOpacity(float v);
+    Q3DSPropertyChange setSkeletonId(int v);
+    Q3DSPropertyChange setRotationOrder(RotationOrder v);
+    Q3DSPropertyChange setOrientation(Orientation v);
 
 protected:
     Flags m_flags = Active;
@@ -590,9 +645,26 @@ protected:
 private:
     Q_DISABLE_COPY(Q3DSNode)
     template<typename V> void setProps(const V &attrs, PropSetFlags flags);
+    friend class Q3DSNodeAnimator;
 };
 
 Q_DECLARE_OPERATORS_FOR_FLAGS(Q3DSNode::Flags)
+
+class Q3DSV_PRIVATE_EXPORT Q3DSNodeAnimator
+{
+public:
+    static void setRotation(Q3DSGraphObject *obj, const QVariant &v, const QString &) { static_cast<Q3DSNode *>(obj)->m_rotation = v.value<QVector3D>(); }
+    static void setPosition(Q3DSGraphObject *obj, const QVariant &v, const QString &) { static_cast<Q3DSNode *>(obj)->m_position = v.value<QVector3D>(); }
+    static void setScale(Q3DSGraphObject *obj, const QVariant &v, const QString &) { static_cast<Q3DSNode *>(obj)->m_scale = v.value<QVector3D>(); }
+    static void setPivot(Q3DSGraphObject *obj, const QVariant &v, const QString &) { static_cast<Q3DSNode *>(obj)->m_pivot = v.value<QVector3D>(); }
+    static void setLocalOpacity(Q3DSGraphObject *obj, const QVariant &v, const QString &) { static_cast<Q3DSNode *>(obj)->m_localOpacity = v.toFloat() / 100.0f; }
+
+    static QVariant getRotation(Q3DSGraphObject *obj, const QString &) { return static_cast<Q3DSNode *>(obj)->m_rotation; }
+    static QVariant getPosition(Q3DSGraphObject *obj, const QString &) { return static_cast<Q3DSNode *>(obj)->m_position; }
+    static QVariant getScale(Q3DSGraphObject *obj, const QString &) { return static_cast<Q3DSNode *>(obj)->m_scale; }
+    static QVariant getPivot(Q3DSGraphObject *obj, const QString &) { return static_cast<Q3DSNode *>(obj)->m_pivot; }
+    static QVariant getLocalOpacity(Q3DSGraphObject *obj, const QString &) { return static_cast<Q3DSNode *>(obj)->m_localOpacity * 100.0f; }
+};
 
 class Q3DSV_PRIVATE_EXPORT Q3DSLayerNode : public Q3DSNode
 {
@@ -660,10 +732,14 @@ public:
     Q3DSLayerNode();
 
     void setProperties(const QXmlStreamAttributes &attrs, PropSetFlags flags) override;
-    void applyPropertyChanges(const Q3DSPropertyChangeList *changeList) override;
+    void applyPropertyChanges(const Q3DSPropertyChangeList &changeList) override;
     void resolveReferences(Q3DSUipPresentation &pres, Q3DSUipParser &parser) override;
-    int mapChangeFlags(const Q3DSPropertyChangeList *changeList) override;
+    int mapChangeFlags(const Q3DSPropertyChangeList &changeList) override;
 
+    QStringList gex_propertyNames() const override;
+    QVariantList gex_propertyValues() const override;
+
+    // Properties
     QString name() const { return m_name; }
     Flags layerFlags() const { return m_layerFlags; }
     ProgressiveAA progressiveAA() const { return m_progressiveAA; }
@@ -671,7 +747,6 @@ public:
     LayerBackground layerBackground() const { return m_layerBackground; }
     QColor backgroundColor() const { return m_backgroundColor; }
     BlendType blendType() const { return m_blendType; }
-
     HorizontalFields horizontalFields() const { return m_horizontalFields; }
     float left() const { return m_left; }
     Units leftUnits() const { return m_leftUnits; }
@@ -686,9 +761,7 @@ public:
     Units heightUnits() const { return m_heightUnits; }
     float bottom() const { return m_bottom; }
     Units bottomUnits() const { return m_bottomUnits; }
-
     QString sourcePath() const { return m_sourcePath; }
-
     // SSAO
     float aoStrength() const { return m_aoStrength; }
     float aoDistance() const { return m_aoDistance; }
@@ -696,13 +769,11 @@ public:
     float aoBias() const { return m_aoBias; }
     qint32 aoSampleRate() const { return m_aoSampleRate; }
     bool aoDither() const { return m_aoDither; }
-
     // SSDO
     float shadowStrength() const { return m_shadowStrength; }
     float shadowDist() const { return m_shadowDist; }
     float shadowSoftness() const { return m_shadowSoftness; }
     float shadowBias() const { return m_shadowBias; }
-
     // IBL
     Q3DSImage *lightProbe() const { return m_lightProbe; }
     float probebright() const { return m_probeBright; }
@@ -713,56 +784,51 @@ public:
     float probe2window() const { return m_probe2Window; }
     float probe2pos() const { return m_probe2Pos; }
 
-    QStringList gex_propertyNames() const override;
-    QVariantList gex_propertyValues() const override;
-
-    static void setLeft(Q3DSGraphObject *obj, const QVariant &v, const QString &) { static_cast<Q3DSLayerNode *>(obj)->m_left = v.toFloat(); }
-    static void setRight(Q3DSGraphObject *obj, const QVariant &v, const QString &) { static_cast<Q3DSLayerNode *>(obj)->m_right = v.toFloat(); }
-    static void setWidth(Q3DSGraphObject *obj, const QVariant &v, const QString &) { static_cast<Q3DSLayerNode *>(obj)->m_width = v.toFloat(); }
-    static void setHeight(Q3DSGraphObject *obj, const QVariant &v, const QString &) { static_cast<Q3DSLayerNode *>(obj)->m_height = v.toFloat(); }
-    static void setTop(Q3DSGraphObject *obj, const QVariant &v, const QString &) { static_cast<Q3DSLayerNode *>(obj)->m_top = v.toFloat(); }
-    static void setBottom(Q3DSGraphObject *obj, const QVariant &v, const QString &) { static_cast<Q3DSLayerNode *>(obj)->m_bottom = v.toFloat(); }
-    static void setAoStrength(Q3DSGraphObject *obj, const QVariant &v, const QString &) { static_cast<Q3DSLayerNode *>(obj)->m_aoStrength = v.toFloat(); }
-    static void setAoDistance(Q3DSGraphObject *obj, const QVariant &v, const QString &) { static_cast<Q3DSLayerNode *>(obj)->m_aoDistance = v.toFloat(); }
-    static void setAoSoftness(Q3DSGraphObject *obj, const QVariant &v, const QString &) { static_cast<Q3DSLayerNode *>(obj)->m_aoSoftness = v.toFloat(); }
-    static void setAoBias(Q3DSGraphObject *obj, const QVariant &v, const QString &) { static_cast<Q3DSLayerNode *>(obj)->m_aoBias = v.toFloat(); }
-    static void setAoSampleRate(Q3DSGraphObject *obj, const QVariant &v, const QString &) { static_cast<Q3DSLayerNode *>(obj)->m_aoSampleRate = v.toInt(); }
-    static void setShadowStrength(Q3DSGraphObject *obj, const QVariant &v, const QString &) { static_cast<Q3DSLayerNode *>(obj)->m_shadowStrength = v.toFloat(); }
-    static void setShadowDist(Q3DSGraphObject *obj, const QVariant &v, const QString &) { static_cast<Q3DSLayerNode *>(obj)->m_shadowDist = v.toFloat(); }
-    static void setShadowSoftness(Q3DSGraphObject *obj, const QVariant &v, const QString &) { static_cast<Q3DSLayerNode *>(obj)->m_shadowSoftness = v.toFloat(); }
-    static void setShadowBias(Q3DSGraphObject *obj, const QVariant &v, const QString &) { static_cast<Q3DSLayerNode *>(obj)->m_shadowBias = v.toFloat(); }
-    static void setProbeBright(Q3DSGraphObject *obj, const QVariant &v, const QString &) { static_cast<Q3DSLayerNode *>(obj)->m_probeBright = v.toFloat(); }
-    static void setProbeHorizon(Q3DSGraphObject *obj, const QVariant &v, const QString &) { static_cast<Q3DSLayerNode *>(obj)->m_probeHorizon = v.toFloat(); }
-    static void setProbeFov(Q3DSGraphObject *obj, const QVariant &v, const QString &) { static_cast<Q3DSLayerNode *>(obj)->m_probeFov = v.toFloat(); }
-    static void setProbe2Fade(Q3DSGraphObject *obj, const QVariant &v, const QString &) { static_cast<Q3DSLayerNode *>(obj)->m_probe2Fade = v.toFloat(); }
-    static void setProbe2Window(Q3DSGraphObject *obj, const QVariant &v, const QString &) { static_cast<Q3DSLayerNode *>(obj)->m_probe2Window = v.toFloat(); }
-    static void setProbe2Pos(Q3DSGraphObject *obj, const QVariant &v, const QString &) { static_cast<Q3DSLayerNode *>(obj)->m_probe2Pos = v.toFloat(); }
-
-    static QVariant getLeft(Q3DSGraphObject *obj, const QString &) { return static_cast<Q3DSLayerNode *>(obj)->m_left; }
-    static QVariant getRight(Q3DSGraphObject *obj, const QString &) { return static_cast<Q3DSLayerNode *>(obj)->m_right; }
-    static QVariant getWidth(Q3DSGraphObject *obj, const QString &) { return static_cast<Q3DSLayerNode *>(obj)->m_width; }
-    static QVariant getHeight(Q3DSGraphObject *obj, const QString &) { return static_cast<Q3DSLayerNode *>(obj)->m_height; }
-    static QVariant getTop(Q3DSGraphObject *obj, const QString &) { return static_cast<Q3DSLayerNode *>(obj)->m_top; }
-    static QVariant getBottom(Q3DSGraphObject *obj, const QString &) { return static_cast<Q3DSLayerNode *>(obj)->m_bottom; }
-    static QVariant getAoStrength(Q3DSGraphObject *obj, const QString &) { return static_cast<Q3DSLayerNode *>(obj)->m_aoStrength; }
-    static QVariant getAoDistance(Q3DSGraphObject *obj, const QString &) { return static_cast<Q3DSLayerNode *>(obj)->m_aoDistance; }
-    static QVariant getAoSoftness(Q3DSGraphObject *obj, const QString &) { return static_cast<Q3DSLayerNode *>(obj)->m_aoSoftness; }
-    static QVariant getAoBias(Q3DSGraphObject *obj, const QString &) { return static_cast<Q3DSLayerNode *>(obj)->m_aoBias; }
-    static QVariant getAoSampleRate(Q3DSGraphObject *obj, const QString &) { return static_cast<Q3DSLayerNode *>(obj)->m_aoSampleRate; }
-    static QVariant getShadowStrength(Q3DSGraphObject *obj, const QString &) { return static_cast<Q3DSLayerNode *>(obj)->m_shadowStrength; }
-    static QVariant getShadowDist(Q3DSGraphObject *obj, const QString &) { return static_cast<Q3DSLayerNode *>(obj)->m_shadowDist; }
-    static QVariant getShadowSoftness(Q3DSGraphObject *obj, const QString &) { return static_cast<Q3DSLayerNode *>(obj)->m_shadowSoftness; }
-    static QVariant getShadowBias(Q3DSGraphObject *obj, const QString &) { return static_cast<Q3DSLayerNode *>(obj)->m_shadowBias; }
-    static QVariant getProbeBright(Q3DSGraphObject *obj, const QString &) { return static_cast<Q3DSLayerNode *>(obj)->m_probeBright; }
-    static QVariant getProbeHorizon(Q3DSGraphObject *obj, const QString &) { return static_cast<Q3DSLayerNode *>(obj)->m_probeHorizon; }
-    static QVariant getProbeFov(Q3DSGraphObject *obj, const QString &) { return static_cast<Q3DSLayerNode *>(obj)->m_probeFov; }
-    static QVariant getProbe2Fade(Q3DSGraphObject *obj, const QString &) { return static_cast<Q3DSLayerNode *>(obj)->m_probe2Fade; }
-    static QVariant getProbe2Window(Q3DSGraphObject *obj, const QString &) { return static_cast<Q3DSLayerNode *>(obj)->m_probe2Window; }
-    static QVariant getProbe2Pos(Q3DSGraphObject *obj, const QString &) { return static_cast<Q3DSLayerNode *>(obj)->m_probe2Pos; }
+    Q3DSPropertyChange setName(const QString &name);
+    Q3DSPropertyChange setLayerFlag(Flag flag, bool v);
+    Q3DSPropertyChange setProgressiveAA(ProgressiveAA v);
+    Q3DSPropertyChange setMultisampleAA(MultisampleAA v);
+    Q3DSPropertyChange setLayerBackground(LayerBackground v);
+    Q3DSPropertyChange setBackgroundColor(const QColor &v);
+    Q3DSPropertyChange setBlendType(BlendType v);
+    Q3DSPropertyChange setHorizontalFields(HorizontalFields v);
+    Q3DSPropertyChange setLeft(float v);
+    Q3DSPropertyChange setLeftUnits(Units v);
+    Q3DSPropertyChange setWidth(float v);
+    Q3DSPropertyChange setWidthUnits(Units v);
+    Q3DSPropertyChange setRight(float v);
+    Q3DSPropertyChange setRightUnits(Units v);
+    Q3DSPropertyChange setVerticalFields(VerticalFields v);
+    Q3DSPropertyChange setTop(float v);
+    Q3DSPropertyChange setTopUnits(Units v);
+    Q3DSPropertyChange setHeight(float v);
+    Q3DSPropertyChange setHeightUnits(Units v);
+    Q3DSPropertyChange setBottom(float v);
+    Q3DSPropertyChange setBottomUnits(Units v);
+    Q3DSPropertyChange setSourcePath(const QString &v);
+    Q3DSPropertyChange setAoStrength(float v);
+    Q3DSPropertyChange setAoDistance(float v);
+    Q3DSPropertyChange setAoSoftness(float v);
+    Q3DSPropertyChange setAoBias(float v);
+    Q3DSPropertyChange setAoSampleRate(int v);
+    Q3DSPropertyChange setAoDither(bool v);
+    Q3DSPropertyChange setShadowStrength(float v);
+    Q3DSPropertyChange setShadowDist(float v);
+    Q3DSPropertyChange setShadowSoftness(float v);
+    Q3DSPropertyChange setShadowBias(float v);
+    Q3DSPropertyChange setLightProbe(Q3DSImage *v);
+    Q3DSPropertyChange setProbeBright(float v);
+    Q3DSPropertyChange setProbeHorizon(float v);
+    Q3DSPropertyChange setProbeFov(float v);
+    Q3DSPropertyChange setLightProbe2(Q3DSImage *v);
+    Q3DSPropertyChange setProbe2Fade(float v);
+    Q3DSPropertyChange setProbe2Window(float v);
+    Q3DSPropertyChange setProbe2Pos(float v);
 
 private:
     Q_DISABLE_COPY(Q3DSLayerNode)
     template<typename V> void setProps(const V &attrs, PropSetFlags flags);
+    friend class Q3DSLayerNodeAnimator;
 
     QString m_name;
     Flags m_layerFlags = FastIBL;
@@ -815,6 +881,54 @@ private:
 
 Q_DECLARE_OPERATORS_FOR_FLAGS(Q3DSLayerNode::Flags)
 
+class Q3DSV_PRIVATE_EXPORT Q3DSLayerNodeAnimator
+{
+public:
+    static void setLeft(Q3DSGraphObject *obj, const QVariant &v, const QString &) { static_cast<Q3DSLayerNode *>(obj)->m_left = v.toFloat(); }
+    static void setRight(Q3DSGraphObject *obj, const QVariant &v, const QString &) { static_cast<Q3DSLayerNode *>(obj)->m_right = v.toFloat(); }
+    static void setWidth(Q3DSGraphObject *obj, const QVariant &v, const QString &) { static_cast<Q3DSLayerNode *>(obj)->m_width = v.toFloat(); }
+    static void setHeight(Q3DSGraphObject *obj, const QVariant &v, const QString &) { static_cast<Q3DSLayerNode *>(obj)->m_height = v.toFloat(); }
+    static void setTop(Q3DSGraphObject *obj, const QVariant &v, const QString &) { static_cast<Q3DSLayerNode *>(obj)->m_top = v.toFloat(); }
+    static void setBottom(Q3DSGraphObject *obj, const QVariant &v, const QString &) { static_cast<Q3DSLayerNode *>(obj)->m_bottom = v.toFloat(); }
+    static void setAoStrength(Q3DSGraphObject *obj, const QVariant &v, const QString &) { static_cast<Q3DSLayerNode *>(obj)->m_aoStrength = v.toFloat(); }
+    static void setAoDistance(Q3DSGraphObject *obj, const QVariant &v, const QString &) { static_cast<Q3DSLayerNode *>(obj)->m_aoDistance = v.toFloat(); }
+    static void setAoSoftness(Q3DSGraphObject *obj, const QVariant &v, const QString &) { static_cast<Q3DSLayerNode *>(obj)->m_aoSoftness = v.toFloat(); }
+    static void setAoBias(Q3DSGraphObject *obj, const QVariant &v, const QString &) { static_cast<Q3DSLayerNode *>(obj)->m_aoBias = v.toFloat(); }
+    static void setAoSampleRate(Q3DSGraphObject *obj, const QVariant &v, const QString &) { static_cast<Q3DSLayerNode *>(obj)->m_aoSampleRate = v.toInt(); }
+    static void setShadowStrength(Q3DSGraphObject *obj, const QVariant &v, const QString &) { static_cast<Q3DSLayerNode *>(obj)->m_shadowStrength = v.toFloat(); }
+    static void setShadowDist(Q3DSGraphObject *obj, const QVariant &v, const QString &) { static_cast<Q3DSLayerNode *>(obj)->m_shadowDist = v.toFloat(); }
+    static void setShadowSoftness(Q3DSGraphObject *obj, const QVariant &v, const QString &) { static_cast<Q3DSLayerNode *>(obj)->m_shadowSoftness = v.toFloat(); }
+    static void setShadowBias(Q3DSGraphObject *obj, const QVariant &v, const QString &) { static_cast<Q3DSLayerNode *>(obj)->m_shadowBias = v.toFloat(); }
+    static void setProbeBright(Q3DSGraphObject *obj, const QVariant &v, const QString &) { static_cast<Q3DSLayerNode *>(obj)->m_probeBright = v.toFloat(); }
+    static void setProbeHorizon(Q3DSGraphObject *obj, const QVariant &v, const QString &) { static_cast<Q3DSLayerNode *>(obj)->m_probeHorizon = v.toFloat(); }
+    static void setProbeFov(Q3DSGraphObject *obj, const QVariant &v, const QString &) { static_cast<Q3DSLayerNode *>(obj)->m_probeFov = v.toFloat(); }
+    static void setProbe2Fade(Q3DSGraphObject *obj, const QVariant &v, const QString &) { static_cast<Q3DSLayerNode *>(obj)->m_probe2Fade = v.toFloat(); }
+    static void setProbe2Window(Q3DSGraphObject *obj, const QVariant &v, const QString &) { static_cast<Q3DSLayerNode *>(obj)->m_probe2Window = v.toFloat(); }
+    static void setProbe2Pos(Q3DSGraphObject *obj, const QVariant &v, const QString &) { static_cast<Q3DSLayerNode *>(obj)->m_probe2Pos = v.toFloat(); }
+
+    static QVariant getLeft(Q3DSGraphObject *obj, const QString &) { return static_cast<Q3DSLayerNode *>(obj)->m_left; }
+    static QVariant getRight(Q3DSGraphObject *obj, const QString &) { return static_cast<Q3DSLayerNode *>(obj)->m_right; }
+    static QVariant getWidth(Q3DSGraphObject *obj, const QString &) { return static_cast<Q3DSLayerNode *>(obj)->m_width; }
+    static QVariant getHeight(Q3DSGraphObject *obj, const QString &) { return static_cast<Q3DSLayerNode *>(obj)->m_height; }
+    static QVariant getTop(Q3DSGraphObject *obj, const QString &) { return static_cast<Q3DSLayerNode *>(obj)->m_top; }
+    static QVariant getBottom(Q3DSGraphObject *obj, const QString &) { return static_cast<Q3DSLayerNode *>(obj)->m_bottom; }
+    static QVariant getAoStrength(Q3DSGraphObject *obj, const QString &) { return static_cast<Q3DSLayerNode *>(obj)->m_aoStrength; }
+    static QVariant getAoDistance(Q3DSGraphObject *obj, const QString &) { return static_cast<Q3DSLayerNode *>(obj)->m_aoDistance; }
+    static QVariant getAoSoftness(Q3DSGraphObject *obj, const QString &) { return static_cast<Q3DSLayerNode *>(obj)->m_aoSoftness; }
+    static QVariant getAoBias(Q3DSGraphObject *obj, const QString &) { return static_cast<Q3DSLayerNode *>(obj)->m_aoBias; }
+    static QVariant getAoSampleRate(Q3DSGraphObject *obj, const QString &) { return static_cast<Q3DSLayerNode *>(obj)->m_aoSampleRate; }
+    static QVariant getShadowStrength(Q3DSGraphObject *obj, const QString &) { return static_cast<Q3DSLayerNode *>(obj)->m_shadowStrength; }
+    static QVariant getShadowDist(Q3DSGraphObject *obj, const QString &) { return static_cast<Q3DSLayerNode *>(obj)->m_shadowDist; }
+    static QVariant getShadowSoftness(Q3DSGraphObject *obj, const QString &) { return static_cast<Q3DSLayerNode *>(obj)->m_shadowSoftness; }
+    static QVariant getShadowBias(Q3DSGraphObject *obj, const QString &) { return static_cast<Q3DSLayerNode *>(obj)->m_shadowBias; }
+    static QVariant getProbeBright(Q3DSGraphObject *obj, const QString &) { return static_cast<Q3DSLayerNode *>(obj)->m_probeBright; }
+    static QVariant getProbeHorizon(Q3DSGraphObject *obj, const QString &) { return static_cast<Q3DSLayerNode *>(obj)->m_probeHorizon; }
+    static QVariant getProbeFov(Q3DSGraphObject *obj, const QString &) { return static_cast<Q3DSLayerNode *>(obj)->m_probeFov; }
+    static QVariant getProbe2Fade(Q3DSGraphObject *obj, const QString &) { return static_cast<Q3DSLayerNode *>(obj)->m_probe2Fade; }
+    static QVariant getProbe2Window(Q3DSGraphObject *obj, const QString &) { return static_cast<Q3DSLayerNode *>(obj)->m_probe2Window; }
+    static QVariant getProbe2Pos(Q3DSGraphObject *obj, const QString &) { return static_cast<Q3DSLayerNode *>(obj)->m_probe2Pos; }
+};
+
 class Q3DSV_PRIVATE_EXPORT Q3DSCameraNode : public Q3DSNode
 {
 public:
@@ -840,8 +954,12 @@ public:
     Q3DSCameraNode();
 
     void setProperties(const QXmlStreamAttributes &attrs, PropSetFlags flags) override;
-    void applyPropertyChanges(const Q3DSPropertyChangeList *changeList) override;
+    void applyPropertyChanges(const Q3DSPropertyChangeList &changeList) override;
 
+    QStringList gex_propertyNames() const override;
+    QVariantList gex_propertyValues() const override;
+
+    // Properties
     QString name() const { return m_name; }
     bool orthographic() const { return m_orthographic; }
     float fov() const { return m_fov; }
@@ -850,20 +968,18 @@ public:
     ScaleMode scaleMode() const { return m_scaleMode; }
     ScaleAnchor scaleAnchor() const { return m_scaleAnchor; }
 
-    QStringList gex_propertyNames() const override;
-    QVariantList gex_propertyValues() const override;
-
-    static void setFov(Q3DSGraphObject *obj, const QVariant &v, const QString &) { static_cast<Q3DSCameraNode *>(obj)->m_fov = v.toFloat(); }
-    static void setClipNear(Q3DSGraphObject *obj, const QVariant &v, const QString &) { static_cast<Q3DSCameraNode *>(obj)->m_clipNear = v.toFloat(); }
-    static void setClipFar(Q3DSGraphObject *obj, const QVariant &v, const QString &) { static_cast<Q3DSCameraNode *>(obj)->m_clipFar = v.toFloat(); }
-
-    static QVariant getFov(Q3DSGraphObject *obj, const QString &) { return static_cast<Q3DSCameraNode *>(obj)->m_fov; }
-    static QVariant getClipNear(Q3DSGraphObject *obj, const QString &) { return static_cast<Q3DSCameraNode *>(obj)->m_clipNear; }
-    static QVariant getClipFar(Q3DSGraphObject *obj, const QString &) { return static_cast<Q3DSCameraNode *>(obj)->m_clipFar; }
+    Q3DSPropertyChange setName(const QString &v);
+    Q3DSPropertyChange setOrthographic(bool v);
+    Q3DSPropertyChange setFov(float v);
+    Q3DSPropertyChange setClipNear(float v);
+    Q3DSPropertyChange setClipFar(float v);
+    Q3DSPropertyChange setScaleMode(ScaleMode v);
+    Q3DSPropertyChange setScaleAnchor(ScaleAnchor v);
 
 private:
     Q_DISABLE_COPY(Q3DSCameraNode)
     template<typename V> void setProps(const V &attrs, PropSetFlags flags);
+    friend class Q3DSCameraNodeAnimator;
 
     QString m_name;
     bool m_orthographic = false;
@@ -872,6 +988,18 @@ private:
     float m_clipFar = 5000;
     ScaleMode m_scaleMode = Fit;
     ScaleAnchor m_scaleAnchor = Center;
+};
+
+class Q3DSV_PRIVATE_EXPORT Q3DSCameraNodeAnimator
+{
+public:
+    static void setFov(Q3DSGraphObject *obj, const QVariant &v, const QString &) { static_cast<Q3DSCameraNode *>(obj)->m_fov = v.toFloat(); }
+    static void setClipNear(Q3DSGraphObject *obj, const QVariant &v, const QString &) { static_cast<Q3DSCameraNode *>(obj)->m_clipNear = v.toFloat(); }
+    static void setClipFar(Q3DSGraphObject *obj, const QVariant &v, const QString &) { static_cast<Q3DSCameraNode *>(obj)->m_clipFar = v.toFloat(); }
+
+    static QVariant getFov(Q3DSGraphObject *obj, const QString &) { return static_cast<Q3DSCameraNode *>(obj)->m_fov; }
+    static QVariant getClipNear(Q3DSGraphObject *obj, const QString &) { return static_cast<Q3DSCameraNode *>(obj)->m_clipNear; }
+    static QVariant getClipFar(Q3DSGraphObject *obj, const QString &) { return static_cast<Q3DSCameraNode *>(obj)->m_clipFar; }
 };
 
 class Q3DSV_PRIVATE_EXPORT Q3DSLightNode : public Q3DSNode
@@ -886,9 +1014,13 @@ public:
     Q3DSLightNode();
 
     void setProperties(const QXmlStreamAttributes &attrs, PropSetFlags flags) override;
-    void applyPropertyChanges(const Q3DSPropertyChangeList *changeList) override;
+    void applyPropertyChanges(const Q3DSPropertyChangeList &changeList) override;
     void resolveReferences(Q3DSUipPresentation &pres, Q3DSUipParser &parser) override;
 
+    QStringList gex_propertyNames() const override;
+    QVariantList gex_propertyValues() const override;
+
+    // Properties
     QString name() const { return m_name; }
     LightType lightType() const { return m_lightType; }
     Q3DSGraphObject *scope() const { return m_scope; }
@@ -908,9 +1040,54 @@ public:
     float shadowMapFar() const { return m_shadowMapFar; }
     float shadowMapFov() const { return m_shadowMapFov; }
 
-    QStringList gex_propertyNames() const override;
-    QVariantList gex_propertyValues() const override;
+    Q3DSPropertyChange setName(const QString &v);
+    Q3DSPropertyChange setLightType(LightType v);
+    Q3DSPropertyChange setScope(Q3DSGraphObject *v);
+    Q3DSPropertyChange setDiffuse(const QColor &v);
+    Q3DSPropertyChange setSpecular(const QColor &v);
+    Q3DSPropertyChange setAmbient(const QColor &v);
+    Q3DSPropertyChange setBrightness(float v);
+    Q3DSPropertyChange setLinearFade(float v);
+    Q3DSPropertyChange setExpFade(float v);
+    Q3DSPropertyChange setAreaWidth(float v);
+    Q3DSPropertyChange setAreaHeight(float v);
+    Q3DSPropertyChange setCastShadow(bool v);
+    Q3DSPropertyChange setShadowFactor(float v);
+    Q3DSPropertyChange setShadowFilter(float v);
+    Q3DSPropertyChange setShadowMapRes(int v);
+    Q3DSPropertyChange setShadowBias(float v);
+    Q3DSPropertyChange setShadowMapFar(float v);
+    Q3DSPropertyChange setShadowMapFov(float v);
 
+private:
+    Q_DISABLE_COPY(Q3DSLightNode)
+    template<typename V> void setProps(const V &attrs, PropSetFlags flags);
+    friend class Q3DSLightNodeAnimator;
+
+    QString m_name;
+    QString m_scope_unresolved;
+    Q3DSGraphObject *m_scope = nullptr;
+    LightType m_lightType = Directional;
+    QColor m_lightDiffuse = Qt::white;
+    QColor m_lightSpecular = Qt::white;
+    QColor m_lightAmbient = Qt::black;
+    float m_brightness = 100;
+    float m_linearFade = 0;
+    float m_expFade = 0;
+    float m_areaWidth = 100;
+    float m_areaHeight = 100;
+    bool m_castShadow = false;
+    float m_shadowFactor = 10;
+    float m_shadowFilter = 35;
+    qint32 m_shadowMapRes = 9;
+    float m_shadowBias = 0;
+    float m_shadowMapFar = 5000;
+    float m_shadowMapFov = 90;
+};
+
+class Q3DSV_PRIVATE_EXPORT Q3DSLightNodeAnimator
+{
+public:
     static void setDiffuse(Q3DSGraphObject *obj, const QVariant &v, const QString &) { static_cast<Q3DSLightNode *>(obj)->m_lightDiffuse = v.value<QColor>(); }
     static void setSpecular(Q3DSGraphObject *obj, const QVariant &v, const QString &) { static_cast<Q3DSLightNode *>(obj)->m_lightSpecular = v.value<QColor>(); }
     static void setAmbient(Q3DSGraphObject *obj, const QVariant &v, const QString &) { static_cast<Q3DSLightNode *>(obj)->m_lightAmbient = v.value<QColor>(); }
@@ -938,30 +1115,6 @@ public:
     static QVariant getShadowBias(Q3DSGraphObject *obj, const QString &) { return static_cast<Q3DSLightNode *>(obj)->m_shadowBias; }
     static QVariant getShadowMapFar(Q3DSGraphObject *obj, const QString &) { return static_cast<Q3DSLightNode *>(obj)->m_shadowMapFar; }
     static QVariant getShadowMapFov(Q3DSGraphObject *obj, const QString &) { return static_cast<Q3DSLightNode *>(obj)->m_shadowMapFov; }
-
-private:
-    Q_DISABLE_COPY(Q3DSLightNode)
-    template<typename V> void setProps(const V &attrs, PropSetFlags flags);
-
-    QString m_name;
-    QString m_scope_unresolved;
-    Q3DSGraphObject *m_scope = nullptr;
-    LightType m_lightType = Directional;
-    QColor m_lightDiffuse;
-    QColor m_lightSpecular;
-    QColor m_lightAmbient;
-    float m_brightness = 100;
-    float m_linearFade = 0;
-    float m_expFade = 0;
-    float m_areaWidth = 100;
-    float m_areaHeight = 100;
-    bool m_castShadow = false;
-    float m_shadowFactor = 10;
-    float m_shadowFilter = 35;
-    qint32 m_shadowMapRes = 9;
-    float m_shadowBias = 0;
-    float m_shadowMapFar = 5000;
-    float m_shadowMapFov = 90;
 };
 
 class Q3DSV_PRIVATE_EXPORT Q3DSModelNode : public Q3DSNode
@@ -977,28 +1130,31 @@ public:
     Q3DSModelNode();
 
     void setProperties(const QXmlStreamAttributes &attrs, PropSetFlags flags) override;
-    void applyPropertyChanges(const Q3DSPropertyChangeList *changeList) override;
+    void applyPropertyChanges(const Q3DSPropertyChangeList &changeList) override;
     void resolveReferences(Q3DSUipPresentation &pres, Q3DSUipParser &parser) override;
 
+    QStringList gex_propertyNames() const override;
+    QVariantList gex_propertyValues() const override;
+
+    // Properties
     QString name() const { return m_name; }
     MeshList mesh() const { return m_mesh; }
     qint32 skeletonRoot() const { return m_skeletonRoot; }
     Tessellation tessellation() const { return m_tessellation; }
     float edgeTess() const { return m_edgeTess; }
-    float innertTess() const { return m_innerTess; }
+    float innerTess() const { return m_innerTess; }
 
-    QStringList gex_propertyNames() const override;
-    QVariantList gex_propertyValues() const override;
-
-    static void setEdgeTess(Q3DSGraphObject *obj, const QVariant &v, const QString &) { static_cast<Q3DSModelNode *>(obj)->m_edgeTess = v.toFloat(); }
-    static void setInnerTess(Q3DSGraphObject *obj, const QVariant &v, const QString &) { static_cast<Q3DSModelNode *>(obj)->m_innerTess = v.toFloat(); }
-
-    static QVariant getEdgeTess(Q3DSGraphObject *obj, const QString &) { return static_cast<Q3DSModelNode *>(obj)->m_edgeTess; }
-    static QVariant getInnerTess(Q3DSGraphObject *obj, const QString &) { return static_cast<Q3DSModelNode *>(obj)->m_innerTess; }
+    Q3DSPropertyChange setName(const QString &v);
+    Q3DSPropertyChange setMesh(const MeshList &v);
+    Q3DSPropertyChange setSkeletonRoot(int v);
+    Q3DSPropertyChange setTessellation(Tessellation v);
+    Q3DSPropertyChange setEdgeTess(float v);
+    Q3DSPropertyChange setInnerTess(float v);
 
 private:
     Q_DISABLE_COPY(Q3DSModelNode)
     template<typename V> void setProps(const V &attrs, PropSetFlags flags);
+    friend class Q3DSModelNodeAnimator;
 
     QString m_name;
     QString m_mesh_unresolved;
@@ -1009,18 +1165,31 @@ private:
     float m_innerTess = 4;
 };
 
+class Q3DSV_PRIVATE_EXPORT Q3DSModelNodeAnimator
+{
+public:
+    static void setEdgeTess(Q3DSGraphObject *obj, const QVariant &v, const QString &) { static_cast<Q3DSModelNode *>(obj)->m_edgeTess = v.toFloat(); }
+    static void setInnerTess(Q3DSGraphObject *obj, const QVariant &v, const QString &) { static_cast<Q3DSModelNode *>(obj)->m_innerTess = v.toFloat(); }
+
+    static QVariant getEdgeTess(Q3DSGraphObject *obj, const QString &) { return static_cast<Q3DSModelNode *>(obj)->m_edgeTess; }
+    static QVariant getInnerTess(Q3DSGraphObject *obj, const QString &) { return static_cast<Q3DSModelNode *>(obj)->m_innerTess; }
+};
+
 class Q3DSV_PRIVATE_EXPORT Q3DSGroupNode : public Q3DSNode
 {
 public:
     Q3DSGroupNode();
 
     void setProperties(const QXmlStreamAttributes &attrs, PropSetFlags flags) override;
-    void applyPropertyChanges(const Q3DSPropertyChangeList *changeList) override;
-
-    QString name() const { return m_name; }
+    void applyPropertyChanges(const Q3DSPropertyChangeList &changeList) override;
 
     QStringList gex_propertyNames() const override;
     QVariantList gex_propertyValues() const override;
+
+    // Properties
+    QString name() const { return m_name; }
+
+    Q3DSPropertyChange setName(const QString &v);
 
 private:
     Q_DISABLE_COPY(Q3DSGroupNode)
@@ -1036,9 +1205,7 @@ public:
     ~Q3DSComponentNode();
 
     void setProperties(const QXmlStreamAttributes &attrs, PropSetFlags flags) override;
-    void applyPropertyChanges(const Q3DSPropertyChangeList *changeList) override;
-
-    QString name() const { return m_name; }
+    void applyPropertyChanges(const Q3DSPropertyChangeList &changeList) override;
 
     Q3DSSlide *masterSlide() const { return m_masterSlide; }
     Q3DSSlide *currentSlide() const { return m_currentSlide; }
@@ -1046,6 +1213,11 @@ public:
 
     QStringList gex_propertyNames() const override;
     QVariantList gex_propertyValues() const override;
+
+    // Properties
+    QString name() const { return m_name; }
+
+    Q3DSPropertyChange setName(const QString &v);
 
 private:
     Q_DISABLE_COPY(Q3DSComponentNode)
@@ -1081,9 +1253,13 @@ public:
     Q3DSTextNode();
 
     void setProperties(const QXmlStreamAttributes &attrs, PropSetFlags flags) override;
-    void applyPropertyChanges(const Q3DSPropertyChangeList *changeList) override;
-    int mapChangeFlags(const Q3DSPropertyChangeList *changeList) override;
+    void applyPropertyChanges(const Q3DSPropertyChangeList &changeList) override;
+    int mapChangeFlags(const Q3DSPropertyChangeList &changeList) override;
 
+    QStringList gex_propertyNames() const override;
+    QVariantList gex_propertyValues() const override;
+
+    // Properties
     QString name() const { return m_name; }
     QString text() const { return m_text; }
     QColor color() const { return m_color; }
@@ -1094,20 +1270,20 @@ public:
     float leading() const { return m_leading; }
     float tracking() const { return m_tracking; }
 
-    QStringList gex_propertyNames() const override;
-    QVariantList gex_propertyValues() const override;
-
-    static void setColor(Q3DSGraphObject *obj, const QVariant &v, const QString &) { static_cast<Q3DSTextNode *>(obj)->m_color = v.value<QColor>(); }
-    static void setLeading(Q3DSGraphObject *obj, const QVariant &v, const QString &) { static_cast<Q3DSTextNode *>(obj)->m_leading = v.toFloat(); }
-    static void setTracking(Q3DSGraphObject *obj, const QVariant &v, const QString &) { static_cast<Q3DSTextNode *>(obj)->m_tracking = v.toFloat(); }
-
-    static QVariant getColor(Q3DSGraphObject *obj, const QString &) { return static_cast<Q3DSTextNode *>(obj)->m_color; }
-    static QVariant getLeading(Q3DSGraphObject *obj, const QString &) { return static_cast<Q3DSTextNode *>(obj)->m_leading; }
-    static QVariant getTracking(Q3DSGraphObject *obj, const QString &) { return static_cast<Q3DSTextNode *>(obj)->m_tracking; }
+    Q3DSPropertyChange setName(const QString &v);
+    Q3DSPropertyChange setText(const QString &v);
+    Q3DSPropertyChange setColor(const QColor &v);
+    Q3DSPropertyChange setFont(const QString &v);
+    Q3DSPropertyChange setSize(float v);
+    Q3DSPropertyChange setHorizontalAlignment(HorizontalAlignment v);
+    Q3DSPropertyChange setVerticalAlignment(VerticalAlignment v);
+    Q3DSPropertyChange setLeading(float v);
+    Q3DSPropertyChange setTracking(float v);
 
 private:
     Q_DISABLE_COPY(Q3DSTextNode)
     template<typename V> void setProps(const V &attrs, PropSetFlags flags);
+    friend class Q3DSTextNodeAnimator;
 
     QString m_name;
     QString m_text;
@@ -1118,6 +1294,18 @@ private:
     VerticalAlignment m_vertAlign;
     float m_leading;
     float m_tracking;
+};
+
+class Q3DSV_PRIVATE_EXPORT Q3DSTextNodeAnimator
+{
+public:
+    static void setColor(Q3DSGraphObject *obj, const QVariant &v, const QString &) { static_cast<Q3DSTextNode *>(obj)->m_color = v.value<QColor>(); }
+    static void setLeading(Q3DSGraphObject *obj, const QVariant &v, const QString &) { static_cast<Q3DSTextNode *>(obj)->m_leading = v.toFloat(); }
+    static void setTracking(Q3DSGraphObject *obj, const QVariant &v, const QString &) { static_cast<Q3DSTextNode *>(obj)->m_tracking = v.toFloat(); }
+
+    static QVariant getColor(Q3DSGraphObject *obj, const QString &) { return static_cast<Q3DSTextNode *>(obj)->m_color; }
+    static QVariant getLeading(Q3DSGraphObject *obj, const QString &) { return static_cast<Q3DSTextNode *>(obj)->m_leading; }
+    static QVariant getTracking(Q3DSGraphObject *obj, const QString &) { return static_cast<Q3DSTextNode *>(obj)->m_tracking; }
 };
 
 class Q3DSV_PRIVATE_EXPORT Q3DSDefaultMaterial : public Q3DSGraphObject
@@ -1150,10 +1338,14 @@ public:
     Q3DSDefaultMaterial();
 
     void setProperties(const QXmlStreamAttributes &attrs, PropSetFlags flags) override;
-    void applyPropertyChanges(const Q3DSPropertyChangeList *changeList) override;
+    void applyPropertyChanges(const Q3DSPropertyChangeList &changeList) override;
     void resolveReferences(Q3DSUipPresentation &pres, Q3DSUipParser &parser) override;
-    int mapChangeFlags(const Q3DSPropertyChangeList *changeList) override;
+    int mapChangeFlags(const Q3DSPropertyChangeList &changeList) override;
 
+    QStringList gex_propertyNames() const override;
+    QVariantList gex_propertyValues() const override;
+
+    // Properties
     QString name() const { return m_name; }
     ShaderLighting shaderLighting() const { return m_shaderLighting; }
     BlendMode blendMode() const { return m_blendMode; }
@@ -1190,38 +1382,44 @@ public:
     // IBL override
     Q3DSImage *lightProbe() const { return m_lightProbe; }
 
-    QStringList gex_propertyNames() const override;
-    QVariantList gex_propertyValues() const override;
-
-    static void setDiffuse(Q3DSGraphObject *obj, const QVariant &v, const QString &) { static_cast<Q3DSDefaultMaterial *>(obj)->m_diffuse = v.value<QColor>(); }
-    static void setSpecularTint(Q3DSGraphObject *obj, const QVariant &v, const QString &) { static_cast<Q3DSDefaultMaterial *>(obj)->m_specularTint = v.value<QColor>(); }
-    static void setSpecularAmount(Q3DSGraphObject *obj, const QVariant &v, const QString &) { static_cast<Q3DSDefaultMaterial *>(obj)->m_specularAmount = v.toFloat(); }
-    static void setSpecularRoughness(Q3DSGraphObject *obj, const QVariant &v, const QString &) { static_cast<Q3DSDefaultMaterial *>(obj)->m_specularRoughness = v.toFloat(); }
-    static void setFresnelPower(Q3DSGraphObject *obj, const QVariant &v, const QString &) { static_cast<Q3DSDefaultMaterial *>(obj)->m_fresnelPower = v.toFloat(); }
-    static void setDisplaceAmount(Q3DSGraphObject *obj, const QVariant &v, const QString &) { static_cast<Q3DSDefaultMaterial *>(obj)->m_displaceAmount = v.toFloat(); }
-    static void setOpacity(Q3DSGraphObject *obj, const QVariant &v, const QString &) { static_cast<Q3DSDefaultMaterial *>(obj)->m_opacity = v.toFloat() / 100.0f; }
-    static void setEmissiveColor(Q3DSGraphObject *obj, const QVariant &v, const QString &) { static_cast<Q3DSDefaultMaterial *>(obj)->m_emissiveColor = v.value<QColor>(); }
-    static void setEmissivePower(Q3DSGraphObject *obj, const QVariant &v, const QString &) { static_cast<Q3DSDefaultMaterial *>(obj)->m_emissivePower = v.toFloat(); }
-    static void setBumpAmount(Q3DSGraphObject *obj, const QVariant &v, const QString &) { static_cast<Q3DSDefaultMaterial *>(obj)->m_bumpAmount = v.toFloat(); }
-    static void setTranslucentFalloff(Q3DSGraphObject *obj, const QVariant &v, const QString &) { static_cast<Q3DSDefaultMaterial *>(obj)->m_translucentFalloff = v.toFloat(); }
-    static void setDiffuseLightWrap(Q3DSGraphObject *obj, const QVariant &v, const QString &) { static_cast<Q3DSDefaultMaterial *>(obj)->m_diffuseLightWrap = v.toFloat(); }
-
-    static QVariant getDiffuse(Q3DSGraphObject *obj, const QString &) { return static_cast<Q3DSDefaultMaterial *>(obj)->m_diffuse; }
-    static QVariant getSpecularTint(Q3DSGraphObject *obj, const QString &) { return static_cast<Q3DSDefaultMaterial *>(obj)->m_specularTint; }
-    static QVariant getSpecularAmount(Q3DSGraphObject *obj, const QString &) { return static_cast<Q3DSDefaultMaterial *>(obj)->m_specularAmount; }
-    static QVariant getSpecularRoughness(Q3DSGraphObject *obj, const QString &) { return static_cast<Q3DSDefaultMaterial *>(obj)->m_specularRoughness; }
-    static QVariant getFresnelPower(Q3DSGraphObject *obj, const QString &) { return static_cast<Q3DSDefaultMaterial *>(obj)->m_fresnelPower; }
-    static QVariant getDisplaceAmount(Q3DSGraphObject *obj, const QString &) { return static_cast<Q3DSDefaultMaterial *>(obj)->m_displaceAmount; }
-    static QVariant getOpacity(Q3DSGraphObject *obj, const QString &) { return static_cast<Q3DSDefaultMaterial *>(obj)->m_opacity * 100.0f; }
-    static QVariant getEmissiveColor(Q3DSGraphObject *obj, const QString &) { return static_cast<Q3DSDefaultMaterial *>(obj)->m_emissiveColor; }
-    static QVariant getEmissivePower(Q3DSGraphObject *obj, const QString &) { return static_cast<Q3DSDefaultMaterial *>(obj)->m_emissivePower; }
-    static QVariant getBumpAmount(Q3DSGraphObject *obj, const QString &) { return static_cast<Q3DSDefaultMaterial *>(obj)->m_bumpAmount; }
-    static QVariant getTranslucentFalloff(Q3DSGraphObject *obj, const QString &) { return static_cast<Q3DSDefaultMaterial *>(obj)->m_translucentFalloff; }
-    static QVariant getDiffuseLightWrap(Q3DSGraphObject *obj, const QString &) { return static_cast<Q3DSDefaultMaterial *>(obj)->m_diffuseLightWrap; }
+    Q3DSPropertyChange setName(const QString &v);
+    Q3DSPropertyChange setShaderLighting(ShaderLighting v);
+    Q3DSPropertyChange setBlendMode(BlendMode v);
+    Q3DSPropertyChange setDiffuse(const QColor &v);
+    Q3DSPropertyChange setDiffuseMap(Q3DSImage *v);
+    Q3DSPropertyChange setDiffuseMap2(Q3DSImage *v);
+    Q3DSPropertyChange setDiffuseMap3(Q3DSImage *v);
+    Q3DSPropertyChange setSpecularReflection(Q3DSImage *v);
+    Q3DSPropertyChange setSpecularTint(const QColor &v);
+    Q3DSPropertyChange setSpecularAmount(float v);
+    Q3DSPropertyChange setSpecularMap(Q3DSImage *v);
+    Q3DSPropertyChange setSpecularModel(SpecularModel v);
+    Q3DSPropertyChange setSpecularRoughness(float v);
+    Q3DSPropertyChange setFresnelPower(float v);
+    Q3DSPropertyChange setIor(float v);
+    Q3DSPropertyChange setBumpMap(Q3DSImage *v);
+    Q3DSPropertyChange setNormalMap(Q3DSImage *v);
+    Q3DSPropertyChange setBumpAmount(float v);
+    Q3DSPropertyChange setDisplacementMap(Q3DSImage *v);
+    Q3DSPropertyChange setDisplaceAmount(float v);
+    Q3DSPropertyChange setOpacity(float v);
+    Q3DSPropertyChange setOpacityMap(Q3DSImage *v);
+    Q3DSPropertyChange setEmissiveColor(const QColor &v);
+    Q3DSPropertyChange setEmissivePower(float v);
+    Q3DSPropertyChange setEmissiveMap(Q3DSImage *v);
+    Q3DSPropertyChange setEmissiveMap2(Q3DSImage *v);
+    Q3DSPropertyChange setTranslucencyMap(Q3DSImage *v);
+    Q3DSPropertyChange setTranslucentFalloff(float v);
+    Q3DSPropertyChange setDiffuseLightWrap(float v);
+    Q3DSPropertyChange setLightmapIndirectMap(Q3DSImage *v);
+    Q3DSPropertyChange setLightmapRadiosityMap(Q3DSImage *v);
+    Q3DSPropertyChange setLightmapShadowMap(Q3DSImage *v);
+    Q3DSPropertyChange setLightProbe(Q3DSImage *v);
 
 private:
     Q_DISABLE_COPY(Q3DSDefaultMaterial)
     template<typename V> void setProps(const V &attrs, PropSetFlags flags);
+    friend class Q3DSDefaultMaterialAnimator;
 
     QString m_name;
     ShaderLighting m_shaderLighting = PixelShaderLighting;
@@ -1274,7 +1472,36 @@ private:
     // IBL override
     QString m_lightProbe_unresolved;
     Q3DSImage *m_lightProbe = nullptr;
+};
 
+class Q3DSV_PRIVATE_EXPORT Q3DSDefaultMaterialAnimator
+{
+public:
+    static void setDiffuse(Q3DSGraphObject *obj, const QVariant &v, const QString &) { static_cast<Q3DSDefaultMaterial *>(obj)->m_diffuse = v.value<QColor>(); }
+    static void setSpecularTint(Q3DSGraphObject *obj, const QVariant &v, const QString &) { static_cast<Q3DSDefaultMaterial *>(obj)->m_specularTint = v.value<QColor>(); }
+    static void setSpecularAmount(Q3DSGraphObject *obj, const QVariant &v, const QString &) { static_cast<Q3DSDefaultMaterial *>(obj)->m_specularAmount = v.toFloat(); }
+    static void setSpecularRoughness(Q3DSGraphObject *obj, const QVariant &v, const QString &) { static_cast<Q3DSDefaultMaterial *>(obj)->m_specularRoughness = v.toFloat(); }
+    static void setFresnelPower(Q3DSGraphObject *obj, const QVariant &v, const QString &) { static_cast<Q3DSDefaultMaterial *>(obj)->m_fresnelPower = v.toFloat(); }
+    static void setDisplaceAmount(Q3DSGraphObject *obj, const QVariant &v, const QString &) { static_cast<Q3DSDefaultMaterial *>(obj)->m_displaceAmount = v.toFloat(); }
+    static void setOpacity(Q3DSGraphObject *obj, const QVariant &v, const QString &) { static_cast<Q3DSDefaultMaterial *>(obj)->m_opacity = v.toFloat() / 100.0f; }
+    static void setEmissiveColor(Q3DSGraphObject *obj, const QVariant &v, const QString &) { static_cast<Q3DSDefaultMaterial *>(obj)->m_emissiveColor = v.value<QColor>(); }
+    static void setEmissivePower(Q3DSGraphObject *obj, const QVariant &v, const QString &) { static_cast<Q3DSDefaultMaterial *>(obj)->m_emissivePower = v.toFloat(); }
+    static void setBumpAmount(Q3DSGraphObject *obj, const QVariant &v, const QString &) { static_cast<Q3DSDefaultMaterial *>(obj)->m_bumpAmount = v.toFloat(); }
+    static void setTranslucentFalloff(Q3DSGraphObject *obj, const QVariant &v, const QString &) { static_cast<Q3DSDefaultMaterial *>(obj)->m_translucentFalloff = v.toFloat(); }
+    static void setDiffuseLightWrap(Q3DSGraphObject *obj, const QVariant &v, const QString &) { static_cast<Q3DSDefaultMaterial *>(obj)->m_diffuseLightWrap = v.toFloat(); }
+
+    static QVariant getDiffuse(Q3DSGraphObject *obj, const QString &) { return static_cast<Q3DSDefaultMaterial *>(obj)->m_diffuse; }
+    static QVariant getSpecularTint(Q3DSGraphObject *obj, const QString &) { return static_cast<Q3DSDefaultMaterial *>(obj)->m_specularTint; }
+    static QVariant getSpecularAmount(Q3DSGraphObject *obj, const QString &) { return static_cast<Q3DSDefaultMaterial *>(obj)->m_specularAmount; }
+    static QVariant getSpecularRoughness(Q3DSGraphObject *obj, const QString &) { return static_cast<Q3DSDefaultMaterial *>(obj)->m_specularRoughness; }
+    static QVariant getFresnelPower(Q3DSGraphObject *obj, const QString &) { return static_cast<Q3DSDefaultMaterial *>(obj)->m_fresnelPower; }
+    static QVariant getDisplaceAmount(Q3DSGraphObject *obj, const QString &) { return static_cast<Q3DSDefaultMaterial *>(obj)->m_displaceAmount; }
+    static QVariant getOpacity(Q3DSGraphObject *obj, const QString &) { return static_cast<Q3DSDefaultMaterial *>(obj)->m_opacity * 100.0f; }
+    static QVariant getEmissiveColor(Q3DSGraphObject *obj, const QString &) { return static_cast<Q3DSDefaultMaterial *>(obj)->m_emissiveColor; }
+    static QVariant getEmissivePower(Q3DSGraphObject *obj, const QString &) { return static_cast<Q3DSDefaultMaterial *>(obj)->m_emissivePower; }
+    static QVariant getBumpAmount(Q3DSGraphObject *obj, const QString &) { return static_cast<Q3DSDefaultMaterial *>(obj)->m_bumpAmount; }
+    static QVariant getTranslucentFalloff(Q3DSGraphObject *obj, const QString &) { return static_cast<Q3DSDefaultMaterial *>(obj)->m_translucentFalloff; }
+    static QVariant getDiffuseLightWrap(Q3DSGraphObject *obj, const QString &) { return static_cast<Q3DSDefaultMaterial *>(obj)->m_diffuseLightWrap; }
 };
 
 class Q3DSV_PRIVATE_EXPORT Q3DSReferencedMaterial : public Q3DSGraphObject
@@ -1283,12 +1510,15 @@ public:
     Q3DSReferencedMaterial();
 
     void setProperties(const QXmlStreamAttributes &attrs, PropSetFlags flags) override;
-    void applyPropertyChanges(const Q3DSPropertyChangeList *changeList) override;
+    void applyPropertyChanges(const Q3DSPropertyChangeList &changeList) override;
     void resolveReferences(Q3DSUipPresentation &pres, Q3DSUipParser &parser) override;
 
+    QStringList gex_propertyNames() const override;
+    QVariantList gex_propertyValues() const override;
+
+    // Properties
     QString name() const { return m_name; }
     Q3DSGraphObject *referencedMaterial() const { return m_referencedMaterial; }
-
     // lightmap overrides
     Q3DSImage *lightmapIndirectMap() const { return m_lightmapIndirectMap; }
     Q3DSImage *lightmapRadiosityMap() const { return m_lightmapRadiosityMap; }
@@ -1296,8 +1526,12 @@ public:
     // IBL override
     Q3DSImage *lightProbe() const { return m_lightProbe; }
 
-    QStringList gex_propertyNames() const override;
-    QVariantList gex_propertyValues() const override;
+    Q3DSPropertyChange setName(const QString &v);
+    Q3DSPropertyChange setReferencedMaterial(Q3DSGraphObject *v);
+    Q3DSPropertyChange setLightmapIndirectMap(Q3DSImage *v);
+    Q3DSPropertyChange setLightmapRadiosityMap(Q3DSImage *v);
+    Q3DSPropertyChange setLightmapShadowMap(Q3DSImage *v);
+    Q3DSPropertyChange setLightProbe(Q3DSImage *v);
 
 private:
     Q_DISABLE_COPY(Q3DSReferencedMaterial)
@@ -1322,14 +1556,18 @@ class Q3DSV_PRIVATE_EXPORT Q3DSCustomMaterialInstance : public Q3DSGraphObject
 {
 public:
     Q3DSCustomMaterialInstance();
+    Q3DSCustomMaterialInstance(const Q3DSCustomMaterial &material);
 
     void setProperties(const QXmlStreamAttributes &attrs, PropSetFlags flags) override;
-    void applyPropertyChanges(const Q3DSPropertyChangeList *changeList) override;
+    void applyPropertyChanges(const Q3DSPropertyChangeList &changeList) override;
     void resolveReferences(Q3DSUipPresentation &pres, Q3DSUipParser &parser) override;
 
+    QStringList gex_propertyNames() const override;
+    QVariantList gex_propertyValues() const override;
+
+    // Properties
     QString name() const { return m_name; }
     const Q3DSCustomMaterial *material() const { return &m_material; }
-
     // lightmaps
     Q3DSImage *lightmapIndirectMap() const { return m_lightmapIndirectMap; }
     Q3DSImage *lightmapRadiosityMap() const { return m_lightmapRadiosityMap; }
@@ -1337,13 +1575,17 @@ public:
     // IBL override
     Q3DSImage *lightProbe() const { return m_lightProbe; }
 
+    Q3DSPropertyChange setName(const QString &v);
+    Q3DSPropertyChange setLightmapIndirectMap(Q3DSImage *v);
+    Q3DSPropertyChange setLightmapRadiosityMap(Q3DSImage *v);
+    Q3DSPropertyChange setLightmapShadowMap(Q3DSImage *v);
+    Q3DSPropertyChange setLightProbe(Q3DSImage *v);
+
     // All custom properties, either with the default or the instance-specific value.
     // Filenames are already sanitized.
-    const QVariantMap *materialPropertyValues() const { return &m_materialPropertyVals; }
-    QVariantMap *materialPropertyValues() { return &m_materialPropertyVals; }
-
-    QStringList gex_propertyNames() const override;
-    QVariantList gex_propertyValues() const override;
+    QVariantMap customProperties() const { return m_materialPropertyVals; }
+    QVariant customProperty(const QString &name) const { return m_materialPropertyVals.value(name); }
+    Q3DSPropertyChange setCustomProperty(const QString &name, const QVariant &value);
 
 private:
     Q_DISABLE_COPY(Q3DSCustomMaterialInstance)
@@ -1370,21 +1612,26 @@ class Q3DSV_PRIVATE_EXPORT Q3DSEffectInstance : public Q3DSGraphObject
 {
 public:
     Q3DSEffectInstance();
+    Q3DSEffectInstance(const Q3DSEffect &effect);
 
     void setProperties(const QXmlStreamAttributes &attrs, PropSetFlags flags) override;
-    void applyPropertyChanges(const Q3DSPropertyChangeList *changeList) override;
+    void applyPropertyChanges(const Q3DSPropertyChangeList &changeList) override;
     void resolveReferences(Q3DSUipPresentation &pres, Q3DSUipParser &parser) override;
-
-    QString name() const { return m_name; }
-    const Q3DSEffect *effect() const { return &m_effect; }
-
-    // All custom properties, either with the default or the instance-specific value.
-    // Filenames are already sanitized.
-    const QVariantMap *effectPropertyValues() const { return &m_effectPropertyVals; }
-    QVariantMap *effectPropertyValues() { return &m_effectPropertyVals; }
 
     QStringList gex_propertyNames() const override;
     QVariantList gex_propertyValues() const override;
+
+    // Properties
+    QString name() const { return m_name; }
+    const Q3DSEffect *effect() const { return &m_effect; }
+
+    Q3DSPropertyChange setName(const QString &v);
+
+    // All custom properties, either with the default or the instance-specific value.
+    // Filenames are already sanitized.
+    QVariantMap customProperties() const { return m_effectPropertyVals; }
+    QVariant customProperty(const QString &name) const { return m_effectPropertyVals.value(name); }
+    Q3DSPropertyChange setCustomProperty(const QString &name, const QVariant &value);
 
 private:
     Q_DISABLE_COPY(Q3DSEffectInstance)
@@ -1412,6 +1659,7 @@ public:
     };
 
     QString sourceFile() const;
+
     QString author() const;
     QString company() const;
     int presentationWidth() const;
@@ -1419,12 +1667,27 @@ public:
     Rotation presentationRotation() const;
     bool maintainAspectRatio() const;
 
+    void setAuthor(const QString &author);
+    void setCompany(const QString &company);
+    void setPresentationWidth(int w);
+    void setPresentationHeight(int h);
+    void setPresentationRotation(Rotation r);
+    void setMaintainAspectRatio(bool maintain);
+
     Q3DSScene *scene() const;
     Q3DSSlide *masterSlide() const;
+
+    void setScene(Q3DSScene *p);
+    void setMasterSlide(Q3DSSlide *p);
+
+    void registerObject(const QByteArray &id, Q3DSGraphObject *p);
+    void unregisterObject(const QByteArray &id);
+    void registerImageBuffer(const QString &sourcePath, bool hasTransparency);
+
     Q3DSGraphObject *object(const QByteArray &id) const;
     Q3DSCustomMaterial customMaterial(const QByteArray &id) const;
     Q3DSEffect effect(const QByteArray &id) const;
-    MeshList mesh(const QString &assetFilename, int part);
+    MeshList mesh(const QString &assetFilename, int part = 1);
 
     typedef QHash<QString, bool> ImageBufferMap;
     const ImageBufferMap &imageBuffer() const;
@@ -1451,21 +1714,25 @@ public:
     void registerDataInputTarget(Q3DSGraphObject *obj);
     void removeDataInputTarget(Q3DSGraphObject *obj);
 
+    template<typename T> T *newObject(const QByteArray &id)
+    {
+        T *obj = new T;
+        registerObject(id, obj); // also sets obj->id
+        return obj;
+    }
+
+    void takeObjectFromScene(Q3DSGraphObject *obj)
+    {
+        unregisterObject(obj->id());
+        if (obj->parent())
+            obj->parent()->removeChildNode(obj);
+    }
+
 private:
     Q_DISABLE_COPY(Q3DSUipPresentation)
 
     void setSourceFile(const QString &s);
-    void setAuthor(const QString &s);
-    void setCompany(const QString &s);
-    void setPresentationWidth(int w);
-    void setPresentationHeight(int h);
-    void setPresentationRotation(Q3DSUipPresentation::Rotation r);
-    void setMaintainAspectRatio(bool b);
-    void setScene(Q3DSScene *p);
-    void setMasterSlide(Q3DSSlide *p);
     void setLoadTime(qint64 ms);
-    void registerImageBuffer(const QString &sourcePath, bool hasTransparency);
-    void registerObject(const QByteArray &id, Q3DSGraphObject *p);
     bool loadCustomMaterial(const QStringRef &id, const QStringRef &name, const QString &assetFilename);
     bool loadEffect(const QStringRef &id, const QStringRef &name, const QString &assetFilename);
 

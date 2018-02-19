@@ -11,7 +11,8 @@ SUBDIRS += \
     q3dslancelot \
     documents \
     surfaceviewer \
-    slidedeck
+    slidedeck \
+    uippresentation
 
 qtHaveModule(quick): SUBDIRS += studio3d
 

@@ -69,6 +69,8 @@ private:
     friend class Q3DSEffectParser;
 };
 
+Q_DECLARE_TYPEINFO(Q3DSEffect, Q_MOVABLE_TYPE);
+
 class Q3DSV_PRIVATE_EXPORT Q3DSEffectParser : public Q3DSAbstractXmlParser
 {
 public:

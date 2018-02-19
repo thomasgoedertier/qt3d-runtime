@@ -476,7 +476,7 @@ void Q3DSUipParser::parseAddSet(Q3DSSlide *slide, bool isSet, bool isMaster)
             changeList->append(Q3DSPropertyChange(attr.name().toString(), attr.value().toString()));
         }
         if (!changeList->isEmpty())
-            slide->m_propChanges.insert(obj, changeList.take());
+            slide->addPropertyChange(obj, changeList.take());
     }
 
     // Store animations.
@@ -496,7 +496,7 @@ void Q3DSUipParser::parseAddSet(Q3DSSlide *slide, bool isSet, bool isMaster)
             }
             parseAnimationKeyFrames(r->readElementText(QXmlStreamReader::SkipChildElements).trimmed(), &animTrack);
             if (!animTrack.m_keyFrames.isEmpty())
-                slide->m_anims.append(animTrack);
+                slide->addAnimation(animTrack);
         } else {
             r->skipCurrentElement();
         }

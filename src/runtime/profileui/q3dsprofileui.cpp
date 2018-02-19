@@ -647,8 +647,8 @@ static void changeProperty(Q3DSGraphObject *obj, const QString &name, const QStr
 {
     Q3DSPropertyChangeList changeList;
     changeList.append(Q3DSPropertyChange(name, value));
-    obj->applyPropertyChanges(&changeList);
-    obj->notifyPropertyChanges(&changeList);
+    obj->applyPropertyChanges(changeList);
+    obj->notifyPropertyChanges(changeList);
 }
 
 void Q3DSProfileView::addAlterSceneStuff()

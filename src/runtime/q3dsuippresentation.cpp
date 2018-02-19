@@ -504,7 +504,7 @@ void Q3DSGraphObject::removePropertyChangeObserver(int callbackId)
     m_callbacks[callbackId] = nullptr;
 }
 
-int Q3DSGraphObject::mapChangeFlags(const Q3DSPropertyChangeList *changeList)
+int Q3DSGraphObject::mapChangeFlags(const Q3DSPropertyChangeList &changeList)
 {
     // Property change handlers may not want to rely on changeList->keys().
     // Let's give subclasses the possibility to look at the property names here
@@ -522,14 +522,44 @@ int Q3DSGraphObject::mapChangeFlags(const Q3DSPropertyChangeList *changeList)
     return 0;
 }
 
-void Q3DSGraphObject::notifyPropertyChanges(const Q3DSPropertyChangeList *changeList)
+void Q3DSGraphObject::notifyPropertyChanges(const Q3DSPropertyChangeList &changeList)
 {
-    const QSet<QString> keys = changeList->keys();
+    const QSet<QString> keys = changeList.keys();
     const int changeFlags = mapChangeFlags(changeList);
     for (auto f : m_callbacks) {
         if (f)
             f(this, keys, changeFlags);
     }
+}
+
+// Setters return a change object that can be passed straight to
+// notifyPropertyChange (via the changelists' intializer list even). When the
+// value does not change, the returned change object has isValid()==false, these
+// are ignored by the changelist.
+
+#define PROP_SETTER(member, value, uipname) \
+    if (member != value) { \
+        member = value; \
+        return Q3DSPropertyChange(QLatin1String(uipname)); \
+    } \
+    return Q3DSPropertyChange()
+
+#define PROP_FLAG_SETTER(member, flag, bvalue, uipname) \
+    const bool wasSet = member & flag; \
+    if (wasSet != bvalue) { \
+        if (bvalue) member |= flag; else member &= ~flag; \
+        return Q3DSPropertyChange(QLatin1String(uipname)); \
+    } \
+    return Q3DSPropertyChange()
+
+Q3DSPropertyChange Q3DSGraphObject::setStartTime(qint32 v)
+{
+    PROP_SETTER(m_startTime, v, "starttime");
+}
+
+Q3DSPropertyChange Q3DSGraphObject::setEndTime(qint32 v)
+{
+    PROP_SETTER(m_endTime, v, "endtime");
 }
 
 QString Q3DSGraphObject::gex_typeAsString() const
@@ -588,6 +618,10 @@ QString Q3DSGraphObject::gex_typeAsString() const
     return s;
 }
 
+// unfortunately the names exposed from here do not match the real property
+// names in the uip since the initial idea was to keep things readable on the
+// debug UI. The explorer window is to be removed eventually anyway so gex_*
+// should not be relied upon by others.
 QStringList Q3DSGraphObject::gex_propertyNames() const
 {
     return QStringList() << QLatin1String("id") << QLatin1String("starttime") << QLatin1String("endtime");
@@ -915,9 +949,9 @@ void Q3DSGraphObject::setProperties(const QXmlStreamAttributes &attrs, PropSetFl
     setProps(attrs, flags);
 }
 
-void Q3DSGraphObject::applyPropertyChanges(const Q3DSPropertyChangeList *changeList)
+void Q3DSGraphObject::applyPropertyChanges(const Q3DSPropertyChangeList &changeList)
 {
-    setProps(*changeList, 0);
+    setProps(changeList, 0);
 }
 
 Q3DSScene::Q3DSScene()
@@ -949,8 +983,42 @@ QVariantList Q3DSScene::gex_propertyValues() const
     return s;
 }
 
+Q3DSPropertyChange Q3DSScene::setName(const QString &v)
+{
+    PROP_SETTER(m_name, v, "name");
+}
+
+Q3DSPropertyChange Q3DSScene::setUseClearColor(bool v)
+{
+    PROP_SETTER(m_useClearColor, v, "bgcolorenable");
+}
+
+Q3DSPropertyChange Q3DSScene::setClearColor(const QColor &v)
+{
+    PROP_SETTER(m_clearColor, v, "backgroundcolor");
+}
+
+// Note that invalid changes are not added (great for an efficient yet simple
+// notifyPropertyChanges({ setXxxxx() }) pattern!) hance assumptions about
+// count() increasing after append should be avoided.
+
+#ifdef Q_COMPILER_INITIALIZER_LISTS
+Q3DSPropertyChangeList::Q3DSPropertyChangeList(std::initializer_list<Q3DSPropertyChange> args)
+{
+    for (const Q3DSPropertyChange &change : args) {
+        if (change.isValid()) {
+            m_changes.append(change);
+            m_keys.insert(change.nameStr());
+        }
+    }
+}
+#endif
+
 void Q3DSPropertyChangeList::append(const Q3DSPropertyChange &change)
 {
+    if (!change.isValid())
+        return;
+
     m_changes.append(change);
     m_keys.insert(change.nameStr());
 }
@@ -990,6 +1058,31 @@ void Q3DSSlide::setProperties(const QXmlStreamAttributes &attrs, PropSetFlags fl
 void Q3DSSlide::addObject(Q3DSGraphObject *obj)
 {
     m_objects.insert(obj);
+    // ### needs notify
+}
+
+void Q3DSSlide::removeObject(Q3DSGraphObject *obj)
+{
+    m_objects.remove(obj);
+    // ### needs notify
+}
+
+void Q3DSSlide::addPropertyChange(Q3DSGraphObject *target, Q3DSPropertyChangeList *changeList)
+{
+    m_propChanges.insert(target, changeList);
+    // ### needs notify
+}
+
+void Q3DSSlide::removePropertyChange(Q3DSGraphObject *target)
+{
+    m_propChanges.remove(target);
+    // ### needs notify
+}
+
+void Q3DSSlide::addAnimation(const Q3DSAnimationTrack &track)
+{
+    m_anims.append(track);
+    // ### needs notify
 }
 
 QStringList Q3DSSlide::gex_propertyNames() const
@@ -1004,6 +1097,33 @@ QVariantList Q3DSSlide::gex_propertyValues() const
     QVariantList s = Q3DSGraphObject::gex_propertyValues();
     s << m_name << m_playMode << m_initialPlayState;
     return s;
+}
+
+Q3DSPropertyChange Q3DSSlide::setName(const QString &v)
+{
+    PROP_SETTER(m_name, v, "name");
+}
+
+Q3DSPropertyChange Q3DSSlide::setPlayMode(PlayMode v)
+{
+    PROP_SETTER(m_playMode, v, "playmode");
+}
+
+Q3DSPropertyChange Q3DSSlide::setInitialPlayState(InitialPlayState v)
+{
+    PROP_SETTER(m_initialPlayState, v, "initialplaystate");
+}
+
+Q3DSPropertyChange Q3DSSlide::setPlayThrough(PlayThrough v)
+{
+    m_playThroughHasExplicitValue = false;
+    PROP_SETTER(m_playThrough, v, "playthroughto");
+}
+
+Q3DSPropertyChange Q3DSSlide::setPlayThroughValue(int v)
+{
+    m_playThroughHasExplicitValue = true;
+    PROP_SETTER(m_playThroughValue, v, "playthroughto");
 }
 
 Q3DSImage::Q3DSImage()
@@ -1041,10 +1161,10 @@ void Q3DSImage::setProperties(const QXmlStreamAttributes &attrs, PropSetFlags fl
     calculateTextureTransform();
 }
 
-void Q3DSImage::applyPropertyChanges(const Q3DSPropertyChangeList *changeList)
+void Q3DSImage::applyPropertyChanges(const Q3DSPropertyChangeList &changeList)
 {
     Q3DSGraphObject::applyPropertyChanges(changeList);
-    setProps(*changeList, 0);
+    setProps(changeList, 0);
     calculateTextureTransform();
 }
 
@@ -1221,6 +1341,71 @@ void Q3DSImage::calculateTextureTransform()
     m_textureTransform *= translation;
 }
 
+Q3DSPropertyChange Q3DSImage::setName(const QString &v)
+{
+    PROP_SETTER(m_name, v, "name");
+}
+
+Q3DSPropertyChange Q3DSImage::setSourcePath(const QString &v)
+{
+    PROP_SETTER(m_sourcePath, v, "sourcepath");
+}
+
+Q3DSPropertyChange Q3DSImage::setScaleU(float v)
+{
+    PROP_SETTER(m_scaleU, v, "scaleu");
+}
+
+Q3DSPropertyChange Q3DSImage::setScaleV(float v)
+{
+    PROP_SETTER(m_scaleV, v, "scalev");
+}
+
+Q3DSPropertyChange Q3DSImage::setMappingMode(MappingMode v)
+{
+    PROP_SETTER(m_mappingMode, v, "mappingmode");
+}
+
+Q3DSPropertyChange Q3DSImage::setHorizontalTiling(TilingMode v)
+{
+    PROP_SETTER(m_tilingHoriz, v, "tilingmodehorz");
+}
+
+Q3DSPropertyChange Q3DSImage::setVerticalTiling(TilingMode v)
+{
+    PROP_SETTER(m_tilingVert, v, "tilingmodevert");
+}
+
+Q3DSPropertyChange Q3DSImage::setRotationUV(float v)
+{
+    PROP_SETTER(m_rotationUV, v, "rotationuv");
+}
+
+Q3DSPropertyChange Q3DSImage::setPositionU(float v)
+{
+    PROP_SETTER(m_positionU, v, "positionu");
+}
+
+Q3DSPropertyChange Q3DSImage::setPositionV(float v)
+{
+    PROP_SETTER(m_positionV, v, "positionv");
+}
+
+Q3DSPropertyChange Q3DSImage::setPivotU(float v)
+{
+    PROP_SETTER(m_pivotU, v, "pivotu");
+}
+
+Q3DSPropertyChange Q3DSImage::setPivotV(float v)
+{
+    PROP_SETTER(m_pivotV, v, "pivotv");
+}
+
+Q3DSPropertyChange Q3DSImage::setSubPresentation(const QString &v)
+{
+    PROP_SETTER(m_subPresentation, v, "subpresentation");
+}
+
 Q3DSDefaultMaterial::Q3DSDefaultMaterial()
     : Q3DSGraphObject(Q3DSGraphObject::DefaultMaterial)
 {
@@ -1285,10 +1470,10 @@ void Q3DSDefaultMaterial::setProperties(const QXmlStreamAttributes &attrs, PropS
     setProps(attrs, flags);
 }
 
-void Q3DSDefaultMaterial::applyPropertyChanges(const Q3DSPropertyChangeList *changeList)
+void Q3DSDefaultMaterial::applyPropertyChanges(const Q3DSPropertyChangeList &changeList)
 {
     Q3DSGraphObject::applyPropertyChanges(changeList);
-    setProps(*changeList, 0);
+    setProps(changeList, 0);
 }
 
 void Q3DSDefaultMaterial::resolveReferences(Q3DSUipPresentation &pres, Q3DSUipParser &)
@@ -1312,10 +1497,10 @@ void Q3DSDefaultMaterial::resolveReferences(Q3DSUipPresentation &pres, Q3DSUipPa
     resolveRef(m_lightProbe_unresolved, Q3DSGraphObject::Image, &m_lightProbe, pres);
 }
 
-int Q3DSDefaultMaterial::mapChangeFlags(const Q3DSPropertyChangeList *changeList)
+int Q3DSDefaultMaterial::mapChangeFlags(const Q3DSPropertyChangeList &changeList)
 {
     int changeFlags = Q3DSGraphObject::mapChangeFlags(changeList);
-    for (auto it = changeList->cbegin(), itEnd = changeList->cend(); it != itEnd; ++it) {
+    for (auto it = changeList.cbegin(), itEnd = changeList.cend(); it != itEnd; ++it) {
         if (it->nameStr() == QStringLiteral("blendmode"))
             changeFlags |= BlendModeChanges;
     }
@@ -1351,6 +1536,171 @@ QVariantList Q3DSDefaultMaterial::gex_propertyValues() const
     return s;
 }
 
+Q3DSPropertyChange Q3DSDefaultMaterial::setName(const QString &v)
+{
+    PROP_SETTER(m_name, v, "name");
+}
+
+Q3DSPropertyChange Q3DSDefaultMaterial::setShaderLighting(ShaderLighting v)
+{
+    PROP_SETTER(m_shaderLighting, v, "shaderlighting");
+}
+
+Q3DSPropertyChange Q3DSDefaultMaterial::setBlendMode(BlendMode v)
+{
+    PROP_SETTER(m_blendMode, v, "blendmode");
+}
+
+Q3DSPropertyChange Q3DSDefaultMaterial::setDiffuse(const QColor &v)
+{
+    PROP_SETTER(m_diffuse, v, "diffuse");
+}
+
+Q3DSPropertyChange Q3DSDefaultMaterial::setDiffuseMap(Q3DSImage *v)
+{
+    PROP_SETTER(m_diffuseMap, v, "diffusemap");
+}
+
+Q3DSPropertyChange Q3DSDefaultMaterial::setDiffuseMap2(Q3DSImage *v)
+{
+    PROP_SETTER(m_diffuseMap2, v, "diffusemap2");
+}
+
+Q3DSPropertyChange Q3DSDefaultMaterial::setDiffuseMap3(Q3DSImage *v)
+{
+    PROP_SETTER(m_diffuseMap3, v, "diffusemap3");
+}
+
+Q3DSPropertyChange Q3DSDefaultMaterial::setSpecularReflection(Q3DSImage *v)
+{
+    PROP_SETTER(m_specularReflection, v, "specularreflection");
+}
+
+Q3DSPropertyChange Q3DSDefaultMaterial::setSpecularTint(const QColor &v)
+{
+    PROP_SETTER(m_specularTint, v, "speculartint");
+}
+
+Q3DSPropertyChange Q3DSDefaultMaterial::setSpecularAmount(float v)
+{
+    PROP_SETTER(m_specularAmount, v, "specularamount");
+}
+
+Q3DSPropertyChange Q3DSDefaultMaterial::setSpecularMap(Q3DSImage *v)
+{
+    PROP_SETTER(m_specularMap, v, "specularmap");
+}
+
+Q3DSPropertyChange Q3DSDefaultMaterial::setSpecularModel(SpecularModel v)
+{
+    PROP_SETTER(m_specularModel, v, "specularmodel");
+}
+
+Q3DSPropertyChange Q3DSDefaultMaterial::setSpecularRoughness(float v)
+{
+    PROP_SETTER(m_specularRoughness, v, "specularroughness");
+}
+
+Q3DSPropertyChange Q3DSDefaultMaterial::setFresnelPower(float v)
+{
+    PROP_SETTER(m_fresnelPower, v, "fresnelPower");
+}
+
+Q3DSPropertyChange Q3DSDefaultMaterial::setIor(float v)
+{
+    PROP_SETTER(m_ior, v, "ior");
+}
+
+Q3DSPropertyChange Q3DSDefaultMaterial::setBumpMap(Q3DSImage *v)
+{
+    PROP_SETTER(m_bumpMap, v, "bumpmap");
+}
+
+Q3DSPropertyChange Q3DSDefaultMaterial::setNormalMap(Q3DSImage *v)
+{
+    PROP_SETTER(m_normalMap, v, "normalmap");
+}
+
+Q3DSPropertyChange Q3DSDefaultMaterial::setBumpAmount(float v)
+{
+    PROP_SETTER(m_bumpAmount, v, "bumpamount");
+}
+
+Q3DSPropertyChange Q3DSDefaultMaterial::setDisplacementMap(Q3DSImage *v)
+{
+    PROP_SETTER(m_displacementMap, v, "displacementmap");
+}
+
+Q3DSPropertyChange Q3DSDefaultMaterial::setDisplaceAmount(float v)
+{
+    PROP_SETTER(m_displaceAmount, v, "displaceamount");
+}
+
+Q3DSPropertyChange Q3DSDefaultMaterial::setOpacity(float v)
+{
+    PROP_SETTER(m_opacity, v, "opacity");
+}
+
+Q3DSPropertyChange Q3DSDefaultMaterial::setOpacityMap(Q3DSImage *v)
+{
+    PROP_SETTER(m_opacityMap, v, "opacitymap");
+}
+
+Q3DSPropertyChange Q3DSDefaultMaterial::setEmissiveColor(const QColor &v)
+{
+    PROP_SETTER(m_emissiveColor, v, "emissivecolor");
+}
+
+Q3DSPropertyChange Q3DSDefaultMaterial::setEmissivePower(float v)
+{
+    PROP_SETTER(m_emissivePower, v, "emissivepower");
+}
+
+Q3DSPropertyChange Q3DSDefaultMaterial::setEmissiveMap(Q3DSImage *v)
+{
+    PROP_SETTER(m_emissiveMap, v, "emissivemap");
+}
+
+Q3DSPropertyChange Q3DSDefaultMaterial::setEmissiveMap2(Q3DSImage *v)
+{
+    PROP_SETTER(m_emissiveMap2, v, "emissivemap2");
+}
+
+Q3DSPropertyChange Q3DSDefaultMaterial::setTranslucencyMap(Q3DSImage *v)
+{
+    PROP_SETTER(m_translucencyMap, v, "translucencymap");
+}
+
+Q3DSPropertyChange Q3DSDefaultMaterial::setTranslucentFalloff(float v)
+{
+    PROP_SETTER(m_translucentFalloff, v, "translucentfalloff");
+}
+
+Q3DSPropertyChange Q3DSDefaultMaterial::setDiffuseLightWrap(float v)
+{
+    PROP_SETTER(m_diffuseLightWrap, v, "diffuselightwrap");
+}
+
+Q3DSPropertyChange Q3DSDefaultMaterial::setLightmapIndirectMap(Q3DSImage *v)
+{
+    PROP_SETTER(m_lightmapIndirectMap, v, "lightmapindirect");
+}
+
+Q3DSPropertyChange Q3DSDefaultMaterial::setLightmapRadiosityMap(Q3DSImage *v)
+{
+    PROP_SETTER(m_lightmapRadiosityMap, v, "lightmapradiosity");
+}
+
+Q3DSPropertyChange Q3DSDefaultMaterial::setLightmapShadowMap(Q3DSImage *v)
+{
+    PROP_SETTER(m_lightmapShadowMap, v, "lightmapshadow");
+}
+
+Q3DSPropertyChange Q3DSDefaultMaterial::setLightProbe(Q3DSImage *v)
+{
+    PROP_SETTER(m_lightProbe, v, "iblprobe");
+}
+
 Q3DSReferencedMaterial::Q3DSReferencedMaterial()
     : Q3DSGraphObject(Q3DSGraphObject::ReferencedMaterial)
 {
@@ -1375,10 +1725,10 @@ void Q3DSReferencedMaterial::setProperties(const QXmlStreamAttributes &attrs, Pr
     setProps(attrs, flags);
 }
 
-void Q3DSReferencedMaterial::applyPropertyChanges(const Q3DSPropertyChangeList *changeList)
+void Q3DSReferencedMaterial::applyPropertyChanges(const Q3DSPropertyChangeList &changeList)
 {
     Q3DSGraphObject::applyPropertyChanges(changeList);
-    setProps(*changeList, 0);
+    setProps(changeList, 0);
 }
 
 void Q3DSReferencedMaterial::resolveReferences(Q3DSUipPresentation &pres, Q3DSUipParser &)
@@ -1409,8 +1759,44 @@ QVariantList Q3DSReferencedMaterial::gex_propertyValues() const
     return s;
 }
 
+Q3DSPropertyChange Q3DSReferencedMaterial::setName(const QString &v)
+{
+    PROP_SETTER(m_name, v, "name");
+}
+
+Q3DSPropertyChange Q3DSReferencedMaterial::setReferencedMaterial(Q3DSGraphObject *v)
+{
+    PROP_SETTER(m_referencedMaterial, v, "referencedmaterial");
+}
+
+Q3DSPropertyChange Q3DSReferencedMaterial::setLightmapIndirectMap(Q3DSImage *v)
+{
+    PROP_SETTER(m_lightmapIndirectMap, v, "lightmapindirect");
+}
+
+Q3DSPropertyChange Q3DSReferencedMaterial::setLightmapRadiosityMap(Q3DSImage *v)
+{
+    PROP_SETTER(m_lightmapRadiosityMap, v, "lightmapradiosity");
+}
+
+Q3DSPropertyChange Q3DSReferencedMaterial::setLightmapShadowMap(Q3DSImage *v)
+{
+    PROP_SETTER(m_lightmapShadowMap, v, "lightmapshadow");
+}
+
+Q3DSPropertyChange Q3DSReferencedMaterial::setLightProbe(Q3DSImage *v)
+{
+    PROP_SETTER(m_lightProbe, v, "iblprobe");
+}
+
 Q3DSCustomMaterialInstance::Q3DSCustomMaterialInstance()
     : Q3DSGraphObject(Q3DSGraphObject::CustomMaterial)
+{
+}
+
+Q3DSCustomMaterialInstance::Q3DSCustomMaterialInstance(const Q3DSCustomMaterial &material)
+    : Q3DSGraphObject(Q3DSGraphObject::CustomMaterial),
+      m_material(material)
 {
 }
 
@@ -1438,10 +1824,10 @@ void Q3DSCustomMaterialInstance::setProperties(const QXmlStreamAttributes &attrs
         m_attrs.append(Q3DSPropertyChange(attr.name().toString(), attr.value().toString()));
 }
 
-void Q3DSCustomMaterialInstance::applyPropertyChanges(const Q3DSPropertyChangeList *changeList)
+void Q3DSCustomMaterialInstance::applyPropertyChanges(const Q3DSPropertyChangeList &changeList)
 {
     Q3DSGraphObject::applyPropertyChanges(changeList);
-    setProps(*changeList, 0);
+    setProps(changeList, 0);
 }
 
 static void fillCustomProperties(const QMap<QString, Q3DSMaterial::PropertyElement> &propMeta,
@@ -1506,8 +1892,49 @@ QVariantList Q3DSCustomMaterialInstance::gex_propertyValues() const
     return s;
 }
 
+Q3DSPropertyChange Q3DSCustomMaterialInstance::setName(const QString &v)
+{
+    PROP_SETTER(m_name, v, "name");
+}
+
+Q3DSPropertyChange Q3DSCustomMaterialInstance::setLightmapIndirectMap(Q3DSImage *v)
+{
+    PROP_SETTER(m_lightmapIndirectMap, v, "lightmapindirect");
+}
+
+Q3DSPropertyChange Q3DSCustomMaterialInstance::setLightmapRadiosityMap(Q3DSImage *v)
+{
+    PROP_SETTER(m_lightmapRadiosityMap, v, "lightmapradiosity");
+}
+
+Q3DSPropertyChange Q3DSCustomMaterialInstance::setLightmapShadowMap(Q3DSImage *v)
+{
+    PROP_SETTER(m_lightmapShadowMap, v, "lightmapshadow");
+}
+
+Q3DSPropertyChange Q3DSCustomMaterialInstance::setLightProbe(Q3DSImage *v)
+{
+    PROP_SETTER(m_lightProbe, v, "iblprobe");
+}
+
+Q3DSPropertyChange Q3DSCustomMaterialInstance::setCustomProperty(const QString &name, const QVariant &value)
+{
+    auto it = m_materialPropertyVals.find(name);
+    if (it != m_materialPropertyVals.end()) {
+        *it = value;
+        return Q3DSPropertyChange(name);
+    }
+    return Q3DSPropertyChange();
+}
+
 Q3DSEffectInstance::Q3DSEffectInstance()
     : Q3DSGraphObject(Q3DSGraphObject::Effect)
+{
+}
+
+Q3DSEffectInstance::Q3DSEffectInstance(const Q3DSEffect &effect)
+    : Q3DSGraphObject(Q3DSGraphObject::Effect),
+      m_effect(effect)
 {
 }
 
@@ -1530,10 +1957,10 @@ void Q3DSEffectInstance::setProperties(const QXmlStreamAttributes &attrs, PropSe
         m_attrs.append(Q3DSPropertyChange(attr.name().toString(), attr.value().toString()));
 }
 
-void Q3DSEffectInstance::applyPropertyChanges(const Q3DSPropertyChangeList *changeList)
+void Q3DSEffectInstance::applyPropertyChanges(const Q3DSPropertyChangeList &changeList)
 {
     Q3DSGraphObject::applyPropertyChanges(changeList);
-    setProps(*changeList, 0);
+    setProps(changeList, 0);
 }
 
 void Q3DSEffectInstance::resolveReferences(Q3DSUipPresentation &pres, Q3DSUipParser &parser)
@@ -1557,6 +1984,21 @@ QVariantList Q3DSEffectInstance::gex_propertyValues() const
     QVariantList s = Q3DSGraphObject::gex_propertyValues();
     s << m_name << m_effect_unresolved;
     return s;
+}
+
+Q3DSPropertyChange Q3DSEffectInstance::setName(const QString &v)
+{
+    PROP_SETTER(m_name, v, "name");
+}
+
+Q3DSPropertyChange Q3DSEffectInstance::setCustomProperty(const QString &name, const QVariant &value)
+{
+    auto it = m_effectPropertyVals.find(name);
+    if (it != m_effectPropertyVals.end()) {
+        *it = value;
+        return Q3DSPropertyChange(name);
+    }
+    return Q3DSPropertyChange();
 }
 
 Q3DSNode::Q3DSNode(Type type)
@@ -1601,16 +2043,16 @@ void Q3DSNode::setProperties(const QXmlStreamAttributes &attrs, PropSetFlags fla
     }
 }
 
-void Q3DSNode::applyPropertyChanges(const Q3DSPropertyChangeList *changeList)
+void Q3DSNode::applyPropertyChanges(const Q3DSPropertyChangeList &changeList)
 {
     Q3DSGraphObject::applyPropertyChanges(changeList);
-    setProps(*changeList, 0);
+    setProps(changeList, 0);
 }
 
-int Q3DSNode::mapChangeFlags(const Q3DSPropertyChangeList *changeList)
+int Q3DSNode::mapChangeFlags(const Q3DSPropertyChangeList &changeList)
 {
     int changeFlags = Q3DSGraphObject::mapChangeFlags(changeList);
-    for (auto it = changeList->cbegin(), itEnd = changeList->cend(); it != itEnd; ++it) {
+    for (auto it = changeList.cbegin(), itEnd = changeList.cend(); it != itEnd; ++it) {
         if (it->nameStr() == QStringLiteral("position")
                 || it->nameStr() == QStringLiteral("rotation")
                 || it->nameStr() == QStringLiteral("scale"))
@@ -1630,7 +2072,7 @@ QStringList Q3DSNode::gex_propertyNames() const
     QStringList s = Q3DSGraphObject::gex_propertyNames();
     s << QLatin1String("flags") << QLatin1String("rotation") << QLatin1String("position") << QLatin1String("scale")
       << QLatin1String("pivot") << QLatin1String("opacity")
-      << QLatin1String("skeletonId") << QLatin1String("rotationOrder") << QLatin1String("orientation");
+      << QLatin1String("boneid") << QLatin1String("rotationorder") << QLatin1String("orientation");
     return s;
 }
 
@@ -1640,6 +2082,56 @@ QVariantList Q3DSNode::gex_propertyValues() const
     s << int(m_flags) << m_rotation << m_position << m_scale << m_pivot << m_localOpacity
       << m_skeletonId << m_rotationOrder << m_orientation;
     return s;
+}
+
+Q3DSPropertyChange Q3DSNode::setFlag(NodeFlag flag, bool v)
+{
+    if (flag == Active) {
+        PROP_FLAG_SETTER(m_flags, flag, v, "eyeball");
+    } else if (flag == IgnoresParentTransform) {
+        PROP_FLAG_SETTER(m_flags, flag, v, "ignoresparent");
+    }
+    return Q3DSPropertyChange();
+}
+
+Q3DSPropertyChange Q3DSNode::setRotation(const QVector3D &v)
+{
+    PROP_SETTER(m_rotation, v, "rotation");
+}
+
+Q3DSPropertyChange Q3DSNode::setPosition(const QVector3D &v)
+{
+    PROP_SETTER(m_position, v, "position");
+}
+
+Q3DSPropertyChange Q3DSNode::setScale(const QVector3D &v)
+{
+    PROP_SETTER(m_scale, v, "scale");
+}
+
+Q3DSPropertyChange Q3DSNode::setPivot(const QVector3D &v)
+{
+    PROP_SETTER(m_pivot, v, "pivot");
+}
+
+Q3DSPropertyChange Q3DSNode::setLocalOpacity(float v)
+{
+    PROP_SETTER(m_localOpacity, v, "opacity");
+}
+
+Q3DSPropertyChange Q3DSNode::setSkeletonId(int v)
+{
+    PROP_SETTER(m_skeletonId, v, "boneid");
+}
+
+Q3DSPropertyChange Q3DSNode::setRotationOrder(RotationOrder v)
+{
+    PROP_SETTER(m_rotationOrder, v, "rotationorder");
+}
+
+Q3DSPropertyChange Q3DSNode::setOrientation(Orientation v)
+{
+    PROP_SETTER(m_orientation, v, "orientation");
 }
 
 Q3DSLayerNode::Q3DSLayerNode()
@@ -1720,10 +2212,10 @@ void Q3DSLayerNode::setProperties(const QXmlStreamAttributes &attrs, PropSetFlag
     setProps(attrs, flags);
 }
 
-void Q3DSLayerNode::applyPropertyChanges(const Q3DSPropertyChangeList *changeList)
+void Q3DSLayerNode::applyPropertyChanges(const Q3DSPropertyChangeList &changeList)
 {
     Q3DSNode::applyPropertyChanges(changeList);
-    setProps(*changeList, 0);
+    setProps(changeList, 0);
 }
 
 void Q3DSLayerNode::resolveReferences(Q3DSUipPresentation &pres, Q3DSUipParser &parser)
@@ -1733,10 +2225,10 @@ void Q3DSLayerNode::resolveReferences(Q3DSUipPresentation &pres, Q3DSUipParser &
     resolveRef(m_lightProbe2_unresolved, Q3DSGraphObject::Image, &m_lightProbe2, pres);
 }
 
-int Q3DSLayerNode::mapChangeFlags(const Q3DSPropertyChangeList *changeList)
+int Q3DSLayerNode::mapChangeFlags(const Q3DSPropertyChangeList &changeList)
 {
     int changeFlags = Q3DSNode::mapChangeFlags(changeList);
-    for (auto it = changeList->cbegin(), itEnd = changeList->cend(); it != itEnd; ++it) {
+    for (auto it = changeList.cbegin(), itEnd = changeList.cend(); it != itEnd; ++it) {
         if (it->nameStr().startsWith(QStringLiteral("ao"))
                || it->nameStr().startsWith(QStringLiteral("shadow")))
         {
@@ -1774,6 +2266,215 @@ QVariantList Q3DSLayerNode::gex_propertyValues() const
     return s;
 }
 
+Q3DSPropertyChange Q3DSLayerNode::setName(const QString &v)
+{
+    PROP_SETTER(m_name, v, "name");
+}
+
+Q3DSPropertyChange Q3DSLayerNode::setLayerFlag(Flag flag, bool v)
+{
+    if (flag == DisableDepthTest) {
+        PROP_FLAG_SETTER(m_layerFlags, flag, v, "disabledepthtest");
+    } else if (flag == DisableDepthPrePass) {
+        PROP_FLAG_SETTER(m_layerFlags, flag, v, "disabledepthprepass");
+    } else if (flag == TemporalAA) {
+        PROP_FLAG_SETTER(m_layerFlags, flag, v, "temporalaa");
+    } else if (flag == FastIBL) {
+        PROP_FLAG_SETTER(m_layerFlags, flag, v, "fastibl");
+    }
+    return Q3DSPropertyChange();
+}
+
+Q3DSPropertyChange Q3DSLayerNode::setProgressiveAA(ProgressiveAA v)
+{
+    PROP_SETTER(m_progressiveAA, v, "progressiveaa");
+}
+
+Q3DSPropertyChange Q3DSLayerNode::setMultisampleAA(MultisampleAA v)
+{
+    PROP_SETTER(m_multisampleAA, v, "multisampleaa");
+}
+
+Q3DSPropertyChange Q3DSLayerNode::setLayerBackground(LayerBackground v)
+{
+    PROP_SETTER(m_layerBackground, v, "background");
+}
+
+Q3DSPropertyChange Q3DSLayerNode::setBackgroundColor(const QColor &v)
+{
+    PROP_SETTER(m_backgroundColor, v, "backgroundcolor");
+}
+
+Q3DSPropertyChange Q3DSLayerNode::setBlendType(BlendType v)
+{
+    PROP_SETTER(m_blendType, v, "blendtype");
+}
+
+Q3DSPropertyChange Q3DSLayerNode::setHorizontalFields(HorizontalFields v)
+{
+    PROP_SETTER(m_horizontalFields, v, "horzfields");
+}
+
+Q3DSPropertyChange Q3DSLayerNode::setLeft(float v)
+{
+    PROP_SETTER(m_left, v, "left");
+}
+
+Q3DSPropertyChange Q3DSLayerNode::setLeftUnits(Units v)
+{
+    PROP_SETTER(m_leftUnits, v, "leftunits");
+}
+
+Q3DSPropertyChange Q3DSLayerNode::setWidth(float v)
+{
+    PROP_SETTER(m_width, v, "width");
+}
+
+Q3DSPropertyChange Q3DSLayerNode::setWidthUnits(Units v)
+{
+    PROP_SETTER(m_widthUnits, v, "widthunits");
+}
+
+Q3DSPropertyChange Q3DSLayerNode::setRight(float v)
+{
+    PROP_SETTER(m_right, v, "right");
+}
+
+Q3DSPropertyChange Q3DSLayerNode::setRightUnits(Units v)
+{
+    PROP_SETTER(m_rightUnits, v, "rightunits");
+}
+
+Q3DSPropertyChange Q3DSLayerNode::setVerticalFields(VerticalFields v)
+{
+    PROP_SETTER(m_verticalFields, v, "vertfields");
+}
+
+Q3DSPropertyChange Q3DSLayerNode::setTop(float v)
+{
+    PROP_SETTER(m_top, v, "top");
+}
+
+Q3DSPropertyChange Q3DSLayerNode::setTopUnits(Units v)
+{
+    PROP_SETTER(m_topUnits, v, "topunits");
+}
+
+Q3DSPropertyChange Q3DSLayerNode::setHeight(float v)
+{
+    PROP_SETTER(m_height, v, "height");
+}
+
+Q3DSPropertyChange Q3DSLayerNode::setHeightUnits(Units v)
+{
+    PROP_SETTER(m_heightUnits, v, "heightunits");
+}
+
+Q3DSPropertyChange Q3DSLayerNode::setBottom(float v)
+{
+    PROP_SETTER(m_bottom, v, "bottom");
+}
+
+Q3DSPropertyChange Q3DSLayerNode::setBottomUnits(Units v)
+{
+    PROP_SETTER(m_bottomUnits, v, "bottomunits");
+}
+
+Q3DSPropertyChange Q3DSLayerNode::setSourcePath(const QString &v)
+{
+    PROP_SETTER(m_sourcePath, v, "sourcepath");
+}
+
+Q3DSPropertyChange Q3DSLayerNode::setAoStrength(float v)
+{
+    PROP_SETTER(m_aoStrength, v, "aostrength");
+}
+
+Q3DSPropertyChange Q3DSLayerNode::setAoDistance(float v)
+{
+    PROP_SETTER(m_aoDistance, v, "aodistance");
+}
+
+Q3DSPropertyChange Q3DSLayerNode::setAoSoftness(float v)
+{
+    PROP_SETTER(m_aoSoftness, v, "aosoftness");
+}
+
+Q3DSPropertyChange Q3DSLayerNode::setAoBias(float v)
+{
+    PROP_SETTER(m_aoBias, v, "aobias");
+}
+
+Q3DSPropertyChange Q3DSLayerNode::setAoSampleRate(int v)
+{
+    PROP_SETTER(m_aoSampleRate, v, "aosamplerate");
+}
+
+Q3DSPropertyChange Q3DSLayerNode::setAoDither(bool v)
+{
+    PROP_SETTER(m_aoDither, v, "aodither");
+}
+
+Q3DSPropertyChange Q3DSLayerNode::setShadowStrength(float v)
+{
+    PROP_SETTER(m_shadowStrength, v, "shadowstrength");
+}
+
+Q3DSPropertyChange Q3DSLayerNode::setShadowDist(float v)
+{
+    PROP_SETTER(m_shadowDist, v, "shadowdist");
+}
+
+Q3DSPropertyChange Q3DSLayerNode::setShadowSoftness(float v)
+{
+    PROP_SETTER(m_shadowSoftness, v, "shadowsoftness");
+}
+
+Q3DSPropertyChange Q3DSLayerNode::setShadowBias(float v)
+{
+    PROP_SETTER(m_shadowBias, v, "shadowbias");
+}
+
+Q3DSPropertyChange Q3DSLayerNode::setLightProbe(Q3DSImage *v)
+{
+    PROP_SETTER(m_lightProbe, v, "lightprobe");
+}
+
+Q3DSPropertyChange Q3DSLayerNode::setProbeBright(float v)
+{
+    PROP_SETTER(m_probeBright, v, "probebright");
+}
+
+Q3DSPropertyChange Q3DSLayerNode::setProbeHorizon(float v)
+{
+    PROP_SETTER(m_probeHorizon, v, "probehorizon");
+}
+
+Q3DSPropertyChange Q3DSLayerNode::setProbeFov(float v)
+{
+    PROP_SETTER(m_probeFov, v, "probefov");
+}
+
+Q3DSPropertyChange Q3DSLayerNode::setLightProbe2(Q3DSImage *v)
+{
+    PROP_SETTER(m_lightProbe2, v, "lightprobe2");
+}
+
+Q3DSPropertyChange Q3DSLayerNode::setProbe2Fade(float v)
+{
+    PROP_SETTER(m_probe2Fade, v, "probe2fade");
+}
+
+Q3DSPropertyChange Q3DSLayerNode::setProbe2Window(float v)
+{
+    PROP_SETTER(m_probe2Window, v, "probe2window");
+}
+
+Q3DSPropertyChange Q3DSLayerNode::setProbe2Pos(float v)
+{
+    PROP_SETTER(m_probe2Pos, v, "probe2pos");
+}
+
 Q3DSCameraNode::Q3DSCameraNode()
     : Q3DSNode(Q3DSGraphObject::Camera)
 {
@@ -1802,10 +2503,10 @@ void Q3DSCameraNode::setProperties(const QXmlStreamAttributes &attrs, PropSetFla
     setProps(attrs, flags);
 }
 
-void Q3DSCameraNode::applyPropertyChanges(const Q3DSPropertyChangeList *changeList)
+void Q3DSCameraNode::applyPropertyChanges(const Q3DSPropertyChangeList &changeList)
 {
     Q3DSNode::applyPropertyChanges(changeList);
-    setProps(*changeList, 0);
+    setProps(changeList, 0);
 }
 
 QStringList Q3DSCameraNode::gex_propertyNames() const
@@ -1821,6 +2522,41 @@ QVariantList Q3DSCameraNode::gex_propertyValues() const
     QVariantList s = Q3DSNode::gex_propertyValues();
     s << m_name << m_orthographic << m_fov << m_clipNear << m_clipFar << m_scaleMode << m_scaleAnchor;
     return s;
+}
+
+Q3DSPropertyChange Q3DSCameraNode::setName(const QString &v)
+{
+    PROP_SETTER(m_name, v, "name");
+}
+
+Q3DSPropertyChange Q3DSCameraNode::setOrthographic(bool v)
+{
+    PROP_SETTER(m_orthographic, v, "orthographic");
+}
+
+Q3DSPropertyChange Q3DSCameraNode::setFov(float v)
+{
+    PROP_SETTER(m_fov, v, "fov");
+}
+
+Q3DSPropertyChange Q3DSCameraNode::setClipNear(float v)
+{
+    PROP_SETTER(m_clipNear, v, "clipnear");
+}
+
+Q3DSPropertyChange Q3DSCameraNode::setClipFar(float v)
+{
+    PROP_SETTER(m_clipFar, v, "clipfar");
+}
+
+Q3DSPropertyChange Q3DSCameraNode::setScaleMode(ScaleMode v)
+{
+    PROP_SETTER(m_scaleMode, v, "scalemode");
+}
+
+Q3DSPropertyChange Q3DSCameraNode::setScaleAnchor(ScaleAnchor v)
+{
+    PROP_SETTER(m_scaleAnchor, v, "scaleanchor");
 }
 
 Q3DSLightNode::Q3DSLightNode()
@@ -1860,10 +2596,10 @@ void Q3DSLightNode::setProperties(const QXmlStreamAttributes &attrs, PropSetFlag
     setProps(attrs, flags);
 }
 
-void Q3DSLightNode::applyPropertyChanges(const Q3DSPropertyChangeList *changeList)
+void Q3DSLightNode::applyPropertyChanges(const Q3DSPropertyChangeList &changeList)
 {
     Q3DSNode::applyPropertyChanges(changeList);
-    setProps(*changeList, 0);
+    setProps(changeList, 0);
 }
 
 void Q3DSLightNode::resolveReferences(Q3DSUipPresentation &pres, Q3DSUipParser &parser)
@@ -1892,6 +2628,96 @@ QVariantList Q3DSLightNode::gex_propertyValues() const
     return s;
 }
 
+Q3DSPropertyChange Q3DSLightNode::setName(const QString &v)
+{
+    PROP_SETTER(m_name, v, "name");
+}
+
+Q3DSPropertyChange Q3DSLightNode::setLightType(LightType v)
+{
+    PROP_SETTER(m_lightType, v, "lighttype");
+}
+
+Q3DSPropertyChange Q3DSLightNode::setScope(Q3DSGraphObject *v)
+{
+    PROP_SETTER(m_scope, v, "scope");
+}
+
+Q3DSPropertyChange Q3DSLightNode::setDiffuse(const QColor &v)
+{
+    PROP_SETTER(m_lightDiffuse, v, "lightdiffuse");
+}
+
+Q3DSPropertyChange Q3DSLightNode::setSpecular(const QColor &v)
+{
+    PROP_SETTER(m_lightSpecular, v, "lightspecular");
+}
+
+Q3DSPropertyChange Q3DSLightNode::setAmbient(const QColor &v)
+{
+    PROP_SETTER(m_lightAmbient, v, "lightambient");
+}
+
+Q3DSPropertyChange Q3DSLightNode::setBrightness(float v)
+{
+    PROP_SETTER(m_brightness, v, "brightness");
+}
+
+Q3DSPropertyChange Q3DSLightNode::setLinearFade(float v)
+{
+    PROP_SETTER(m_linearFade, v, "linearfade");
+}
+
+Q3DSPropertyChange Q3DSLightNode::setExpFade(float v)
+{
+    PROP_SETTER(m_expFade, v, "expfade");
+}
+
+Q3DSPropertyChange Q3DSLightNode::setAreaWidth(float v)
+{
+    PROP_SETTER(m_areaWidth, v, "areawidth");
+}
+
+Q3DSPropertyChange Q3DSLightNode::setAreaHeight(float v)
+{
+    PROP_SETTER(m_areaHeight, v, "areaheight");
+}
+
+Q3DSPropertyChange Q3DSLightNode::setCastShadow(bool v)
+{
+    PROP_SETTER(m_castShadow, v, "castshadow");
+}
+
+Q3DSPropertyChange Q3DSLightNode::setShadowFactor(float v)
+{
+    PROP_SETTER(m_shadowFactor, v, "shdwfactor");
+}
+
+Q3DSPropertyChange Q3DSLightNode::setShadowFilter(float v)
+{
+    PROP_SETTER(m_shadowFilter, v, "shdwfilter");
+}
+
+Q3DSPropertyChange Q3DSLightNode::setShadowMapRes(int v)
+{
+    PROP_SETTER(m_shadowMapRes, v, "shdwmapres");
+}
+
+Q3DSPropertyChange Q3DSLightNode::setShadowBias(float v)
+{
+    PROP_SETTER(m_shadowBias, v, "shdwbias");
+}
+
+Q3DSPropertyChange Q3DSLightNode::setShadowMapFar(float v)
+{
+    PROP_SETTER(m_shadowMapFar, v, "shdwmapfar");
+}
+
+Q3DSPropertyChange Q3DSLightNode::setShadowMapFov(float v)
+{
+    PROP_SETTER(m_shadowMapFov, v, "shdwmapfov");
+}
+
 Q3DSModelNode::Q3DSModelNode()
     : Q3DSNode(Q3DSGraphObject::Model)
 {
@@ -1915,10 +2741,10 @@ void Q3DSModelNode::setProperties(const QXmlStreamAttributes &attrs, PropSetFlag
     setProps(attrs, flags);
 }
 
-void Q3DSModelNode::applyPropertyChanges(const Q3DSPropertyChangeList *changeList)
+void Q3DSModelNode::applyPropertyChanges(const Q3DSPropertyChangeList &changeList)
 {
     Q3DSNode::applyPropertyChanges(changeList);
-    setProps(*changeList, 0);
+    setProps(changeList, 0);
 }
 
 void Q3DSModelNode::resolveReferences(Q3DSUipPresentation &pres, Q3DSUipParser &parser)
@@ -1946,6 +2772,36 @@ QVariantList Q3DSModelNode::gex_propertyValues() const
     return s;
 }
 
+Q3DSPropertyChange Q3DSModelNode::setName(const QString &v)
+{
+    PROP_SETTER(m_name, v, "name");
+}
+
+Q3DSPropertyChange Q3DSModelNode::setMesh(const MeshList &v)
+{
+    PROP_SETTER(m_mesh, v, "sourcepath");
+}
+
+Q3DSPropertyChange Q3DSModelNode::setSkeletonRoot(int v)
+{
+    PROP_SETTER(m_skeletonRoot, v, "poseroot");
+}
+
+Q3DSPropertyChange Q3DSModelNode::setTessellation(Tessellation v)
+{
+    PROP_SETTER(m_tessellation, v, "tessellation");
+}
+
+Q3DSPropertyChange Q3DSModelNode::setEdgeTess(float v)
+{
+    PROP_SETTER(m_edgeTess, v, "edgetess");
+}
+
+Q3DSPropertyChange Q3DSModelNode::setInnerTess(float v)
+{
+    PROP_SETTER(m_innerTess, v, "innertess");
+}
+
 Q3DSGroupNode::Q3DSGroupNode()
     : Q3DSNode(Q3DSGraphObject::Group)
 {
@@ -1964,10 +2820,10 @@ void Q3DSGroupNode::setProperties(const QXmlStreamAttributes &attrs, PropSetFlag
     setProps(attrs, flags);
 }
 
-void Q3DSGroupNode::applyPropertyChanges(const Q3DSPropertyChangeList *changeList)
+void Q3DSGroupNode::applyPropertyChanges(const Q3DSPropertyChangeList &changeList)
 {
     Q3DSNode::applyPropertyChanges(changeList);
-    setProps(*changeList, 0);
+    setProps(changeList, 0);
 }
 
 QStringList Q3DSGroupNode::gex_propertyNames() const
@@ -1982,6 +2838,11 @@ QVariantList Q3DSGroupNode::gex_propertyValues() const
     QVariantList s = Q3DSNode::gex_propertyValues();
     s << m_name;
     return s;
+}
+
+Q3DSPropertyChange Q3DSGroupNode::setName(const QString &v)
+{
+    PROP_SETTER(m_name, v, "name");
 }
 
 Q3DSComponentNode::Q3DSComponentNode()
@@ -2007,10 +2868,10 @@ void Q3DSComponentNode::setProperties(const QXmlStreamAttributes &attrs, PropSet
     setProps(attrs, flags);
 }
 
-void Q3DSComponentNode::applyPropertyChanges(const Q3DSPropertyChangeList *changeList)
+void Q3DSComponentNode::applyPropertyChanges(const Q3DSPropertyChangeList &changeList)
 {
     Q3DSNode::applyPropertyChanges(changeList);
-    setProps(*changeList, 0);
+    setProps(changeList, 0);
 }
 
 void Q3DSComponentNode::setCurrentSlide(Q3DSSlide *slide)
@@ -2034,6 +2895,11 @@ QVariantList Q3DSComponentNode::gex_propertyValues() const
     QVariantList s = Q3DSNode::gex_propertyValues();
     s << m_name;
     return s;
+}
+
+Q3DSPropertyChange Q3DSComponentNode::setName(const QString &v)
+{
+    PROP_SETTER(m_name, v, "name");
 }
 
 Q3DSTextNode::Q3DSTextNode()
@@ -2062,16 +2928,16 @@ void Q3DSTextNode::setProperties(const QXmlStreamAttributes &attrs, PropSetFlags
     setProps(attrs, flags);
 }
 
-void Q3DSTextNode::applyPropertyChanges(const Q3DSPropertyChangeList *changeList)
+void Q3DSTextNode::applyPropertyChanges(const Q3DSPropertyChangeList &changeList)
 {
     Q3DSNode::applyPropertyChanges(changeList);
-    setProps(*changeList, 0);
+    setProps(changeList, 0);
 }
 
-int Q3DSTextNode::mapChangeFlags(const Q3DSPropertyChangeList *changeList)
+int Q3DSTextNode::mapChangeFlags(const Q3DSPropertyChangeList &changeList)
 {
     int changeFlags = Q3DSNode::mapChangeFlags(changeList);
-    for (auto it = changeList->cbegin(), itEnd = changeList->cend(); it != itEnd; ++it) {
+    for (auto it = changeList.cbegin(), itEnd = changeList.cend(); it != itEnd; ++it) {
         if (it->nameStr() == QStringLiteral("textstring")
                 || it->nameStr() == QStringLiteral("leading")
                 || it->nameStr() == QStringLiteral("tracking"))
@@ -2095,6 +2961,51 @@ QVariantList Q3DSTextNode::gex_propertyValues() const
     QVariantList s = Q3DSNode::gex_propertyValues();
     s << m_name << m_text << m_color << m_font << m_size << m_horizAlign << m_vertAlign << m_leading << m_tracking;
     return s;
+}
+
+Q3DSPropertyChange Q3DSTextNode::setName(const QString &v)
+{
+    PROP_SETTER(m_name, v, "name");
+}
+
+Q3DSPropertyChange Q3DSTextNode::setText(const QString &v)
+{
+    PROP_SETTER(m_text, v, "textstring");
+}
+
+Q3DSPropertyChange Q3DSTextNode::setColor(const QColor &v)
+{
+    PROP_SETTER(m_color, v, "textcolor");
+}
+
+Q3DSPropertyChange Q3DSTextNode::setFont(const QString &v)
+{
+    PROP_SETTER(m_font, v, "font");
+}
+
+Q3DSPropertyChange Q3DSTextNode::setSize(float v)
+{
+    PROP_SETTER(m_size, v, "size");
+}
+
+Q3DSPropertyChange Q3DSTextNode::setHorizontalAlignment(HorizontalAlignment v)
+{
+    PROP_SETTER(m_horizAlign, v, "horzalign");
+}
+
+Q3DSPropertyChange Q3DSTextNode::setVerticalAlignment(VerticalAlignment v)
+{
+    PROP_SETTER(m_vertAlign, v, "vertalign");
+}
+
+Q3DSPropertyChange Q3DSTextNode::setLeading(float v)
+{
+    PROP_SETTER(m_leading, v, "leading");
+}
+
+Q3DSPropertyChange Q3DSTextNode::setTracking(float v)
+{
+    PROP_SETTER(m_tracking, v, "tracking");
 }
 
 Q3DSUipPresentation::Q3DSUipPresentation()
@@ -2150,6 +3061,36 @@ bool Q3DSUipPresentation::maintainAspectRatio() const
     return d->maintainAspectRatio;
 }
 
+void Q3DSUipPresentation::setAuthor(const QString &author)
+{
+    d->author = author;
+}
+
+void Q3DSUipPresentation::setCompany(const QString &company)
+{
+    d->company = company;
+}
+
+void Q3DSUipPresentation::setPresentationWidth(int w)
+{
+    d->presentationWidth = w;
+}
+
+void Q3DSUipPresentation::setPresentationHeight(int h)
+{
+    d->presentationHeight = h;
+}
+
+void Q3DSUipPresentation::setPresentationRotation(Rotation r)
+{
+    d->presentationRotation = r;
+}
+
+void Q3DSUipPresentation::setMaintainAspectRatio(bool maintain)
+{
+    d->maintainAspectRatio = maintain;
+}
+
 Q3DSScene *Q3DSUipPresentation::scene() const
 {
     return d->scene;
@@ -2168,36 +3109,6 @@ Q3DSGraphObject *Q3DSUipPresentation::object(const QByteArray &id) const
 void Q3DSUipPresentation::setSourceFile(const QString &s)
 {
     d->sourceFile = s;
-}
-
-void Q3DSUipPresentation::setAuthor(const QString &s)
-{
-    d->author = s;
-}
-
-void Q3DSUipPresentation::setCompany(const QString &s)
-{
-    d->company = s;
-}
-
-void Q3DSUipPresentation::setPresentationWidth(int w)
-{
-    d->presentationWidth = w;
-}
-
-void Q3DSUipPresentation::setPresentationHeight(int h)
-{
-    d->presentationHeight = h;
-}
-
-void Q3DSUipPresentation::setPresentationRotation(Q3DSUipPresentation::Rotation r)
-{
-    d->presentationRotation = r;
-}
-
-void Q3DSUipPresentation::setMaintainAspectRatio(bool b)
-{
-    d->maintainAspectRatio = b;
 }
 
 void Q3DSUipPresentation::setScene(Q3DSScene *p)
@@ -2222,11 +3133,17 @@ void Q3DSUipPresentation::registerImageBuffer(const QString &sourcePath, bool ha
 
 void Q3DSUipPresentation::registerObject(const QByteArray &id, Q3DSGraphObject *p)
 {
-    if (d->objects.contains(id))
+    if (d->objects.contains(id)) {
         qWarning("Q3DSUipPresentation: Multiple registrations for object id '%s'", id.constData());
-
+        return;
+    }
     p->m_id = id;
     d->objects[id] = p;
+}
+
+void Q3DSUipPresentation::unregisterObject(const QByteArray &id)
+{
+    d->objects.remove(id);
 }
 
 bool Q3DSUipPresentation::loadCustomMaterial(const QStringRef &id, const QStringRef &, const QString &assetFilename)
@@ -2342,11 +3259,11 @@ void Q3DSUipPresentation::applySlidePropertyChanges(Q3DSSlide *slide) const
         for (auto change = it.value()->begin(); change != it.value()->end(); change++)
             qCDebug(lcUipProp) << "\t" << it.key() << "applying property change:" << change->name() << change->value();
 
-        it.key()->applyPropertyChanges(it.value());
+        it.key()->applyPropertyChanges(*it.value());
     }
 
     for (auto it = changeList->cbegin(), ite = changeList->cend(); it != ite; ++it)
-        it.key()->notifyPropertyChanges(it.value());
+        it.key()->notifyPropertyChanges(*it.value());
 }
 
 void Q3DSUipPresentation::forAllObjectsOfType(Q3DSGraphObject *root,

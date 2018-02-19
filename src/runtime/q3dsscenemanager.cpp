@@ -1676,7 +1676,7 @@ Qt3DRender::QCamera *Q3DSSceneManager::buildCamera(Q3DSCameraNode *cam3DS, Q3DSL
     cam3DS->setAttached(data);
     // make sure data->entity, globalTransform, etc. are usable
     setNodeProperties(cam3DS, camera, data->transform, NodePropUpdateAttached);
-    setCameraProperties(cam3DS, Q3DSPropertyChangeList::ALL_CHANGE_FLAGS);
+    setCameraProperties(cam3DS, Q3DSNode::TransformChanges);
     cam3DS->addPropertyChangeObserver(std::bind(&Q3DSSceneManager::handlePropertyChange, this,
                                                  std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
     return camera;
@@ -1770,7 +1770,7 @@ bool Q3DSSceneManager::setActiveLayerCamera(Q3DSCameraNode *camara3DS, Q3DSLayer
         }
 
         if (camara3DS) {
-            setCameraProperties(camara3DS, Q3DSPropertyChangeList::ALL_CHANGE_FLAGS);
+            setCameraProperties(camara3DS, Q3DSNode::TransformChanges);
             layerData->cameraPropertiesParam->setValue(QVector2D(camara3DS->clipNear(), camara3DS->clipFar()));
         }
 
@@ -4531,11 +4531,11 @@ void Q3DSSceneManager::updateDefaultMaterial(Q3DSDefaultMaterial *m, Q3DSReferen
 
 typedef std::function<void(const QString &, const QVariant &, const Q3DSMaterial::PropertyElement &)> CustomPropertyCallback;
 
-static void iterateCustomProperties(const QVariantMap *properties,
+static void iterateCustomProperties(const QVariantMap &properties,
                                     const QMap<QString, Q3DSMaterial::PropertyElement> &propertiesMeta,
                                     CustomPropertyCallback callback)
 {
-    for (auto it = properties->cbegin(), itEnd = properties->cend(); it != itEnd; ++it) {
+    for (auto it = properties.cbegin(), itEnd = properties.cend(); it != itEnd; ++it) {
         const QString &propName(it.key());
         const QVariant &propValue(it.value());
         const Q3DSMaterial::PropertyElement &propMeta(propertiesMeta[propName]);
@@ -4545,12 +4545,12 @@ static void iterateCustomProperties(const QVariantMap *properties,
 
 static inline void forAllCustomProperties(Q3DSCustomMaterialInstance *m, CustomPropertyCallback callback)
 {
-    iterateCustomProperties(m->materialPropertyValues(), m->material()->properties(), callback);
+    iterateCustomProperties(m->customProperties(), m->material()->properties(), callback);
 }
 
 static inline void forAllCustomProperties(Q3DSEffectInstance *eff3DS, CustomPropertyCallback callback)
 {
-    iterateCustomProperties(eff3DS->effectPropertyValues(), eff3DS->effect()->properties(), callback);
+    iterateCustomProperties(eff3DS->customProperties(), eff3DS->effect()->properties(), callback);
 }
 
 Qt3DRender::QAbstractTexture *Q3DSSceneManager::createCustomPropertyTexture(const Q3DSCustomPropertyParameter &p)
@@ -5856,8 +5856,8 @@ void Q3DSSceneManager::handleSlideChange(Q3DSSlide *prevSlide,
             const Q3DSPropertyChangeList *changeList = node->masterRollbackList();
             if (changeList) {
                 qCDebug(lcScene, "Rolling back %d changes to master for %s", changeList->count(), node->id().constData());
-                node->applyPropertyChanges(changeList);
-                node->notifyPropertyChanges(changeList);
+                node->applyPropertyChanges(*changeList);
+                node->notifyPropertyChanges(*changeList);
                 updateSubTreeRecursive(node);
             }
         }
@@ -6374,8 +6374,8 @@ void Q3DSSceneManager::setDataInputValue(const QString &dataInputName, const QVa
         }
 
         if (!changeList.isEmpty()) {
-            obj->applyPropertyChanges(&changeList);
-            obj->notifyPropertyChanges(&changeList);
+            obj->applyPropertyChanges(changeList);
+            obj->notifyPropertyChanges(changeList);
         }
         ++it;
     }

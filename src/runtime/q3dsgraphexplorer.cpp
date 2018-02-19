@@ -273,20 +273,16 @@ Q3DSGraphExplorer::Q3DSGraphExplorer(Q3DSGraphObject *root, QWidget *parent)
             }
         } else if (obj->type() == Q3DSGraphObject::CustomMaterial) {
             Q3DSCustomMaterialInstance *mat = static_cast<Q3DSCustomMaterialInstance *>(obj);
-            auto props = mat->materialPropertyValues();
-            if (props) {
-                s += tr("\n\nThis material has %1 custom properties").arg(props->count());
-                for (auto it = props->cbegin(), ite = props->cend(); it != ite; ++it)
-                    s += tr("\n%1: %2").arg(it.key()).arg(varStr(it.value()));
-            }
+            auto props = mat->customProperties();
+            s += tr("\n\nThis material has %1 custom properties").arg(props.count());
+            for (auto it = props.cbegin(), ite = props.cend(); it != ite; ++it)
+                s += tr("\n%1: %2").arg(it.key()).arg(varStr(it.value()));
         } else if (obj->type() == Q3DSGraphObject::Effect) {
             Q3DSEffectInstance *mat = static_cast<Q3DSEffectInstance *>(obj);
-            auto props = mat->effectPropertyValues();
-            if (props) {
-                s += tr("\n\nThis effect has %1 custom properties").arg(props->count());
-                for (auto it = props->cbegin(), ite = props->cend(); it != ite; ++it)
-                    s += tr("\n%1: %2").arg(it.key()).arg(varStr(it.value()));
-            }
+            auto props = mat->customProperties();
+            s += tr("\n\nThis effect has %1 custom properties").arg(props.count());
+            for (auto it = props.cbegin(), ite = props.cend(); it != ite; ++it)
+                s += tr("\n%1: %2").arg(it.key()).arg(varStr(it.value()));
         } else if (obj->type() == Q3DSGraphObject::Component) {
             Q3DSComponentNode *comp = static_cast<Q3DSComponentNode *>(obj);
             Q3DSSlide *master = comp->masterSlide();

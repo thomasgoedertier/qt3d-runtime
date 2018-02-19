@@ -132,6 +132,8 @@ private:
     friend class Q3DSCustomMaterialParser;
 };
 
+Q_DECLARE_TYPEINFO(Q3DSCustomMaterial, Q_MOVABLE_TYPE);
+
 class Q3DSV_PRIVATE_EXPORT Q3DSCustomMaterialParser : public Q3DSAbstractXmlParser
 {
 public:

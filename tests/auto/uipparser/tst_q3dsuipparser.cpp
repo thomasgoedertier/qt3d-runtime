@@ -693,11 +693,10 @@ void tst_Q3DSUipParser::customMaterial()
     QCOMPARE(m->properties().count(), 14);
     QCOMPARE(m->shaders().count(), 1);
 
-    QVERIFY(mat->materialPropertyValues());
-    QCOMPARE(mat->materialPropertyValues()->count(), 14);
-    const QVariantMap *p = mat->materialPropertyValues();
-    QVERIFY(p->contains(QStringLiteral("uEnvironmentTexture")));
-    QCOMPARE(p->value("uEnvironmentTexture").toString(), QStringLiteral(":/data/maps/materials/spherical_checker.png"));
+    QCOMPARE(mat->customProperties().count(), 14);
+    const QVariantMap &p = mat->customProperties();
+    QVERIFY(p.contains(QStringLiteral("uEnvironmentTexture")));
+    QCOMPARE(p.value("uEnvironmentTexture").toString(), QStringLiteral(":/data/maps/materials/spherical_checker.png"));
 }
 
 void tst_Q3DSUipParser::effect()
@@ -712,10 +711,9 @@ void tst_Q3DSUipParser::effect()
     QCOMPARE(eff->parent(), pres->scene()->firstChild());
 
     Q3DSEffectInstance *e = static_cast<Q3DSEffectInstance *>(eff);
-    const QVariantMap *p = e->effectPropertyValues();
-    QVERIFY(p);
-    QCOMPARE(p->count(), 5);
-    QCOMPARE(p->value(QStringLiteral("FocusDistance")).toFloat(), 100.0f);
+    const QVariantMap &p = e->customProperties();
+    QCOMPARE(p.count(), 5);
+    QCOMPARE(p.value(QStringLiteral("FocusDistance")).toFloat(), 100.0f);
 }
 
 void tst_Q3DSUipParser::primitiveMeshes()
