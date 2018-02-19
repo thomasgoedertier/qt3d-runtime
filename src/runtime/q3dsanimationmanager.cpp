@@ -262,7 +262,7 @@ void Q3DSAnimationManager::updateAnimationHelper(const AnimationTrackListMap<T *
         T *target = it.key();
         Q3DSGraphObjectAttached *data = target->attached();
         Q_ASSERT(data);
-        const auto initAnimator = [this](Q3DSGraphObjectAttached *data, Q3DSSlide *slide) {
+        static const auto initAnimator = [](Q3DSGraphObjectAttached *data, Q3DSSlide *slide) {
             static const bool animDebug = qEnvironmentVariableIntValue("Q3DS_DEBUG") >= 2;
             if (animDebug)
                 qCDebug(lcScene) << "initAnimator@:" << data << "animationData:" << data->animationDataMap[slide]
