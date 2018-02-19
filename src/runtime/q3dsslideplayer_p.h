@@ -130,7 +130,9 @@ private:
     void onDurationChanged(float duration);
     Q_INVOKABLE void onSlideFinished(void *slide);
 
-    void handleCurrentSlideChanged(Q3DSSlide *slide, Q3DSSlide *previousSlide);
+    void handleCurrentSlideChanged(Q3DSSlide *slide,
+                                   Q3DSSlide *previousSlide,
+                                   bool forceUpdate = false);
 
     // TODO: Move out to a "slide manager"?
     void updateSlideVisibility(Q3DSSlide *slide, bool visible);

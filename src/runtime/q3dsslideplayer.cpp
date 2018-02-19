@@ -216,10 +216,26 @@ void Q3DSSlidePlayer::play()
 
 void Q3DSSlidePlayer::stop()
 {
-    if (m_data.state != PlayerState::Playing && m_data.state != PlayerState::Paused)
+    if (m_data.state != PlayerState::Playing
+            && m_data.state != PlayerState::Paused
+            && m_data.state != PlayerState::Stopped)
         return;
 
+    Q3DSSlideDeck *slideDeck = m_data.slideDeck;
+    Q_ASSERT(slideDeck);
+    Q_ASSERT(!slideDeck->isEmpty());
+
+    Q3DSSlide *currentSlide = slideDeck->currentSlide();
+    if (!currentSlide) {
+        qCWarning(lcSlidePlayer, "No slide selected!");
+        return;
+    }
+
     setInternalState(PlayerState::Stopped);
+    // NOTE: We force an update here to make sure we don't get stale updates from
+    // from Qt3D, this way we can properly rollback the animatables to their initial values.
+    updatePosition(currentSlide, 0.0f);
+    handleCurrentSlideChanged(currentSlide, currentSlide, true);
 }
 
 void Q3DSSlidePlayer::pause()
@@ -418,10 +434,8 @@ void Q3DSSlidePlayer::reset()
 void Q3DSSlidePlayer::setInternalState(Q3DSSlidePlayer::PlayerState state)
 {
     Q3DSSlide *currentSlide = m_data.slideDeck->currentSlide();
-    const PlayerState oldState = m_data.state;
-    m_data.state = state;
 
-    qCDebug(lcSlidePlayer, "Setting internal state from %d to %d", int(oldState), int(state));
+    qCDebug(lcSlidePlayer, "Setting internal state from %d to %d", int(m_data.state), int(state));
 
     // The current slide is stored in the scene manager or in the component, depending
     // on which type of player we are.
@@ -438,26 +452,28 @@ void Q3DSSlidePlayer::setInternalState(Q3DSSlidePlayer::PlayerState state)
 
     const bool slideChanged = (previousSlide != currentSlide);
     if (slideChanged || (state == PlayerState::Ready))
-        handleCurrentSlideChanged(currentSlide, previousSlide);
+        handleCurrentSlideChanged(currentSlide, previousSlide, true);
 
     if (state == PlayerState::Playing) {
         const bool restart = (m_mode == PlayerMode::Viewer)
                              && (currentSlide->playMode() == Q3DSSlide::Looping);
         updateAnimators(currentSlide, true, restart, m_data.playbackRate);
     } else if (state == PlayerState::Stopped) {
-        updateAnimators(currentSlide, false, true, m_data.playbackRate);
+        updateAnimators(currentSlide, false, false, m_data.playbackRate);
     } else if (state == PlayerState::Paused) {
         updateAnimators(currentSlide, false, false, m_data.playbackRate);
     }
 
-    if (oldState != m_data.state)
+    if (m_data.state != state) {
+        m_data.state = state;
         Q_EMIT stateChanged(m_data.state);
+    }
 }
 
-void Q3DSSlidePlayer::handleCurrentSlideChanged(Q3DSSlide *slide, Q3DSSlide *previousSlide)
+void Q3DSSlidePlayer::handleCurrentSlideChanged(Q3DSSlide *slide,
+                                                Q3DSSlide *previousSlide,
+                                                bool forceUpdate)
 {
-    // If we just entered "ready" state, force an update!
-    const bool forceUpdate = (m_data.state == PlayerState::Ready);
     const bool slideDidChange = (previousSlide != slide) || forceUpdate;
     const bool parentChanged = [previousSlide, slide, forceUpdate]() -> bool {
         if (forceUpdate)
@@ -625,7 +641,7 @@ void Q3DSSlidePlayer::onSlideFinished(void *slide)
 
     // We don't change slides automatically in Editor mode
     if (m_mode == PlayerMode::Editor) {
-        setInternalState(PlayerState::Paused);
+        setInternalState(PlayerState::Stopped);
         return;
     }
 
