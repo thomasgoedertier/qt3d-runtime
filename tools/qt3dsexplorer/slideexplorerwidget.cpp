@@ -210,8 +210,9 @@ void SlideExplorerWidget::handleCurrentSlideChanged(Q3DSSlide *slide)
     m_slideListView->setCurrentIndex(m_slideModel->getSlideIndex(slide));
 
     if (slide) {
-        const qint32 startTime = slide->startTime();
-        const qint32 endTime = slide->endTime();
+        const qint32 startTime = 0;
+        qint32 endTime = 0;
+        Q3DSSlideUtils::getStartAndEndTime(slide, nullptr, &endTime);
         m_slideSeekSlider->setValue(startTime);
         m_slideSeekSlider->setMaximum(endTime);
         m_slideSeekSlider->setTickPosition(QSlider::TicksBelow);

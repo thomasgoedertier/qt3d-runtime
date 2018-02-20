@@ -52,6 +52,11 @@ QT_BEGIN_NAMESPACE
 class Q3DSAnimationManager;
 class Q3DSSlideDeck;
 
+namespace Q3DSSlideUtils
+{
+    Q3DSV_PRIVATE_EXPORT void getStartAndEndTime(Q3DSSlide *slide, qint32 *start, qint32 *end);
+};
+
 class Q3DSV_PRIVATE_EXPORT Q3DSSlidePlayer : public QObject
 {
     Q_OBJECT

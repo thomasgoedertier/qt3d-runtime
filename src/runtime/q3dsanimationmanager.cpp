@@ -30,6 +30,7 @@
 #include "q3dsanimationmanager_p.h"
 #include "q3dsdatamodelparser_p.h"
 #include "q3dsscenemanager_p.h"
+#include "q3dsslideplayer_p.h"
 
 #include <QLoggingCategory>
 
@@ -513,26 +514,9 @@ static void buildClipAnimator(Q3DSSlide *slide)
 
     // Get the first start time and the last endtime of all layers in the slide
     // TODO: Make sure we get the correct time
-    float startTime = 0.0f;
-    float endTime = 0.0f;
-    bool found = false;
-    for (Q3DSGraphObject *obj : slide->propertyChanges().keys()) {
-        if (obj->type() == Q3DSGraphObject::Layer) {
-            if (startTime < obj->startTime()) {
-                found = true;
-                startTime = obj->startTime();
-            }
-            if (endTime < obj->endTime()) {
-                found = true;
-                endTime = obj->endTime();
-            }
-        }
-    }
-
-    if (!found) { // Fallback to using the time set on the slide
-        startTime = slide->startTime();
-        endTime = slide->endTime();
-    }
+    qint32 startTime = 0.0f; // We always start from 0.0
+    qint32 endTime = 0.0f;
+    Q3DSSlideUtils::getStartAndEndTime(slide, nullptr, &endTime);
 
     QClipAnimator *animator = new QClipAnimator;
     animator->setClock(new QClock);

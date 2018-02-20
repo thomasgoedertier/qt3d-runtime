@@ -43,6 +43,58 @@ QT_BEGIN_NAMESPACE
 Q_DECLARE_LOGGING_CATEGORY(lcSlidePlayer)
 Q_LOGGING_CATEGORY(lcSlidePlayer, "q3ds.slideplayer")
 
+// NOTE: We assume that the properties for the layer has been applied before this is called
+// if it hasn't it will either return the previous value or the odl value
+void Q3DSSlideUtils::getStartAndEndTime(Q3DSSlide *slide, qint32 *startTime, qint32 *endTime)
+{
+    Q_ASSERT(startTime != nullptr || endTime != nullptr);
+
+    const auto updateOutArgs = [startTime, endTime](qint32 start, qint32 end) -> bool {
+        if (start != -1) {
+            Q_ASSERT(end != -1);
+            if (startTime)
+                *startTime = start;
+            if (endTime)
+                *endTime = end;
+
+            return true;
+        }
+
+        Q_ASSERT(end == -1);
+        return false;
+    };
+
+    qint32 sTime = -1;
+    qint32 eTime = -1;
+    if (Q3DSSlide *p = static_cast<Q3DSSlide *>(slide->parent())) {
+        for (const auto *obj : p->objects()) {
+            if (obj->type() == Q3DSGraphObject::Layer) {
+                if (obj->startTime() > sTime)
+                    sTime = obj->startTime();
+                if (obj->endTime() > eTime)
+                    eTime = obj->endTime();
+            }
+        }
+    }
+
+    if (updateOutArgs(sTime, eTime))
+        return;
+
+    // No layer, gather the time from the slides objects
+    for (const auto obj : slide->objects()) {
+        if (obj->startTime() > sTime)
+            sTime = obj->startTime();
+        if (obj->endTime() > eTime)
+            eTime = obj->endTime();
+    }
+
+    if (updateOutArgs(sTime, eTime))
+        return;
+
+    // Fallback to slides start and end time.
+    updateOutArgs(slide->startTime(), slide->endTime());
+}
+
 static QString getSlideName(Q3DSSlide *slide)
 {
     return slide ? slide->name() : QStringLiteral("nullptr");
@@ -533,7 +585,10 @@ void Q3DSSlidePlayer::handleCurrentSlideChanged(Q3DSSlide *slide,
                 if ((m_data.position == 0.0f && m_data.playbackRate < 0.0f) || (m_data.position == 1.0f && m_data.playbackRate > 0.0f))
                     QMetaObject::invokeMethod(this, "onSlideFinished", Qt::QueuedConnection, Q_ARG(void *, slide));
             });
-            onDurationChanged(slide->endTime() - slide->startTime());
+            qint32 startTime = 0;
+            qint32 endTime = 0;
+            Q3DSSlideUtils::getStartAndEndTime(slide, &startTime, &endTime);
+            onDurationChanged(endTime - startTime);
 
             // TODO: Workaround the fact that Qt 3D doesn't send the final value when there's a negative
             // playback rate (so we track all values regardless of the mode).
