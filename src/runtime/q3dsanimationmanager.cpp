@@ -318,7 +318,7 @@ void Q3DSAnimationManager::updateAnimationHelper(const AnimationTrackListMap<T *
             ChannelComponents &c(channelData[animMeta->name]);
             c.meta = *animMeta;
 
-            for (const Q3DSAnimationTrack::KeyFrame &kf : *animTrack->keyFrames()) {
+            for (const Q3DSAnimationTrack::KeyFrame &kf : animTrack->keyFrames()) {
                 Qt3DAnimation::QKeyFrame qkf;
 #if 0 // ### not supported yet, fix Qt3D first
                 switch (animTrack->type()) {
@@ -442,15 +442,15 @@ void Q3DSAnimationManager::clearAnimations(Q3DSSlide *slide)
 
     Q3DSSlide *masterSlide = static_cast<Q3DSSlide *>(slide->parent());
 
-    const bool hasAnimationData = !slide->animations()->isEmpty()
-            || !(masterSlide && masterSlide->animations()->isEmpty());
+    const bool hasAnimationData = !slide->animations().isEmpty()
+            || !(masterSlide && masterSlide->animations().isEmpty());
 
     if (!hasAnimationData)
         return;
 
-    const auto clearAndRollback = [this](const QVector<Q3DSAnimationTrack> *anims, Q3DSSlide *slide) {
+    const auto clearAndRollback = [this](const QVector<Q3DSAnimationTrack> &anims, Q3DSSlide *slide) {
         // Rollback properties
-        for (const Q3DSAnimationTrack &track : *anims) {
+        for (const Q3DSAnimationTrack &track : anims) {
             Q3DSGraphObjectAttached *data = track.target()->attached();
             Q3DSGraphObjectAttached::AnimationData *animationData = data->animationDataMap.value(slide);
             if (animationData) {
@@ -507,7 +507,7 @@ static void buildClipAnimator(Q3DSSlide *slide)
     float startTime = 0.0f;
     float endTime = 0.0f;
     bool found = false;
-    for (Q3DSGraphObject *obj : slide->propertyChanges()->keys()) {
+    for (Q3DSGraphObject *obj : slide->propertyChanges().keys()) {
         if (obj->type() == Q3DSGraphObject::Layer) {
             if (startTime < obj->startTime()) {
                 found = true;
@@ -582,8 +582,8 @@ void Q3DSAnimationManager::updateAnimations(Q3DSSlide *slide)
 
     Q3DSSlide *masterSlide = static_cast<Q3DSSlide *>(slide->parent());
 
-    const bool hasAnimationData = !slide->animations()->isEmpty()
-            || !(masterSlide && masterSlide->animations()->isEmpty());
+    const bool hasAnimationData = !slide->animations().isEmpty()
+            || !(masterSlide && masterSlide->animations().isEmpty());
 
     if (!hasAnimationData)
         return;
@@ -606,7 +606,7 @@ void Q3DSAnimationManager::updateAnimations(Q3DSSlide *slide)
         if (!slide)
             return;
 
-        const QVector<Q3DSAnimationTrack> &anims = *slide->animations();
+        const QVector<Q3DSAnimationTrack> &anims = slide->animations();
         for (const Q3DSAnimationTrack &animTrack : anims) {
             Q3DSGraphObject *target = animTrack.target();
             switch (target->type()) {

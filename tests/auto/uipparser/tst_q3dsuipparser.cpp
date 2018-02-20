@@ -480,12 +480,12 @@ void tst_Q3DSUipParser::slideNodeRefs()
     QVERIFY(master);
 
     QCOMPARE(master->name(), QStringLiteral("Master Slide"));
-    QCOMPARE(master->objects()->count(), 5);
-    QVERIFY(master->objects()->contains(pres->object(QByteArrayLiteral("Layer"))));
-    QVERIFY(master->objects()->contains(pres->object(QByteArrayLiteral("Camera"))));
-    QVERIFY(master->objects()->contains(pres->object(QByteArrayLiteral("Light"))));
-    QVERIFY(master->objects()->contains(pres->object(QByteArrayLiteral("Sphere"))));
-    QVERIFY(master->objects()->contains(pres->object(QByteArrayLiteral("Material_002"))));
+    QCOMPARE(master->objects().count(), 5);
+    QVERIFY(master->objects().contains(pres->object(QByteArrayLiteral("Layer"))));
+    QVERIFY(master->objects().contains(pres->object(QByteArrayLiteral("Camera"))));
+    QVERIFY(master->objects().contains(pres->object(QByteArrayLiteral("Light"))));
+    QVERIFY(master->objects().contains(pres->object(QByteArrayLiteral("Sphere"))));
+    QVERIFY(master->objects().contains(pres->object(QByteArrayLiteral("Material_002"))));
 
     Q3DSNode *sphere = static_cast<Q3DSNode *>(pres->object(QByteArrayLiteral("Sphere")));
     QVERIFY(sphere);
@@ -501,19 +501,19 @@ void tst_Q3DSUipParser::slideNodeRefs()
         switch (i) {
         case 0:
             QCOMPARE(slide->name(), QStringLiteral("Slide1"));
-            QCOMPARE(slide->objects()->count(), 2);
-            QVERIFY(slide->objects()->contains(pres->object(QByteArrayLiteral("Cylinder"))));
-            QVERIFY(slide->objects()->contains(pres->object(QByteArrayLiteral("Material"))));
+            QCOMPARE(slide->objects().count(), 2);
+            QVERIFY(slide->objects().contains(pres->object(QByteArrayLiteral("Cylinder"))));
+            QVERIFY(slide->objects().contains(pres->object(QByteArrayLiteral("Material"))));
             break;
         case 1:
             QCOMPARE(slide->name(), QStringLiteral("Slide-1"));
-            QCOMPARE(slide->objects()->count(), 2);
-            QVERIFY(slide->objects()->contains(pres->object(QByteArrayLiteral("Cone"))));
-            QVERIFY(slide->objects()->contains(pres->object(QByteArrayLiteral("Material_001"))));
+            QCOMPARE(slide->objects().count(), 2);
+            QVERIFY(slide->objects().contains(pres->object(QByteArrayLiteral("Cone"))));
+            QVERIFY(slide->objects().contains(pres->object(QByteArrayLiteral("Material_001"))));
             break;
         case 2:
             QCOMPARE(slide->name(), QStringLiteral("Slide0"));
-            QCOMPARE(slide->objects()->count(), 0);
+            QCOMPARE(slide->objects().count(), 0);
             break;
         default:
             break;
@@ -574,62 +574,61 @@ void tst_Q3DSUipParser::animationTrack()
     QVERIFY(master && master->childCount() == 4);
 
     Q3DSSlide *slide = static_cast<Q3DSSlide *>(master->childAtIndex(1));
-    QVERIFY(slide->animations() != nullptr);
-    QVERIFY(!slide->animations()->isEmpty());
-    QCOMPARE(slide->animations()->count(), 3);
+    QVERIFY(!slide->animations().isEmpty());
+    QCOMPARE(slide->animations().count(), 3);
 
     // <Add ref="#Cone" ... > <AnimationTrack property="position.x" type="EaseInOut" >0 139.388 100 100 4.72 -100 100 100</AnimationTrack>
     Q3DSNode *cone = static_cast<Q3DSNode *>(pres->object(QByteArrayLiteral("Cone")));
     QVERIFY(cone);
-    const Q3DSAnimationTrack &a0(slide->animations()->at(0));
+    const Q3DSAnimationTrack &a0(slide->animations().at(0));
     QCOMPARE(a0.target(), cone);
     QCOMPARE(a0.property(), QStringLiteral("position.x"));
     QVERIFY(!a0.isDynamic());
     QCOMPARE(a0.type(), Q3DSAnimationTrack::EaseInOut);
-    QCOMPARE(a0.keyFrames()->count(), 2);
-    const QVector<Q3DSAnimationTrack::KeyFrame> *kf = a0.keyFrames();
-    QCOMPARE(kf->at(0).time, 0.0f);
-    QCOMPARE(kf->at(0).value, 139.388f);
-    QCOMPARE(kf->at(0).easeIn, 100.0f);
-    QCOMPARE(kf->at(0).easeOut, 100.0f);
-    QCOMPARE(kf->at(1).time, 4.72f);
-    QCOMPARE(kf->at(1).value, -100.0f);
-    QCOMPARE(kf->at(1).easeIn, 100.0f);
-    QCOMPARE(kf->at(1).easeOut, 100.0f);
+    QCOMPARE(a0.keyFrames().count(), 2);
+    auto kf0 = a0.keyFrames();
+    QCOMPARE(kf0.at(0).time, 0.0f);
+    QCOMPARE(kf0.at(0).value, 139.388f);
+    QCOMPARE(kf0.at(0).easeIn, 100.0f);
+    QCOMPARE(kf0.at(0).easeOut, 100.0f);
+    QCOMPARE(kf0.at(1).time, 4.72f);
+    QCOMPARE(kf0.at(1).value, -100.0f);
+    QCOMPARE(kf0.at(1).easeIn, 100.0f);
+    QCOMPARE(kf0.at(1).easeOut, 100.0f);
 
-    const Q3DSAnimationTrack &a1(slide->animations()->at(1));
+    const Q3DSAnimationTrack &a1(slide->animations().at(1));
     QCOMPARE(a1.target(), cone);
     QCOMPARE(a1.property(), QStringLiteral("position.y"));
     QVERIFY(!a1.isDynamic());
     QCOMPARE(a1.type(), Q3DSAnimationTrack::EaseInOut);
-    QCOMPARE(a1.keyFrames()->count(), 2);
-    kf = a1.keyFrames();
+    QCOMPARE(a1.keyFrames().count(), 2);
+    auto kf1 = a1.keyFrames();
     // "0 -26.567 100 100 4.72 -26.567 100 100"
-    QCOMPARE(kf->at(0).time, 0.0f);
-    QCOMPARE(kf->at(0).value, -26.567f);
-    QCOMPARE(kf->at(0).easeIn, 100.0f);
-    QCOMPARE(kf->at(0).easeOut, 100.0f);
-    QCOMPARE(kf->at(1).time, 4.72f);
-    QCOMPARE(kf->at(1).value, -26.567f);
-    QCOMPARE(kf->at(1).easeIn, 100.0f);
-    QCOMPARE(kf->at(1).easeOut, 100.0f);
+    QCOMPARE(kf1.at(0).time, 0.0f);
+    QCOMPARE(kf1.at(0).value, -26.567f);
+    QCOMPARE(kf1.at(0).easeIn, 100.0f);
+    QCOMPARE(kf1.at(0).easeOut, 100.0f);
+    QCOMPARE(kf1.at(1).time, 4.72f);
+    QCOMPARE(kf1.at(1).value, -26.567f);
+    QCOMPARE(kf1.at(1).easeIn, 100.0f);
+    QCOMPARE(kf1.at(1).easeOut, 100.0f);
 
-    const Q3DSAnimationTrack &a2(slide->animations()->at(2));
+    const Q3DSAnimationTrack &a2(slide->animations().at(2));
     QCOMPARE(a2.target(), cone);
     QCOMPARE(a2.property(), QStringLiteral("position.z"));
     QVERIFY(!a2.isDynamic());
     QCOMPARE(a2.type(), Q3DSAnimationTrack::EaseInOut);
-    QCOMPARE(a2.keyFrames()->count(), 2);
-    kf = a2.keyFrames();
+    QCOMPARE(a2.keyFrames().count(), 2);
+    auto kf2 = a2.keyFrames();
     // "0 7.36767 100 100 4.72 7.36767 100 100"
-    QCOMPARE(kf->at(0).time, 0.0f);
-    QCOMPARE(kf->at(0).value, 7.36767f);
-    QCOMPARE(kf->at(0).easeIn, 100.0f);
-    QCOMPARE(kf->at(0).easeOut, 100.0f);
-    QCOMPARE(kf->at(1).time, 4.72f);
-    QCOMPARE(kf->at(1).value, 7.36767f);
-    QCOMPARE(kf->at(1).easeIn, 100.0f);
-    QCOMPARE(kf->at(1).easeOut, 100.0f);
+    QCOMPARE(kf2.at(0).time, 0.0f);
+    QCOMPARE(kf2.at(0).value, 7.36767f);
+    QCOMPARE(kf2.at(0).easeIn, 100.0f);
+    QCOMPARE(kf2.at(0).easeOut, 100.0f);
+    QCOMPARE(kf2.at(1).time, 4.72f);
+    QCOMPARE(kf2.at(1).value, 7.36767f);
+    QCOMPARE(kf2.at(1).easeIn, 100.0f);
+    QCOMPARE(kf2.at(1).easeOut, 100.0f);
 }
 
 void tst_Q3DSUipParser::layerProps()

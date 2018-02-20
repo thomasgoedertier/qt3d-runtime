@@ -322,8 +322,8 @@ public:
     int addSceneChangeObserver(SceneChangeCallback callback);
     void removeSceneChangeObserver(int callbackId);
     void resetDirtyLists();
-    const QVector<Q3DSGraphObject *> *dirtyNodesAdded() const { return &m_dirtyNodesAdded; }
-    const QVector<Q3DSGraphObject *> *dirtyNodesRemoved() const { return &m_dirtyNodesRemoved; }
+    const QVector<Q3DSGraphObject *> &dirtyNodesAdded() const { return m_dirtyNodesAdded; }
+    const QVector<Q3DSGraphObject *> &dirtyNodesRemoved() const { return m_dirtyNodesRemoved; }
 
     QStringList gex_propertyNames() const override;
     QVariantList gex_propertyValues() const override;
@@ -380,7 +380,7 @@ public:
     QString property() const { return m_property; }
     bool isDynamic() const { return m_dynamic; }
     AnimationType type() const { return m_type; }
-    const QVector<KeyFrame> *keyFrames() const { return &m_keyFrames; }
+    const QVector<KeyFrame> &keyFrames() const { return m_keyFrames; }
 
 private:
     Q3DSGraphObject *m_target = nullptr;
@@ -418,15 +418,15 @@ public:
 
     void setProperties(const QXmlStreamAttributes &attrs, PropSetFlags flags) override;
 
-    const QSet<Q3DSGraphObject *> *objects() const { return &m_objects; } // NB does not include objects from master
+    const QSet<Q3DSGraphObject *> &objects() const { return m_objects; } // NB does not include objects from master
     void addObject(Q3DSGraphObject *obj);
     void removeObject(Q3DSGraphObject *obj);
 
-    const QHash<Q3DSGraphObject *, Q3DSPropertyChangeList *> *propertyChanges() const { return &m_propChanges; }
+    const QHash<Q3DSGraphObject *, Q3DSPropertyChangeList *> &propertyChanges() const { return m_propChanges; }
     void addPropertyChange(Q3DSGraphObject *target, Q3DSPropertyChangeList *changeList);
     void removePropertyChange(Q3DSGraphObject *target);
 
-    const QVector<Q3DSAnimationTrack> *animations() const { return &m_anims; }
+    const QVector<Q3DSAnimationTrack> &animations() const { return m_anims; }
     void addAnimation(const Q3DSAnimationTrack &track);
     // ### void removeAnimation(...)
 

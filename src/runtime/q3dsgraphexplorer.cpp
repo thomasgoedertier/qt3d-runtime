@@ -225,42 +225,40 @@ Q3DSGraphExplorer::Q3DSGraphExplorer(Q3DSGraphObject *root, QWidget *parent)
 
         if (obj->type() == Q3DSGraphObject::Slide) {
             Q3DSSlide *slide = static_cast<Q3DSSlide *>(obj);
-            if (slide->objects()) {
-                s += tr("\n\nThis slide has %1 objects%2, %3 property changes, and %4 animations")
-                        .arg(slide->objects()->count()).arg(obj == root ? QString() : QLatin1String(" (excl. master)"))
-                        .arg(slide->propertyChanges()->count()).arg(slide->animations()->count());
-                s += tr("\n\nObjects:");
-                for (const Q3DSGraphObject *slideObj : *slide->objects())
-                    s += tr("\n%1 %2").arg((quintptr) slideObj, 0, 16).arg(QString::fromUtf8(slideObj->id()));
-                if (slide->parent()) {
-                    s += tr("\n\nProperty changes:");
-                    const QHash<Q3DSGraphObject *, Q3DSPropertyChangeList *> *a = slide->propertyChanges();
-                    for (auto it = a->cbegin(), ite = a->cend(); it != ite; ++it) {
-                        s += tr("\nOn object %1 %2").arg((quintptr) it.key(), 0, 16).arg(QString::fromUtf8(it.key()->id()));
-                        for (auto pit = it.value()->cbegin(), pite = it.value()->cend(); pit != pite; ++pit)
-                            s += tr("\n  %1: %2").arg(pit->nameStr()).arg(pit->valueStr());
-                    }
+            s += tr("\n\nThis slide has %1 objects%2, %3 property changes, and %4 animations")
+                    .arg(slide->objects().count()).arg(obj == root ? QString() : QLatin1String(" (excl. master)"))
+                    .arg(slide->propertyChanges().count()).arg(slide->animations().count());
+            s += tr("\n\nObjects:");
+            for (const Q3DSGraphObject *slideObj : slide->objects())
+                s += tr("\n%1 %2").arg((quintptr) slideObj, 0, 16).arg(QString::fromUtf8(slideObj->id()));
+            if (slide->parent()) {
+                s += tr("\n\nProperty changes:");
+                const QHash<Q3DSGraphObject *, Q3DSPropertyChangeList *> &a = slide->propertyChanges();
+                for (auto it = a.cbegin(), ite = a.cend(); it != ite; ++it) {
+                    s += tr("\nOn object %1 %2").arg((quintptr) it.key(), 0, 16).arg(QString::fromUtf8(it.key()->id()));
+                    for (auto pit = it.value()->cbegin(), pite = it.value()->cend(); pit != pite; ++pit)
+                        s += tr("\n  %1: %2").arg(pit->nameStr()).arg(pit->valueStr());
                 }
-                if (!slide->animations()->isEmpty()) {
-                    s += tr("\n\nAnimations:");
-                    const QVector<Q3DSAnimationTrack> *anims = slide->animations();
-                    for (const Q3DSAnimationTrack &animTrack : *anims) {
-                        s += tr("\n  type %1 on object %2 %3 property %4 with %5 keyframes")
+            }
+            if (!slide->animations().isEmpty()) {
+                s += tr("\n\nAnimations:");
+                const QVector<Q3DSAnimationTrack> &anims = slide->animations();
+                for (const Q3DSAnimationTrack &animTrack : anims) {
+                    s += tr("\n  type %1 on object %2 %3 property %4 with %5 keyframes")
                             .arg(animTrack.type()).arg((quintptr) animTrack.target(), 0, 16).arg(QString::fromUtf8(animTrack.target()->id()))
-                            .arg(animTrack.property()).arg(animTrack.keyFrames()->count());
-                        int kfIdx = 0;
-                        for (const Q3DSAnimationTrack::KeyFrame &kf : *animTrack.keyFrames()) {
-                            s += tr("\n    [%1] time %2 value %3").arg(kfIdx).arg(kf.time).arg(kf.value);
-                            if (animTrack.type() == Q3DSAnimationTrack::EaseInOut) {
-                                s += tr("\n        easeIn %1 easeOut %2").arg(kf.easeIn).arg(kf.easeOut);
-                            } else if (animTrack.type() == Q3DSAnimationTrack::Bezier) {
-                                s += tr("\n        C2 time %1 C2 value %2 C1 time %3 C1 value %4")
-                                        .arg(kf.c2time).arg(kf.c2value).arg(kf.c1time).arg(kf.c1value);
-                            }
-                            ++kfIdx;
+                            .arg(animTrack.property()).arg(animTrack.keyFrames().count());
+                    int kfIdx = 0;
+                    for (const Q3DSAnimationTrack::KeyFrame &kf : animTrack.keyFrames()) {
+                        s += tr("\n    [%1] time %2 value %3").arg(kfIdx).arg(kf.time).arg(kf.value);
+                        if (animTrack.type() == Q3DSAnimationTrack::EaseInOut) {
+                            s += tr("\n        easeIn %1 easeOut %2").arg(kf.easeIn).arg(kf.easeOut);
+                        } else if (animTrack.type() == Q3DSAnimationTrack::Bezier) {
+                            s += tr("\n        C2 time %1 C2 value %2 C1 time %3 C1 value %4")
+                                    .arg(kf.c2time).arg(kf.c2value).arg(kf.c1time).arg(kf.c1value);
                         }
-
+                        ++kfIdx;
                     }
+
                 }
             }
         } else if (obj->type() == Q3DSGraphObject::Model) {

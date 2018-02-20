@@ -69,7 +69,7 @@ static void updatePosition(Q3DSSlide *slide, float pos)
     };
 
     const auto updateAllComponentPlayers = [pos](Q3DSSlide *slide) {
-        for (auto obj : *slide->objects()) {
+        for (auto obj : slide->objects()) {
             if (obj->type() == Q3DSGraphObject::Component) {
                 Q3DSComponentNode *comp = static_cast<Q3DSComponentNode *>(obj);
                 Q3DSSlidePlayer *player = comp->masterSlide()->attached<Q3DSSlideAttached>()->slidePlayer;
@@ -103,7 +103,7 @@ static void updateAnimators(Q3DSSlide *slide, bool running, bool restart, float 
     };
 
     const auto updateAllComponentPlayers = [running](Q3DSSlide *slide) {
-        for (auto obj : *slide->objects()) {
+        for (auto obj : slide->objects()) {
             if (obj->type() == Q3DSGraphObject::Component) {
                 Q3DSComponentNode *comp = static_cast<Q3DSComponentNode *>(obj);
                 Q3DSSlide *compSlide = comp->currentSlide();
@@ -138,7 +138,7 @@ static void updatePlaybackRate(Q3DSSlide *slide, float rate)
     };
 
     const auto updateAllComponentPlayers = [rate](Q3DSSlide *slide) {
-        for (auto obj : *slide->objects()) {
+        for (auto obj : slide->objects()) {
             if (obj->type() == Q3DSGraphObject::Component) {
                 Q3DSComponentNode *comp = static_cast<Q3DSComponentNode *>(obj);
                 Q3DSSlidePlayer *player = comp->masterSlide()->attached<Q3DSSlideAttached>()->slidePlayer;
@@ -338,7 +338,7 @@ void Q3DSSlidePlayer::setSlideDeck(Q3DSSlideDeck *slideDeck)
             slide->setAttached(data);
         }
 
-        for (auto object : *slide->objects()) {
+        for (auto object : slide->objects()) {
             if (object->type() == Q3DSGraphObject::Component)
                 prepareComponentsOnSlide(slide, object);
         }
@@ -549,7 +549,7 @@ void Q3DSSlidePlayer::handleCurrentSlideChanged(Q3DSSlide *slide,
 
 void Q3DSSlidePlayer::updateSlideVisibility(Q3DSSlide *slide, bool visible)
 {
-    for (Q3DSGraphObject *obj : *slide->objects()) {
+    for (Q3DSGraphObject *obj : slide->objects()) {
         if (obj->type() == Q3DSGraphObject::Component) {
             Q3DSComponentNode *comp = static_cast<Q3DSComponentNode *>(obj);
             Q3DSSlide *compMasterSlide = comp->masterSlide();

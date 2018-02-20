@@ -1820,7 +1820,7 @@ Q3DSCameraNode *Q3DSSceneManager::findFirstCamera(Q3DSLayerNode *layer3DS)
                     // Check that object exists current slide scope (master + current)
                     Q3DSSlide *master = component ? component->masterSlide () : m_masterSlide;
                     Q3DSSlide *currentSlide = component ? component->currentSlide() : m_currentSlide;
-                    if ((master->objects()->contains(cam) || currentSlide->objects()->contains(cam)) && isComponentVisible(component))
+                    if ((master->objects().contains(cam) || currentSlide->objects().contains(cam)) && isComponentVisible(component))
                         return cam;
                 }
             }
@@ -5834,7 +5834,7 @@ bool Q3DSSceneManager::isComponentVisible(Q3DSComponentNode *component)
             auto parentComponent = findNextComponentParent(targetComponent);
             Q3DSSlide *parentMaster = parentComponent ? parentComponent->masterSlide () : m_masterSlide;
             Q3DSSlide *parentCurrentSlide = parentComponent ? parentComponent->currentSlide() : m_currentSlide;
-            if (!parentMaster->objects()->contains(targetComponent) && !parentCurrentSlide->objects()->contains(targetComponent)) {
+            if (!parentMaster->objects().contains(targetComponent) && !parentCurrentSlide->objects().contains(targetComponent)) {
                 visible = false;
                 break;
             }
@@ -6127,7 +6127,7 @@ void Q3DSSceneManager::updateNodeFromChangeFlags(Q3DSNode *node, Qt3DCore::QTran
         auto nodeData = static_cast<Q3DSNodeAttached*>(node->attached());
         auto currentSlide = nodeData->component ? nodeData->component->currentSlide() : m_currentSlide;
         auto masterSlide = nodeData->component ? nodeData->component->masterSlide() : m_masterSlide;
-        if (currentSlide && masterSlide->objects()->contains(node)) {
+        if (currentSlide && masterSlide->objects().contains(node)) {
             Q3DSSlideAttached *data = static_cast<Q3DSSlideAttached *>(currentSlide->attached());
             Q_ASSERT(data);
             data->needsMasterRollback.insert(node);

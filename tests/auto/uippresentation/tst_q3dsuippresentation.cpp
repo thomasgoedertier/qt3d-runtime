@@ -169,11 +169,11 @@ void tst_Q3DSUipPresentation::makePresentation(Q3DSUipPresentation &presentation
     masterSlide->addObject(layer1);
     masterSlide->addObject(camera1);
     masterSlide->addObject(light1);
-    QCOMPARE(masterSlide->objects()->count(), 3);
+    QCOMPARE(masterSlide->objects().count(), 3);
     // put model1 onto slide1, meaning it wont be visible on slide2
     slide1->addObject(model1);
     slide1->addObject(mat1);
-    QCOMPARE(slide1->objects()->count(), 2); // does not include objects inherited from master
+    QCOMPARE(slide1->objects().count(), 2); // does not include objects inherited from master
 
     // done, this is a full presentation with a layer, camera, a light and a cube
 }
@@ -237,11 +237,11 @@ void tst_Q3DSUipPresentation::sceneChangeNotification()
         removed.clear();
     };
     auto obs = [&added, &removed](Q3DSScene *scene) {
-        for (Q3DSGraphObject *obj : *scene->dirtyNodesAdded()) {
+        for (Q3DSGraphObject *obj : scene->dirtyNodesAdded()) {
             qDebug("  added: %s", obj->id().constData());
             added.append(obj->id());
         }
-        for (Q3DSGraphObject *obj : *scene->dirtyNodesRemoved()) {
+        for (Q3DSGraphObject *obj : scene->dirtyNodesRemoved()) {
             // note that accessing the object should be exercised with care
             // since the object may be in the process of being destroyed. id()
             // should still work.

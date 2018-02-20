@@ -584,7 +584,7 @@ void Q3DSGraphObject::removePropertyChangeObserver(int callbackId)
 
 int Q3DSGraphObject::mapChangeFlags(const Q3DSPropertyChangeList &changeList)
 {
-    // Property change handlers may not want to rely on changeList->keys().
+    // Property change handlers may not want to rely on changeList.keys().
     // Let's give subclasses the possibility to look at the property names here
     // and create a (class-specific) bitmask accordingly. For example, Q3DSNode
     // can check if position or rotation or scale is present in the list, and
@@ -3367,18 +3367,16 @@ void Q3DSUipPresentation::removeDataInputTarget(Q3DSGraphObject *obj)
 void Q3DSUipPresentation::applySlidePropertyChanges(Q3DSSlide *slide) const
 {
     auto changeList = slide->propertyChanges();
-    qCDebug(lcUip, "Applying %d property changes from slide %s", changeList->count(), slide->id().constData());
-    if (!changeList)
-        return;
+    qCDebug(lcUip, "Applying %d property changes from slide %s", changeList.count(), slide->id().constData());
 
-    for (auto it = changeList->cbegin(), ite = changeList->cend(); it != ite; ++it) {
+    for (auto it = changeList.cbegin(), ite = changeList.cend(); it != ite; ++it) {
         for (auto change = it.value()->begin(); change != it.value()->end(); change++)
             qCDebug(lcUipProp) << "\t" << it.key() << "applying property change:" << change->name() << change->value();
 
         it.key()->applyPropertyChanges(*it.value());
     }
 
-    for (auto it = changeList->cbegin(), ite = changeList->cend(); it != ite; ++it)
+    for (auto it = changeList.cbegin(), ite = changeList.cend(); it != ite; ++it)
         it.key()->notifyPropertyChanges(*it.value());
 }
 
