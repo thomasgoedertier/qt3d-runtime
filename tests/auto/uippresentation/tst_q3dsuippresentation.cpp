@@ -40,6 +40,7 @@ private slots:
     void basic();
     void propertyChangeNotification();
     void sceneChangeNotification();
+    void slideGraphChangeNotification();
 
 private:
     void makePresentation(Q3DSUipPresentation &presentation);
@@ -301,6 +302,60 @@ void tst_Q3DSUipPresentation::sceneChangeNotification()
     QVERIFY(removed.isEmpty());
 
     // everything other than model2 will be destroyed when the presentation goes out of scope
+}
+
+void tst_Q3DSUipPresentation::slideGraphChangeNotification()
+{
+    QByteArrayList added;
+    QByteArrayList removed;
+    auto obs = [&added, &removed](Q3DSSlide *master) {
+        for (Q3DSSlide *slide : master->dirtySlidesAdded()) {
+            qDebug("  added: %s", slide->id().constData());
+            added.append(slide->id());
+        }
+        for (Q3DSSlide *slide : master->dirtySlidesRemoved()) {
+            qDebug("  removed: %s", slide->id().constData());
+            removed.append(slide->id());
+        }
+        master->resetDirtyLists();
+    };
+
+    Q3DSUipPresentation presentation;
+    makePresentation(presentation);
+
+    Q3DSSlide *masterSlide = presentation.masterSlide();
+    QVERIFY(masterSlide);
+    QCOMPARE(masterSlide->childCount(), 2);
+    Q3DSSlide *slide1 = static_cast<Q3DSSlide *>(masterSlide->firstChild());
+    Q3DSSlide *slide2 = static_cast<Q3DSSlide *>(slide1->nextSibling());
+
+    auto reset = [&added, &removed, &masterSlide] {
+        masterSlide->resetDirtyLists();
+        added.clear();
+        removed.clear();
+    };
+
+    masterSlide->addSlideGraphChangeObserver(obs);
+
+    reset();
+    // try out the ugly alternative to presentation.unlinkObject
+    presentation.unregisterObject(slide2->id());
+    delete slide2; // this is expected to remove itself from the parent
+    QVERIFY(added.isEmpty());
+    QVERIFY(removed.count() == 1);
+    QCOMPARE(removed[0], QByteArrayLiteral("slide2"));
+
+    reset();
+    masterSlide->removeChildNode(slide1);
+    QVERIFY(added.isEmpty());
+    QVERIFY(removed.count() == 1);
+    QCOMPARE(removed[0], QByteArrayLiteral("slide1"));
+    masterSlide->appendChildNode(slide1);
+    QVERIFY(added.count() == 1);
+    QVERIFY(removed.count() == 1);
+    QCOMPARE(added[0], QByteArrayLiteral("slide1"));
+
+    // no removeSlideGraphChangeObserver. this works because obs outlives the presentation.
 }
 
 #include <tst_q3dsuippresentation.moc>

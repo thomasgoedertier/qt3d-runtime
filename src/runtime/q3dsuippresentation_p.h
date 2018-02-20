@@ -430,6 +430,15 @@ public:
     void addAnimation(const Q3DSAnimationTrack &track);
     // ### void removeAnimation(...)
 
+    // added/removed notifications are managed by the master slide,
+    // similarly to how scene does it for other types of objects
+    typedef std::function<void(Q3DSSlide *)> SlideGraphChangeCallback;
+    int addSlideGraphChangeObserver(SlideGraphChangeCallback callback);
+    void removeSlideGraphChangeObserver(int callbackId);
+    void resetDirtyLists();
+    const QVector<Q3DSSlide *> &dirtySlidesAdded() const { return m_dirtySlidesAdded; }
+    const QVector<Q3DSSlide *> &dirtySlidesRemoved() const { return m_dirtySlidesRemoved; }
+
     QStringList gex_propertyNames() const override;
     QVariantList gex_propertyValues() const override;
 
@@ -449,6 +458,7 @@ public:
 
 private:
     Q_DISABLE_COPY(Q3DSSlide)
+    void notifySlideGraphChange(Q3DSSlide *slide, Q3DSGraphObject::DirtyFlags bits);
 
     QString m_name;
     PlayMode m_playMode = StopAtEnd;
@@ -459,8 +469,12 @@ private:
     QSet<Q3DSGraphObject *> m_objects;
     QHash<Q3DSGraphObject *, Q3DSPropertyChangeList *> m_propChanges;
     QVector<Q3DSAnimationTrack> m_anims;
+    QVector<SlideGraphChangeCallback> m_slideGraphChangeCallbacks;
+    QVector<Q3DSSlide *> m_dirtySlidesAdded;
+    QVector<Q3DSSlide *> m_dirtySlidesRemoved;
 
     friend class Q3DSUipParser;
+    friend class Q3DSGraphObject;
 };
 
 // Node/material/resource-like GraphObjects have 3 types of setters:

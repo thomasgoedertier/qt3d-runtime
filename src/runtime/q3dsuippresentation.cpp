@@ -563,11 +563,26 @@ void Q3DSGraphObject::reparentChildNodesTo(Q3DSGraphObject *newParent)
 
 void Q3DSGraphObject::markDirty(DirtyFlags bits)
 {
+    // Find the scene object or the master slide and notify it. The scene and
+    // master slide themselves generate no such notifications (hence starting
+    // from m_parent) since they are associated directly with the presentation.
     Q3DSGraphObject *p = m_parent;
-    while (p) {
-        if (p->type() == Q3DSGraphObject::Scene)
-            static_cast<Q3DSScene *>(p)->notifyNodeChange(this, bits);
-        p = p->m_parent;
+    if (m_type != Slide) {
+        while (p) {
+            if (p->m_type == Q3DSGraphObject::Scene) {
+                static_cast<Q3DSScene *>(p)->notifyNodeChange(this, bits);
+                break;
+            }
+            p = p->m_parent;
+        }
+    } else {
+        while (p) {
+            if (!p->m_parent) {
+                static_cast<Q3DSSlide *>(p)->notifySlideGraphChange(static_cast<Q3DSSlide *>(this), bits);
+                break;
+            }
+            p = p->m_parent;
+        }
     }
 }
 
@@ -1146,6 +1161,12 @@ Q3DSSlide::Q3DSSlide()
 
 Q3DSSlide::~Q3DSSlide()
 {
+    // Do this here since markDirty in removeChildNode calls into
+    // notifySlideGraphChange, if this is the master slide, by casting to
+    // Q3DSSlide. Prevent issues from already being half-destructed.
+    if (!parent())
+        destroyGraph();
+
     qDeleteAll(m_propChanges);
 }
 
@@ -1199,6 +1220,37 @@ void Q3DSSlide::addAnimation(const Q3DSAnimationTrack &track)
 {
     m_anims.append(track);
     // ### needs notify
+}
+
+// "slide change" would be quite confusing, hence using "slide graph change" instead
+int Q3DSSlide::addSlideGraphChangeObserver(SlideGraphChangeCallback callback)
+{
+    m_slideGraphChangeCallbacks.append(callback);
+    return m_slideGraphChangeCallbacks.count() - 1;
+}
+
+void Q3DSSlide::removeSlideGraphChangeObserver(int callbackId)
+{
+    m_slideGraphChangeCallbacks[callbackId] = nullptr;
+}
+
+void Q3DSSlide::resetDirtyLists()
+{
+    m_dirtySlidesAdded.clear();
+    m_dirtySlidesRemoved.clear();
+}
+
+void Q3DSSlide::notifySlideGraphChange(Q3DSSlide *slide, Q3DSGraphObject::DirtyFlags bits)
+{
+    if (bits.testFlag(DirtyNodeAdded))
+        m_dirtySlidesAdded.append(slide);
+    if (bits.testFlag(DirtyNodeRemoved))
+        m_dirtySlidesRemoved.append(slide);
+
+    for (auto f : m_slideGraphChangeCallbacks) {
+        if (f)
+            f(this);
+    }
 }
 
 QStringList Q3DSSlide::gex_propertyNames() const
