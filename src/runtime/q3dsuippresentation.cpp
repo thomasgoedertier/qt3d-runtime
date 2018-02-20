@@ -407,6 +407,12 @@ Q3DSGraphObject::Q3DSGraphObject(Q3DSGraphObject::Type type)
 
 Q3DSGraphObject::~Q3DSGraphObject()
 {
+    destroyGraph();
+    delete m_attached;
+}
+
+void Q3DSGraphObject::destroyGraph()
+{
     if (m_parent) {
         m_parent->removeChildNode(this);
         Q_ASSERT(!m_parent);
@@ -418,8 +424,6 @@ Q3DSGraphObject::~Q3DSGraphObject()
         delete child;
     }
     Q_ASSERT(!m_firstChild && !m_lastChild);
-
-    delete m_attached;
 }
 
 int Q3DSGraphObject::childCount() const
@@ -462,7 +466,25 @@ void Q3DSGraphObject::removeChildNode(Q3DSGraphObject *node)
 
     node->m_previousSibling = nullptr;
     node->m_nextSibling = nullptr;
+    // keep m_parent so that markDirty can walk up the chain still
+    node->markDirty(DirtyNodeRemoved);
+    // now it can be nulled out
     node->m_parent = nullptr;
+}
+
+void Q3DSGraphObject::removeAllChildNodes()
+{
+    while (m_firstChild) {
+        Q3DSGraphObject *node = m_firstChild;
+        m_firstChild = node->m_nextSibling;
+        node->m_nextSibling = nullptr;
+        if (m_firstChild)
+            m_firstChild->m_previousSibling = nullptr;
+        else
+            m_lastChild = nullptr;
+        node->markDirty(DirtyNodeRemoved);
+        node->m_parent = nullptr;
+    }
 }
 
 void Q3DSGraphObject::prependChildNode(Q3DSGraphObject *node)
@@ -477,6 +499,7 @@ void Q3DSGraphObject::prependChildNode(Q3DSGraphObject *node)
     node->m_nextSibling = m_firstChild;
     m_firstChild = node;
     node->m_parent = this;
+    node->markDirty(DirtyNodeAdded);
 }
 
 void Q3DSGraphObject::appendChildNode(Q3DSGraphObject *node)
@@ -491,6 +514,61 @@ void Q3DSGraphObject::appendChildNode(Q3DSGraphObject *node)
     node->m_previousSibling = m_lastChild;
     m_lastChild = node;
     node->m_parent = this;
+    node->markDirty(DirtyNodeAdded);
+}
+
+void Q3DSGraphObject::insertChildNodeBefore(Q3DSGraphObject *node, Q3DSGraphObject *before)
+{
+    Q_ASSERT_X(!node->m_parent, "Q3DSGraphObject::insertChildNodeBefore", "Q3DSGraphObject already has a parent");
+    Q_ASSERT_X(before && before->m_parent == this, "Q3DSGraphObject::insertChildNodeBefore", "The parent of \'before\' is wrong");
+
+    Q3DSGraphObject *previous = before->m_previousSibling;
+    if (previous)
+        previous->m_nextSibling = node;
+    else
+        m_firstChild = node;
+
+    node->m_previousSibling = previous;
+    node->m_nextSibling = before;
+    before->m_previousSibling = node;
+    node->m_parent = this;
+    node->markDirty(DirtyNodeAdded);
+}
+
+void Q3DSGraphObject::insertChildNodeAfter(Q3DSGraphObject *node, Q3DSGraphObject *after)
+{
+    Q_ASSERT_X(!node->m_parent, "Q3DSGraphObject::insertChildNodeAfter", "Q3DSGraphObject already has a parent");
+    Q_ASSERT_X(after && after->m_parent == this, "Q3DSGraphObject::insertChildNodeAfter", "The parent of \'after\' is wrong");
+
+    Q3DSGraphObject *next = after->m_nextSibling;
+    if (next)
+        next->m_previousSibling = node;
+    else
+        m_lastChild = node;
+
+    node->m_nextSibling = next;
+    node->m_previousSibling = after;
+    after->m_nextSibling = node;
+    node->m_parent = this;
+    node->markDirty(DirtyNodeAdded);
+}
+
+void Q3DSGraphObject::reparentChildNodesTo(Q3DSGraphObject *newParent)
+{
+    for (Q3DSGraphObject *c = firstChild(); c; c = firstChild()) {
+        removeChildNode(c);
+        newParent->appendChildNode(c);
+    }
+}
+
+void Q3DSGraphObject::markDirty(DirtyFlags bits)
+{
+    Q3DSGraphObject *p = m_parent;
+    while (p) {
+        if (p->type() == Q3DSGraphObject::Scene)
+            static_cast<Q3DSScene *>(p)->notifyNodeChange(this, bits);
+        p = p->m_parent;
+    }
 }
 
 int Q3DSGraphObject::addPropertyChangeObserver(PropertyChangeCallback callback)
@@ -920,7 +998,7 @@ bool parseProperty(const V &attrs, Q3DSGraphObject::PropSetFlags flags, const QS
 // expected to just store the string, and only look up the object in
 // resolveReferences() using this helper.
 template<typename T>
-void resolveRef(const QString &val, Q3DSGraphObject::Type type, T **obj, const Q3DSUipPresentation &pres)
+void resolveRef(const QString &val, Q3DSGraphObject::Type type, T **obj, Q3DSUipPresentation &pres)
 {
     bool b = false;
     if (val.startsWith('#')) {
@@ -959,6 +1037,14 @@ Q3DSScene::Q3DSScene()
 {
 }
 
+Q3DSScene::~Q3DSScene()
+{
+    // Do this here since markDirty in removeChildNode calls into
+    // notifyNodeChange by casting to Q3DSScene. Prevent issues from already
+    // being half-destructed.
+    destroyGraph();
+}
+
 void Q3DSScene::setProperties(const QXmlStreamAttributes &attrs, PropSetFlags flags)
 {
     // Asset properties (starttime, endtime) are not in use, hence no base call.
@@ -967,6 +1053,36 @@ void Q3DSScene::setProperties(const QXmlStreamAttributes &attrs, PropSetFlags fl
     parseProperty(attrs, flags, typeName, QStringLiteral("name"), &m_name);
     parseProperty(attrs, flags, typeName, QStringLiteral("bgcolorenable"), &m_useClearColor);
     parseProperty(attrs, flags, typeName, QStringLiteral("backgroundcolor"), &m_clearColor);
+}
+
+int Q3DSScene::addSceneChangeObserver(SceneChangeCallback callback)
+{
+    m_sceneChangeCallbacks.append(callback);
+    return m_sceneChangeCallbacks.count() - 1;
+}
+
+void Q3DSScene::removeSceneChangeObserver(int callbackId)
+{
+    m_sceneChangeCallbacks[callbackId] = nullptr;
+}
+
+void Q3DSScene::resetDirtyLists()
+{
+    m_dirtyNodesAdded.clear();
+    m_dirtyNodesRemoved.clear();
+}
+
+void Q3DSScene::notifyNodeChange(Q3DSGraphObject *obj, Q3DSGraphObject::DirtyFlags bits)
+{
+    if (bits.testFlag(DirtyNodeAdded))
+        m_dirtyNodesAdded.append(obj);
+    if (bits.testFlag(DirtyNodeRemoved))
+        m_dirtyNodesRemoved.append(obj);
+
+    for (auto f : m_sceneChangeCallbacks) {
+        if (f)
+            f(this);
+    }
 }
 
 QStringList Q3DSScene::gex_propertyNames() const
@@ -3101,7 +3217,7 @@ Q3DSSlide *Q3DSUipPresentation::masterSlide() const
     return d->masterSlide;
 }
 
-Q3DSGraphObject *Q3DSUipPresentation::object(const QByteArray &id) const
+Q3DSGraphObject *Q3DSUipPresentation::getObject(const QByteArray &id) const
 {
     return d->objects.value(id);
 }

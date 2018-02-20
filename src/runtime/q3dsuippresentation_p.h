@@ -218,6 +218,12 @@ public:
     };
     Q_DECLARE_FLAGS(PropSetFlags, PropSetFlag)
 
+    enum DirtyFlag {
+        DirtyNodeAdded = 0x01,
+        DirtyNodeRemoved = 0x02
+    };
+    Q_DECLARE_FLAGS(DirtyFlags, DirtyFlag)
+
     Q3DSGraphObject(Type type);
     virtual ~Q3DSGraphObject();
 
@@ -231,8 +237,13 @@ public:
     int childCount() const;
     Q3DSGraphObject *childAtIndex(int idx) const;
     void removeChildNode(Q3DSGraphObject *node);
+    void removeAllChildNodes();
     void prependChildNode(Q3DSGraphObject *node);
     void appendChildNode(Q3DSGraphObject *node);
+    void insertChildNodeBefore(Q3DSGraphObject *node, Q3DSGraphObject *before);
+    void insertChildNodeAfter(Q3DSGraphObject *node, Q3DSGraphObject *after);
+    void reparentChildNodesTo(Q3DSGraphObject *newParent);
+    void markDirty(DirtyFlags bits);
 
     virtual void setProperties(const QXmlStreamAttributes &attrs, PropSetFlags flags);
     virtual void applyPropertyChanges(const Q3DSPropertyChangeList &changeList);
@@ -274,6 +285,7 @@ public:
     Q3DSPropertyChange setEndTime(qint32 v);
 
 protected:
+    void destroyGraph();
     QByteArray m_id;
     qint32 m_startTime = 0;
     qint32 m_endTime = 10000;
@@ -296,13 +308,22 @@ private:
 };
 
 Q_DECLARE_OPERATORS_FOR_FLAGS(Q3DSGraphObject::PropSetFlags)
+Q_DECLARE_OPERATORS_FOR_FLAGS(Q3DSGraphObject::DirtyFlags)
 
 class Q3DSV_PRIVATE_EXPORT Q3DSScene : public Q3DSGraphObject
 {
 public:
     Q3DSScene();
+    ~Q3DSScene();
 
     void setProperties(const QXmlStreamAttributes &attrs, PropSetFlags flags) override;
+
+    typedef std::function<void(Q3DSScene *)> SceneChangeCallback;
+    int addSceneChangeObserver(SceneChangeCallback callback);
+    void removeSceneChangeObserver(int callbackId);
+    void resetDirtyLists();
+    const QVector<Q3DSGraphObject *> *dirtyNodesAdded() const { return &m_dirtyNodesAdded; }
+    const QVector<Q3DSGraphObject *> *dirtyNodesRemoved() const { return &m_dirtyNodesRemoved; }
 
     QStringList gex_propertyNames() const override;
     QVariantList gex_propertyValues() const override;
@@ -318,10 +339,16 @@ public:
 
 private:
     Q_DISABLE_COPY(Q3DSScene)
+    void notifyNodeChange(Q3DSGraphObject *obj, Q3DSGraphObject::DirtyFlags bits);
 
     QString m_name;
     bool m_useClearColor = true;
     QColor m_clearColor = Qt::black;
+    QVector<SceneChangeCallback> m_sceneChangeCallbacks;
+    QVector<Q3DSGraphObject *> m_dirtyNodesAdded;
+    QVector<Q3DSGraphObject *> m_dirtyNodesRemoved;
+
+    friend class Q3DSGraphObject;
 };
 
 class Q3DSV_PRIVATE_EXPORT Q3DSAnimationTrack
@@ -1680,11 +1707,16 @@ public:
     void setScene(Q3DSScene *p);
     void setMasterSlide(Q3DSSlide *p);
 
-    void registerObject(const QByteArray &id, Q3DSGraphObject *p);
+    void registerObject(const QByteArray &id, Q3DSGraphObject *p); // covers both the scene and slide graphs
     void unregisterObject(const QByteArray &id);
+
+    template <typename T = Q3DSGraphObject>
+    const T *object(const QByteArray &id) const { return static_cast<const T *>(getObject(id)); }
+    template <typename T = Q3DSGraphObject>
+    T *object(const QByteArray &id) { return static_cast<T *>(getObject(id)); }
+
     void registerImageBuffer(const QString &sourcePath, bool hasTransparency);
 
-    Q3DSGraphObject *object(const QByteArray &id) const;
     Q3DSCustomMaterial customMaterial(const QByteArray &id) const;
     Q3DSEffect effect(const QByteArray &id) const;
     MeshList mesh(const QString &assetFilename, int part = 1);
@@ -1721,7 +1753,7 @@ public:
         return obj;
     }
 
-    void takeObjectFromScene(Q3DSGraphObject *obj)
+    void unlinkObject(Q3DSGraphObject *obj)
     {
         unregisterObject(obj->id());
         if (obj->parent())
@@ -1735,6 +1767,7 @@ private:
     void setLoadTime(qint64 ms);
     bool loadCustomMaterial(const QStringRef &id, const QStringRef &name, const QString &assetFilename);
     bool loadEffect(const QStringRef &id, const QStringRef &name, const QString &assetFilename);
+    Q3DSGraphObject *getObject(const QByteArray &id) const;
 
     QScopedPointer<Q3DSUipPresentationData> d;
     friend class Q3DSUipParser;

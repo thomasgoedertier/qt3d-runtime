@@ -39,6 +39,7 @@ private slots:
     void cleanup();
     void basic();
     void propertyChangeNotification();
+    void sceneChangeNotification();
 
 private:
     void makePresentation(Q3DSUipPresentation &presentation);
@@ -107,7 +108,7 @@ void tst_Q3DSUipPresentation::makePresentation(Q3DSUipPresentation &presentation
     QCOMPARE(scene->firstChild(), layer1);
 
     // test object removal a bit. assume we want to get rid of layer1:
-    presentation.takeObjectFromScene(layer1);
+    presentation.unlinkObject(layer1);
     QCOMPARE(layer1->parent(), nullptr);
     QCOMPARE(scene->firstChild(), nullptr);
     QVERIFY(presentation.object("layer1") == nullptr);
@@ -214,6 +215,92 @@ void tst_Q3DSUipPresentation::propertyChangeNotification()
     model1->notifyPropertyChanges({ model1->setPosition(QVector3D(0, 2, 0)) });
     QCOMPARE(ncount, 2);
     QVERIFY(ok);
+}
+
+void tst_Q3DSUipPresentation::sceneChangeNotification()
+{
+    Q3DSUipPresentation presentation;
+    makePresentation(presentation);
+
+    Q3DSScene *scene = presentation.object<Q3DSScene>("scene");
+    QVERIFY(scene);
+    QCOMPARE(presentation.scene(), scene);
+
+    Q3DSModelNode *model1 = presentation.object<Q3DSModelNode>("model1");
+    QVERIFY(model1);
+
+    QByteArrayList added;
+    QByteArrayList removed;
+    auto reset = [&added, &removed, &scene] {
+        scene->resetDirtyLists();
+        added.clear();
+        removed.clear();
+    };
+    auto obs = [&added, &removed](Q3DSScene *scene) {
+        for (Q3DSGraphObject *obj : *scene->dirtyNodesAdded()) {
+            qDebug("  added: %s", obj->id().constData());
+            added.append(obj->id());
+        }
+        for (Q3DSGraphObject *obj : *scene->dirtyNodesRemoved()) {
+            // note that accessing the object should be exercised with care
+            // since the object may be in the process of being destroyed. id()
+            // should still work.
+            qDebug("  removed: %s", obj->id().constData());
+            removed.append(obj->id());
+        }
+        scene->resetDirtyLists();
+    };
+    reset();
+    int obsId = scene->addSceneChangeObserver(obs);
+
+    Q3DSModelNode *model2 = presentation.newObject<Q3DSModelNode>("model2");
+    model2->setMesh(presentation.mesh(QLatin1String("#Cylinder")));
+    Q3DSDefaultMaterial *mat2 = presentation.newObject<Q3DSDefaultMaterial>("mat2");
+    // this will not cause a notification since model2 does not have a parent
+    // and so is not associated with the scene yet
+    model2->appendChildNode(mat2);
+
+    // this should trigger a DirtyNodeAdded
+    model1->appendChildNode(model2);
+
+    QVERIFY(added.count() == 1);
+    QVERIFY(removed.isEmpty());
+    QCOMPARE(added[0], QByteArrayLiteral("model2"));
+
+    reset();
+    // save mat1 since we want to re-add it later
+    Q3DSDefaultMaterial *mat1 = presentation.object<Q3DSDefaultMaterial>("mat1");
+    model1->removeAllChildNodes();
+    QVERIFY(added.isEmpty());
+    QVERIFY(removed.count() == 2);
+    QCOMPARE(removed[0], QByteArrayLiteral("mat1"));
+    QCOMPARE(removed[1], QByteArrayLiteral("model2"));
+
+    reset();
+    model1->appendChildNode(mat1);
+    model1->appendChildNode(model2);
+    QVERIFY(added.count() == 2);
+    QVERIFY(removed.isEmpty());
+    QCOMPARE(added[0], QByteArrayLiteral("mat1"));
+    QCOMPARE(added[1], QByteArrayLiteral("model2"));
+
+    reset();
+    // the proper way to take ownership back for an object that we do not plan
+    // to re-add to the graph later on
+    presentation.unlinkObject(model2);
+    QVERIFY(added.isEmpty());
+    QVERIFY(removed.count() == 1);
+    QCOMPARE(removed[0], QByteArrayLiteral("model2"));
+    delete model2;
+
+    reset();
+    scene->removeSceneChangeObserver(obsId);
+    model1->removeChildNode(mat1);
+    model1->appendChildNode(mat1);
+    QVERIFY(added.isEmpty());
+    QVERIFY(removed.isEmpty());
+
+    // everything other than model2 will be destroyed when the presentation goes out of scope
 }
 
 #include <tst_q3dsuippresentation.moc>
