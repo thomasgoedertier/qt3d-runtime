@@ -164,7 +164,7 @@ public:
     };
     QVector<AnimatedValueRollbackData> animationRollbacks;
 
-    enum DirtyFlag {
+    enum FrameDirtyFlag {
         GroupDirty = 0x01,
         LightDirty = 0x02,
         ModelDirty = 0x04,
@@ -180,13 +180,13 @@ public:
         CustomMaterialDirty = 0x1000,
         EffectDirty = 0x2000
     };
-    Q_DECLARE_FLAGS(DirtyFlags, DirtyFlag)
+    Q_DECLARE_FLAGS(FrameDirtyFlags, FrameDirtyFlag)
 
-    DirtyFlags dirty;
-    int changeFlags = 0;
+    FrameDirtyFlags frameDirty;
+    int frameChangeFlags = 0;
 };
 
-Q_DECLARE_OPERATORS_FOR_FLAGS(Q3DSGraphObjectAttached::DirtyFlags)
+Q_DECLARE_OPERATORS_FOR_FLAGS(Q3DSGraphObjectAttached::FrameDirtyFlags)
 
 class Q3DSV_PRIVATE_EXPORT Q3DSGraphObject
 {
