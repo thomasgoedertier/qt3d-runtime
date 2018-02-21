@@ -6323,18 +6323,16 @@ void Q3DSSceneManager::setDataInputValue(const QString &dataInputName, const QVa
             }
         }
 
-        QString strValue = Q3DS::convertFromVariant(value, type);
         Q3DSPropertyChangeList changeList;
-
         // Remember that we have QMultiHash everywhere since one data input
         // entry can control multiple properties, on the same object even.
         for (const QString &propName : obj->dataInputControlledProperties()->values(dataInputName)) {
             qCDebug(lcUipProp, "Data input: object %s property %s value %s",
-                    obj->id().constData(), qPrintable(propName), qPrintable(strValue));
+                    obj->id().constData(), qPrintable(propName), qPrintable(value.toString()));
             if (propName.startsWith(QLatin1Char('@'))) {
                 if (propName == QStringLiteral("@slide")) {
                     if (obj->type() == Q3DSGraphObject::Scene) {
-                        const QByteArray slideName = strValue.toUtf8();
+                        const QByteArray slideName = value.toByteArray();
                         bool slideFound = false;
                         Q3DSUipPresentation::forAllObjectsOfType(m_masterSlide, Q3DSGraphObject::Slide,
                                                                  [this, slideName, &slideFound](Q3DSGraphObject *obj) {
@@ -6365,11 +6363,12 @@ void Q3DSSceneManager::setDataInputValue(const QString &dataInputName, const QVa
             } else {
                 if (type == Q3DS::Float && meta.hasMinMax()) {
                     // Keep value between min&max
-                    float val = strValue.toFloat();
+                    float val = value.toFloat();
                     val = std::min(meta.maxValue, std::max(meta.minValue, val));
-                    strValue = QString::number(val);
+                    changeList.append(Q3DSPropertyChange::fromVariant(propName, val));
+                } else {
+                    changeList.append(Q3DSPropertyChange::fromVariant(propName, value));
                 }
-                changeList.append(Q3DSPropertyChange(propName, strValue));
             }
         }
 

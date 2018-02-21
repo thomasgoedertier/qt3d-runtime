@@ -476,7 +476,7 @@ void Q3DSUipParser::parseAddSet(Q3DSSlide *slide, bool isSet, bool isMaster)
             changeList->append(Q3DSPropertyChange(attr.name().toString(), attr.value().toString()));
         }
         if (!changeList->isEmpty())
-            slide->addPropertyChange(obj, changeList.take());
+            slide->addPropertyChanges(obj, changeList.take());
     }
 
     // Store animations.

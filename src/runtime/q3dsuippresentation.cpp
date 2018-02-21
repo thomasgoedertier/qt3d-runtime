@@ -328,72 +328,41 @@ QVariant convertToVariant(const QString &value, const Q3DSMaterial::PropertyElem
     return QVariant();
 }
 
-QString convertFromVariant(const QVariant &value, Q3DS::PropertyType type)
+QString convertFromVariant(const QVariant &value)
 {
-    switch (type) {
-    // string
-    case StringList:
-    case Slide:
-    case Font:
-    case String:
-    case MultiLineString:
-    case ObjectRef:
-    case Image:
-    case Mesh:
-    case Import:
-    case Texture:
-    case Image2D:
-    case Buffer:
-    case Guid:
-    case StringListOrInt:
-    case Renderable:
-    case PathBuffer:
-    // int
-    case LongRange:
-    case Long:
-    // float
-    case FloatRange:
-    case Float:
-    case FontSize:
-        return value.toString();
-    case Float2:
+    switch (value.type()) {
+    case QVariant::Vector2D:
     {
         const QVector2D v = value.value<QVector2D>();
         return QString(QLatin1String("%1 %2"))
                 .arg(QString::number(v.x())).arg(QString::number(v.y()));
     }
-    case Vector:
-    case Scale:
-    case Rotation:
+    case QVariant::Vector3D:
     {
         const QVector3D v = value.value<QVector3D>();
         return QString(QLatin1String("%1 %2 %3"))
                 .arg(QString::number(v.x())).arg(QString::number(v.y())).arg(QString::number(v.z()));
     }
-    case Color:
+    case QVariant::Color:
     {
-        QVector3D v;
-        if (value.canConvert<QColor>()) {
-            QColor c = value.value<QColor>();
-            v = QVector3D(c.redF(), c.greenF(), c.blueF());
-        } else {
-            v = value.value<QVector3D>();
-        }
+        const QColor c = value.value<QColor>();
+        const QVector3D v = QVector3D(c.redF(), c.greenF(), c.blueF());
         return QString(QLatin1String("%1 %2 %3"))
                 .arg(QString::number(v.x())).arg(QString::number(v.y())).arg(QString::number(v.z()));
     }
-    case Boolean:
-    {
+    case QVariant::Bool:
         return value.toBool() ? QLatin1String("true") : QLatin1String("false");
-    }
     default:
-        break;
+        return value.toString();
     }
-
-    return QString();
 }
 
 } // namespace Q3DS
+
+Q3DSPropertyChange Q3DSPropertyChange::fromVariant(const QString &name, const QVariant &value)
+{
+    return Q3DSPropertyChange(name, Q3DS::convertFromVariant(value));
+}
 
 Q3DSGraphObjectAttached::~Q3DSGraphObjectAttached()
 {
@@ -1081,22 +1050,15 @@ void Q3DSScene::removeSceneChangeObserver(int callbackId)
     m_sceneChangeCallbacks[callbackId] = nullptr;
 }
 
-void Q3DSScene::resetDirtyLists()
-{
-    m_dirtyNodesAdded.clear();
-    m_dirtyNodesRemoved.clear();
-}
-
 void Q3DSScene::notifyNodeChange(Q3DSGraphObject *obj, Q3DSGraphObject::DirtyFlags bits)
 {
-    if (bits.testFlag(DirtyNodeAdded))
-        m_dirtyNodesAdded.append(obj);
-    if (bits.testFlag(DirtyNodeRemoved))
-        m_dirtyNodesRemoved.append(obj);
-
     for (auto f : m_sceneChangeCallbacks) {
-        if (f)
-            f(this);
+        if (f) {
+            if (bits.testFlag(DirtyNodeAdded))
+                f(this, DirtyNodeAdded, obj);
+            if (bits.testFlag(DirtyNodeRemoved))
+                f(this, DirtyNodeRemoved, obj);
+        }
     }
 }
 
@@ -1195,36 +1157,81 @@ void Q3DSSlide::setProperties(const QXmlStreamAttributes &attrs, PropSetFlags fl
 void Q3DSSlide::addObject(Q3DSGraphObject *obj)
 {
     m_objects.insert(obj);
-    // ### needs notify
+    SlideObjectChange change;
+    change.type = SlideObjectAdded;
+    change.obj = obj;
+    notifySlideObjectChange(change);
 }
 
 void Q3DSSlide::removeObject(Q3DSGraphObject *obj)
 {
-    m_objects.remove(obj);
-    // ### needs notify
+    auto it = m_objects.find(obj);
+    if (it != m_objects.end()) {
+        m_objects.erase(it);
+        SlideObjectChange change;
+        change.type = SlideObjectRemoved;
+        change.obj = obj;
+        notifySlideObjectChange(change);
+    }
 }
 
-void Q3DSSlide::addPropertyChange(Q3DSGraphObject *target, Q3DSPropertyChangeList *changeList)
+void Q3DSSlide::addPropertyChanges(Q3DSGraphObject *target, Q3DSPropertyChangeList *changeList)
 {
     m_propChanges.insert(target, changeList);
-    // ### needs notify
+    SlideObjectChange change;
+    change.type = SlidePropertyChangesAdded;
+    change.obj = target;
+    change.changeList = changeList;
+    notifySlideObjectChange(change);
 }
 
-void Q3DSSlide::removePropertyChange(Q3DSGraphObject *target)
+void Q3DSSlide::removePropertyChanges(Q3DSGraphObject *target)
 {
-    m_propChanges.remove(target);
-    // ### needs notify
+    delete takePropertyChanges(target);
+}
+
+Q3DSPropertyChangeList *Q3DSSlide::takePropertyChanges(Q3DSGraphObject *target)
+{
+    auto it = m_propChanges.find(target);
+    if (it != m_propChanges.end()) {
+        Q3DSPropertyChangeList *propChanges = *it;
+        m_propChanges.erase(it);
+        SlideObjectChange change;
+        change.type = SlidePropertyChangesRemoved;
+        change.obj = target;
+        change.changeList = propChanges;
+        notifySlideObjectChange(change);
+        return propChanges;
+    }
+    return nullptr;
 }
 
 void Q3DSSlide::addAnimation(const Q3DSAnimationTrack &track)
 {
     m_anims.append(track);
-    // ### needs notify
+    SlideObjectChange change;
+    change.type = SlideAnimationAdded;
+    change.animation = track;
+    notifySlideObjectChange(change);
+}
+
+void Q3DSSlide::removeAnimation(const Q3DSAnimationTrack &track)
+{
+    const int idx = m_anims.indexOf(track);
+    if (idx >= 0) {
+        m_anims.removeAt(idx);
+        SlideObjectChange change;
+        change.type = SlideAnimationRemoved;
+        change.animation = track;
+        notifySlideObjectChange(change);
+    }
 }
 
 // "slide change" would be quite confusing, hence using "slide graph change" instead
 int Q3DSSlide::addSlideGraphChangeObserver(SlideGraphChangeCallback callback)
 {
+    Q_ASSERT(!parent()); // must be master (not a perfect check but better than nothing)
+
     m_slideGraphChangeCallbacks.append(callback);
     return m_slideGraphChangeCallbacks.count() - 1;
 }
@@ -1234,22 +1241,37 @@ void Q3DSSlide::removeSlideGraphChangeObserver(int callbackId)
     m_slideGraphChangeCallbacks[callbackId] = nullptr;
 }
 
-void Q3DSSlide::resetDirtyLists()
-{
-    m_dirtySlidesAdded.clear();
-    m_dirtySlidesRemoved.clear();
-}
-
+// called from Q3DSGraphObject::markDirty()
 void Q3DSSlide::notifySlideGraphChange(Q3DSSlide *slide, Q3DSGraphObject::DirtyFlags bits)
 {
-    if (bits.testFlag(DirtyNodeAdded))
-        m_dirtySlidesAdded.append(slide);
-    if (bits.testFlag(DirtyNodeRemoved))
-        m_dirtySlidesRemoved.append(slide);
+    Q_ASSERT(!parent()); // must be master
 
     for (auto f : m_slideGraphChangeCallbacks) {
+        if (f) {
+            if (bits.testFlag(DirtyNodeAdded))
+                f(this, DirtyNodeAdded, slide);
+            if (bits.testFlag(DirtyNodeRemoved))
+                f(this, DirtyNodeRemoved, slide);
+        }
+    }
+}
+
+int Q3DSSlide::addSlideObjectChangeObserver(SlideObjectChangeCallback callback)
+{
+    m_slideObjectChangeCallbacks.append(callback);
+    return m_slideObjectChangeCallbacks.count() - 1;
+}
+
+void Q3DSSlide::removeSlideObjectChangeObserver(int callbackId)
+{
+    m_slideObjectChangeCallbacks[callbackId] = nullptr;
+}
+
+void Q3DSSlide::notifySlideObjectChange(const SlideObjectChange &change)
+{
+    for (auto f : m_slideObjectChangeCallbacks) {
         if (f)
-            f(this);
+            f(this, change);
     }
 }
 

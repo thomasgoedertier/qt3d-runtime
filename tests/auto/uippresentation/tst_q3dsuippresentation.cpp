@@ -41,6 +41,7 @@ private slots:
     void propertyChangeNotification();
     void sceneChangeNotification();
     void slideGraphChangeNotification();
+    void slideConstruct();
 
 private:
     void makePresentation(Q3DSUipPresentation &presentation);
@@ -233,23 +234,21 @@ void tst_Q3DSUipPresentation::sceneChangeNotification()
     QByteArrayList added;
     QByteArrayList removed;
     auto reset = [&added, &removed, &scene] {
-        scene->resetDirtyLists();
         added.clear();
         removed.clear();
     };
-    auto obs = [&added, &removed](Q3DSScene *scene) {
-        for (Q3DSGraphObject *obj : scene->dirtyNodesAdded()) {
+    auto obs = [&added, &removed](Q3DSScene *scene, Q3DSGraphObject::DirtyFlag change, Q3DSGraphObject *obj) {
+        Q_UNUSED(scene);
+        if (change == Q3DSGraphObject::DirtyNodeAdded) {
             qDebug("  added: %s", obj->id().constData());
             added.append(obj->id());
-        }
-        for (Q3DSGraphObject *obj : scene->dirtyNodesRemoved()) {
+        } else if (change == Q3DSGraphObject::DirtyNodeRemoved) {
             // note that accessing the object should be exercised with care
             // since the object may be in the process of being destroyed. id()
             // should still work.
             qDebug("  removed: %s", obj->id().constData());
             removed.append(obj->id());
         }
-        scene->resetDirtyLists();
     };
     reset();
     int obsId = scene->addSceneChangeObserver(obs);
@@ -306,18 +305,16 @@ void tst_Q3DSUipPresentation::sceneChangeNotification()
 
 void tst_Q3DSUipPresentation::slideGraphChangeNotification()
 {
-    QByteArrayList added;
-    QByteArrayList removed;
-    auto obs = [&added, &removed](Q3DSSlide *master) {
-        for (Q3DSSlide *slide : master->dirtySlidesAdded()) {
+    QByteArrayList added, removed;
+    auto obs = [&added, &removed](Q3DSSlide *master, Q3DSGraphObject::DirtyFlag change, Q3DSSlide *slide) {
+        Q_UNUSED(master);
+        if (change == Q3DSGraphObject::DirtyNodeAdded) {
             qDebug("  added: %s", slide->id().constData());
             added.append(slide->id());
-        }
-        for (Q3DSSlide *slide : master->dirtySlidesRemoved()) {
+        } else if (change == Q3DSGraphObject::DirtyNodeRemoved) {
             qDebug("  removed: %s", slide->id().constData());
             removed.append(slide->id());
         }
-        master->resetDirtyLists();
     };
 
     Q3DSUipPresentation presentation;
@@ -329,8 +326,7 @@ void tst_Q3DSUipPresentation::slideGraphChangeNotification()
     Q3DSSlide *slide1 = static_cast<Q3DSSlide *>(masterSlide->firstChild());
     Q3DSSlide *slide2 = static_cast<Q3DSSlide *>(slide1->nextSibling());
 
-    auto reset = [&added, &removed, &masterSlide] {
-        masterSlide->resetDirtyLists();
+    auto reset = [&added, &removed] {
         added.clear();
         removed.clear();
     };
@@ -356,6 +352,97 @@ void tst_Q3DSUipPresentation::slideGraphChangeNotification()
     QCOMPARE(added[0], QByteArrayLiteral("slide1"));
 
     // no removeSlideGraphChangeObserver. this works because obs outlives the presentation.
+}
+
+void tst_Q3DSUipPresentation::slideConstruct()
+{
+    Q3DSUipPresentation presentation;
+    makePresentation(presentation);
+
+    Q3DSSlide *slide1 = presentation.object<Q3DSSlide>("slide1");
+    Q3DSSlide *slide2 = presentation.object<Q3DSSlide>("slide2");
+    QVERIFY(slide1);
+    QVERIFY(slide2);
+    QCOMPARE(slide1->objects().count(), 2); // model1 and mat1 are on this slide
+    QVERIFY(slide2->objects().isEmpty());
+
+    Q3DSModelNode *model1 = presentation.object<Q3DSModelNode>("model1");
+    Q3DSDefaultMaterial *mat1 = presentation.object<Q3DSDefaultMaterial>("mat1");
+
+    // there can of course be multiple callbacks registered. exercise this with
+    // a simple callback that prints some stuff.
+    auto printingObserver = [](Q3DSSlide *slide, const Q3DSSlide::SlideObjectChange &change) {
+        qDebug("change on slide %s, type %d (obj/target %p, changeList %p, kfs %d)",
+               slide->id().constData(), change.type, change.obj, change.changeList, change.animation.keyFrames().count());
+        if (change.changeList) {
+            for (const Q3DSPropertyChange &c : *change.changeList)
+                qDebug("  '%s' - '%s'", qPrintable(c.nameStr()), qPrintable(c.valueStr()));
+        }
+    };
+    slide1->addSlideObjectChangeObserver(printingObserver);
+    slide2->addSlideObjectChangeObserver(printingObserver);
+
+    // now let's move those two objects to slide2
+
+    // first remove from slide1
+    int slide1RemoveCount = 0;
+    slide1->addSlideObjectChangeObserver([slide1, &slide1RemoveCount](Q3DSSlide *slide,
+                                         const Q3DSSlide::SlideObjectChange &change)
+    {
+        if (slide == slide1 && change.type == Q3DSSlide::SlideObjectRemoved)
+            ++slide1RemoveCount;
+        else
+            slide1RemoveCount = -100;
+    });
+    slide1->removeObject(model1);
+    slide1->removeObject(mat1);
+    QCOMPARE(slide1RemoveCount, 2);
+
+    // then add to slide2
+    int slide2AddCount = 0;
+    int id = slide2->addSlideObjectChangeObserver([slide2, &slide2AddCount](Q3DSSlide *slide,
+                                                  const Q3DSSlide::SlideObjectChange &change)
+    {
+        if (slide == slide2 && change.type == Q3DSSlide::SlideObjectAdded)
+            ++slide2AddCount;
+        else
+            slide2AddCount = -100;
+    });
+    slide2->addObject(model1);
+    slide2->addObject(mat1);
+    QCOMPARE(slide2AddCount, 2);
+
+    // let's add a property change (that is to be applied when entering the slide)
+    Q3DSPropertyChangeList *model1ChangeList = new Q3DSPropertyChangeList {
+            Q3DSPropertyChange::fromVariant(QLatin1String("position"), QVector3D(2, 3.5, 42))
+    };
+    Q3DSAnimationTrack anim(Q3DSAnimationTrack::Linear, model1, QLatin1String("rotation.y"));
+    slide2->removeSlideObjectChangeObserver(id);
+    int slide2PropAddCount = 0, slide2AnimAddCount = 0, slide2AnimRemoveCount = 0;
+    id = slide2->addSlideObjectChangeObserver(
+                [slide2, &slide2PropAddCount, &slide2AnimAddCount, &slide2AnimRemoveCount, model1ChangeList, model1, anim](
+                Q3DSSlide *slide,
+                const Q3DSSlide::SlideObjectChange &change)
+    {
+        if (slide == slide2) {
+            if (change.type == Q3DSSlide::SlidePropertyChangesAdded
+                    && change.obj == model1 && change.changeList == model1ChangeList)
+                ++slide2PropAddCount;
+            if (change.type == Q3DSSlide::SlideAnimationAdded && change.animation == anim)
+                ++slide2AnimAddCount;
+            if (change.type == Q3DSSlide::SlideAnimationRemoved && change.animation == anim)
+                ++slide2AnimRemoveCount;
+        }
+    });
+    slide2->addPropertyChanges(model1, model1ChangeList);
+    QCOMPARE(slide2PropAddCount, 1);
+
+    // and an animation track
+    anim.setKeyFrames({ { 0, 0 }, { 10000, 180 } }); // rotation around Y is 0 at 0 s, 180 at 10 s
+    slide2->addAnimation(anim);
+    slide2->removeAnimation(anim);
+    QCOMPARE(slide2AnimAddCount, 1);
+    QCOMPARE(slide2AnimRemoveCount, 1);
 }
 
 #include <tst_q3dsuippresentation.moc>

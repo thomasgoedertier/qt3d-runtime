@@ -92,7 +92,7 @@ bool convertToVector2D(const QStringRef &value, QVector2D *v, const char *desc =
 bool convertToVector3D(const QStringRef &value, QVector3D *v, const char *desc = nullptr, QXmlStreamReader *reader = nullptr);
 int animatablePropertyTypeToMetaType(Q3DS::PropertyType type);
 QVariant convertToVariant(const QString &value, Q3DS::PropertyType type);
-QString convertFromVariant(const QVariant &value, Q3DS::PropertyType type);
+QString convertFromVariant(const QVariant &value);
 
 } // namespace Q3DS
 

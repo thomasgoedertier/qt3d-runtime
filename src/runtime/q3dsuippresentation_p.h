@@ -84,12 +84,21 @@ class Q3DSV_PRIVATE_EXPORT Q3DSPropertyChange
 {
 public:
     Q3DSPropertyChange() = default;
+
+    // When the new value is already set via a member or static setter.
+    // Used by animations and any external call to a member setter.
     Q3DSPropertyChange(const QString &name_)
         : m_name(name_)
     { }
+
+    // Value included.
+    // Used by slides (on-enter property changes) and data input.
+    // High frequency usage should be avoided.
     Q3DSPropertyChange(const QString &name_, const QString &value_)
         : m_name(name_), m_value(value_), m_hasValue(true)
     { }
+
+    static Q3DSPropertyChange fromVariant(const QString &name, const QVariant &value);
 
     // name() and value() must be source compatible with QXmlStreamAttribute
     QStringRef name() const { return QStringRef(&m_name); }
@@ -318,12 +327,9 @@ public:
 
     void setProperties(const QXmlStreamAttributes &attrs, PropSetFlags flags) override;
 
-    typedef std::function<void(Q3DSScene *)> SceneChangeCallback;
+    typedef std::function<void(Q3DSScene *, Q3DSGraphObject::DirtyFlag change, Q3DSGraphObject *)> SceneChangeCallback;
     int addSceneChangeObserver(SceneChangeCallback callback);
     void removeSceneChangeObserver(int callbackId);
-    void resetDirtyLists();
-    const QVector<Q3DSGraphObject *> &dirtyNodesAdded() const { return m_dirtyNodesAdded; }
-    const QVector<Q3DSGraphObject *> &dirtyNodesRemoved() const { return m_dirtyNodesRemoved; }
 
     QStringList gex_propertyNames() const override;
     QVariantList gex_propertyValues() const override;
@@ -345,8 +351,6 @@ private:
     bool m_useClearColor = true;
     QColor m_clearColor = Qt::black;
     QVector<SceneChangeCallback> m_sceneChangeCallbacks;
-    QVector<Q3DSGraphObject *> m_dirtyNodesAdded;
-    QVector<Q3DSGraphObject *> m_dirtyNodesRemoved;
 
     friend class Q3DSGraphObject;
 };
@@ -362,8 +366,12 @@ public:
     };
 
     struct KeyFrame {
-        float time;
-        float value;
+        KeyFrame() = default;
+        KeyFrame(float time_, float value_)
+            : time(time_), value(value_)
+        { }
+        float time = 0; // milliseconds
+        float value = 0;
         union {
             float easeIn;
             float c2time;
@@ -376,21 +384,53 @@ public:
         float c1value;
     };
 
-    Q3DSGraphObject *target() const { return m_target; }
-    QString property() const { return m_property; }
-    bool isDynamic() const { return m_dynamic; }
+    Q3DSAnimationTrack() = default;
+    Q3DSAnimationTrack(AnimationType type_, Q3DSGraphObject *target_, const QString &property_)
+        : m_type(type_), m_target(target_), m_property(property_)
+    { }
+
     AnimationType type() const { return m_type; }
+    Q3DSGraphObject *target() const { return m_target; }
+    QString property() const { return m_property; } // e.g. rotation.x
+
+    bool isDynamic() const { return m_dynamic; }
+    void setDynamic(bool dynamic) { m_dynamic = dynamic; }
+
     const QVector<KeyFrame> &keyFrames() const { return m_keyFrames; }
+    void setKeyFrames(const QVector<KeyFrame> &keyFrames) { m_keyFrames = keyFrames; }
 
 private:
+    AnimationType m_type = NoAnimation;
     Q3DSGraphObject *m_target = nullptr;
     QString m_property;
     bool m_dynamic = false;
-    AnimationType m_type = NoAnimation;
     QVector<KeyFrame> m_keyFrames;
 
     friend class Q3DSUipParser;
 };
+
+Q_DECLARE_TYPEINFO(Q3DSAnimationTrack::KeyFrame, Q_MOVABLE_TYPE);
+Q_DECLARE_TYPEINFO(Q3DSAnimationTrack, Q_MOVABLE_TYPE);
+
+inline bool operator==(const Q3DSAnimationTrack::KeyFrame &a, const Q3DSAnimationTrack::KeyFrame &b)
+{
+    return a.time == b.time;
+}
+
+inline bool operator!=(const Q3DSAnimationTrack::KeyFrame &a, const Q3DSAnimationTrack::KeyFrame &b)
+{
+    return !(a == b);
+}
+
+inline bool operator==(const Q3DSAnimationTrack &a, const Q3DSAnimationTrack &b)
+{
+    return a.target() == b.target() && a.property() == b.property();
+}
+
+inline bool operator!=(const Q3DSAnimationTrack &a, const Q3DSAnimationTrack &b)
+{
+    return !(a == b);
+}
 
 class Q3DSV_PRIVATE_EXPORT Q3DSSlide : public Q3DSGraphObject
 {
@@ -423,21 +463,43 @@ public:
     void removeObject(Q3DSGraphObject *obj);
 
     const QHash<Q3DSGraphObject *, Q3DSPropertyChangeList *> &propertyChanges() const { return m_propChanges; }
-    void addPropertyChange(Q3DSGraphObject *target, Q3DSPropertyChangeList *changeList);
-    void removePropertyChange(Q3DSGraphObject *target);
+    void addPropertyChanges(Q3DSGraphObject *target, Q3DSPropertyChangeList *changeList); // changeList ownership transferred
+    void removePropertyChanges(Q3DSGraphObject *target);
+    Q3DSPropertyChangeList *takePropertyChanges(Q3DSGraphObject *target);
 
     const QVector<Q3DSAnimationTrack> &animations() const { return m_anims; }
     void addAnimation(const Q3DSAnimationTrack &track);
-    // ### void removeAnimation(...)
+    void removeAnimation(const Q3DSAnimationTrack &track);
 
-    // added/removed notifications are managed by the master slide,
-    // similarly to how scene does it for other types of objects
-    typedef std::function<void(Q3DSSlide *)> SlideGraphChangeCallback;
+    // The child added/removed notifications are managed by the master slide,
+    // similarly to how scene does it for other types of objects.
+    typedef std::function<void(Q3DSSlide *, Q3DSGraphObject::DirtyFlag change, Q3DSSlide *)> SlideGraphChangeCallback;
     int addSlideGraphChangeObserver(SlideGraphChangeCallback callback);
     void removeSlideGraphChangeObserver(int callbackId);
-    void resetDirtyLists();
-    const QVector<Q3DSSlide *> &dirtySlidesAdded() const { return m_dirtySlidesAdded; }
-    const QVector<Q3DSSlide *> &dirtySlidesRemoved() const { return m_dirtySlidesRemoved; }
+
+    // The slide-specific concepts (list of objects belonging to slide,
+    // property changes to trigger when entering the slide, animation tracks)
+    // are observable as well but that's managed on a per-slide basis, not
+    // centrally by the master.
+    enum SlideObjectChangeType {
+        InvalidSlideObjectChange,
+        SlideObjectAdded,
+        SlideObjectRemoved,
+        SlidePropertyChangesAdded,
+        SlidePropertyChangesRemoved,
+        SlideAnimationAdded,
+        SlideAnimationRemoved
+    };
+    struct SlideObjectChange {
+        // the validity of the members depends on type
+        SlideObjectChangeType type = InvalidSlideObjectChange;
+        Q3DSGraphObject *obj = nullptr;
+        Q3DSPropertyChangeList *changeList = nullptr;
+        Q3DSAnimationTrack animation;
+    };
+    typedef std::function<void(Q3DSSlide *, const SlideObjectChange &)> SlideObjectChangeCallback;
+    int addSlideObjectChangeObserver(SlideObjectChangeCallback callback);
+    void removeSlideObjectChangeObserver(int callbackId);
 
     QStringList gex_propertyNames() const override;
     QVariantList gex_propertyValues() const override;
@@ -459,6 +521,7 @@ public:
 private:
     Q_DISABLE_COPY(Q3DSSlide)
     void notifySlideGraphChange(Q3DSSlide *slide, Q3DSGraphObject::DirtyFlags bits);
+    void notifySlideObjectChange(const SlideObjectChange &change);
 
     QString m_name;
     PlayMode m_playMode = StopAtEnd;
@@ -469,13 +532,14 @@ private:
     QSet<Q3DSGraphObject *> m_objects;
     QHash<Q3DSGraphObject *, Q3DSPropertyChangeList *> m_propChanges;
     QVector<Q3DSAnimationTrack> m_anims;
-    QVector<SlideGraphChangeCallback> m_slideGraphChangeCallbacks;
-    QVector<Q3DSSlide *> m_dirtySlidesAdded;
-    QVector<Q3DSSlide *> m_dirtySlidesRemoved;
+    QVector<SlideGraphChangeCallback> m_slideGraphChangeCallbacks; // master only
+    QVector<SlideObjectChangeCallback> m_slideObjectChangeCallbacks;
 
     friend class Q3DSUipParser;
     friend class Q3DSGraphObject;
 };
+
+Q_DECLARE_TYPEINFO(Q3DSSlide::SlideObjectChange, Q_MOVABLE_TYPE);
 
 // Node/material/resource-like GraphObjects have 3 types of setters:
 //
