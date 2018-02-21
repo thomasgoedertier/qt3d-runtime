@@ -383,6 +383,7 @@ public:
         float c1time;
         float c1value;
     };
+    using KeyFrameList = QVector<KeyFrame>;
 
     Q3DSAnimationTrack() = default;
     Q3DSAnimationTrack(AnimationType type_, Q3DSGraphObject *target_, const QString &property_)
@@ -396,15 +397,15 @@ public:
     bool isDynamic() const { return m_dynamic; }
     void setDynamic(bool dynamic) { m_dynamic = dynamic; }
 
-    const QVector<KeyFrame> &keyFrames() const { return m_keyFrames; }
-    void setKeyFrames(const QVector<KeyFrame> &keyFrames) { m_keyFrames = keyFrames; }
+    const KeyFrameList &keyFrames() const { return m_keyFrames; }
+    void setKeyFrames(const KeyFrameList &keyFrames) { m_keyFrames = keyFrames; }
 
 private:
     AnimationType m_type = NoAnimation;
     Q3DSGraphObject *m_target = nullptr;
     QString m_property;
     bool m_dynamic = false;
-    QVector<KeyFrame> m_keyFrames;
+    KeyFrameList m_keyFrames;
 
     friend class Q3DSUipParser;
 };

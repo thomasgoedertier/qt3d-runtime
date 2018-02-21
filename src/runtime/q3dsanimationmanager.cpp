@@ -307,49 +307,101 @@ void Q3DSAnimationManager::updateAnimationHelper(const AnimationTrackListMap<T *
         };
         QHash<QString, ChannelComponents> channelData;
 
-        for (const Q3DSAnimationTrack *animTrack : it.value()) {
-            const QStringList prop = animTrack->property().split('.');
+        static const auto buildKeyFrames = [](const Q3DSAnimationTrack::KeyFrameList &keyFrames,
+                                              Q3DSAnimationTrack::AnimationType type,
+                                              ChannelComponents &channelComponent,
+                                              const QStringList &prop) {
+
+            const auto end = keyFrames.constEnd();
+            const auto begin = keyFrames.constBegin();
+            auto it = begin;
+            Qt3DAnimation::QKeyFrame qkf;
+            while (it != end) {
+                switch (type) {
+                case Q3DSAnimationTrack::EaseInOut:
+                {
+                    // c1 (t, v) -> first/right control point (ease in).
+                    // Easing value (for t) is between 0 and 1, where 0 is the current keyframe's start time
+                    // and 1 is the next keyframe's start time.
+                    // c1's value is always the same as the current keyframe's value, as that's the
+                    // only option we support at the moment.
+
+                    // c2 (t, v) -> second/left control point (ease out).
+                    // Easing value (for t) is between 0 and 1, where 0 is the next keyframe's start time
+                    // and 1 is the current keyframe's start time.
+                    // c2's value is always the same as the next keyframe's value, as that's the only
+                    // option we support at the moment.
+
+                    // Get normalized value [0..1]
+                    const float easeIn = qBound(0.0f, (it->easeIn / 100.0f) / 2.0f, 1.0f);
+                    const float easeOut = qBound(0.0f, (it->easeOut / 100.0f) / 2.0f, 1.0f);
+
+                    // Next and previous keyframes, if any.
+                    const auto next = ((it + 1) != end) ? (it + 1) : it;
+                    const auto previous = (it != begin) ? (it - 1) : it;
+
+                    // p0
+                    const QVector2D coordinates(it->time, it->value);
+
+                    // c1
+                    float dt = (next->time - it->time);
+                    const float p1t = qBound(it->time, it->time + (dt * easeIn), next->time);
+                    const float p1v = it->value;
+                    const QVector2D rightControlPoint(p1t, p1v);
+
+                    // c2
+                    dt = (it->time - previous->time);
+                    const float p2t = qBound(previous->time, it->time - (dt * easeOut), it->time);
+                    const float p2v = it->value;
+                    const QVector2D leftControlPoint(p2t, p2v);
+
+                    qkf = Qt3DAnimation::QKeyFrame(coordinates, leftControlPoint, rightControlPoint);
+                }
+                    break;
+                case Q3DSAnimationTrack::Bezier:
+                    qkf = Qt3DAnimation::QKeyFrame(QVector2D(it->time, it->value),
+                                                   QVector2D(it->c1time, it->c1value / 100.0f),
+                                                   QVector2D(it->c2time, it->c2value / 100.0f));
+                    break;
+                default:
+                    qkf = Qt3DAnimation::QKeyFrame(QVector2D(it->time, it->value));
+                    break;
+                }
+
+                if (prop.count() == 1) {
+                    channelComponent.comps[0].appendKeyFrame(qkf);
+                } else {
+                    int idx = componentSuffixToIndex(prop[1]);
+                    if (idx < 0) {
+                        qWarning("Unknown component suffix %s for animated property %s", qPrintable(prop[1]), qPrintable(prop[0]));
+                        continue;
+                    }
+                    channelComponent.comps[idx].appendKeyFrame(qkf);
+                }
+                ++it;
+            }
+        };
+
+        const auto &animatonTracks = it.value();
+        for (const Q3DSAnimationTrack *animationTrack : animatonTracks) {
+            const QStringList prop = animationTrack->property().split('.');
             if (prop.count() < 1)
                 continue;
+
             const QString &propertyName = prop[0];
             if (!animatables->contains(propertyName))
                 continue;
 
+            const auto &keyFrames = animationTrack->keyFrames();
+            if (keyFrames.isEmpty())
+                continue;
+
             Animatable *animMeta = &(*animatables)[propertyName];
-            ChannelComponents &c(channelData[animMeta->name]);
-            c.meta = *animMeta;
+            ChannelComponents &channelComponent(channelData[animMeta->name]);
+            channelComponent.meta = *animMeta;
 
-            for (const Q3DSAnimationTrack::KeyFrame &kf : animTrack->keyFrames()) {
-                Qt3DAnimation::QKeyFrame qkf;
-#if 0 // ### not supported yet, fix Qt3D first
-                switch (animTrack->type()) {
-                case Q3DSAnimationTrack::EaseInOut:
-                    qkf = Qt3DAnimation::QKeyFrame(QVector2D(kf.time, kf.value), kf.easeIn / 100.0f, kf.easeOut / 100.0f);
-                    break;
-                case Q3DSAnimationTrack::Bezier:
-                    qkf = Qt3DAnimation::QKeyFrame(QVector2D(kf.time, kf.value),
-                                                   QVector2D(kf.c1time, kf.c1value / 100.0f),
-                                                   QVector2D(kf.c2time, kf.c2value / 100.0f));
-                    break;
-
-                default: // linear interpolation
-                    qkf = Qt3DAnimation::QKeyFrame(QVector2D(kf.time, kf.value));
-                    break;
-                }
-#else
-                qkf = Qt3DAnimation::QKeyFrame(QVector2D(kf.time, kf.value));
-#endif
-                if (prop.count() == 1) {
-                    c.comps[0].appendKeyFrame(qkf);
-                } else {
-                    int idx = componentSuffixToIndex(prop[1]);
-                    if (idx < 0) {
-                        qWarning("Unknown component suffix %s for animated property %s", qPrintable(prop[1]), qPrintable(propertyName));
-                        continue;
-                    }
-                    c.comps[idx].appendKeyFrame(qkf);
-                }
-            }
+            const auto type = animationTrack->type();
+            buildKeyFrames(keyFrames, type, channelComponent, prop);
         }
 
         static const bool animSetupDebug = qEnvironmentVariableIntValue("Q3DS_DEBUG") >= 2;

@@ -75,8 +75,9 @@ public:
 
 private:
     typedef QHash<QString, Animatable> AnimatableTab;
+    using AnimationTrackList = QVector<const Q3DSAnimationTrack *>;
     template <typename T>
-    using AnimationTrackListMap = QHash<T, QVector<const Q3DSAnimationTrack *>>;
+    using AnimationTrackListMap = QHash<T, AnimationTrackList>;
 
 
     void gatherAnimatableMeta(const QString &type, AnimatableTab *dst);
