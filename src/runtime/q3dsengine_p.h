@@ -96,6 +96,9 @@ public:
     // Load presentation from a uia document object.
     bool setDocument(const Q3DSUiaDocument &uiaDocument, QString *error = nullptr);
 
+    // Provide pre-constructed presentation(s).
+    bool setPresentations(const QVector<Q3DSUipPresentation *> &presentations);
+
     qint64 totalLoadTimeMsecs() const;
 
     int presentationCount() const;
@@ -130,6 +133,8 @@ public:
     void handleWheelEvent(QWheelEvent *e);
 #endif
 
+    void setProfileUiEnabled(bool enabled) { m_profileUiEnabled = enabled; }
+
 public Q_SLOTS:
     void requestGrab();
 
@@ -160,8 +165,11 @@ private:
     void createAspectEngine();
 
     bool loadPresentations();
+    void finalizePresentations();
     bool loadUipPresentation(UipPresentation *pres);
+    bool buildUipPresentationScene(UipPresentation *pres);
     bool loadSubUipPresentation(UipPresentation *pres);
+    bool buildSubUipPresentationScene(UipPresentation *pres);
     bool loadSubQmlPresentation(QmlPresentation *pres);
 
     bool parseUipDocument(UipPresentation *pres);
@@ -194,6 +202,7 @@ private:
     QObject m_profileUiEventSource;
     bool m_autoStart = true;
     float m_profileUiScale = 1;
+    bool m_profileUiEnabled = true;
 };
 
 Q_DECLARE_OPERATORS_FOR_FLAGS(Q3DSEngine::Flags)

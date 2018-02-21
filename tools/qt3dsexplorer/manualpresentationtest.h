@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2017 The Qt Company Ltd.
+** Copyright (C) 2018 The Qt Company Ltd.
 ** Contact: http://www.qt.io/licensing/
 **
 ** This file is part of Qt 3D Studio.
@@ -27,41 +27,19 @@
 **
 ****************************************************************************/
 
-#ifndef Q3DSEXPLORERMAINWINDOW_H
-#define Q3DSEXPLORERMAINWINDOW_H
+#ifndef MANUALPRESENTATIONTEST_H
+#define MANUALPRESENTATIONTEST_H
 
-#include <QMainWindow>
+#include <private/q3dsuippresentation_p.h>
 
 QT_BEGIN_NAMESPACE
 
-class Q3DSWindow;
-class SlideExplorerWidget;
-class SceneExplorerWidget;
-class Q3DSComponentNode;
-class ManualPresentationTest;
-
-class Q3DSExplorerMainWindow : public QMainWindow
+class ManualPresentationTest
 {
-    Q_OBJECT
 public:
-    explicit Q3DSExplorerMainWindow(Q3DSWindow *view, QWidget *parent = 0);
-    ~Q3DSExplorerMainWindow();
-
-    void updatePresentation();
-
-    static QString fileFilter();
-
-private Q_SLOTS:
-    void handleComponentSelected(Q3DSComponentNode *component);
-
-private:
-    Q3DSWindow *m_view;
-    SlideExplorerWidget *m_slideExplorer;
-    SlideExplorerWidget *m_componentSlideExplorer;
-    SceneExplorerWidget *m_sceneExplorer;
-    ManualPresentationTest *m_manualPresentationTest = nullptr;
+    QVector<Q3DSUipPresentation *> build();
 };
 
 QT_END_NAMESPACE
 
-#endif // Q3DSEXPLORERMAINWINDOW_H
+#endif // MANUALPRESENTATIONTEST_H

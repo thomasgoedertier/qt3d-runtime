@@ -462,11 +462,51 @@ bool Q3DSEngine::setDocument(const Q3DSUiaDocument &uiaDocument, QString *error)
     return loadPresentations();
 }
 
-bool Q3DSEngine::loadPresentations()
+bool Q3DSEngine::setPresentations(const QVector<Q3DSUipPresentation *> &presentations)
 {
-    if (m_uipPresentations.isEmpty()) {
+    if (!m_surface) {
+        Q3DSUtils::showMessage(tr("setPresentations: Cannot be called without setSurface"));
         return false;
     }
+
+    m_sourceLoadTimer.start();
+
+    prepareForReload();
+    if (presentations.isEmpty())
+        return false;
+
+    UipPresentation mainPres;
+    mainPres.presentation = presentations[0];
+    mainPres.presentation->setDataInputEntries(&m_dataInputEntries);
+    if (buildUipPresentationScene(&mainPres))
+        m_uipPresentations.append(mainPres);
+    else
+        return false;
+
+    for (int i = 1; i < presentations.count(); ++i) {
+        // ### this isn't enough, needs ids and such
+        UipPresentation subPres;
+        subPres.presentation = presentations[i];
+        subPres.presentation->setDataInputEntries(&m_dataInputEntries);
+        if (buildSubUipPresentationScene(&subPres)) {
+            m_uipPresentations.append(subPres);
+        } else {
+            m_uipPresentations.clear();
+            return false;
+        }
+    }
+
+    // ### qml?
+
+    finalizePresentations();
+
+    return true;
+}
+
+bool Q3DSEngine::loadPresentations()
+{
+    if (m_uipPresentations.isEmpty())
+        return false;
 
     if (!loadUipPresentation(&m_uipPresentations[0])) {
         m_uipPresentations.clear();
@@ -475,9 +515,17 @@ bool Q3DSEngine::loadPresentations()
 
     for (int i = 1; i < m_uipPresentations.count(); ++i)
         loadSubUipPresentation(&m_uipPresentations[i]);
+
     for (QmlPresentation &qmlDocument : m_qmlPresentations)
         loadSubQmlPresentation(&qmlDocument);
 
+    finalizePresentations();
+
+    return true;
+}
+
+void Q3DSEngine::finalizePresentations()
+{
     QVector<Q3DSSubPresentation> subPresentations;
     for (const UipPresentation &pres : m_uipPresentations) {
         if (!pres.subPres.id.isEmpty() && pres.subPres.colorTex)
@@ -487,6 +535,7 @@ bool Q3DSEngine::loadPresentations()
         if (!pres.subPres.id.isEmpty() && pres.subPres.colorTex)
             subPresentations.append(pres.subPres);
     }
+
     m_uipPresentations[0].sceneManager->finalizeMainScene(subPresentations);
 
     if (m_aspectEngine.isNull())
@@ -496,7 +545,6 @@ bool Q3DSEngine::loadPresentations()
     qCDebug(lcPerf, "Total setSource time (incl. subpresentations + Qt3D scene building): %lld ms", m_loadTime);
 
     emit presentationLoaded();
-    return true;
 }
 
 bool Q3DSEngine::loadUipPresentation(UipPresentation *pres)
@@ -508,7 +556,11 @@ bool Q3DSEngine::loadUipPresentation(UipPresentation *pres)
         Q3DSUtils::showMessage(QObject::tr("Failed to parse main presentation"));
         return false;
     }
+    return buildUipPresentationScene(pres);
+}
 
+bool Q3DSEngine::buildUipPresentationScene(UipPresentation *pres)
+{
     // Presentation is ready. Build the Qt3D scene. This will also activate the first sub-slide.
     Q3DSSceneManager::SceneBuilderParams params;
     params.flags = 0;
@@ -591,7 +643,11 @@ bool Q3DSEngine::loadSubUipPresentation(UipPresentation *pres)
         Q3DSUtils::showMessage(QObject::tr("Failed to parse subpresentation"));
         return false;
     }
+    return buildSubUipPresentationScene(pres);
+}
 
+bool Q3DSEngine::buildSubUipPresentationScene(UipPresentation *pres)
+{
     Qt3DRender::QFrameGraphNode *fgParent = m_uipPresentations[0].q3dscene.subPresFrameGraphRoot;
     Qt3DCore::QNode *entityParent = m_uipPresentations[0].q3dscene.rootEntity;
 
@@ -964,6 +1020,9 @@ void Q3DSEngine::handleKeyPressEvent(QKeyEvent *e)
 {
     QCoreApplication::sendEvent(&m_profileUiEventSource, e);
 
+    if (!m_profileUiEnabled)
+        return;
+
     Q3DSSceneManager *sm = !m_uipPresentations.isEmpty() ? m_uipPresentations[0].sceneManager : nullptr;
 
     // not ideal since the window needs focus which it often won't have. also no keyboard on embedded/mobile.
@@ -1010,6 +1069,9 @@ void Q3DSEngine::handleMouseReleaseEvent(QMouseEvent *e)
 void Q3DSEngine::handleMouseDoubleClickEvent(QMouseEvent *e)
 {
     QCoreApplication::sendEvent(&m_profileUiEventSource, e);
+
+    if (!m_profileUiEnabled)
+        return;
 
     // Toggle with short double-clicks. This should work both with
     // touch and with mouse emulation via gamepads on Android. Just

@@ -6,12 +6,14 @@ SOURCES += \
     main.cpp \
     q3dsexplorermainwindow.cpp \
     slideexplorerwidget.cpp \
-    sceneexplorerwidget.cpp
+    sceneexplorerwidget.cpp \
+    manualpresentationtest.cpp
 
 HEADERS += \
     q3dsexplorermainwindow.h \
     slideexplorerwidget.h \
-    sceneexplorerwidget.h
+    sceneexplorerwidget.h \
+    manualpresentationtest.h
 
 include(qtpropertybrowser/qtpropertybrowser.pri)
 load(qt_tool)

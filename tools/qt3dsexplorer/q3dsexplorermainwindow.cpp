@@ -45,6 +45,9 @@
 #include <QDockWidget>
 #include "slideexplorerwidget.h"
 #include "sceneexplorerwidget.h"
+#include "manualpresentationtest.h"
+
+QT_BEGIN_NAMESPACE
 
 QString Q3DSExplorerMainWindow::fileFilter()
 {
@@ -113,6 +116,17 @@ Q3DSExplorerMainWindow::Q3DSExplorerMainWindow(Q3DSWindow *view, QWidget *parent
         view->engine()->setOnDemandRendering(renderOnDemand->isChecked());
     });
 
+    QMenu *devMenu = menuBar()->addMenu(tr("&Dev"));
+    devMenu->addAction(tr("&Build me a scene"), this, [this, view] {
+        if (!m_manualPresentationTest)
+            m_manualPresentationTest = new ManualPresentationTest;
+        auto p = m_manualPresentationTest->build();
+        if (view->engine()->setPresentations(p))
+            updatePresentation();
+        else
+            qDeleteAll(p);
+    });
+
     QMenu *helpMenu = menuBar()->addMenu(tr("&Help"));
     helpMenu->addAction(tr("&About"), this, [this]() {
         QMessageBox::about(this, tr("About q3dsviewer"), tr("Qt 3D Studio Viewer 2.0"));
@@ -129,6 +143,7 @@ Q3DSExplorerMainWindow::Q3DSExplorerMainWindow(Q3DSWindow *view, QWidget *parent
 
 Q3DSExplorerMainWindow::~Q3DSExplorerMainWindow()
 {
+    delete m_manualPresentationTest;
 }
 
 void Q3DSExplorerMainWindow::updatePresentation()
@@ -157,3 +172,5 @@ void Q3DSExplorerMainWindow::handleComponentSelected(Q3DSComponentNode *componen
     m_componentSlideExplorer->setComponent(component);
     m_componentSlideExplorer->setSceneManager(m_view->engine()->sceneManager(0));
 }
+
+QT_END_NAMESPACE

@@ -370,7 +370,7 @@ public:
         KeyFrame(float time_, float value_)
             : time(time_), value(value_)
         { }
-        float time = 0; // milliseconds
+        float time = 0; // seconds
         float value = 0;
         union {
             float easeIn;
@@ -943,14 +943,14 @@ private:
     QColor m_backgroundColor;
     BlendType m_blendType = Normal;
 
-    HorizontalFields m_horizontalFields;
+    HorizontalFields m_horizontalFields = LeftWidth;
     float m_left = 0;
     Units m_leftUnits = Percent;
     float m_width = 100;
     Units m_widthUnits = Percent;
     float m_right = 0;
     Units m_rightUnits = Percent;
-    VerticalFields m_verticalFields;
+    VerticalFields m_verticalFields = TopHeight;
     float m_top = 0;
     Units m_topUnits = Percent;
     float m_height = 100;
