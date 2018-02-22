@@ -614,6 +614,11 @@ void Q3DSGraphObject::notifyPropertyChanges(const Q3DSPropertyChangeList &change
     } \
     return Q3DSPropertyChange()
 
+Q3DSPropertyChange Q3DSGraphObject::setName(const QString &v)
+{
+    PROP_SETTER(m_name, v, "name");
+}
+
 Q3DSPropertyChange Q3DSGraphObject::setStartTime(qint32 v)
 {
     PROP_SETTER(m_startTime, v, "starttime");
@@ -686,12 +691,13 @@ QString Q3DSGraphObject::gex_typeAsString() const
 // should not be relied upon by others.
 QStringList Q3DSGraphObject::gex_propertyNames() const
 {
-    return QStringList() << QLatin1String("id") << QLatin1String("starttime") << QLatin1String("endtime");
+    return QStringList() << QLatin1String("id") << QLatin1String("name")
+                         << QLatin1String("starttime") << QLatin1String("endtime");
 }
 
 QVariantList Q3DSGraphObject::gex_propertyValues() const
 {
-    return QVariantList() << QString::fromUtf8(m_id) << m_startTime << m_endTime;
+    return QVariantList() << QString::fromUtf8(m_id) << m_name << m_startTime << m_endTime;
 }
 
 // The property conversion functions all follow the same pattern:
@@ -702,7 +708,7 @@ QVariantList Q3DSGraphObject::gex_propertyValues() const
 // V is const iterable with name() and value() on iter
 template<typename T, typename V>
 bool parseProperty(const V &attrs, Q3DSGraphObject::PropSetFlags flags,
-                   const QString &typeName, const QString &propName, Q3DS::PropertyType propType,
+                   const QString &dataModelTypeName, const QString &propName, Q3DS::PropertyType propType,
                    T *dst, std::function<bool(const QStringRef &, T *v)> convertFunc)
 {
     auto it = std::find_if(attrs.cbegin(), attrs.cend(), [propName](const typename V::value_type &v) { return v.name() == propName; });
@@ -712,7 +718,7 @@ bool parseProperty(const V &attrs, Q3DSGraphObject::PropSetFlags flags,
     } else if (flags.testFlag(Q3DSGraphObject::PropSetDefaults)) {
         Q3DSDataModelParser *dataModelParser = Q3DSDataModelParser::instance();
         if (dataModelParser) {
-            const QVector<Q3DSDataModelParser::Property> *props = dataModelParser->propertiesForType(typeName);
+            const QVector<Q3DSDataModelParser::Property> *props = dataModelParser->propertiesForType(dataModelTypeName);
             if (props) {
                 auto it = std::find_if(props->cbegin(), props->cend(),
                                        [propName](const Q3DSDataModelParser::Property &v) { return v.name == propName; });
@@ -1004,6 +1010,9 @@ void Q3DSGraphObject::setProps(const V &attrs, PropSetFlags flags)
     const QString typeName = QStringLiteral("Asset");
     parseProperty(attrs, flags, typeName, QStringLiteral("starttime"), &m_startTime);
     parseProperty(attrs, flags, typeName, QStringLiteral("endtime"), &m_endTime);
+
+    // name is not parsed here since the data model metadata defines a default
+    // value per type, so leave it to the subclasses
 }
 
 void Q3DSGraphObject::setProperties(const QXmlStreamAttributes &attrs, PropSetFlags flags)
@@ -1034,9 +1043,11 @@ void Q3DSScene::setProperties(const QXmlStreamAttributes &attrs, PropSetFlags fl
     // Asset properties (starttime, endtime) are not in use, hence no base call.
 
     const QString typeName = QStringLiteral("Scene");
-    parseProperty(attrs, flags, typeName, QStringLiteral("name"), &m_name);
     parseProperty(attrs, flags, typeName, QStringLiteral("bgcolorenable"), &m_useClearColor);
     parseProperty(attrs, flags, typeName, QStringLiteral("backgroundcolor"), &m_clearColor);
+
+    // Different default value.
+    parseProperty(attrs, flags, typeName, QStringLiteral("name"), &m_name);
 }
 
 int Q3DSScene::addSceneChangeObserver(SceneChangeCallback callback)
@@ -1065,20 +1076,15 @@ void Q3DSScene::notifyNodeChange(Q3DSGraphObject *obj, Q3DSGraphObject::DirtyFla
 QStringList Q3DSScene::gex_propertyNames() const
 {
     QStringList s = Q3DSGraphObject::gex_propertyNames();
-    s << QLatin1String("name") << QLatin1String("useClearColor") << QLatin1String("clearColor");
+    s << QLatin1String("useClearColor") << QLatin1String("clearColor");
     return s;
 }
 
 QVariantList Q3DSScene::gex_propertyValues() const
 {
     QVariantList s = Q3DSGraphObject::gex_propertyValues();
-    s << m_name << m_useClearColor << m_clearColor;
+    s << m_useClearColor << m_clearColor;
     return s;
-}
-
-Q3DSPropertyChange Q3DSScene::setName(const QString &v)
-{
-    PROP_SETTER(m_name, v, "name");
 }
 
 Q3DSPropertyChange Q3DSScene::setUseClearColor(bool v)
@@ -1137,8 +1143,6 @@ void Q3DSSlide::setProperties(const QXmlStreamAttributes &attrs, PropSetFlags fl
     Q3DSGraphObject::setProperties(attrs, flags);
 
     const QString typeName = QStringLiteral("Slide");
-
-    parseProperty(attrs, flags, typeName, QStringLiteral("name"), &m_name);
     parseProperty(attrs, flags, typeName, QStringLiteral("playmode"), &m_playMode);
     parseProperty(attrs, flags, typeName, QStringLiteral("initialplaystate"), &m_initialPlayState);
 
@@ -1152,6 +1156,9 @@ void Q3DSSlide::setProperties(const QXmlStreamAttributes &attrs, PropSetFlags fl
             Q3DSEnumMap::enumFromStr(QStringRef(&pt.s), &m_playThrough);
         }
     }
+
+    // Different default value.
+    parseProperty(attrs, flags, typeName, QStringLiteral("name"), &m_name);
 }
 
 void Q3DSSlide::addObject(Q3DSGraphObject *obj)
@@ -1278,20 +1285,15 @@ void Q3DSSlide::notifySlideObjectChange(const SlideObjectChange &change)
 QStringList Q3DSSlide::gex_propertyNames() const
 {
     QStringList s = Q3DSGraphObject::gex_propertyNames();
-    s << QLatin1String("name") << QLatin1String("playMode") << QLatin1String("initialPlayState");
+    s << QLatin1String("playMode") << QLatin1String("initialPlayState");
     return s;
 }
 
 QVariantList Q3DSSlide::gex_propertyValues() const
 {
     QVariantList s = Q3DSGraphObject::gex_propertyValues();
-    s << m_name << m_playMode << m_initialPlayState;
+    s << m_playMode << m_initialPlayState;
     return s;
-}
-
-Q3DSPropertyChange Q3DSSlide::setName(const QString &v)
-{
-    PROP_SETTER(m_name, v, "name");
 }
 
 Q3DSPropertyChange Q3DSSlide::setPlayMode(PlayMode v)
@@ -1325,8 +1327,6 @@ template<typename V>
 void Q3DSImage::setProps(const V &attrs, PropSetFlags flags)
 {
     const QString typeName = QStringLiteral("Image");
-
-    parseProperty(attrs, flags, typeName, QStringLiteral("name"), &m_name);
     parseProperty(attrs, flags, typeName, QStringLiteral("sourcepath"), &m_sourcePath);
     parseProperty(attrs, flags, typeName, QStringLiteral("scaleu"), &m_scaleU);
     parseProperty(attrs, flags, typeName, QStringLiteral("scalev"), &m_scaleV);
@@ -1341,6 +1341,7 @@ void Q3DSImage::setProps(const V &attrs, PropSetFlags flags)
     parseProperty(attrs, flags, typeName, QStringLiteral("subpresentation"), &m_subPresentation);
 
     // Different default value.
+    parseProperty(attrs, flags, typeName, QStringLiteral("name"), &m_name);
     parseProperty(attrs, flags, typeName, QStringLiteral("endtime"), &m_endTime);
 }
 
@@ -1376,7 +1377,7 @@ void Q3DSImage::resolveReferences(Q3DSUipPresentation &presentation, Q3DSUipPars
 QStringList Q3DSImage::gex_propertyNames() const
 {
     QStringList s = Q3DSGraphObject::gex_propertyNames();
-    s << QLatin1String("name") << QLatin1String("sourcePath") << QLatin1String("scaleU") << QLatin1String("scaleV")
+    s << QLatin1String("sourcePath") << QLatin1String("scaleU") << QLatin1String("scaleV")
       << QLatin1String("mappingMode") << QLatin1String("tilingHoriz") << QLatin1String("tilingVert")
       << QLatin1String("rotationUV") << QLatin1String("positionU") << QLatin1String("positionV")
       << QLatin1String("pivotU") << QLatin1String("pivotV") << QLatin1String("subPresentation");
@@ -1386,7 +1387,7 @@ QStringList Q3DSImage::gex_propertyNames() const
 QVariantList Q3DSImage::gex_propertyValues() const
 {
     QVariantList s = Q3DSGraphObject::gex_propertyValues();
-    s << m_name << m_sourcePath << m_scaleU << m_scaleV << m_mappingMode << m_tilingHoriz << m_tilingVert
+    s << m_sourcePath << m_scaleU << m_scaleV << m_mappingMode << m_tilingHoriz << m_tilingVert
       << m_rotationUV << m_positionU << m_positionV << m_pivotU << m_pivotV << m_subPresentation;
     return s;
 }
@@ -1531,11 +1532,6 @@ void Q3DSImage::calculateTextureTransform()
     m_textureTransform *= translation;
 }
 
-Q3DSPropertyChange Q3DSImage::setName(const QString &v)
-{
-    PROP_SETTER(m_name, v, "name");
-}
-
 Q3DSPropertyChange Q3DSImage::setSourcePath(const QString &v)
 {
     PROP_SETTER(m_sourcePath, v, "sourcepath");
@@ -1605,7 +1601,6 @@ template<typename V>
 void Q3DSDefaultMaterial::setProps(const V &attrs, PropSetFlags flags)
 {
     const QString typeName = QStringLiteral("Material");
-    parseProperty(attrs, flags, typeName, QStringLiteral("name"), &m_name);
 
     parseProperty(attrs, flags, typeName, QStringLiteral("shaderlighting"), &m_shaderLighting);
     parseProperty(attrs, flags, typeName, QStringLiteral("blendmode"), &m_blendMode);
@@ -1652,6 +1647,9 @@ void Q3DSDefaultMaterial::setProps(const V &attrs, PropSetFlags flags)
     parseImageProperty(attrs, flags, typeName, QStringLiteral("lightmapradiosity"), &m_lightmapRadiosityMap_unresolved);
     parseImageProperty(attrs, flags, typeName, QStringLiteral("lightmapshadow"), &m_lightmapShadowMap_unresolved);
     parseImageProperty(attrs, flags, typeName, QStringLiteral("iblprobe"), &m_lightProbe_unresolved);
+
+    // Different default value.
+    parseProperty(attrs, flags, typeName, QStringLiteral("name"), &m_name);
 }
 
 void Q3DSDefaultMaterial::setProperties(const QXmlStreamAttributes &attrs, PropSetFlags flags)
@@ -1700,7 +1698,7 @@ int Q3DSDefaultMaterial::mapChangeFlags(const Q3DSPropertyChangeList &changeList
 QStringList Q3DSDefaultMaterial::gex_propertyNames() const
 {
     QStringList s = Q3DSGraphObject::gex_propertyNames();
-    s << QLatin1String("name") << QLatin1String("shaderLighting") << QLatin1String("blendMode") << QLatin1String("diffuse")
+    s << QLatin1String("shaderLighting") << QLatin1String("blendMode") << QLatin1String("diffuse")
       << QLatin1String("diffuseMap") << QLatin1String("diffuseMap2") << QLatin1String("diffuseMap3")
       << QLatin1String("specularReflection") << QLatin1String("specularTint") << QLatin1String("specularAmount")
       << QLatin1String("specularMap") << QLatin1String("specularModel")
@@ -1717,18 +1715,13 @@ QStringList Q3DSDefaultMaterial::gex_propertyNames() const
 QVariantList Q3DSDefaultMaterial::gex_propertyValues() const
 {
     QVariantList s = Q3DSGraphObject::gex_propertyValues();
-    s << m_name << m_shaderLighting << m_blendMode << m_diffuse << m_diffuseMap_unresolved << m_diffuseMap2_unresolved << m_diffuseMap3_unresolved
+    s << m_shaderLighting << m_blendMode << m_diffuse << m_diffuseMap_unresolved << m_diffuseMap2_unresolved << m_diffuseMap3_unresolved
       << m_specularReflection_unresolved << m_specularTint << m_specularAmount << m_specularMap_unresolved << m_specularModel
       << m_specularRoughness << m_fresnelPower << m_ior << m_bumpMap_unresolved << m_normalMap_unresolved << m_bumpAmount << m_displacementMap_unresolved
       << m_displaceAmount << m_opacity << m_opacityMap_unresolved << m_emissiveColor << m_emissivePower << m_emissiveMap_unresolved << m_emissiveMap2_unresolved
       << m_translucencyMap_unresolved << m_translucentFalloff << m_diffuseLightWrap
       << m_lightmapIndirectMap_unresolved << m_lightmapRadiosityMap_unresolved << m_lightmapShadowMap_unresolved << m_lightProbe_unresolved;
     return s;
-}
-
-Q3DSPropertyChange Q3DSDefaultMaterial::setName(const QString &v)
-{
-    PROP_SETTER(m_name, v, "name");
 }
 
 Q3DSPropertyChange Q3DSDefaultMaterial::setShaderLighting(ShaderLighting v)
@@ -1900,13 +1893,15 @@ template<typename V>
 void Q3DSReferencedMaterial::setProps(const V &attrs, PropSetFlags flags)
 {
     const QString typeName = QStringLiteral("ReferencedMaterial");
-    parseProperty(attrs, flags, typeName, QStringLiteral("name"), &m_name);
     parseObjectRefProperty(attrs, flags, typeName, QStringLiteral("referencedmaterial"), &m_referencedMaterial_unresolved);
 
     parseImageProperty(attrs, flags, typeName, QStringLiteral("lightmapindirect"), &m_lightmapIndirectMap_unresolved);
     parseImageProperty(attrs, flags, typeName, QStringLiteral("lightmapradiosity"), &m_lightmapRadiosityMap_unresolved);
     parseImageProperty(attrs, flags, typeName, QStringLiteral("lightmapshadow"), &m_lightmapShadowMap_unresolved);
     parseImageProperty(attrs, flags, typeName, QStringLiteral("iblprobe"), &m_lightProbe_unresolved);
+
+    // Different default value.
+    parseProperty(attrs, flags, typeName, QStringLiteral("name"), &m_name);
 }
 
 void Q3DSReferencedMaterial::setProperties(const QXmlStreamAttributes &attrs, PropSetFlags flags)
@@ -1935,7 +1930,7 @@ void Q3DSReferencedMaterial::resolveReferences(Q3DSUipPresentation &pres, Q3DSUi
 QStringList Q3DSReferencedMaterial::gex_propertyNames() const
 {
     QStringList s = Q3DSGraphObject::gex_propertyNames();
-    s << QLatin1String("name") << QLatin1String("referencedmaterial")
+    s << QLatin1String("referencedmaterial")
       << QLatin1String("translucencyMap") << QLatin1String("translucentFalloff") << QLatin1String("diffuseLightWrap")
       << QLatin1String("lightmapIndirect") << QLatin1String("lightmapRadiosity") << QLatin1String("lightmapShadow");
     return s;
@@ -1944,14 +1939,9 @@ QStringList Q3DSReferencedMaterial::gex_propertyNames() const
 QVariantList Q3DSReferencedMaterial::gex_propertyValues() const
 {
     QVariantList s = Q3DSGraphObject::gex_propertyValues();
-    s << m_name << m_referencedMaterial_unresolved
+    s << m_referencedMaterial_unresolved
       << m_lightmapIndirectMap_unresolved << m_lightmapRadiosityMap_unresolved << m_lightmapShadowMap_unresolved << m_lightProbe_unresolved;
     return s;
-}
-
-Q3DSPropertyChange Q3DSReferencedMaterial::setName(const QString &v)
-{
-    PROP_SETTER(m_name, v, "name");
 }
 
 Q3DSPropertyChange Q3DSReferencedMaterial::setReferencedMaterial(Q3DSGraphObject *v)
@@ -1994,13 +1984,15 @@ template<typename V>
 void Q3DSCustomMaterialInstance::setProps(const V &attrs, PropSetFlags flags)
 {
     const QString typeName = QStringLiteral("CustomMaterial");
-    parseProperty(attrs, flags, typeName, QStringLiteral("name"), &m_name);
     parseProperty(attrs, flags, typeName, QStringLiteral("class"), &m_material_unresolved);
 
     parseImageProperty(attrs, flags, typeName, QStringLiteral("lightmapindirect"), &m_lightmapIndirectMap_unresolved);
     parseImageProperty(attrs, flags, typeName, QStringLiteral("lightmapradiosity"), &m_lightmapRadiosityMap_unresolved);
     parseImageProperty(attrs, flags, typeName, QStringLiteral("lightmapshadow"), &m_lightmapShadowMap_unresolved);
     parseImageProperty(attrs, flags, typeName, QStringLiteral("iblprobe"), &m_lightProbe_unresolved);
+
+    // Different default value.
+    parseProperty(attrs, flags, typeName, QStringLiteral("name"), &m_name);
 }
 
 void Q3DSCustomMaterialInstance::setProperties(const QXmlStreamAttributes &attrs, PropSetFlags flags)
@@ -2068,7 +2060,7 @@ void Q3DSCustomMaterialInstance::resolveReferences(Q3DSUipPresentation &pres, Q3
 QStringList Q3DSCustomMaterialInstance::gex_propertyNames() const
 {
     QStringList s = Q3DSGraphObject::gex_propertyNames();
-    s << QLatin1String("name") << QLatin1String("class")
+    s << QLatin1String("class")
       << QLatin1String("translucencyMap") << QLatin1String("translucentFalloff") << QLatin1String("diffuseLightWrap")
       << QLatin1String("lightmapIndirect") << QLatin1String("lightmapRadiosity") << QLatin1String("lightmapShadow");
     return s;
@@ -2077,14 +2069,9 @@ QStringList Q3DSCustomMaterialInstance::gex_propertyNames() const
 QVariantList Q3DSCustomMaterialInstance::gex_propertyValues() const
 {
     QVariantList s = Q3DSGraphObject::gex_propertyValues();
-    s << m_name << m_material_unresolved
+    s << m_material_unresolved
       << m_lightmapIndirectMap_unresolved << m_lightmapRadiosityMap_unresolved << m_lightmapShadowMap_unresolved << m_lightProbe_unresolved;
     return s;
-}
-
-Q3DSPropertyChange Q3DSCustomMaterialInstance::setName(const QString &v)
-{
-    PROP_SETTER(m_name, v, "name");
 }
 
 Q3DSPropertyChange Q3DSCustomMaterialInstance::setLightmapIndirectMap(Q3DSImage *v)
@@ -2132,8 +2119,10 @@ template<typename V>
 void Q3DSEffectInstance::setProps(const V &attrs, PropSetFlags flags)
 {
     const QString typeName = QStringLiteral("Effect");
-    parseProperty(attrs, flags, typeName, QStringLiteral("name"), &m_name);
     parseProperty(attrs, flags, typeName, QStringLiteral("class"), &m_effect_unresolved);
+
+    // Different default value.
+    parseProperty(attrs, flags, typeName, QStringLiteral("name"), &m_name);
 }
 
 void Q3DSEffectInstance::setProperties(const QXmlStreamAttributes &attrs, PropSetFlags flags)
@@ -2165,20 +2154,15 @@ void Q3DSEffectInstance::resolveReferences(Q3DSUipPresentation &pres, Q3DSUipPar
 QStringList Q3DSEffectInstance::gex_propertyNames() const
 {
     QStringList s = Q3DSGraphObject::gex_propertyNames();
-    s << QLatin1String("name") << QLatin1String("class");
+    s << QLatin1String("class");
     return s;
 }
 
 QVariantList Q3DSEffectInstance::gex_propertyValues() const
 {
     QVariantList s = Q3DSGraphObject::gex_propertyValues();
-    s << m_name << m_effect_unresolved;
+    s << m_effect_unresolved;
     return s;
-}
-
-Q3DSPropertyChange Q3DSEffectInstance::setName(const QString &v)
-{
-    PROP_SETTER(m_name, v, "name");
 }
 
 Q3DSPropertyChange Q3DSEffectInstance::setCustomProperty(const QString &name, const QVariant &value)
@@ -2334,8 +2318,6 @@ void Q3DSLayerNode::setProps(const V &attrs, PropSetFlags flags)
 {
     const QString typeName = QStringLiteral("Layer");
 
-    parseProperty(attrs, flags, typeName, QStringLiteral("name"), &m_name);
-
     bool b;
     if (parseProperty(attrs, flags, typeName, QStringLiteral("disabledepthtest"), &b))
         m_layerFlags.setFlag(DisableDepthTest, b);
@@ -2394,6 +2376,9 @@ void Q3DSLayerNode::setProps(const V &attrs, PropSetFlags flags)
     parseProperty(attrs, flags, typeName, QStringLiteral("probe2fade"), &m_probe2Fade);
     parseProperty(attrs, flags, typeName, QStringLiteral("probe2window"), &m_probe2Window);
     parseProperty(attrs, flags, typeName, QStringLiteral("probe2pos"), &m_probe2Pos);
+
+    // Different default value.
+    parseProperty(attrs, flags, typeName, QStringLiteral("name"), &m_name);
 }
 
 void Q3DSLayerNode::setProperties(const QXmlStreamAttributes &attrs, PropSetFlags flags)
@@ -2431,7 +2416,7 @@ int Q3DSLayerNode::mapChangeFlags(const Q3DSPropertyChangeList &changeList)
 QStringList Q3DSLayerNode::gex_propertyNames() const
 {
     QStringList s = Q3DSNode::gex_propertyNames();
-    s << QLatin1String("name") << QLatin1String("layerFlags") << QLatin1String("progressiveAA") << QLatin1String("multisampleAA")
+    s << QLatin1String("layerFlags") << QLatin1String("progressiveAA") << QLatin1String("multisampleAA")
       << QLatin1String("layerBackground") << QLatin1String("backgroundColor")
       << QLatin1String("blendType") << QLatin1String("horizontalFields") << QLatin1String("left") << QLatin1String("leftUnits")
       << QLatin1String("width") << QLatin1String("widthUnits")
@@ -2447,18 +2432,13 @@ QStringList Q3DSLayerNode::gex_propertyNames() const
 QVariantList Q3DSLayerNode::gex_propertyValues() const
 {
     QVariantList s = Q3DSNode::gex_propertyValues();
-    s << m_name << int(m_layerFlags) << m_progressiveAA << m_multisampleAA << m_layerBackground << m_backgroundColor
+    s << int(m_layerFlags) << m_progressiveAA << m_multisampleAA << m_layerBackground << m_backgroundColor
       << m_blendType << m_horizontalFields << m_left << m_leftUnits << m_width << m_widthUnits
       << m_right << m_rightUnits << m_verticalFields << m_top << m_topUnits << m_height << m_heightUnits
       << m_bottom << m_bottomUnits << m_sourcePath << m_shadowStrength << m_shadowDist << m_shadowSoftness
       << m_shadowBias << m_lightProbe_unresolved << m_probeBright << m_probeHorizon << m_probeFov << m_lightProbe2_unresolved
       << m_probe2Fade << m_probe2Window << m_probe2Pos;
     return s;
-}
-
-Q3DSPropertyChange Q3DSLayerNode::setName(const QString &v)
-{
-    PROP_SETTER(m_name, v, "name");
 }
 
 Q3DSPropertyChange Q3DSLayerNode::setLayerFlag(Flag flag, bool v)
@@ -2675,7 +2655,6 @@ void Q3DSCameraNode::setProps(const V &attrs, PropSetFlags flags)
 {
     const QString typeName = QStringLiteral("Camera");
 
-    parseProperty(attrs, flags, typeName, QStringLiteral("name"), &m_name);
     parseProperty(attrs, flags, typeName, QStringLiteral("orthographic"), &m_orthographic);
     parseProperty(attrs, flags, typeName, QStringLiteral("fov"), &m_fov);
     parseProperty(attrs, flags, typeName, QStringLiteral("clipnear"), &m_clipNear);
@@ -2683,7 +2662,8 @@ void Q3DSCameraNode::setProps(const V &attrs, PropSetFlags flags)
     parseProperty(attrs, flags, typeName, QStringLiteral("scalemode"), &m_scaleMode);
     parseProperty(attrs, flags, typeName, QStringLiteral("scaleanchor"), &m_scaleAnchor);
 
-    // Re-parse position since the default value in the metadata for this respecified property is different.
+    // Different default value.
+    parseProperty(attrs, flags, typeName, QStringLiteral("name"), &m_name);
     parseProperty(attrs, flags, typeName, QStringLiteral("position"), &m_position);
 }
 
@@ -2702,7 +2682,7 @@ void Q3DSCameraNode::applyPropertyChanges(const Q3DSPropertyChangeList &changeLi
 QStringList Q3DSCameraNode::gex_propertyNames() const
 {
     QStringList s = Q3DSNode::gex_propertyNames();
-    s << QLatin1String("name") << QLatin1String("orthographic") << QLatin1String("fov")
+    s << QLatin1String("orthographic") << QLatin1String("fov")
       << QLatin1String("clipNear") << QLatin1String("clipFar") << QLatin1String("scaleMode") << QLatin1String("scaleAnchor");
     return s;
 }
@@ -2710,13 +2690,8 @@ QStringList Q3DSCameraNode::gex_propertyNames() const
 QVariantList Q3DSCameraNode::gex_propertyValues() const
 {
     QVariantList s = Q3DSNode::gex_propertyValues();
-    s << m_name << m_orthographic << m_fov << m_clipNear << m_clipFar << m_scaleMode << m_scaleAnchor;
+    s << m_orthographic << m_fov << m_clipNear << m_clipFar << m_scaleMode << m_scaleAnchor;
     return s;
-}
-
-Q3DSPropertyChange Q3DSCameraNode::setName(const QString &v)
-{
-    PROP_SETTER(m_name, v, "name");
 }
 
 Q3DSPropertyChange Q3DSCameraNode::setOrthographic(bool v)
@@ -2759,7 +2734,6 @@ void Q3DSLightNode::setProps(const V &attrs, PropSetFlags flags)
 {
     const QString typeName = QStringLiteral("Light");
 
-    parseProperty(attrs, flags, typeName, QStringLiteral("name"), &m_name);
     parseObjectRefProperty(attrs, flags, typeName, QStringLiteral("scope"), &m_scope_unresolved);
 
     parseProperty(attrs, flags, typeName, QStringLiteral("lighttype"), &m_lightType);
@@ -2778,6 +2752,9 @@ void Q3DSLightNode::setProps(const V &attrs, PropSetFlags flags)
     parseProperty(attrs, flags, typeName, QStringLiteral("shdwbias"), &m_shadowBias);
     parseProperty(attrs, flags, typeName, QStringLiteral("shdwmapfar"), &m_shadowMapFar);
     parseProperty(attrs, flags, typeName, QStringLiteral("shdwmapfov"), &m_shadowMapFov);
+
+    // Different default value.
+    parseProperty(attrs, flags, typeName, QStringLiteral("name"), &m_name);
 }
 
 void Q3DSLightNode::setProperties(const QXmlStreamAttributes &attrs, PropSetFlags flags)
@@ -2801,7 +2778,7 @@ void Q3DSLightNode::resolveReferences(Q3DSUipPresentation &pres, Q3DSUipParser &
 QStringList Q3DSLightNode::gex_propertyNames() const
 {
     QStringList s = Q3DSNode::gex_propertyNames();
-    s << QLatin1String("name") << QLatin1String("scope") << QLatin1String("lightType") << QLatin1String("lightDiffuse")
+    s << QLatin1String("scope") << QLatin1String("lightType") << QLatin1String("lightDiffuse")
       << QLatin1String("lightSpecular") << QLatin1String("lightAmbient") << QLatin1String("brightness") << QLatin1String("linearFade")
       << QLatin1String("expFade") << QLatin1String("areaWidth") << QLatin1String("areaHeight") << QLatin1String("castShadow")
       << QLatin1String("shadowFactor") << QLatin1String("shadowFilter") << QLatin1String("shadowMapRes") << QLatin1String("shadowBias")
@@ -2812,15 +2789,10 @@ QStringList Q3DSLightNode::gex_propertyNames() const
 QVariantList Q3DSLightNode::gex_propertyValues() const
 {
     QVariantList s = Q3DSNode::gex_propertyValues();
-    s << m_name << m_scope_unresolved << m_lightType << m_lightDiffuse << m_lightSpecular << m_lightAmbient
+    s << m_scope_unresolved << m_lightType << m_lightDiffuse << m_lightSpecular << m_lightAmbient
       << m_brightness << m_linearFade << m_expFade << m_areaWidth << m_areaHeight << m_castShadow
       << m_shadowFactor << m_shadowFilter << m_shadowMapRes << m_shadowBias << m_shadowMapFar << m_shadowMapFov;
     return s;
-}
-
-Q3DSPropertyChange Q3DSLightNode::setName(const QString &v)
-{
-    PROP_SETTER(m_name, v, "name");
 }
 
 Q3DSPropertyChange Q3DSLightNode::setLightType(LightType v)
@@ -2917,12 +2889,14 @@ template<typename V>
 void Q3DSModelNode::setProps(const V &attrs, PropSetFlags flags)
 {
     const QString typeName = QStringLiteral("Model");
-    parseProperty(attrs, flags, typeName, QStringLiteral("name"), &m_name);
     parseMeshProperty(attrs, flags, typeName, QStringLiteral("sourcepath"), &m_mesh_unresolved);
     parseProperty(attrs, flags, typeName, QStringLiteral("poseroot"), &m_skeletonRoot);
     parseProperty(attrs, flags, typeName, QStringLiteral("tessellation"), &m_tessellation);
     parseProperty(attrs, flags, typeName, QStringLiteral("edgetess"), &m_edgeTess);
     parseProperty(attrs, flags, typeName, QStringLiteral("innertess"), &m_innerTess);
+
+    // Different default value.
+    parseProperty(attrs, flags, typeName, QStringLiteral("name"), &m_name);
 }
 
 void Q3DSModelNode::setProperties(const QXmlStreamAttributes &attrs, PropSetFlags flags)
@@ -2950,7 +2924,7 @@ void Q3DSModelNode::resolveReferences(Q3DSUipPresentation &pres, Q3DSUipParser &
 QStringList Q3DSModelNode::gex_propertyNames() const
 {
     QStringList s = Q3DSNode::gex_propertyNames();
-    s << QLatin1String("name") << QLatin1String("sourcePath") << QLatin1String("skeletonRoot")
+    s << QLatin1String("sourcePath") << QLatin1String("skeletonRoot")
       << QLatin1String("tessellation") << QLatin1String("edgeTess") << QLatin1String("innerTess");
     return s;
 }
@@ -2958,13 +2932,8 @@ QStringList Q3DSModelNode::gex_propertyNames() const
 QVariantList Q3DSModelNode::gex_propertyValues() const
 {
     QVariantList s = Q3DSNode::gex_propertyValues();
-    s << m_name << m_mesh_unresolved << m_skeletonRoot << m_tessellation << m_edgeTess << m_innerTess;
+    s << m_mesh_unresolved << m_skeletonRoot << m_tessellation << m_edgeTess << m_innerTess;
     return s;
-}
-
-Q3DSPropertyChange Q3DSModelNode::setName(const QString &v)
-{
-    PROP_SETTER(m_name, v, "name");
 }
 
 Q3DSPropertyChange Q3DSModelNode::setMesh(const MeshList &v)
@@ -3001,6 +2970,8 @@ template<typename V>
 void Q3DSGroupNode::setProps(const V &attrs, PropSetFlags flags)
 {
     const QString typeName = QStringLiteral("Group");
+
+    // Different default value.
     parseProperty(attrs, flags, typeName, QStringLiteral("name"), &m_name);
 }
 
@@ -3019,20 +2990,13 @@ void Q3DSGroupNode::applyPropertyChanges(const Q3DSPropertyChangeList &changeLis
 QStringList Q3DSGroupNode::gex_propertyNames() const
 {
     QStringList s = Q3DSNode::gex_propertyNames();
-    s << QLatin1String("name");
     return s;
 }
 
 QVariantList Q3DSGroupNode::gex_propertyValues() const
 {
     QVariantList s = Q3DSNode::gex_propertyValues();
-    s << m_name;
     return s;
-}
-
-Q3DSPropertyChange Q3DSGroupNode::setName(const QString &v)
-{
-    PROP_SETTER(m_name, v, "name");
 }
 
 Q3DSComponentNode::Q3DSComponentNode()
@@ -3049,6 +3013,8 @@ template<typename V>
 void Q3DSComponentNode::setProps(const V &attrs, PropSetFlags flags)
 {
     const QString typeName = QStringLiteral("Component");
+
+    // Different default value.
     parseProperty(attrs, flags, typeName, QStringLiteral("name"), &m_name);
 }
 
@@ -3076,20 +3042,13 @@ void Q3DSComponentNode::setCurrentSlide(Q3DSSlide *slide)
 QStringList Q3DSComponentNode::gex_propertyNames() const
 {
     QStringList s = Q3DSNode::gex_propertyNames();
-    s << QLatin1String("name");
     return s;
 }
 
 QVariantList Q3DSComponentNode::gex_propertyValues() const
 {
     QVariantList s = Q3DSNode::gex_propertyValues();
-    s << m_name;
     return s;
-}
-
-Q3DSPropertyChange Q3DSComponentNode::setName(const QString &v)
-{
-    PROP_SETTER(m_name, v, "name");
 }
 
 Q3DSTextNode::Q3DSTextNode()
@@ -3101,7 +3060,6 @@ template<typename V>
 void Q3DSTextNode::setProps(const V &attrs, PropSetFlags flags)
 {
     const QString typeName = QStringLiteral("Text");
-    parseProperty(attrs, flags, typeName, QStringLiteral("name"), &m_name);
     parseMultiLineStringProperty(attrs, flags, typeName, QStringLiteral("textstring"), &m_text);
     parseProperty(attrs, flags, typeName, QStringLiteral("textcolor"), &m_color);
     parseFontProperty(attrs, flags, typeName, QStringLiteral("font"), &m_font);
@@ -3110,6 +3068,9 @@ void Q3DSTextNode::setProps(const V &attrs, PropSetFlags flags)
     parseProperty(attrs, flags, typeName, QStringLiteral("vertalign"), &m_vertAlign);
     parseProperty(attrs, flags, typeName, QStringLiteral("leading"), &m_leading);
     parseProperty(attrs, flags, typeName, QStringLiteral("tracking"), &m_tracking);
+
+    // Different default value.
+    parseProperty(attrs, flags, typeName, QStringLiteral("name"), &m_name);
 }
 
 void Q3DSTextNode::setProperties(const QXmlStreamAttributes &attrs, PropSetFlags flags)
@@ -3141,7 +3102,7 @@ int Q3DSTextNode::mapChangeFlags(const Q3DSPropertyChangeList &changeList)
 QStringList Q3DSTextNode::gex_propertyNames() const
 {
     QStringList s = Q3DSNode::gex_propertyNames();
-    s << QLatin1String("name") << QLatin1String("textstring") << QLatin1String("textcolor") << QLatin1String("font")
+    s << QLatin1String("textstring") << QLatin1String("textcolor") << QLatin1String("font")
       << QLatin1String("size") << QLatin1String("horzalign") << QLatin1String("vertalign") << QLatin1String("leading") << QLatin1String("tracking");
     return s;
 }
@@ -3149,13 +3110,8 @@ QStringList Q3DSTextNode::gex_propertyNames() const
 QVariantList Q3DSTextNode::gex_propertyValues() const
 {
     QVariantList s = Q3DSNode::gex_propertyValues();
-    s << m_name << m_text << m_color << m_font << m_size << m_horizAlign << m_vertAlign << m_leading << m_tracking;
+    s << m_text << m_color << m_font << m_size << m_horizAlign << m_vertAlign << m_leading << m_tracking;
     return s;
-}
-
-Q3DSPropertyChange Q3DSTextNode::setName(const QString &v)
-{
-    PROP_SETTER(m_name, v, "name");
 }
 
 Q3DSPropertyChange Q3DSTextNode::setText(const QString &v)
@@ -3294,6 +3250,15 @@ Q3DSSlide *Q3DSUipPresentation::masterSlide() const
 Q3DSGraphObject *Q3DSUipPresentation::getObject(const QByteArray &id) const
 {
     return d->objects.value(id);
+}
+
+Q3DSGraphObject *Q3DSUipPresentation::getObjectByName(const QString &name) const
+{
+    for (auto it = d->objects.cbegin(), itEnd = d->objects.cend(); it != itEnd; ++it) {
+        if ((*it)->name() == name)
+            return *it;
+    }
+    return nullptr;
 }
 
 void Q3DSUipPresentation::setSourceFile(const QString &s)

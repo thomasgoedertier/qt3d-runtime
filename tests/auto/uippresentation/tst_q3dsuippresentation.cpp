@@ -146,6 +146,11 @@ void tst_Q3DSUipPresentation::makePresentation(Q3DSUipPresentation &presentation
 
     // *** now the actual scene contents (models and texts)
     Q3DSModelNode *model1 = presentation.newObject<Q3DSModelNode>("model1");
+    // Set a custom name. Avoid confusing id and name (object() vs.
+    // objectByName()). id is unique where as name may not be. When working
+    // with .uip files in the editor, it is name that is exposed and changeable
+    // on the UI, id is kept internal.
+    model1->setName(QLatin1String("my little cube"));
     // A model needs a mesh. Meshes are retrieved via
     // Q3DSUipPresentation::mesh() which loads or returns a cached one.
     model1->setMesh(presentation.mesh(QLatin1String("#Cube"))); // let's use a built-in primitive
@@ -184,6 +189,17 @@ void tst_Q3DSUipPresentation::basic()
 {
     Q3DSUipPresentation presentation;
     makePresentation(presentation);
+
+    // quick tests for object and objectByName
+
+    auto model1 = presentation.object<Q3DSModelNode>("model1");
+    QVERIFY(model1);
+    QCOMPARE(model1->id(), QByteArrayLiteral("model1"));
+    QCOMPARE(model1->name(), QStringLiteral("my little cube"));
+
+    auto alsoModel1 = presentation.objectByName<Q3DSModelNode>(QLatin1String("my little cube"));
+    QVERIFY(alsoModel1);
+    QCOMPARE(model1, alsoModel1);
 }
 
 void tst_Q3DSUipPresentation::propertyChangeNotification()

@@ -285,17 +285,20 @@ public:
     virtual QVariantList gex_propertyValues() const;
 
     // Properties
-    QByteArray id() const { return m_id; }
+    QByteArray id() const { return m_id; } // always unique
+    QString name() const { return m_name; } // as set in the editor, may not be unique
     qint32 startTime() const { return m_startTime; }
     qint32 endTime() const { return m_endTime; }
 
     // There is no setId(). Use Q3DSUipPresentation::registerObject() instead.
+    Q3DSPropertyChange setName(const QString &v);
     Q3DSPropertyChange setStartTime(qint32 v);
     Q3DSPropertyChange setEndTime(qint32 v);
 
 protected:
     void destroyGraph();
     QByteArray m_id;
+    QString m_name;
     qint32 m_startTime = 0;
     qint32 m_endTime = 10000;
 
@@ -335,11 +338,9 @@ public:
     QVariantList gex_propertyValues() const override;
 
     // Properties
-    QString name() const { return m_name; }
     bool useClearColor() const { return m_useClearColor; }
     QColor clearColor() const { return m_clearColor; }
 
-    Q3DSPropertyChange setName(const QString &v);
     Q3DSPropertyChange setUseClearColor(bool v);
     Q3DSPropertyChange setClearColor(const QColor &v);
 
@@ -347,7 +348,6 @@ private:
     Q_DISABLE_COPY(Q3DSScene)
     void notifyNodeChange(Q3DSGraphObject *obj, Q3DSGraphObject::DirtyFlags bits);
 
-    QString m_name;
     bool m_useClearColor = true;
     QColor m_clearColor = Qt::black;
     QVector<SceneChangeCallback> m_sceneChangeCallbacks;
@@ -505,14 +505,12 @@ public:
     QVariantList gex_propertyValues() const override;
 
     // Properties
-    QString name() const { return m_name; }
     PlayMode playMode() const { return m_playMode; }
     InitialPlayState initialPlayState() const { return m_initialPlayState; }
     bool playThroughHasExplicitValue() const { return m_playThroughHasExplicitValue; }
     PlayThrough playThrough() const { return m_playThrough; }
     int playThroughValue() const { return m_playThroughValue; }
 
-    Q3DSPropertyChange setName(const QString &v);
     Q3DSPropertyChange setPlayMode(PlayMode v);
     Q3DSPropertyChange setInitialPlayState(InitialPlayState v);
     Q3DSPropertyChange setPlayThrough(PlayThrough v);
@@ -523,7 +521,6 @@ private:
     void notifySlideGraphChange(Q3DSSlide *slide, Q3DSGraphObject::DirtyFlags bits);
     void notifySlideObjectChange(const SlideObjectChange &change);
 
-    QString m_name;
     PlayMode m_playMode = StopAtEnd;
     InitialPlayState m_initialPlayState = Play;
     bool m_playThroughHasExplicitValue = false;
@@ -583,7 +580,6 @@ public:
     bool hasTransparency();
 
     // Properties
-    QString name() const { return m_name; }
     QString sourcePath() const { return m_sourcePath; } // already adjusted, can be opened as-is
     float scaleU() const { return m_scaleU; }
     float scaleV() const { return m_scaleV; }
@@ -597,7 +593,6 @@ public:
     float pivotV() const { return m_pivotV; }
     QString subPresentation() const { return m_subPresentation; }
 
-    Q3DSPropertyChange setName(const QString &v);
     Q3DSPropertyChange setSourcePath(const QString &v);
     Q3DSPropertyChange setScaleU(float v);
     Q3DSPropertyChange setScaleV(float v);
@@ -616,7 +611,6 @@ private:
     template<typename V> void setProps(const V &attrs, PropSetFlags flags);
     friend class Q3DSImageAnimator;
 
-    QString m_name;
     QString m_sourcePath;
     float m_scaleU = 1;
     float m_scaleV = 1;
@@ -845,7 +839,6 @@ public:
     QVariantList gex_propertyValues() const override;
 
     // Properties
-    QString name() const { return m_name; }
     Flags layerFlags() const { return m_layerFlags; }
     ProgressiveAA progressiveAA() const { return m_progressiveAA; }
     MultisampleAA multisampleAA() const { return m_multisampleAA; }
@@ -889,7 +882,6 @@ public:
     float probe2window() const { return m_probe2Window; }
     float probe2pos() const { return m_probe2Pos; }
 
-    Q3DSPropertyChange setName(const QString &name);
     Q3DSPropertyChange setLayerFlag(Flag flag, bool v);
     Q3DSPropertyChange setProgressiveAA(ProgressiveAA v);
     Q3DSPropertyChange setMultisampleAA(MultisampleAA v);
@@ -935,7 +927,6 @@ private:
     template<typename V> void setProps(const V &attrs, PropSetFlags flags);
     friend class Q3DSLayerNodeAnimator;
 
-    QString m_name;
     Flags m_layerFlags = FastIBL;
     ProgressiveAA m_progressiveAA = NoPAA;
     MultisampleAA m_multisampleAA = NoMSAA;
@@ -1065,7 +1056,6 @@ public:
     QVariantList gex_propertyValues() const override;
 
     // Properties
-    QString name() const { return m_name; }
     bool orthographic() const { return m_orthographic; }
     float fov() const { return m_fov; }
     float clipNear() const { return m_clipNear; }
@@ -1073,7 +1063,6 @@ public:
     ScaleMode scaleMode() const { return m_scaleMode; }
     ScaleAnchor scaleAnchor() const { return m_scaleAnchor; }
 
-    Q3DSPropertyChange setName(const QString &v);
     Q3DSPropertyChange setOrthographic(bool v);
     Q3DSPropertyChange setFov(float v);
     Q3DSPropertyChange setClipNear(float v);
@@ -1086,7 +1075,6 @@ private:
     template<typename V> void setProps(const V &attrs, PropSetFlags flags);
     friend class Q3DSCameraNodeAnimator;
 
-    QString m_name;
     bool m_orthographic = false;
     float m_fov = 60;
     float m_clipNear = 10;
@@ -1126,7 +1114,6 @@ public:
     QVariantList gex_propertyValues() const override;
 
     // Properties
-    QString name() const { return m_name; }
     LightType lightType() const { return m_lightType; }
     Q3DSGraphObject *scope() const { return m_scope; }
     QColor diffuse() const { return m_lightDiffuse; }
@@ -1145,7 +1132,6 @@ public:
     float shadowMapFar() const { return m_shadowMapFar; }
     float shadowMapFov() const { return m_shadowMapFov; }
 
-    Q3DSPropertyChange setName(const QString &v);
     Q3DSPropertyChange setLightType(LightType v);
     Q3DSPropertyChange setScope(Q3DSGraphObject *v);
     Q3DSPropertyChange setDiffuse(const QColor &v);
@@ -1169,7 +1155,6 @@ private:
     template<typename V> void setProps(const V &attrs, PropSetFlags flags);
     friend class Q3DSLightNodeAnimator;
 
-    QString m_name;
     QString m_scope_unresolved;
     Q3DSGraphObject *m_scope = nullptr;
     LightType m_lightType = Directional;
@@ -1242,14 +1227,12 @@ public:
     QVariantList gex_propertyValues() const override;
 
     // Properties
-    QString name() const { return m_name; }
     MeshList mesh() const { return m_mesh; }
     qint32 skeletonRoot() const { return m_skeletonRoot; }
     Tessellation tessellation() const { return m_tessellation; }
     float edgeTess() const { return m_edgeTess; }
     float innerTess() const { return m_innerTess; }
 
-    Q3DSPropertyChange setName(const QString &v);
     Q3DSPropertyChange setMesh(const MeshList &v);
     Q3DSPropertyChange setSkeletonRoot(int v);
     Q3DSPropertyChange setTessellation(Tessellation v);
@@ -1261,7 +1244,6 @@ private:
     template<typename V> void setProps(const V &attrs, PropSetFlags flags);
     friend class Q3DSModelNodeAnimator;
 
-    QString m_name;
     QString m_mesh_unresolved;
     MeshList m_mesh;
     qint32 m_skeletonRoot = -1;
@@ -1292,15 +1274,10 @@ public:
     QVariantList gex_propertyValues() const override;
 
     // Properties
-    QString name() const { return m_name; }
-
-    Q3DSPropertyChange setName(const QString &v);
 
 private:
     Q_DISABLE_COPY(Q3DSGroupNode)
     template<typename V> void setProps(const V &attrs, PropSetFlags flags);
-
-    QString m_name;
 };
 
 class Q3DSV_PRIVATE_EXPORT Q3DSComponentNode : public Q3DSNode
@@ -1320,15 +1297,11 @@ public:
     QVariantList gex_propertyValues() const override;
 
     // Properties
-    QString name() const { return m_name; }
-
-    Q3DSPropertyChange setName(const QString &v);
 
 private:
     Q_DISABLE_COPY(Q3DSComponentNode)
     template<typename V> void setProps(const V &attrs, PropSetFlags flags);
 
-    QString m_name;
     Q3DSSlide *m_masterSlide = nullptr;
     Q3DSSlide *m_currentSlide = nullptr;
 
@@ -1365,7 +1338,6 @@ public:
     QVariantList gex_propertyValues() const override;
 
     // Properties
-    QString name() const { return m_name; }
     QString text() const { return m_text; }
     QColor color() const { return m_color; }
     QString font() const { return m_font; }
@@ -1375,7 +1347,6 @@ public:
     float leading() const { return m_leading; }
     float tracking() const { return m_tracking; }
 
-    Q3DSPropertyChange setName(const QString &v);
     Q3DSPropertyChange setText(const QString &v);
     Q3DSPropertyChange setColor(const QColor &v);
     Q3DSPropertyChange setFont(const QString &v);
@@ -1390,7 +1361,6 @@ private:
     template<typename V> void setProps(const V &attrs, PropSetFlags flags);
     friend class Q3DSTextNodeAnimator;
 
-    QString m_name;
     QString m_text;
     QColor m_color;
     QString m_font;
@@ -1451,7 +1421,6 @@ public:
     QVariantList gex_propertyValues() const override;
 
     // Properties
-    QString name() const { return m_name; }
     ShaderLighting shaderLighting() const { return m_shaderLighting; }
     BlendMode blendMode() const { return m_blendMode; }
     QColor diffuse() const { return m_diffuse; }
@@ -1487,7 +1456,6 @@ public:
     // IBL override
     Q3DSImage *lightProbe() const { return m_lightProbe; }
 
-    Q3DSPropertyChange setName(const QString &v);
     Q3DSPropertyChange setShaderLighting(ShaderLighting v);
     Q3DSPropertyChange setBlendMode(BlendMode v);
     Q3DSPropertyChange setDiffuse(const QColor &v);
@@ -1526,7 +1494,6 @@ private:
     template<typename V> void setProps(const V &attrs, PropSetFlags flags);
     friend class Q3DSDefaultMaterialAnimator;
 
-    QString m_name;
     ShaderLighting m_shaderLighting = PixelShaderLighting;
     BlendMode m_blendMode = Normal;
     QColor m_diffuse = Qt::white;
@@ -1622,7 +1589,6 @@ public:
     QVariantList gex_propertyValues() const override;
 
     // Properties
-    QString name() const { return m_name; }
     Q3DSGraphObject *referencedMaterial() const { return m_referencedMaterial; }
     // lightmap overrides
     Q3DSImage *lightmapIndirectMap() const { return m_lightmapIndirectMap; }
@@ -1631,7 +1597,6 @@ public:
     // IBL override
     Q3DSImage *lightProbe() const { return m_lightProbe; }
 
-    Q3DSPropertyChange setName(const QString &v);
     Q3DSPropertyChange setReferencedMaterial(Q3DSGraphObject *v);
     Q3DSPropertyChange setLightmapIndirectMap(Q3DSImage *v);
     Q3DSPropertyChange setLightmapRadiosityMap(Q3DSImage *v);
@@ -1642,7 +1607,6 @@ private:
     Q_DISABLE_COPY(Q3DSReferencedMaterial)
     template<typename V> void setProps(const V &attrs, PropSetFlags flags);
 
-    QString m_name;
     QString m_referencedMaterial_unresolved;
     Q3DSGraphObject *m_referencedMaterial = nullptr;
     // lightmap overrides
@@ -1671,7 +1635,6 @@ public:
     QVariantList gex_propertyValues() const override;
 
     // Properties
-    QString name() const { return m_name; }
     const Q3DSCustomMaterial *material() const { return &m_material; }
     // lightmaps
     Q3DSImage *lightmapIndirectMap() const { return m_lightmapIndirectMap; }
@@ -1680,7 +1643,6 @@ public:
     // IBL override
     Q3DSImage *lightProbe() const { return m_lightProbe; }
 
-    Q3DSPropertyChange setName(const QString &v);
     Q3DSPropertyChange setLightmapIndirectMap(Q3DSImage *v);
     Q3DSPropertyChange setLightmapRadiosityMap(Q3DSImage *v);
     Q3DSPropertyChange setLightmapShadowMap(Q3DSImage *v);
@@ -1696,7 +1658,6 @@ private:
     Q_DISABLE_COPY(Q3DSCustomMaterialInstance)
     template<typename V> void setProps(const V &attrs, PropSetFlags flags);
 
-    QString m_name;
     QString m_material_unresolved;
     Q3DSCustomMaterial m_material;
     QVariantMap m_materialPropertyVals;
@@ -1727,10 +1688,7 @@ public:
     QVariantList gex_propertyValues() const override;
 
     // Properties
-    QString name() const { return m_name; }
     const Q3DSEffect *effect() const { return &m_effect; }
-
-    Q3DSPropertyChange setName(const QString &v);
 
     // All custom properties, either with the default or the instance-specific value.
     // Filenames are already sanitized.
@@ -1742,7 +1700,6 @@ private:
     Q_DISABLE_COPY(Q3DSEffectInstance)
     template<typename V> void setProps(const V &attrs, PropSetFlags flags);
 
-    QString m_name;
     QString m_effect_unresolved;
     Q3DSEffect m_effect;
     QVariantMap m_effectPropertyVals;
@@ -1792,6 +1749,11 @@ public:
     const T *object(const QByteArray &id) const { return static_cast<const T *>(getObject(id)); }
     template <typename T = Q3DSGraphObject>
     T *object(const QByteArray &id) { return static_cast<T *>(getObject(id)); }
+
+    template <typename T = Q3DSGraphObject>
+    const T *objectByName(const QString &name) const { return static_cast<const T *>(getObjectByName(name)); }
+    template <typename T = Q3DSGraphObject>
+    T *objectByName(const QString &name) { return static_cast<T *>(getObjectByName(name)); }
 
     void registerImageBuffer(const QString &sourcePath, bool hasTransparency);
 
@@ -1846,6 +1808,7 @@ private:
     bool loadCustomMaterial(const QStringRef &id, const QStringRef &name, const QString &assetFilename);
     bool loadEffect(const QStringRef &id, const QStringRef &name, const QString &assetFilename);
     Q3DSGraphObject *getObject(const QByteArray &id) const;
+    Q3DSGraphObject *getObjectByName(const QString &name) const;
 
     QScopedPointer<Q3DSUipPresentationData> d;
     friend class Q3DSUipParser;
