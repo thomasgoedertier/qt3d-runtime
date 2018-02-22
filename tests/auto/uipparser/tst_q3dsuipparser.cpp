@@ -734,19 +734,19 @@ void tst_Q3DSUipParser::primitiveMeshes()
     QVERIFY(cylinder);
 
     MeshList m = sphere->mesh();
-    QVERIFY(!m.isNull());
-    QCOMPARE(m->count(), 1);
-    QVERIFY(m->first()->vertexCount() > 0);
+    QVERIFY(!m.isEmpty());
+    QCOMPARE(m.count(), 1);
+    QVERIFY(m.first()->vertexCount() > 0);
 
     m = cone->mesh();
-    QVERIFY(!m.isNull());
-    QCOMPARE(m->count(), 1);
-    QVERIFY(m->first()->vertexCount() > 0);
+    QVERIFY(!m.isEmpty());
+    QCOMPARE(m.count(), 1);
+    QVERIFY(m.first()->vertexCount() > 0);
 
     m = cylinder->mesh();
-    QVERIFY(!m.isNull());
-    QCOMPARE(m->count(), 1);
-    QVERIFY(m->first()->vertexCount() > 0);
+    QVERIFY(!m.isEmpty());
+    QCOMPARE(m.count(), 1);
+    QVERIFY(m.first()->vertexCount() > 0);
 }
 
 void tst_Q3DSUipParser::customMesh()
@@ -758,10 +758,10 @@ void tst_Q3DSUipParser::customMesh()
     QVERIFY(h);
     QCOMPARE(h->childCount(), 6);
     MeshList m = h->mesh();
-    QVERIFY(!m.isNull());
-    QCOMPARE(m->count(), 6);
-    for (int i = 0; i < m->count(); ++i)
-        QVERIFY(m->at(i)->vertexCount() > 0);
+    QVERIFY(!m.isEmpty());
+    QCOMPARE(m.count(), 6);
+    for (int i = 0; i < m.count(); ++i)
+        QVERIFY(m.at(i)->vertexCount() > 0);
 }
 
 void tst_Q3DSUipParser::group()

@@ -65,7 +65,7 @@ void tst_Q3DSMeshLoader::cleanupTestCase()
 void tst_Q3DSMeshLoader::testEmpty()
 {
     auto geometry = Q3DSMeshLoader::loadMesh("does_not_exist");
-    QVERIFY(geometry == nullptr);
+    QVERIFY(geometry.isEmpty());
 }
 
 void tst_Q3DSMeshLoader::loadingPrimitiveMeshes()
@@ -89,19 +89,19 @@ void tst_Q3DSMeshLoader::loadingPrimitiveMeshes()
 void tst_Q3DSMeshLoader::testConsitencyAfterCleanup()
 {
     auto meshList = Q3DSMeshLoader::loadMesh("#Cube");
-    QVERIFY(meshList->count() == 1);
-    meshList.reset( new QVector<Q3DSMesh *>);
-    QVERIFY(meshList->count() == 0);
+    QVERIFY(meshList.count() == 1);
+    meshList.clear();
+    QVERIFY(meshList.count() == 0);
     meshList = Q3DSMeshLoader::loadMesh("#Cube");
-    QVERIFY(meshList->count() == 1);
-    qDeleteAll(*meshList);
+    QVERIFY(meshList.count() == 1);
+    qDeleteAll(meshList);
 }
 
 void tst_Q3DSMeshLoader::validatePrimitive(MeshList list)
 {
     // Primitives only have 1 sub-mesh
-    QVERIFY(list->count() == 1);
-    auto mesh = list->first();
+    QVERIFY(list.count() == 1);
+    auto mesh = list.first();
     QVERIFY(mesh != nullptr);
     QVERIFY(mesh->geometry() != nullptr);
     // Qt3D based primitives should have 5 attributes

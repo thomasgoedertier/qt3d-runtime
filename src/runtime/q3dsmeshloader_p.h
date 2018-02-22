@@ -46,7 +46,7 @@
 
 QT_BEGIN_NAMESPACE
 
-typedef QSharedPointer<QVector<Q3DSMesh*> > MeshList;
+typedef QVector<Q3DSMesh *> MeshList;
 
 namespace Q3DSMeshLoader {
     Q3DSV_PRIVATE_EXPORT MeshList loadMesh(const QString &meshPath, int partId = 0, bool useQt3DAttributes = false);

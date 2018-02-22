@@ -3823,17 +3823,17 @@ Qt3DCore::QEntity *Q3DSSceneManager::buildModel(Q3DSModelNode *model3DS, Q3DSLay
     }
 
     MeshList meshList = model3DS->mesh();
-    if (!meshList)
+    if (meshList.isEmpty())
         return entity;
 
-    const int meshCount = meshList->count();
+    const int meshCount = meshList.count();
     Q_ASSERT(materials.count() == meshCount);
     Q3DSModelAttached *modelData = static_cast<Q3DSModelAttached *>(model3DS->attached());
     modelData->subMeshes.reserve(meshCount);
 
     for (int i = 0; i < meshCount; ++i) {
         auto material = materials.at(i);
-        auto mesh = meshList->at(i);
+        auto mesh = meshList.at(i);
         m_profiler->trackNewObject(mesh, Q3DSProfiler::MeshObject,
                                    "Mesh %d for model %s", i, model3DS->id().constData());
 

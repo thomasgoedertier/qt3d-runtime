@@ -607,7 +607,7 @@ MeshList loadMeshData(const QByteArray &meshData, quint32 flags, bool useQt3DAtt
     Serialize(serializer, *mesh);
 
     if (serializer.m_Failure)
-        return nullptr;
+        return MeshList();
 
     // Vertex Buffer
     auto vertexBuffer = new Qt3DRender::QBuffer;
@@ -700,7 +700,7 @@ MeshList loadMeshData(const QByteArray &meshData, quint32 flags, bool useQt3DAtt
     indexBuffer->setUsage(Qt3DRender::QBuffer::StaticDraw);
 
     // Mesh Sub-sets
-    MeshList subsets(new QVector<Q3DSMesh*>);
+    MeshList subsets;
     for (quint32 subsetId = 0, subSetEnd = mesh->m_Subsets.size(); subsetId < subSetEnd; ++subsetId) {
         MeshSubset &source(mesh->m_Subsets.index(dataStart, subsetId));
         QString subsetName = QString::fromUtf16((const char16_t *)(dataStart + source.m_Name.m_Offset));
@@ -721,7 +721,7 @@ MeshList loadMeshData(const QByteArray &meshData, quint32 flags, bool useQt3DAtt
         subMesh->setObjectName(subsetName);
         subMesh->setVertexCount(source.m_Count);
         subMesh->setPrimitiveType(convertRenderDrawModeToPrimitiveType(mesh->m_DrawMode));
-        subsets->append(subMesh);
+        subsets.append(subMesh);
     }
 
     return subsets;
@@ -734,7 +734,7 @@ MeshList loadMeshDataFromMulti(const QString &path, int id, bool useQt3DAttribut
     QFile meshFile(path);
     if (!meshFile.open(QIODevice::ReadOnly)) {
         qWarning() << "Could not open mesh file at: " << path;
-        return nullptr;
+        return MeshList();
     }
 
     QDataStream meshFileStream(&meshFile);
@@ -750,7 +750,7 @@ MeshList loadMeshDataFromMulti(const QString &path, int id, bool useQt3DAttribut
     if (header.m_FileId != MeshMultiHeader::GetMultiStaticFileId() || header.m_Version != MeshMultiHeader::GetMultiStaticVersion()) {
         qWarning() << "Mesh file does not contain valid mesh data: " << path;
         meshFile.close();
-        return nullptr;
+        return MeshList();
     }
     quint32 offset;
     quint32 size;
@@ -770,7 +770,7 @@ MeshList loadMeshDataFromMulti(const QString &path, int id, bool useQt3DAttribut
     }
 
     // Load mesh data
-    MeshList meshList = nullptr;
+    MeshList meshList;
     if (entries.contains(id)) {
         meshFile.seek(entries[id].m_MeshOffset);
         // Read MeshDataHeader

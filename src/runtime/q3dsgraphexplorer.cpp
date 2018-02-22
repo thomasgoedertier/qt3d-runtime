@@ -263,11 +263,11 @@ Q3DSGraphExplorer::Q3DSGraphExplorer(Q3DSGraphObject *root, QWidget *parent)
             }
         } else if (obj->type() == Q3DSGraphObject::Model) {
             Q3DSModelNode *model = static_cast<Q3DSModelNode *>(obj);
-            MeshList m = model->mesh();
-            if (m && !m->isEmpty()) {
-                s += tr("\n\nThis model has a mesh with %1 sub-meshes").arg(m->count());
-                for (int i = 0; i < m->count(); ++i)
-                    s += tr("\nSub-mesh %1 has %2 vertices").arg(i).arg(m->at(i)->vertexCount());
+            const MeshList m = model->mesh();
+            if (!m.isEmpty()) {
+                s += tr("\n\nThis model has a mesh with %1 sub-meshes").arg(m.count());
+                for (int i = 0; i < m.count(); ++i)
+                    s += tr("\nSub-mesh %1 has %2 vertices").arg(i).arg(m.at(i)->vertexCount());
             }
         } else if (obj->type() == Q3DSGraphObject::CustomMaterial) {
             Q3DSCustomMaterialInstance *mat = static_cast<Q3DSCustomMaterialInstance *>(obj);

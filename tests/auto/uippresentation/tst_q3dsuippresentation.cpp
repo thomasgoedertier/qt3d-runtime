@@ -153,8 +153,8 @@ void tst_Q3DSUipPresentation::makePresentation(Q3DSUipPresentation &presentation
     QCOMPARE(model1->previousSibling(), light1);
     QCOMPARE(model1->parent(), layer1);
     MeshList mesh = model1->mesh();
-    QVERIFY(!mesh.isNull());
-    QCOMPARE(mesh->count(), 1);
+    QVERIFY(!mesh.isEmpty());
+    QCOMPARE(mesh.count(), 1);
     // rotate the cube around the X and Y axes
     model1->setRotation(QVector3D(45, 30, 0));
     QCOMPARE(model1->rotation(), QVector3D(45, 30, 0));
