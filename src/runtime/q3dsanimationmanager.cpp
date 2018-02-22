@@ -361,14 +361,23 @@ void Q3DSAnimationManager::updateAnimationHelper(const AnimationTrackListMap<T *
             // Now a QChannel can be created.
             chIt->channel.setName(channelName);
 
-            // Channels must be fully specified. Fortunately the uip
-            // documents seem to fulfill this criteria and all 3
-            // components are present always.
             for (int i = 0; i < chIt->meta.componentCount; ++i) {
                 // Leave the component name unset. This way Qt3D will not waste
                 // time on string comparisons for figuring out the right index
                 // (e.g. 1) for e.g. QChannelComponent("BlahBlah Y"), but uses
                 // the component's index (which is already correct) as-is.
+
+                // Channels must be fully specified. The uip documents fulfill
+                // this criteria and all (1 or 3) components are present
+                // always, but programmatically created animations may lack
+                // this. Add a keyframe at 0 with value 0 since this is still
+                // better than asserting in Qt3D.
+                if (chIt->comps[i].keyFrameCount() == 0) {
+                    if (animSetupDebug)
+                        qDebug() << "  channel component" << i << "has no keyframes; adding dummy one";
+                    chIt->comps[i].appendKeyFrame(Qt3DAnimation::QKeyFrame(QVector2D(0, 0)));
+                }
+
                 chIt->channel.appendChannelComponent(chIt->comps[i]);
 
                 if (animSetupDebug) {

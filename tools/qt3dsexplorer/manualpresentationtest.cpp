@@ -90,13 +90,16 @@ QVector<Q3DSUipPresentation *> ManualPresentationTest::build()
     Q3DSAnimationTrack anim(Q3DSAnimationTrack::Linear, model1, QLatin1String("rotation.z"));
     anim.setKeyFrames({ { 0, 0 }, { 10, 360 } });
     slide1->addAnimation(anim);
-    // there's a catch: channels must be fully specified, so add dummies for x and y
-    Q3DSAnimationTrack dummyX(Q3DSAnimationTrack::Linear, model1, QLatin1String("rotation.x"));
-    dummyX.setKeyFrames({ { 0, 30 }, { 10, 30 } });
-    slide1->addAnimation(dummyX);
-    Q3DSAnimationTrack dummyY(Q3DSAnimationTrack::Linear, model1, QLatin1String("rotation.y"));
-    dummyY.setKeyFrames({ { 0, 40 }, { 10, 40 } });
-    slide1->addAnimation(dummyY);
+
+    // There's a catch: if a channel (rotation in thise case) is not fully
+    // specified, the unspecified channels (x and y here) will get dummy keyframes
+    // with value 0. Rather, let's rotate a bit around X and Y  as well.
+    Q3DSAnimationTrack animX(Q3DSAnimationTrack::Linear, model1, QLatin1String("rotation.x"));
+    animX.setKeyFrames({ { 0, 30 } });
+    slide1->addAnimation(animX);
+    Q3DSAnimationTrack animY(Q3DSAnimationTrack::Linear, model1, QLatin1String("rotation.y"));
+    animY.setKeyFrames({ { 0, 40 } });
+    slide1->addAnimation(animY);
 
     // done, this is a full presentation with a layer, camera, a light and a cube
 
