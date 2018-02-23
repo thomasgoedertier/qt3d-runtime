@@ -86,8 +86,6 @@ class QParameter;
 class QRenderPass;
 class QShaderProgram;
 class QBuffer;
-class QTexture2D;
-class QTextureLoader;
 class QPaintedTextureImage;
 class QLayerFilter;
 class QRenderTargetSelector;
@@ -231,7 +229,7 @@ public:
     struct DepthTextureData {
         bool enabled = false;
         Qt3DRender::QRenderTargetSelector *rtSelector = nullptr;
-        Qt3DRender::QTexture2D *depthTexture = nullptr;
+        Qt3DRender::QAbstractTexture *depthTexture = nullptr;
         Qt3DRender::QClearBuffers *clearBuffers = nullptr;
         Qt3DRender::QLayerFilter *layerFilterOpaque = nullptr;
         Qt3DRender::QLayerFilter *layerFilterTransparent = nullptr;
@@ -240,7 +238,7 @@ public:
     struct SsaoTextureData {
         bool enabled = false;
         Qt3DRender::QRenderTargetSelector *rtSelector = nullptr;
-        Qt3DRender::QTexture2D *ssaoTexture = nullptr;
+        Qt3DRender::QAbstractTexture *ssaoTexture = nullptr;
         Qt3DRender::QClearBuffers *clearBuffers = nullptr;
         Qt3DRender::QLayerFilter *layerFilter = nullptr;
         Qt3DRender::QParameter *depthSampler = nullptr;
@@ -291,7 +289,7 @@ public:
     } progAA;
 
     struct AdvBlendData {
-        Qt3DRender::QTexture2D *tempTexture = nullptr;
+        Qt3DRender::QAbstractTexture *tempTexture = nullptr;
         Qt3DRender::QRenderTarget *tempRt = nullptr;
     } advBlend;
 
@@ -301,9 +299,8 @@ public:
     } effectData;
 
     struct IBLProbeData {
-        QMetaObject::Connection updateOffsetsConnection;
-        Qt3DRender::QTextureLoader *lightProbeTexture = nullptr;
-        Qt3DRender::QTextureLoader *lightProbe2Texture = nullptr;
+        Qt3DRender::QAbstractTexture *lightProbeTexture = nullptr;
+        Qt3DRender::QAbstractTexture *lightProbe2Texture = nullptr;
 
         Qt3DRender::QParameter *lightProbeSampler = nullptr;
         Qt3DRender::QParameter *lightProbeRotation = nullptr;
@@ -344,7 +341,7 @@ public:
     Qt3DRender::QParameter *opacityParam = nullptr;
     Qt3DRender::QParameter *colorParam = nullptr;
     Qt3DRender::QParameter *textureParam = nullptr;
-    Qt3DRender::QTexture2D *texture = nullptr;
+    Qt3DRender::QAbstractTexture *texture = nullptr;
     Qt3DRender::QPaintedTextureImage *textureImage = nullptr;
 };
 
@@ -379,7 +376,7 @@ struct Q3DSTextureParameters
 
     QVector<Qt3DRender::QParameter *> parameters() const { return { sampler, offsets, rotations }; }
 
-    Qt3DRender::QTextureLoader *texture = nullptr;
+    Qt3DRender::QAbstractTexture *texture = nullptr;
     QString subPresId;
 };
 
@@ -422,7 +419,7 @@ public:
     Q3DSTextureParameters lightmapShadowParams;
     // IBL
     QMetaObject::Connection updateOffsetConnection;
-    Qt3DRender::QTextureLoader *lightProbeOverrideTexture = nullptr;
+    Qt3DRender::QAbstractTexture *lightProbeOverrideTexture = nullptr;
     Qt3DRender::QParameter *lightProbeSampler = nullptr;
     Qt3DRender::QParameter *lightProbeRotation = nullptr;
     Qt3DRender::QParameter *lightProbeOffset = nullptr;
@@ -455,7 +452,7 @@ public:
 
     // IBL
     QMetaObject::Connection updateOffsetConnection;
-    Qt3DRender::QTextureLoader *lightProbeOverrideTexture = nullptr;
+    Qt3DRender::QAbstractTexture *lightProbeOverrideTexture = nullptr;
     Qt3DRender::QParameter *lightProbeSampler = nullptr;
     Qt3DRender::QParameter *lightProbeRotation = nullptr;
     Qt3DRender::QParameter *lightProbeOffset = nullptr;
@@ -711,7 +708,7 @@ private:
                            Q3DSSlide *currentSlide);
     void setNodeVisibility(Q3DSNode *node, bool visible);
 
-    Qt3DRender::QTexture2D *dummyTexture();
+    Qt3DRender::QAbstractTexture *dummyTexture();
 
     Q3DSGraphicsLimits m_gfxLimits;
     SceneBuilderFlags m_flags = SceneBuilderFlags();
@@ -737,7 +734,7 @@ private:
     QSet<Q3DSLayerNode *> m_subPresLayers;
     QVector<QPair<Qt3DRender::QParameter *, Q3DSImage *> > m_subPresImages;
     QVector<Q3DSSubPresentation> m_subPresentations;
-    Qt3DRender::QTexture2D *m_dummyTex = nullptr;
+    Qt3DRender::QAbstractTexture *m_dummyTex = nullptr;
     bool m_wasDirty = false;
     Q3DSProfiler *m_profiler = nullptr;
     Q3DSGuiData m_guiData;

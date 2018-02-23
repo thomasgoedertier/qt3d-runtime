@@ -107,11 +107,19 @@ void Q3DSProfiler::trackNewObject(QObject *obj, ObjectType type, const char *inf
     if (!m_enabled)
         return;
 
-    ObjectData objd(obj, type);
     va_list ap;
     va_start(ap, info);
-    objd.info = QString::vasprintf(info, ap);
+    vtrackNewObject(obj, type, info, ap);
     va_end(ap);
+}
+
+void Q3DSProfiler::vtrackNewObject(QObject *obj, ObjectType type, const char *info, va_list args)
+{
+    if (!m_enabled)
+        return;
+
+    ObjectData objd(obj, type);
+    objd.info = QString::vasprintf(info, args);
     m_objectData.insert(type, objd);
 
     m_objectDestroyConnections.append(QObject::connect(obj, &QObject::destroyed, [this, obj, type]() {

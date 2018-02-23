@@ -33,6 +33,7 @@
 #include "q3dsuippresentation_p.h"
 #include "q3dsmesh_p.h"
 #include "q3dsenummaps_p.h"
+#include "q3dsimagemanager_p.h"
 #include <QLoggingCategory>
 #include <QGuiApplication>
 #include <QHash>
@@ -259,6 +260,7 @@ void Q3DSProfileView::frame()
             totalTime += subPresProfiler->timeAfterBuildUntilFirstFrameAction();
         }
         ImGui::Text("Total: %u ms", (uint) totalTime);
+        ImGui::Text("  of which image file I/O: %u ms", (uint) Q3DSImageManager::instance().ioTimeMsecs());
         ImGui::Separator();
         const QVector<Q3DSProfiler::FrameData> *frameData = m_profiler->frameData();
         const Q3DSProfiler::FrameData *lastFrameData = !frameData->isEmpty() ? &frameData->last() : nullptr;
@@ -366,13 +368,18 @@ void Q3DSProfileView::addQt3DObjectsWindow()
     auto tex2d = objs->values(Q3DSProfiler::Texture2DObject);
     ImGui::Text("2D textures: %d", tex2d.count());
     if (ImGui::TreeNodeEx("2D texture details", tex2d.isEmpty() ? 0 : ImGuiTreeNodeFlags_DefaultOpen)) {
-        ImGui::Columns(5, "tex2dcols");
+        ImGui::Columns(6, "tex2dcols");
         ImGui::Separator();
         ImGui::Text("Index"); ImGui::SetColumnWidth(-1, 50); ImGui::NextColumn();
         ImGui::Text("Description"); ImGui::NextColumn();
         ImGui::Text("Size (pixels)"); ImGui::NextColumn();
         ImGui::Text("Format"); ImGui::NextColumn();
         ImGui::Text("Samples"); ImGui::NextColumn();
+        ImGui::Text("Shares data");
+        addTip("When 'yes', the image referred to an already loaded file and thus the pixel data was reused. "
+               "This can also mean that there is only one underlying OpenGL texture, but note that that is "
+               "only possible when all texture (Image) parameters (like wrap mode) match.");
+        ImGui::NextColumn();
         ImGui::Separator();
         int idx = 0;
         for (const Q3DSProfiler::ObjectData &objd : tex2d) {
@@ -394,25 +401,28 @@ void Q3DSProfileView::addQt3DObjectsWindow()
                         ImGui::NextColumn();
                         ImGui::Text("1");
                         ImGui::NextColumn();
+                        ImGui::Text("no");
+                        ImGui::NextColumn();
                         useTexture = false;
                     }
                 }
                 if (useTexture) {
-                    // ### QTBUG-65775
-                    if (t->width() == 1 && t->height() == 1)
-                        ImGui::Text("unknown");
-                    else
-                        ImGui::Text("%dx%d", t->width(), t->height());
+                    // 2D textures may come from files, in which case we should
+                    // get the info via Q3DSImageManager, not directly.
+                    const QSize size = Q3DSImageManager::instance().size(t);
+                    auto format = Q3DSImageManager::instance().format(t);
+                    bool wasCached = Q3DSImageManager::instance().wasCached(t);
+                    ImGui::Text("%dx%d", size.width(), size.height());
                     ImGui::NextColumn();
-                    if (t->format() == 0 || t->format() == 1)
-                        ImGui::Text("unknown");
-                    else
-                        ImGui::Text("0x%x", t->format());
+                    ImGui::Text("0x%x", format);
                     ImGui::NextColumn();
                     ImGui::Text("%d", t->samples());
                     ImGui::NextColumn();
+                    ImGui::Text("%s", wasCached ? "yes" : "no");
+                    ImGui::NextColumn();
                 }
             } else {
+                ImGui::NextColumn();
                 ImGui::NextColumn();
                 ImGui::NextColumn();
                 ImGui::NextColumn();

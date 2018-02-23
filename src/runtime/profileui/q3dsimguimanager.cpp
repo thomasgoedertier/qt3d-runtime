@@ -63,10 +63,10 @@
 
 QT_BEGIN_NAMESPACE
 
-class TextureImageDataGen : public Qt3DRender::QTextureImageDataGenerator
+class Q3DSImguiTextureImageDataGen : public Qt3DRender::QTextureImageDataGenerator
 {
 public:
-    TextureImageDataGen(const QImage &image) : m_image(image) { }
+    Q3DSImguiTextureImageDataGen(const QImage &image) : m_image(image) { }
 
     Qt3DRender::QTextureImageDataPtr operator()() override
     {
@@ -76,11 +76,11 @@ public:
     }
     bool operator==(const Qt3DRender::QTextureImageDataGenerator &other) const override
     {
-        const TextureImageDataGen *otherFunctor = functor_cast<TextureImageDataGen>(&other);
+        const Q3DSImguiTextureImageDataGen *otherFunctor = functor_cast<Q3DSImguiTextureImageDataGen>(&other);
         return otherFunctor && otherFunctor->m_image == m_image;
     }
 
-    QT3D_FUNCTOR(TextureImageDataGen)
+    QT3D_FUNCTOR(Q3DSImguiTextureImageDataGen)
 
 private:
     QImage m_image;
@@ -89,7 +89,7 @@ private:
 class TextureImage : public Qt3DRender::QAbstractTextureImage
 {
 public:
-    TextureImage(const QImage &image) { m_gen = QSharedPointer<TextureImageDataGen>::create(image); }
+    TextureImage(const QImage &image) { m_gen = QSharedPointer<Q3DSImguiTextureImageDataGen>::create(image); }
 
 private:
     Qt3DRender::QTextureImageDataGeneratorPtr dataGenerator() const override { return m_gen; }

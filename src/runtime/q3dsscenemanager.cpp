@@ -38,6 +38,7 @@
 #include "q3dsprofiler_p.h"
 #include "shadergenerator/q3dsshadermanager_p.h"
 #include "q3dsslideplayer_p.h"
+#include "q3dsimagemanager_p.h"
 #if QT_CONFIG(q3ds_profileui)
 #include "profileui/q3dsprofileui_p.h"
 #endif
@@ -563,6 +564,7 @@ void Q3DSSceneManager::prepareEngineResetGlobal()
 {
     qCDebug(lcScene, "prepareEngineResetGlobal");
 
+    Q3DSImageManager::instance().invalidate();
     Q3DSShaderManager::instance().invalidate();
 }
 
@@ -1100,7 +1102,7 @@ void Q3DSSceneManager::buildLayer(Q3DSLayerNode *layer3DS,
     finalizeEffects(layer3DS);
 }
 
-Qt3DRender::QTexture2D *Q3DSSceneManager::dummyTexture()
+Qt3DRender::QAbstractTexture *Q3DSSceneManager::dummyTexture()
 {
     if (!m_dummyTex) {
         m_dummyTex = new Qt3DRender::QTexture2D(m_rootEntity);
@@ -1291,6 +1293,7 @@ QVector<Qt3DRender::QRenderPass *> Q3DSSceneManager::standardRenderPasses(Qt3DRe
 
 QVector<Qt3DRender::QTechnique *> Q3DSSceneManager::computeTechniques(Q3DSLayerNode *layer3DS)
 {
+#if 0
     Qt3DRender::QTechnique *bsdfPrefilter = new Qt3DRender::QTechnique;
 
     Qt3DRender::QFilterKey *bsdfPrefilterFilterKey = new Qt3DRender::QFilterKey;
@@ -1307,6 +1310,9 @@ QVector<Qt3DRender::QTechnique *> Q3DSSceneManager::computeTechniques(Q3DSLayerN
     bsdfPrefilter->addRenderPass(bsdfComputePass);
 
     return { bsdfPrefilter };
+#endif
+    Q_UNUSED(layer3DS);
+    return {};
 }
 
 void Q3DSSceneManager::markAsMainTechnique(Qt3DRender::QTechnique *technique)
@@ -1569,9 +1575,9 @@ void Q3DSSceneManager::setLayerProperties(Q3DSLayerNode *layer3DS)
     if (layer3DS->lightProbe()) {
         // initialize light probe parameters if necessary
         if (!data->iblProbeData.lightProbeTexture) {
-            data->iblProbeData.lightProbeTexture = new Qt3DRender::QTextureLoader(m_rootEntity);
-            m_profiler->trackNewObject(data->iblProbeData.lightProbeTexture, Q3DSProfiler::TextureLoaderObject,
-                                       "iblProbe texture for image %s", layer3DS->lightProbe()->id().constData());
+            data->iblProbeData.lightProbeTexture = Q3DSImageManager::instance().newTextureForImageFile(
+                        m_rootEntity, Q3DSImageManager::GenerateMipMapsForIBL,
+                        m_profiler, "iblProbe texture for image %s", layer3DS->lightProbe()->id().constData());
         }
         if (!data->iblProbeData.lightProbeSampler) {
             data->iblProbeData.lightProbeSampler = new Qt3DRender::QParameter;
@@ -1589,7 +1595,10 @@ void Q3DSSceneManager::setLayerProperties(Q3DSLayerNode *layer3DS)
         }
 
         // Update light probe parameter values
-        data->iblProbeData.lightProbeTexture->setSource(QUrl::fromLocalFile(layer3DS->lightProbe()->sourcePath()));
+
+        // also sets min/mag and generates mipmaps
+        Q3DSImageManager::instance().setSource(data->iblProbeData.lightProbeTexture,
+                                               QUrl::fromLocalFile(layer3DS->lightProbe()->sourcePath()));
         data->iblProbeData.lightProbeSampler->setValue(QVariant::fromValue(data->iblProbeData.lightProbeTexture));
 
         // Image probes force repeat for horizontal repeat
@@ -1609,22 +1618,16 @@ void Q3DSSceneManager::setLayerProperties(Q3DSLayerNode *layer3DS)
         }
 
         Qt3DRender::QAbstractTexture *texture = data->iblProbeData.lightProbeTexture;
-        texture->setGenerateMipMaps(true);
-        texture->setMagnificationFilter(Qt3DRender::QAbstractTexture::Linear);
-        texture->setMinificationFilter(Qt3DRender::QAbstractTexture::LinearMipMapLinear);
         texture->setWrapMode(wrapMode);
 
         const QMatrix4x4 &textureTransform = layer3DS->lightProbe()->textureTransform();
         const float *m = textureTransform.constData();
 
         // offsets.w = number of mipmaps
-        if (data->iblProbeData.updateOffsetsConnection)
-            QObject::disconnect(data->iblProbeData.updateOffsetsConnection);
-        data->iblProbeData.updateOffsetsConnection = QObject::connect(texture, &Qt3DRender::QAbstractTexture::widthChanged, [texture, m, data]() {
-           float mipLevels = float(qCeil(qLog2(qMax(texture->width(), texture->height()))) + 1);
-           QVector4D offsets(m[12], m[13], 0.0f, mipLevels);
-           data->iblProbeData.lightProbeOffset->setValue(offsets);
-        });
+        const QSize texSize = Q3DSImageManager::instance().size(texture);
+        float mipLevels = float(qCeil(qLog2(qMax(texSize.width(), texSize.height()))) + 1);
+        QVector4D offsets(m[12], m[13], 0.0f, mipLevels);
+        data->iblProbeData.lightProbeOffset->setValue(offsets);
 
         QVector4D rotations(m[0], m[4], m[1], m[5]);
         data->iblProbeData.lightProbeRotation->setValue(rotations);
@@ -1632,9 +1635,9 @@ void Q3DSSceneManager::setLayerProperties(Q3DSLayerNode *layer3DS)
         if (layer3DS->lightProbe2()) {
             // Initialize light probe 2 parameters
             if (!data->iblProbeData.lightProbe2Texture) {
-                data->iblProbeData.lightProbe2Texture = new Qt3DRender::QTextureLoader(m_rootEntity);
-                m_profiler->trackNewObject(data->iblProbeData.lightProbe2Texture, Q3DSProfiler::TextureLoaderObject,
-                                           "iblProbe2 texture for image %s", layer3DS->lightProbe2()->id().constData());
+                data->iblProbeData.lightProbe2Texture = Q3DSImageManager::instance().newTextureForImageFile(
+                            m_rootEntity, Q3DSImageManager::GenerateMipMapsForIBL,
+                            m_profiler, "iblProbe2 texture for image %s", layer3DS->lightProbe2()->id().constData());
             }
 
             if (!data->iblProbeData.lightProbe2Sampler) {
@@ -1643,7 +1646,10 @@ void Q3DSSceneManager::setLayerProperties(Q3DSLayerNode *layer3DS)
             }
 
             // Update light probe 2 parameter values
-            data->iblProbeData.lightProbe2Texture->setSource(QUrl::fromLocalFile(layer3DS->lightProbe2()->sourcePath()));
+
+            // also sets min/mag and generates mipmaps
+            Q3DSImageManager::instance().setSource(data->iblProbeData.lightProbe2Texture,
+                                                   QUrl::fromLocalFile(layer3DS->lightProbe2()->sourcePath()));
             data->iblProbeData.lightProbe2Sampler->setValue(QVariant::fromValue(data->iblProbeData.lightProbe2Texture));
 
             QVector4D probe2Props(layer3DS->probe2window(), layer3DS->probe2pos(), layer3DS->probe2fade(), 1.0f);
@@ -4097,11 +4103,8 @@ void Q3DSSceneManager::prepareTextureParameters(Q3DSTextureParameters &texturePa
     textureParameters.rotations = new Qt3DRender::QParameter;
     textureParameters.rotations->setName(name + QLatin1String("_rotations"));
 
-    // Prefer QTextureLoader since this is simpler and leads to updated width,
-    // height, etc. values on the texture.
-    textureParameters.texture = new Qt3DRender::QTextureLoader(m_rootEntity);
-    m_profiler->trackNewObject(textureParameters.texture, Q3DSProfiler::TextureLoaderObject,
-                               "Texture for image %s", image3DS->id().constData());
+    textureParameters.texture = Q3DSImageManager::instance().newTextureForImageFile(
+                m_rootEntity, 0, m_profiler, "Texture for image %s", image3DS->id().constData());
 }
 
 void Q3DSSceneManager::updateTextureParameters(Q3DSTextureParameters &textureParameters, Q3DSImage *image)
@@ -4118,7 +4121,7 @@ void Q3DSSceneManager::updateTextureParameters(Q3DSTextureParameters &texturePar
             }
         }
     } else if (!image->sourcePath().isEmpty()) {
-        textureParameters.texture->setSource(QUrl::fromLocalFile(image->sourcePath()));
+        Q3DSImageManager::instance().setSource(textureParameters.texture, QUrl::fromLocalFile(image->sourcePath()));
         textureParameters.sampler->setValue(QVariant::fromValue(textureParameters.texture));
     } else {
         textureParameters.sampler->setValue(QVariant::fromValue(dummyTexture()));
@@ -4360,9 +4363,9 @@ QVector<Qt3DRender::QParameter *> Q3DSSceneManager::prepareDefaultMaterial(Q3DSD
     else if (m->lightProbe())
         iblOverrideImage = m->lightProbe();
     if (iblOverrideImage) {
-        data->lightProbeOverrideTexture = new Qt3DRender::QTextureLoader(m_rootEntity);
-        m_profiler->trackNewObject(data->lightProbeOverrideTexture, Q3DSProfiler::TextureLoaderObject,
-                                   "Texture for image %s", iblOverrideImage->id().constData());
+        data->lightProbeOverrideTexture = Q3DSImageManager::instance().newTextureForImageFile(
+                    m_rootEntity, Q3DSImageManager::GenerateMipMapsForIBL,
+                    m_profiler, "Texture for image %s", iblOverrideImage->id().constData());
         data->lightProbeSampler = new Qt3DRender::QParameter;
         data->lightProbeSampler->setName(QLatin1String("light_probe"));
         params.append(data->lightProbeSampler);
@@ -4489,7 +4492,9 @@ void Q3DSSceneManager::updateDefaultMaterial(Q3DSDefaultMaterial *m, Q3DSReferen
 
     // IBL
     if (iblOverride) {
-        data->lightProbeOverrideTexture->setSource(QUrl::fromLocalFile(iblOverride->sourcePath()));
+        // also sets min/mag and generates mipmaps
+        Q3DSImageManager::instance().setSource(data->lightProbeOverrideTexture,
+                                               QUrl::fromLocalFile(iblOverride->sourcePath()));
         data->lightProbeSampler->setValue(QVariant::fromValue(data->lightProbeOverrideTexture));
 
         Qt3DRender::QTextureWrapMode wrapMode;
@@ -4507,22 +4512,16 @@ void Q3DSSceneManager::updateDefaultMaterial(Q3DSDefaultMaterial *m, Q3DSReferen
         }
 
         Q_ASSERT(data->lightProbeOverrideTexture);
-        data->lightProbeOverrideTexture->setGenerateMipMaps(true);
-        data->lightProbeOverrideTexture->setMagnificationFilter(Qt3DRender::QAbstractTexture::Linear);
-        data->lightProbeOverrideTexture->setMinificationFilter(Qt3DRender::QAbstractTexture::LinearMipMapLinear);
         data->lightProbeOverrideTexture->setWrapMode(wrapMode);
 
         const QMatrix4x4 &textureTransform = iblOverride->textureTransform();
         const float *m = textureTransform.constData();
 
         // offsets.w = number of mipmaps
-        if (data->updateOffsetConnection)
-            QObject::disconnect(data->updateOffsetConnection);
-        data->updateOffsetConnection = QObject::connect(data->lightProbeOverrideTexture, &Qt3DRender::QAbstractTexture::widthChanged, [m, data]() {
-            float mipLevels = float(qCeil(qLog2(qMax(data->lightProbeOverrideTexture->width(), data->lightProbeOverrideTexture->height()))) + 1);
-            QVector4D offsets(m[12], m[13], 0.0f, mipLevels);
-            data->lightProbeOffset->setValue(offsets);
-        });
+        const QSize texSize = Q3DSImageManager::instance().size(data->lightProbeOverrideTexture);
+        float mipLevels = float(qCeil(qLog2(qMax(texSize.width(), texSize.height()))) + 1);
+        QVector4D offsets(m[12], m[13], 0.0f, mipLevels);
+        data->lightProbeOffset->setValue(offsets);
 
         QVector4D rotations(m[0], m[4], m[1], m[5]);
         data->lightProbeRotation->setValue(rotations);
@@ -4556,15 +4555,14 @@ static inline void forAllCustomProperties(Q3DSEffectInstance *eff3DS, CustomProp
 Qt3DRender::QAbstractTexture *Q3DSSceneManager::createCustomPropertyTexture(const Q3DSCustomPropertyParameter &p)
 {
     const QString source = p.inputValue.toString();
-    // Using QTextureLoader has the benefit of getting updated width and height
-    // values from the texture later on which is pretty important for some
-    // effect uniforms for instance.
-    Qt3DRender::QTextureLoader *texture = new Qt3DRender::QTextureLoader(m_rootEntity);
-    m_profiler->trackNewObject(texture, Q3DSProfiler::TextureLoaderObject,
-                               "Custom property texture %s", qPrintable(source));
-    if (!source.isEmpty()) {
+    Qt3DRender::QAbstractTexture *texture;
+    if (source.isEmpty()) {
+        texture = dummyTexture();
+    } else {
+        texture = Q3DSImageManager::instance().newTextureForImageFile(m_rootEntity, 0, m_profiler,
+                                                                      "Custom property texture %s", qPrintable(source));
         qCDebug(lcScene, "Creating custom property texture %s", qPrintable(source));
-        texture->setSource(QUrl::fromLocalFile(source));
+        Q3DSImageManager::instance().setSource(texture, QUrl::fromLocalFile(source));
     }
 
     switch (p.meta.magFilterType) {
@@ -4678,9 +4676,9 @@ QVector<Qt3DRender::QParameter *> Q3DSSceneManager::prepareCustomMaterial(Q3DSCu
     else if (m->lightProbe())
         iblOverrideImage = m->lightProbe();
     if (iblOverrideImage) {
-        data->lightProbeOverrideTexture = new Qt3DRender::QTextureLoader(m_rootEntity);
-        m_profiler->trackNewObject(data->lightProbeOverrideTexture, Q3DSProfiler::TextureLoaderObject,
-                                   "Texture for image %s", iblOverrideImage->id().constData());
+        data->lightProbeOverrideTexture = Q3DSImageManager::instance().newTextureForImageFile(
+                    m_rootEntity, Q3DSImageManager::GenerateMipMapsForIBL,
+                    m_profiler, "Texture for image %s", iblOverrideImage->id().constData());
         data->lightProbeSampler = new Qt3DRender::QParameter;
         data->lightProbeSampler->setName(QLatin1String("light_probe"));
         paramList.append(data->lightProbeSampler);
@@ -4762,7 +4760,9 @@ void Q3DSSceneManager::updateCustomMaterial(Q3DSCustomMaterialInstance *m, Q3DSR
 
     // IBL
     if (iblOverride) {
-        data->lightProbeOverrideTexture->setSource(QUrl::fromLocalFile(iblOverride->sourcePath()));
+        // also sets min/mag and generates mipmaps
+        Q3DSImageManager::instance().setSource(data->lightProbeOverrideTexture,
+                                               QUrl::fromLocalFile(iblOverride->sourcePath()));
         data->lightProbeSampler->setValue(QVariant::fromValue(data->lightProbeOverrideTexture));
 
         Qt3DRender::QTextureWrapMode wrapMode;
@@ -4781,22 +4781,16 @@ void Q3DSSceneManager::updateCustomMaterial(Q3DSCustomMaterialInstance *m, Q3DSR
         }
 
         Q_ASSERT(data->lightProbeOverrideTexture);
-        data->lightProbeOverrideTexture->setGenerateMipMaps(true);
-        data->lightProbeOverrideTexture->setMagnificationFilter(Qt3DRender::QAbstractTexture::Linear);
-        data->lightProbeOverrideTexture->setMinificationFilter(Qt3DRender::QAbstractTexture::LinearMipMapLinear);
         data->lightProbeOverrideTexture->setWrapMode(wrapMode);
 
         const QMatrix4x4 &textureTransform = iblOverride->textureTransform();
         const float *m = textureTransform.constData();
 
         // offsets.w = number of mipmaps
-        if (data->updateOffsetConnection)
-            QObject::disconnect(data->updateOffsetConnection);
-        data->updateOffsetConnection = QObject::connect(data->lightProbeOverrideTexture, &Qt3DRender::QAbstractTexture::widthChanged, [m, data]() {
-           float mipLevels = float(qCeil(qLog2(qMax(data->lightProbeOverrideTexture->width(), data->lightProbeOverrideTexture->height()))) + 1);
-           QVector4D offsets(m[12], m[13], 0.0f, mipLevels);
-           data->lightProbeOffset->setValue(offsets);
-        });
+        const QSize texSize = Q3DSImageManager::instance().size(data->lightProbeOverrideTexture);
+        float mipLevels = float(qCeil(qLog2(qMax(texSize.width(), texSize.height()))) + 1);
+        QVector4D offsets(m[12], m[13], 0.0f, mipLevels);
+        data->lightProbeOffset->setValue(offsets);
 
         QVector4D rotations(m[0], m[4], m[1], m[5]);
         data->lightProbeRotation->setValue(rotations);
@@ -4827,7 +4821,8 @@ void Q3DSSceneManager::buildEffect(Q3DSEffectInstance *eff3DS, Q3DSLayerNode *la
 
 static inline void setTextureInfoUniform(Qt3DRender::QParameter *param, Qt3DRender::QAbstractTexture *texture)
 {
-    param->setValue(QVector4D(texture->width(), texture->height(), 0, 0)); // ### 3rd value is isPremultiplied, is that correct?
+    const QSize size = Q3DSImageManager::instance().size(texture);
+    param->setValue(QVector4D(size.width(), size.height(), 0, 0)); // ### 3rd value is isPremultiplied, is that correct?
 }
 
 static inline Qt3DRender::QParameter *makePropertyUniform(const QString &name, const QString &value, const Q3DSMaterial::PropertyElement &propMeta)
