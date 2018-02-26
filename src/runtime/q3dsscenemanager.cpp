@@ -1623,9 +1623,9 @@ void Q3DSSceneManager::setLayerProperties(Q3DSLayerNode *layer3DS)
         const QMatrix4x4 &textureTransform = layer3DS->lightProbe()->textureTransform();
         const float *m = textureTransform.constData();
 
-        // offsets.w = number of mipmaps
+        // offsets.w = max mip level
         const QSize texSize = Q3DSImageManager::instance().size(texture);
-        float mipLevels = float(qCeil(qLog2(qMax(texSize.width(), texSize.height()))) + 1);
+        float mipLevels = float(qCeil(qLog2(qMax(texSize.width(), texSize.height()))));
         QVector4D offsets(m[12], m[13], 0.0f, mipLevels);
         data->iblProbeData.lightProbeOffset->setValue(offsets);
 
@@ -1651,6 +1651,8 @@ void Q3DSSceneManager::setLayerProperties(Q3DSLayerNode *layer3DS)
             Q3DSImageManager::instance().setSource(data->iblProbeData.lightProbe2Texture,
                                                    QUrl::fromLocalFile(layer3DS->lightProbe2()->sourcePath()));
             data->iblProbeData.lightProbe2Sampler->setValue(QVariant::fromValue(data->iblProbeData.lightProbe2Texture));
+
+            data->iblProbeData.lightProbe2Texture->setWrapMode(wrapMode);
 
             QVector4D probe2Props(layer3DS->probe2window(), layer3DS->probe2pos(), layer3DS->probe2fade(), 1.0f);
             data->iblProbeData.lightProbe2Properties->setValue(probe2Props);
@@ -4517,9 +4519,9 @@ void Q3DSSceneManager::updateDefaultMaterial(Q3DSDefaultMaterial *m, Q3DSReferen
         const QMatrix4x4 &textureTransform = iblOverride->textureTransform();
         const float *m = textureTransform.constData();
 
-        // offsets.w = number of mipmaps
+        // offsets.w = max mip level
         const QSize texSize = Q3DSImageManager::instance().size(data->lightProbeOverrideTexture);
-        float mipLevels = float(qCeil(qLog2(qMax(texSize.width(), texSize.height()))) + 1);
+        float mipLevels = float(qCeil(qLog2(qMax(texSize.width(), texSize.height()))));
         QVector4D offsets(m[12], m[13], 0.0f, mipLevels);
         data->lightProbeOffset->setValue(offsets);
 
@@ -4786,9 +4788,9 @@ void Q3DSSceneManager::updateCustomMaterial(Q3DSCustomMaterialInstance *m, Q3DSR
         const QMatrix4x4 &textureTransform = iblOverride->textureTransform();
         const float *m = textureTransform.constData();
 
-        // offsets.w = number of mipmaps
+        // offsets.w = max mip level
         const QSize texSize = Q3DSImageManager::instance().size(data->lightProbeOverrideTexture);
-        float mipLevels = float(qCeil(qLog2(qMax(texSize.width(), texSize.height()))) + 1);
+        float mipLevels = float(qCeil(qLog2(qMax(texSize.width(), texSize.height()))));
         QVector4D offsets(m[12], m[13], 0.0f, mipLevels);
         data->lightProbeOffset->setValue(offsets);
 
