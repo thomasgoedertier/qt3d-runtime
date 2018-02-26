@@ -34,7 +34,9 @@
 #include <QFileInfo>
 #include <QElapsedTimer>
 #include <QLoggingCategory>
+#include <Qt3DCore/QEntity>
 #include <Qt3DRender/QTextureImageDataGenerator>
+#include <Qt3DRender/QTexture>
 
 QT_BEGIN_NAMESPACE
 
@@ -505,7 +507,7 @@ static inline void encodeToPixel(float *inPtr, void *outPtr, int byteOfs,
             // sufficient for our purposes.
             if (inPtr[i] > 65519.0f)
                 inPtr[i] = 65519.0f;
-            if (fabs(inPtr[i]) < 6.10352E-5f)
+            if (qAbs(inPtr[i]) < 6.10352E-5f)
                 inPtr[i] = 0.0f;
             quint32 f = reinterpret_cast<quint32 *>(inPtr)[i];
             quint32 sign = (f & 0x80000000) >> 16;
