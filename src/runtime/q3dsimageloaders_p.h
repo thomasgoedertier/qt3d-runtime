@@ -43,6 +43,9 @@
 
 #include <QIODevice>
 #include <Qt3DRender/QTextureImageData>
+#include <Qt3DRender/QAbstractTextureImage>
+#include <qmath.h>
+#include <qendian.h>
 
 QT_BEGIN_NAMESPACE
 
