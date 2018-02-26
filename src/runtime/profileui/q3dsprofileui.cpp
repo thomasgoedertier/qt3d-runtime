@@ -260,7 +260,9 @@ void Q3DSProfileView::frame()
             totalTime += subPresProfiler->timeAfterBuildUntilFirstFrameAction();
         }
         ImGui::Text("Total: %u ms", (uint) totalTime);
-        ImGui::Text("  of which image file I/O: %u ms", (uint) Q3DSImageManager::instance().ioTimeMsecs());
+        ImGui::Text("  of which image file I/O: %u ms\n  IBL mipmap gen: %u ms",
+                    (uint) Q3DSImageManager::instance().ioTimeMsecs(),
+                    (uint) Q3DSImageManager::instance().iblTimeMsecs());
         ImGui::Separator();
         const QVector<Q3DSProfiler::FrameData> *frameData = m_profiler->frameData();
         const Q3DSProfiler::FrameData *lastFrameData = !frameData->isEmpty() ? &frameData->last() : nullptr;

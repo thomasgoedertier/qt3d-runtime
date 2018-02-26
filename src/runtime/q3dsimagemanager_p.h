@@ -76,9 +76,13 @@ public:
     bool wasCached(Qt3DRender::QAbstractTexture *tex) const;
 
     qint64 ioTimeMsecs() const { return m_ioTime; }
+    qint64 iblTimeMsecs() const { return m_iblTime; }
 
 private:
-    Qt3DRender::QTextureImageDataPtr load(const QUrl &source, bool *wasCached);
+    QVector<Qt3DRender::QTextureImageDataPtr> load(const QUrl &source, ImageFlags flags, bool *wasCached);
+    int blockSizeForFormat(QOpenGLTexture::TextureFormat format);
+    QByteArray generateIblMip(int w, int h, QOpenGLTexture::TextureFormat format,
+                              int blockSize, const QByteArray &prevLevelData);
 
     struct TextureInfo {
         ImageFlags flags;
@@ -87,9 +91,11 @@ private:
         Qt3DRender::QAbstractTexture::TextureFormat format = Qt3DRender::QAbstractTexture::NoFormat;
         bool wasCached = false;
     };
+
     QHash<Qt3DRender::QAbstractTexture *, TextureInfo> m_metadata;
-    QHash<QString, Qt3DRender::QTextureImageDataPtr> m_cache;
+    QHash<QString, QVector<Qt3DRender::QTextureImageDataPtr> > m_cache;
     qint64 m_ioTime = 0;
+    qint64 m_iblTime = 0;
 };
 
 Q_DECLARE_OPERATORS_FOR_FLAGS(Q3DSImageManager::ImageFlags)
