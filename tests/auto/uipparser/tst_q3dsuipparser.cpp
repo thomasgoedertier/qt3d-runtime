@@ -1007,9 +1007,13 @@ void tst_Q3DSUipParser::action()
     QVERIFY(action.owner);
     QCOMPARE(action.owner, pres->object("Barrel"));
     QCOMPARE(action.eyeball, true);
-    QCOMPARE(action.triggerObject, QStringLiteral("Barrel"));
+    QCOMPARE(action.triggerObject_unresolved, QStringLiteral("#Barrel"));
+    QVERIFY(action.triggerObject);
+    QCOMPARE(action.triggerObject, pres->object("Barrel"));
     QCOMPARE(action.event, QStringLiteral("onPressureDown"));
-    QCOMPARE(action.targetObject, QStringLiteral("Material"));
+    QCOMPARE(action.targetObject_unresolved, QStringLiteral("#Material"));
+    QVERIFY(action.targetObject);
+    QCOMPARE(action.targetObject, pres->object("Material"));
     QCOMPARE(action.handler, QStringLiteral("Set Property"));
 
     QCOMPARE(action.handlerArgs.count(), 2);
@@ -1034,9 +1038,13 @@ void tst_Q3DSUipParser::action()
     QVERIFY(action.owner);
     QCOMPARE(action.owner, pres->object("Cube"));
     QCOMPARE(action.eyeball, true);
-    QCOMPARE(action.triggerObject, QStringLiteral("Cube"));
+    QCOMPARE(action.triggerObject_unresolved, QStringLiteral("#Cube"));
+    QVERIFY(action.triggerObject);
+    QCOMPARE(action.triggerObject, pres->object("Cube"));
     QCOMPARE(action.event, QStringLiteral("onPressureDown"));
-    QCOMPARE(action.targetObject, QStringLiteral("CubeComp"));
+    QCOMPARE(action.targetObject_unresolved, QStringLiteral("#CubeComp"));
+    QVERIFY(action.targetObject);
+    QCOMPARE(action.targetObject, pres->object("CubeComp"));
     QCOMPARE(action.handler, QStringLiteral("Go to Slide"));
     QCOMPARE(action.handlerArgs.count(), 1);
     QCOMPARE(action.handlerArgs[0].name, QStringLiteral("Slide"));
@@ -1053,9 +1061,13 @@ void tst_Q3DSUipParser::action()
     QVERIFY(action.owner);
     QCOMPARE(action.owner, pres->object("Cube"));
     QCOMPARE(action.eyeball, true);
-    QCOMPARE(action.triggerObject, QStringLiteral("Cube"));
+    QCOMPARE(action.triggerObject_unresolved, QStringLiteral("#Cube"));
+    QVERIFY(action.triggerObject);
+    QCOMPARE(action.triggerObject, pres->object("Cube"));
     QCOMPARE(action.event, QStringLiteral("onPressureDown"));
-    QCOMPARE(action.targetObject, QStringLiteral("CubeComp"));
+    QCOMPARE(action.targetObject_unresolved, QStringLiteral("#CubeComp"));
+    QVERIFY(action.targetObject);
+    QCOMPARE(action.targetObject, pres->object("CubeComp"));
     QCOMPARE(action.handler, QStringLiteral("Go to Slide"));
     QCOMPARE(action.handlerArgs.count(), 1);
     QCOMPARE(action.handlerArgs[0].name, QStringLiteral("Slide"));

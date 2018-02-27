@@ -447,9 +447,11 @@ public:
     QByteArray id;
 
     bool eyeball = true;
-    QString triggerObject;
+    QString triggerObject_unresolved;
+    Q3DSGraphObject *triggerObject = nullptr;
     QString event;
-    QString targetObject;
+    QString targetObject_unresolved;
+    Q3DSGraphObject *targetObject = nullptr;
     QString handler;
     QVector<HandlerArgument> handlerArgs;
 };
@@ -492,6 +494,8 @@ public:
     ~Q3DSSlide();
 
     void setProperties(const QXmlStreamAttributes &attrs, PropSetFlags flags) override;
+    void applyPropertyChanges(const Q3DSPropertyChangeList &changeList) override;
+    void resolveReferences(Q3DSUipPresentation &pres, Q3DSUipParser &parser) override;
 
     const QSet<Q3DSGraphObject *> &objects() const { return m_objects; } // NB does not include objects from master
     void addObject(Q3DSGraphObject *obj);
@@ -560,6 +564,8 @@ public:
 
 private:
     Q_DISABLE_COPY(Q3DSSlide)
+    template<typename V> void setProps(const V &attrs, PropSetFlags flags);
+
     void notifySlideGraphChange(Q3DSSlide *slide, Q3DSGraphObject::DirtyFlags bits);
     void notifySlideObjectChange(const SlideObjectChange &change);
 
@@ -1331,6 +1337,7 @@ public:
 
     void setProperties(const QXmlStreamAttributes &attrs, PropSetFlags flags) override;
     void applyPropertyChanges(const Q3DSPropertyChangeList &changeList) override;
+    void resolveReferences(Q3DSUipPresentation &, Q3DSUipParser &) override;
 
     Q3DSSlide *masterSlide() const { return m_masterSlide; }
     Q3DSSlide *currentSlide() const { return m_currentSlide; }

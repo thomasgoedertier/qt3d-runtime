@@ -124,6 +124,7 @@ Q3DSUipPresentation *Q3DSUipParser::createPresentation()
     }
 
     resolveReferences(m_presentation->scene());
+    resolveReferences(m_presentation->masterSlide());
 
     qint64 loadTime = elapsedSinceSetSource();
     qCDebug(lcPerf, "Presentation %s loaded in %lld ms", qPrintable(m_presentation->sourceFile()), loadTime);
@@ -504,23 +505,16 @@ void Q3DSUipParser::parseAddSet(Q3DSSlide *slide, bool isSet, bool isMaster)
             // we only support simple, static action definitions; no changes afterwards
             if (!action.id.isEmpty()) {
                 for (const QXmlStreamAttribute &attr : r->attributes()) {
-                    if (attr.name() == QStringLiteral("eyeball")) {
+                    if (attr.name() == QStringLiteral("eyeball"))
                         Q3DS::convertToBool(attr.value(), &action.eyeball, "'eyeball' attribute value", r);
-                    } else if (attr.name() == QStringLiteral("triggerObject")) {
-                        if (attr.value().startsWith(QLatin1Char('#')))
-                            action.triggerObject = attr.value().mid(1).trimmed().toString();
-                        else
-                            r->raiseError(QObject::tr("Invalid object ref in triggerObject"));
-                    } else if (attr.name() == QStringLiteral("event")) {
+                    else if (attr.name() == QStringLiteral("triggerObject"))
+                        action.triggerObject_unresolved = attr.value().trimmed().toString();
+                    else if (attr.name() == QStringLiteral("event"))
                         action.event = attr.value().trimmed().toString();
-                    } else if (attr.name() == QStringLiteral("targetObject")) {
-                        if (attr.value().startsWith(QLatin1Char('#')))
-                            action.targetObject = attr.value().mid(1).trimmed().toString();
-                        else
-                            r->raiseError(QObject::tr("Invalid object ref in targetObject"));
-                    } else if (attr.name() == QStringLiteral("handler")) {
+                    else if (attr.name() == QStringLiteral("targetObject"))
+                        action.targetObject_unresolved = attr.value().trimmed().toString();
+                    else if (attr.name() == QStringLiteral("handler"))
                         action.handler = attr.value().trimmed().toString();
-                    }
                 }
                 // Parse the HandlerArgument children.
                 while (r->readNextStartElement()) {

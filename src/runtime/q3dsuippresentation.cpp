@@ -1138,10 +1138,9 @@ Q3DSSlide::~Q3DSSlide()
     qDeleteAll(m_propChanges);
 }
 
-void Q3DSSlide::setProperties(const QXmlStreamAttributes &attrs, PropSetFlags flags)
+template<typename V>
+void Q3DSSlide::setProps(const V &attrs, PropSetFlags flags)
 {
-    Q3DSGraphObject::setProperties(attrs, flags);
-
     const QString typeName = QStringLiteral("Slide");
     parseProperty(attrs, flags, typeName, QStringLiteral("playmode"), &m_playMode);
     parseProperty(attrs, flags, typeName, QStringLiteral("initialplaystate"), &m_initialPlayState);
@@ -1159,6 +1158,26 @@ void Q3DSSlide::setProperties(const QXmlStreamAttributes &attrs, PropSetFlags fl
 
     // Different default value.
     parseProperty(attrs, flags, typeName, QStringLiteral("name"), &m_name);
+}
+
+void Q3DSSlide::setProperties(const QXmlStreamAttributes &attrs, PropSetFlags flags)
+{
+    Q3DSGraphObject::setProperties(attrs, flags);
+    setProps(attrs, flags);
+}
+
+void Q3DSSlide::applyPropertyChanges(const Q3DSPropertyChangeList &changeList)
+{
+    Q3DSGraphObject::applyPropertyChanges(changeList);
+    setProps(changeList, 0);
+}
+
+void Q3DSSlide::resolveReferences(Q3DSUipPresentation &pres, Q3DSUipParser &)
+{
+    for (Q3DSAction &action : m_actions) {
+        resolveRef(action.targetObject_unresolved, Q3DSGraphObject::AnyObject, &action.targetObject, pres);
+        resolveRef(action.triggerObject_unresolved, Q3DSGraphObject::AnyObject, &action.triggerObject, pres);
+    }
 }
 
 void Q3DSSlide::addObject(Q3DSGraphObject *obj)
@@ -3049,6 +3068,15 @@ void Q3DSComponentNode::applyPropertyChanges(const Q3DSPropertyChangeList &chang
 {
     Q3DSNode::applyPropertyChanges(changeList);
     setProps(changeList, 0);
+}
+
+void Q3DSComponentNode::resolveReferences(Q3DSUipPresentation &pres, Q3DSUipParser &parser)
+{
+    // There is an own little slide graph in each component, make sure object
+    // refs in actions are resolved in these as well.
+    pres.forAllObjectsOfType(m_masterSlide, Q3DSGraphObject::Slide, [&](Q3DSGraphObject *obj) {
+        obj->resolveReferences(pres, parser);
+    });
 }
 
 void Q3DSComponentNode::setCurrentSlide(Q3DSSlide *slide)
