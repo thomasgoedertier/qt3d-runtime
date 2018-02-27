@@ -125,10 +125,7 @@ private:
     Q3DSSlidePlayer(Q3DSAnimationManager *animationManager,
                     Q3DSSceneManager *sceneManager,
                     Q3DSComponentNode *component,
-                    Q3DSSlide *parentSlide,
                     QObject *parent = nullptr);
-
-    Q3DSSlidePlayer *aquireComponentPlayer(Q3DSComponentNode *component, Q3DSSlide *parent);
 
     void init();
     void reset();
@@ -155,7 +152,6 @@ private:
 
     Q3DSSceneManager *m_sceneManager;
     Q3DSComponentNode *m_component = nullptr;
-    Q3DSSlide *m_parent = nullptr;
     Q3DSAnimationManager *m_animationManager;
     PlayerMode m_mode = PlayerMode::Viewer;
     PlayerType m_type = PlayerType::Slide;
@@ -164,10 +160,12 @@ private:
 class Q3DSV_PRIVATE_EXPORT Q3DSSlideDeck
 {
 public:
-    Q3DSSlideDeck(Q3DSSlide *masterSlide)
+    Q3DSSlideDeck(Q3DSSlide *masterSlide, Q3DSSlide *parent = nullptr)
         : m_masterSlide(masterSlide)
+        , m_parent(parent)
     {
         Q_ASSERT(masterSlide);
+        Q_ASSERT_X(!masterSlide->parent(), Q_FUNC_INFO, "Slide is not a master slide!");
         if (!masterSlide->firstChild()) {
             qWarning("No slides?");
             return;
@@ -304,21 +302,24 @@ public:
         return found ? index : -1;
     }
 
-private:
+    Q3DSSlide *parentSlide() const { return m_parent; }
+    Q3DSSlide *masterSlide() const { return m_masterSlide; }
+
     void bind(Q3DSSlidePlayer *player)
     {
-            if (player == m_player)
-                return;
+        if (player == m_player)
+            return;
 
-            if (m_player)
-                m_player->setSlideDeck(nullptr);
+        if (m_player)
+            m_player->setSlideDeck(nullptr);
 
-            m_player = player;
+        m_player = player;
     }
 
-    friend class Q3DSSlidePlayer;
+private:
     Q3DSSlidePlayer *m_player = nullptr;
     Q3DSSlide *m_masterSlide = nullptr;
+    Q3DSSlide *m_parent = nullptr;
     int m_index = -1;
 };
 

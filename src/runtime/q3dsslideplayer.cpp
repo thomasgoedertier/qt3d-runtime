@@ -337,10 +337,6 @@ void Q3DSSlidePlayer::setSlideDeck(Q3DSSlideDeck *slideDeck)
     m_data.slideDeck = slideDeck;
     m_data.slideDeck->bind(this);
 
-    Q3DSSlideAttached *masterSlideData = slideDeck->m_masterSlide->attached<Q3DSSlideAttached>();
-    if (!masterSlideData->slidePlayer)
-        masterSlideData->slidePlayer = this;
-
     // The master slide should always have an entity, so if it hasn't one yet set it to
     // be the root entity.
     if (!slideDeck->currentSlide()->parent()->attached()->entity)
@@ -357,15 +353,11 @@ void Q3DSSlidePlayer::setSlideDeck(Q3DSSlideDeck *slideDeck)
         Q3DSSlide *compMasterSlide = comp->masterSlide();
         Q3DSSlideAttached *compMasterData = compMasterSlide->attached<Q3DSSlideAttached>();
         Q_ASSERT(compMasterData);
-        Q3DSSlidePlayer *player = compMasterData->slidePlayer;
         qCDebug(lcSlidePlayer, "Processing component \"%s\", on slide \"%s\"",
                 qPrintable(comp->name()), qPrintable(getSlideName(slide)));
-        if (!player) {
+        if (!compMasterData->slidePlayer) {
             qCDebug(lcSlidePlayer, "No player found for Component \"%s\", adding one", qPrintable(comp->name()));
-            // No player found, create on.
-            player = aquireComponentPlayer(comp, slide);
-            compMasterData->slidePlayer = player;
-
+            compMasterData->slidePlayer = new Q3DSSlidePlayer(m_animationManager, m_sceneManager, comp, this);
             compMasterSlide->attached<Q3DSSlideAttached>()->entity = comp->attached()->entity;
             Q3DSSlide *s = static_cast<Q3DSSlide *>(compMasterSlide->firstChild());
             while (s) {
@@ -376,10 +368,10 @@ void Q3DSSlidePlayer::setSlideDeck(Q3DSSlideDeck *slideDeck)
             }
 
             // Create a slide deck for this component
-            player->setSlideDeck(new Q3DSSlideDeck(compMasterSlide));
+            compMasterData->slidePlayer->setSlideDeck(new Q3DSSlideDeck(compMasterSlide, slide));
         }
 
-        Q_ASSERT(player->state() == PlayerState::Ready);
+        Q_ASSERT(compMasterData->slidePlayer->state() == PlayerState::Ready);
     };
 
     const auto forAllComponentsOnSlide = [this, prepareComponentsOnSlide](Q3DSSlide *slide) {
@@ -398,10 +390,13 @@ void Q3DSSlidePlayer::setSlideDeck(Q3DSSlideDeck *slideDeck)
 
     const auto forAllSlides = [&forAllComponentsOnSlide, this](Q3DSSlideDeck *slideDeck) {
         // Process the master slide first
-        forAllComponentsOnSlide(slideDeck->m_masterSlide);
+        Q3DSSlide *masterSlide = slideDeck->masterSlide();
+        masterSlide->attached<Q3DSSlideAttached>()->slidePlayer = this;
+        forAllComponentsOnSlide(masterSlide);
         Q3DSSlide *currentSlide = slideDeck->currentSlide();
-        Q3DSSlide *slide = static_cast<Q3DSSlide *>(slideDeck->m_masterSlide->firstChild());
+        Q3DSSlide *slide = static_cast<Q3DSSlide *>(masterSlide->firstChild());
         while (slide) {
+            slide->attached<Q3DSSlideAttached>()->slidePlayer = this;
             if (slide != currentSlide)
                 updateSlideVisibility(slide, false);
             forAllComponentsOnSlide(slide);
@@ -457,20 +452,13 @@ void Q3DSSlidePlayer::reload()
 Q3DSSlidePlayer::Q3DSSlidePlayer(Q3DSAnimationManager *animationManager,
                                  Q3DSSceneManager *sceneManager,
                                  Q3DSComponentNode *component,
-                                 Q3DSSlide *parentSlide,
                                  QObject *parent)
     : QObject(parent),
       m_sceneManager(sceneManager),
       m_component(component),
-      m_parent(parentSlide),
       m_animationManager(animationManager),
       m_type(PlayerType::ComponentSlide)
 {
-}
-
-Q3DSSlidePlayer *Q3DSSlidePlayer::aquireComponentPlayer(Q3DSComponentNode *component, Q3DSSlide *parent)
-{
-    return new Q3DSSlidePlayer(m_animationManager, m_sceneManager, component, parent, this);
 }
 
 void Q3DSSlidePlayer::init()
@@ -643,18 +631,14 @@ bool Q3DSSlidePlayer::isSlideVisible(Q3DSSlide *slide)
     qCDebug(lcSlidePlayer, "Checking visibility for \"%s\"", qPrintable(getSlideName(slide)));
     // If we the slide is not null, we assume it's visible until proven otherwise.
     bool visible = (slide != nullptr);
-    if (slide && slide->parent()) {
-        // The slide has a parent, check if we're current.
-        Q3DSSlide *master = static_cast<Q3DSSlide *>(slide->parent());
-        Q_ASSERT(master->attached());
-        Q3DSSlidePlayer *player = master->attached<Q3DSSlideAttached>()->slidePlayer;
+    if (slide) {
+        Q3DSSlidePlayer *player = slide->attached<Q3DSSlideAttached>()->slidePlayer;
         Q3DSSlideDeck *slideDeck = player->slideDeck();
         if (slideDeck->currentSlide() == slide) {
-            if (player->m_type == PlayerType::ComponentSlide) {
+            Q3DSSlide *parentSlide = slideDeck->parentSlide();
+            if (parentSlide) {
                 // We're a component and current, continue up the ladder...
-                Q3DSSlide *parent = player->m_parent;
-                Q_ASSERT(parent);
-                visible = isSlideVisible(parent);
+                visible = isSlideVisible(parentSlide);
             } else {
                 visible = true;
             }
