@@ -68,6 +68,7 @@ private slots:
     void aoProps();
     void lightmapProps();
     void iblProps();
+    void action();
 };
 
 void tst_Q3DSUipParser::initTestCase()
@@ -989,6 +990,78 @@ void tst_Q3DSUipParser::iblProps()
     QCOMPARE(referencedLightprobe->sourcePath(), QByteArrayLiteral(":/data/maps/TestEnvironment-512.hdr"));
     QCOMPARE(referencedLightprobe->mappingMode(), Q3DSImage::IBLOverride);
     QCOMPARE(referencedMaterial->lightProbe(), referencedLightprobe);
+}
+
+void tst_Q3DSUipParser::action()
+{
+    Q3DSUipParser parser;
+
+    QScopedPointer<Q3DSUipPresentation> pres(parser.parse(QLatin1String(":/data/action_in_add.uip")));
+    QVERIFY(!pres.isNull());
+    auto slide = pres->object<Q3DSSlide>("Scene-Slide1");
+    QVERIFY(slide);
+    QVERIFY(slide->actions().count() == 1);
+
+    Q3DSAction action = slide->actions().at(0);
+    QCOMPARE(action.id, QByteArrayLiteral("Barrel-Action"));
+    QVERIFY(action.owner);
+    QCOMPARE(action.owner, pres->object("Barrel"));
+    QCOMPARE(action.eyeball, true);
+    QCOMPARE(action.triggerObject, QStringLiteral("Barrel"));
+    QCOMPARE(action.event, QStringLiteral("onPressureDown"));
+    QCOMPARE(action.targetObject, QStringLiteral("Material"));
+    QCOMPARE(action.handler, QStringLiteral("Set Property"));
+
+    QCOMPARE(action.handlerArgs.count(), 2);
+    QCOMPARE(action.handlerArgs[0].name, QStringLiteral("Property Name"));
+    QCOMPARE(action.handlerArgs[0].type, QStringLiteral("String"));
+    QCOMPARE(action.handlerArgs[0].argType, QStringLiteral("Property"));
+    QCOMPARE(action.handlerArgs[0].value, QStringLiteral("diffuse"));
+    QCOMPARE(action.handlerArgs[1].name, QStringLiteral("Property Value"));
+    QCOMPARE(action.handlerArgs[1].type, QStringLiteral("Float3"));
+    QCOMPARE(action.handlerArgs[1].argType, QStringLiteral("Dependent"));
+    QCOMPARE(action.handlerArgs[1].value, QStringLiteral("0.447059 0.611765 1"));
+
+    pres.reset(parser.parse(QLatin1String(":/data/action_in_set.uip")));
+    QVERIFY(!pres.isNull());
+
+    slide = pres->objectByName<Q3DSSlide>(QLatin1String("Comp1Slide1"));
+    QVERIFY(slide);
+    QCOMPARE(slide->actions().count(), 1);
+
+    action = slide->actions().at(0);
+    QCOMPARE(action.id, QByteArrayLiteral("Cube-Action"));
+    QVERIFY(action.owner);
+    QCOMPARE(action.owner, pres->object("Cube"));
+    QCOMPARE(action.eyeball, true);
+    QCOMPARE(action.triggerObject, QStringLiteral("Cube"));
+    QCOMPARE(action.event, QStringLiteral("onPressureDown"));
+    QCOMPARE(action.targetObject, QStringLiteral("CubeComp"));
+    QCOMPARE(action.handler, QStringLiteral("Go to Slide"));
+    QCOMPARE(action.handlerArgs.count(), 1);
+    QCOMPARE(action.handlerArgs[0].name, QStringLiteral("Slide"));
+    QCOMPARE(action.handlerArgs[0].type, QStringLiteral("String"));
+    QCOMPARE(action.handlerArgs[0].argType, QStringLiteral("Slide"));
+    QCOMPARE(action.handlerArgs[0].value, QStringLiteral("Comp1Slide2"));
+
+    slide = pres->objectByName<Q3DSSlide>(QLatin1String("Comp1Slide2"));
+    QVERIFY(slide);
+    QCOMPARE(slide->actions().count(), 1);
+
+    action = slide->actions().at(0);
+    QCOMPARE(action.id, QByteArrayLiteral("Cube-Action_001"));
+    QVERIFY(action.owner);
+    QCOMPARE(action.owner, pres->object("Cube"));
+    QCOMPARE(action.eyeball, true);
+    QCOMPARE(action.triggerObject, QStringLiteral("Cube"));
+    QCOMPARE(action.event, QStringLiteral("onPressureDown"));
+    QCOMPARE(action.targetObject, QStringLiteral("CubeComp"));
+    QCOMPARE(action.handler, QStringLiteral("Go to Slide"));
+    QCOMPARE(action.handlerArgs.count(), 1);
+    QCOMPARE(action.handlerArgs[0].name, QStringLiteral("Slide"));
+    QCOMPARE(action.handlerArgs[0].type, QStringLiteral("String"));
+    QCOMPARE(action.handlerArgs[0].argType, QStringLiteral("Slide"));
+    QCOMPARE(action.handlerArgs[0].value, QStringLiteral("Comp1Slide2"));
 }
 
 #include <tst_q3dsuipparser.moc>

@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<UIP version="3" >
+    <Project >
+        <ProjectSettings author="" company="" presentationWidth="800" presentationHeight="480" maintainAspect="False" />
+        <Graph >
+            <Scene id="Scene" >
+                <Layer id="Layer" >
+                    <Camera id="Camera" />
+                    <Light id="Light" />
+                    <Component id="CubeComp" >
+                        <Model id="Cube" >
+                            <Material id="Material" />
+                        </Model>
+                        <Text id="Text" />
+                    </Component>
+                    <Model id="Cone" >
+                        <Material id="Material_001" />
+                    </Model>
+                    <Component id="CubeComp2" >
+                        <Model id="Cube_001" >
+                            <Material id="Material_002" />
+                        </Model>
+                    </Component>
+                </Layer>
+            </Scene>
+        </Graph>
+        <Logic >
+            <State name="Master Slide" component="#Scene" >
+                <Add ref="#Layer" />
+                <Add ref="#Camera" />
+                <Add ref="#Light" />
+                <State id="Scene-Slide1" name="Slide1" >
+                    <Add ref="#CubeComp" name="CubeComp1" />
+                    <Add ref="#Cone" name="Cone" position="-352.184 8.66024 0" sourcepath="#Cone" />
+                    <Add ref="#Material_001" />
+                </State>
+                <State id="Scene-Slide2" name="Slide2" playthroughto="Previous" >
+                    <Add ref="#CubeComp2" name="CubeComp2" />
+                </State>
+            </State>
+            <State name="Master Slide" component="#CubeComp" >
+                <Add ref="#Cube" name="Cube" position="513.727 -282.219 155.004" rotation="-23.6477 -3.47521 -13.6799" sourcepath="#Cube" >
+                    <AnimationTrack property="rotation.x" type="EaseInOut" >0 -23.6477 100 100 10 -23.6477 100 100</AnimationTrack>
+                    <AnimationTrack property="rotation.y" type="EaseInOut" >0 -3.47521 100 100 10 350 100 100</AnimationTrack>
+                    <AnimationTrack property="rotation.z" type="EaseInOut" >0 -13.6799 100 100 10 -13.6799 100 100</AnimationTrack>
+                </Add>
+                <Add ref="#Material" >
+                    <AnimationTrack property="diffuse.x" type="EaseInOut" >10 1 100 100 15 0 100 100</AnimationTrack>
+                    <AnimationTrack property="diffuse.y" type="EaseInOut" >10 1 100 100 15 0.627451 100 100</AnimationTrack>
+                    <AnimationTrack property="diffuse.z" type="EaseInOut" >10 1 100 100 15 0.627451 100 100</AnimationTrack>
+                </Add>
+                <State id="CubeComp1-Comp1Slide1" name="Comp1Slide1" >
+                    <Set ref="#Cube" endtime="15000" >
+                        <Action id="Cube-Action" eyeball="True" triggerObject="#Cube" event="onPressureDown" targetObject="#CubeComp" handler="Go to Slide" >
+                            <HandlerArgument name="Slide" type="String" argtype="Slide" value="Comp1Slide2" />
+                        </Action>
+                    </Set>
+                    <Add ref="#Text" name="Text" endtime="15000" font="Arimo-Regular" position="409.919 -105.366 0" textstring="Component #1&#10;!" />
+                </State>
+                <State id="CubeComp1-Comp1Slide2" name="Comp1Slide2" initialplaystate="Play" playmode="Stop at end" playthroughto="Previous" >
+                    <Set ref="#Cube" >
+                        <Action id="Cube-Action_001" eyeball="True" triggerObject="#Cube" event="onPressureDown" targetObject="#CubeComp" handler="Go to Slide" >
+                            <HandlerArgument name="Slide" type="String" argtype="Slide" value="Comp1Slide2" />
+                        </Action>
+                    </Set>
+                </State>
+            </State>
+            <State name="Master Slide" component="#CubeComp2" >
+                <Add ref="#Cube_001" name="Cube" position="-524.738 -269.767 86.4771" rotation="-23.6477 -3.47521 -13.6799" sourcepath="#Cube" >
+                    <AnimationTrack property="rotation.x" type="EaseInOut" >0 -23.6477 100 100 10 -23.6477 100 100</AnimationTrack>
+                    <AnimationTrack property="rotation.y" type="EaseInOut" >0 -3.47521 100 100 10 350 100 100</AnimationTrack>
+                    <AnimationTrack property="rotation.z" type="EaseInOut" >0 -13.6799 100 100 10 -13.6799 100 100</AnimationTrack>
+                </Add>
+                <Add ref="#Material_002" >
+                    <AnimationTrack property="diffuse.x" type="EaseInOut" >10 1 100 100 15 0 100 100</AnimationTrack>
+                    <AnimationTrack property="diffuse.y" type="EaseInOut" >10 1 100 100 15 0.627451 100 100</AnimationTrack>
+                    <AnimationTrack property="diffuse.z" type="EaseInOut" >10 1 100 100 15 0.627451 100 100</AnimationTrack>
+                </Add>
+                <State id="CubeComp2-Comp2Slide1" name="Comp2Slide1" >
+                    <Set ref="#Cube_001" endtime="15000" />
+                </State>
+                <State id="CubeComp2-Comp2Slide2" name="Comp2Slide2" playthroughto="Previous" />
+            </State>
+        </Logic>
+    </Project>
+</UIP>

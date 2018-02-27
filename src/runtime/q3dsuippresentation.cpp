@@ -1234,6 +1234,27 @@ void Q3DSSlide::removeAnimation(const Q3DSAnimationTrack &track)
     }
 }
 
+void Q3DSSlide::addAction(const Q3DSAction &action)
+{
+    m_actions.append(action);
+    SlideObjectChange change;
+    change.type = SlideActionAdded;
+    change.action = action;
+    notifySlideObjectChange(change);
+}
+
+void Q3DSSlide::removeAction(const Q3DSAction &action)
+{
+    const int idx = m_actions.indexOf(action);
+    if (idx >= 0) {
+        m_actions.removeAt(idx);
+        SlideObjectChange change;
+        change.type = SlideActionRemoved;
+        change.action = action;
+        notifySlideObjectChange(change);
+    }
+}
+
 // "slide change" would be quite confusing, hence using "slide graph change" instead
 int Q3DSSlide::addSlideGraphChangeObserver(SlideGraphChangeCallback callback)
 {

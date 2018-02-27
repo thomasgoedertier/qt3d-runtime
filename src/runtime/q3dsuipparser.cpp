@@ -479,7 +479,7 @@ void Q3DSUipParser::parseAddSet(Q3DSSlide *slide, bool isSet, bool isMaster)
             slide->addPropertyChanges(obj, changeList.take());
     }
 
-    // Store animations.
+    // Store animations and actions.
     while (r->readNextStartElement()) {
         if (r->name() == QStringLiteral("AnimationTrack")) {
             Q3DSAnimationTrack animTrack;
@@ -497,6 +497,53 @@ void Q3DSUipParser::parseAddSet(Q3DSSlide *slide, bool isSet, bool isMaster)
             parseAnimationKeyFrames(r->readElementText(QXmlStreamReader::SkipChildElements).trimmed(), &animTrack);
             if (!animTrack.m_keyFrames.isEmpty())
                 slide->addAnimation(animTrack);
+        } else if (r->name() == QStringLiteral("Action")) {
+            Q3DSAction action;
+            action.owner = obj;
+            action.id = getId(QStringRef(), false);
+            // we only support simple, static action definitions; no changes afterwards
+            if (!action.id.isEmpty()) {
+                for (const QXmlStreamAttribute &attr : r->attributes()) {
+                    if (attr.name() == QStringLiteral("eyeball")) {
+                        Q3DS::convertToBool(attr.value(), &action.eyeball, "'eyeball' attribute value", r);
+                    } else if (attr.name() == QStringLiteral("triggerObject")) {
+                        if (attr.value().startsWith(QLatin1Char('#')))
+                            action.triggerObject = attr.value().mid(1).trimmed().toString();
+                        else
+                            r->raiseError(QObject::tr("Invalid object ref in triggerObject"));
+                    } else if (attr.name() == QStringLiteral("event")) {
+                        action.event = attr.value().trimmed().toString();
+                    } else if (attr.name() == QStringLiteral("targetObject")) {
+                        if (attr.value().startsWith(QLatin1Char('#')))
+                            action.targetObject = attr.value().mid(1).trimmed().toString();
+                        else
+                            r->raiseError(QObject::tr("Invalid object ref in targetObject"));
+                    } else if (attr.name() == QStringLiteral("handler")) {
+                        action.handler = attr.value().trimmed().toString();
+                    }
+                }
+                // Parse the HandlerArgument children.
+                while (r->readNextStartElement()) {
+                    if (r->name() == QStringLiteral("HandlerArgument")) {
+                        Q3DSAction::HandlerArgument ha;
+                        for (const QXmlStreamAttribute &attr : r->attributes()) {
+                            if (attr.name() == QStringLiteral("name"))
+                                ha.name = attr.value().trimmed().toString();
+                            else if (attr.name() == QStringLiteral("type"))
+                                ha.type = attr.value().trimmed().toString();
+                            else if (attr.name() == QStringLiteral("argtype"))
+                                ha.argType = attr.value().trimmed().toString();
+                            else if (attr.name() == QStringLiteral("value"))
+                                ha.value = attr.value().trimmed().toString();
+                        }
+                        action.handlerArgs.append(ha);
+                    }
+                    r->skipCurrentElement();
+                }
+                slide->addAction(action);
+            } else {
+                r->skipCurrentElement();
+            }
         } else {
             r->skipCurrentElement();
         }

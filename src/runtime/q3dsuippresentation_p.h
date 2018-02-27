@@ -433,6 +433,40 @@ inline bool operator!=(const Q3DSAnimationTrack &a, const Q3DSAnimationTrack &b)
     return !(a == b);
 }
 
+class Q3DSV_PRIVATE_EXPORT Q3DSAction
+{
+public:
+    struct HandlerArgument {
+        QString name;
+        QString type;
+        QString argType;
+        QString value;
+    };
+
+    Q3DSGraphObject *owner = nullptr;
+    QByteArray id;
+
+    bool eyeball = true;
+    QString triggerObject;
+    QString event;
+    QString targetObject;
+    QString handler;
+    QVector<HandlerArgument> handlerArgs;
+};
+
+Q_DECLARE_TYPEINFO(Q3DSAction::HandlerArgument, Q_MOVABLE_TYPE);
+Q_DECLARE_TYPEINFO(Q3DSAction, Q_MOVABLE_TYPE);
+
+inline bool operator==(const Q3DSAction &a, const Q3DSAction &b)
+{
+    return a.id == b.id;
+}
+
+inline bool operator!=(const Q3DSAction &a, const Q3DSAction &b)
+{
+    return !(a == b);
+}
+
 class Q3DSV_PRIVATE_EXPORT Q3DSSlide : public Q3DSGraphObject
 {
 public:
@@ -472,6 +506,10 @@ public:
     void addAnimation(const Q3DSAnimationTrack &track);
     void removeAnimation(const Q3DSAnimationTrack &track);
 
+    const QVector<Q3DSAction> &actions() const { return m_actions; }
+    void addAction(const Q3DSAction &action);
+    void removeAction(const Q3DSAction &action);
+
     // The child added/removed notifications are managed by the master slide,
     // similarly to how scene does it for other types of objects.
     typedef std::function<void(Q3DSSlide *, Q3DSGraphObject::DirtyFlag change, Q3DSSlide *)> SlideGraphChangeCallback;
@@ -489,7 +527,9 @@ public:
         SlidePropertyChangesAdded,
         SlidePropertyChangesRemoved,
         SlideAnimationAdded,
-        SlideAnimationRemoved
+        SlideAnimationRemoved,
+        SlideActionAdded,
+        SlideActionRemoved
     };
     struct SlideObjectChange {
         // the validity of the members depends on type
@@ -497,6 +537,7 @@ public:
         Q3DSGraphObject *obj = nullptr;
         Q3DSPropertyChangeList *changeList = nullptr;
         Q3DSAnimationTrack animation;
+        Q3DSAction action;
     };
     typedef std::function<void(Q3DSSlide *, const SlideObjectChange &)> SlideObjectChangeCallback;
     int addSlideObjectChangeObserver(SlideObjectChangeCallback callback);
@@ -530,6 +571,7 @@ private:
     QSet<Q3DSGraphObject *> m_objects;
     QHash<Q3DSGraphObject *, Q3DSPropertyChangeList *> m_propChanges;
     QVector<Q3DSAnimationTrack> m_anims;
+    QVector<Q3DSAction> m_actions;
     QVector<SlideGraphChangeCallback> m_slideGraphChangeCallbacks; // master only
     QVector<SlideObjectChangeCallback> m_slideObjectChangeCallbacks;
 
