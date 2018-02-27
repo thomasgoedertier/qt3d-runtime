@@ -99,6 +99,7 @@ int main(int argc, char *argv[])
         viewer.update();
 
         // Write it to a file.
+        context.makeCurrent(&surface);
         const QString fn = QString(QLatin1String("output_%1.png")).arg(frame);
         fbo.toImage().save(fn);
 
