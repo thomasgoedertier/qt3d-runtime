@@ -273,6 +273,13 @@ public:
                 output.append(QLatin1String("#define GLSL_130 0\n"));
                 if (m_stage == Q3DSShaderGeneratorStages::Enum::Fragment) {
                     output.append(QLatin1String("#define fragOutput gl_FragData[0]\n"));
+
+                    if (gfxLimits.shaderTextureLodSupported)
+                        output.append(QLatin1String("#define textureLod texture2DLodEXT\n"));
+                    else
+                        output.append(QLatin1String("#define textureLod(s, co, lod) texture2D(s, co)\n"));
+
+                    output.append(QLatin1String("#define texture texture2D\n"));
                 }
             } else if (gfxLimits.format.majorVersion() == 3) {
                 // ES3
@@ -371,6 +378,12 @@ public:
     {
         Q_UNUSED(format)
         QString output;
+        Q3DSGraphicsLimits limits = Q3DS::graphicsLimits();
+
+        if (limits.format.renderableType() == QSurfaceFormat::OpenGLES)
+            if (limits.format.majorVersion() == 2)
+                if (limits.shaderTextureLodSupported)
+                    output.append(QStringLiteral("#extension GL_EXT_shader_texture_lod : enable\n"));
 
         // TODO: Find a way to query extensions (without creating lots of contexts)
 #if 0
@@ -499,6 +512,14 @@ public:
     FragmentShaderGenerator()
         : StageGeneratorBase(Q3DSShaderGeneratorStages::Enum::Fragment)
     {}
+    QString getIncomingVariableName() override
+    {
+        Q3DSGraphicsLimits limits = Q3DS::graphicsLimits();
+        if (limits.format.renderableType() == QSurfaceFormat::OpenGLES
+                && limits.format.majorVersion() == 2)
+            return QStringLiteral("varying");
+        return QStringLiteral("in");
+    }
     void addShaderOutgoingMap()
     {
         // Do nothing
@@ -531,7 +552,15 @@ struct ShaderGeneratedProgramOutput
 const QString CopyrightHeaderStart = QStringLiteral("/****************************************************************************");
 const QString CopyrightHeaderEnd = QStringLiteral("****************************************************************************/");
 
-QString resolveShaderIncludes(const QString &shaderCode)
+QStringList generateShaderLocationPrefixes(const QString &includeName, const QString &shaderLibraryVersion)
+{
+    return {
+        (QString(Q3DSUtils::resourcePrefix() + QLatin1String("res/effectlib/")) + shaderLibraryVersion + QLatin1String("/") + includeName),
+        (QString(Q3DSUtils::resourcePrefix() + QLatin1String("res/effectlib/")) + includeName)
+    };
+}
+
+QString resolveShaderIncludes(const QString &shaderCode, const QString &shaderLibraryVersion)
 {
     QString output;
     QTextStream inputStream(const_cast<QString*>(&shaderCode), QIODevice::ReadOnly);
@@ -541,23 +570,28 @@ QString resolveShaderIncludes(const QString &shaderCode)
         auto trimmedLine = currentLine.trimmed();
         if (trimmedLine.startsWith(QStringLiteral("#include"))) {
             QString includeName = currentLine.split('"', QString::SkipEmptyParts).last();
-            QString fileName = QString(Q3DSUtils::resourcePrefix() + QLatin1String("res/effectlib/")) + includeName;
-            QFile file(fileName);
-            if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
-                qWarning() << QObject::tr("Could not open glsllib '%1'").arg(fileName);
-            } else {
-                // strip copyright header
-                QString content = QString::fromUtf8(file.readAll());
-                if (content.startsWith(CopyrightHeaderStart)) {
-                    int clipPos = content.indexOf(CopyrightHeaderEnd) ;
-                    if (clipPos >= 0)
-                        content.remove(0, clipPos + CopyrightHeaderEnd.count());
+            QStringList fileNames = generateShaderLocationPrefixes(includeName, shaderLibraryVersion);
+            bool isResolved = false;
+            for (QString fileName : fileNames) {
+                QFile file(fileName);
+                if (file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+                    // strip copyright header
+                    QString content = QString::fromUtf8(file.readAll());
+                    if (content.startsWith(CopyrightHeaderStart)) {
+                        int clipPos = content.indexOf(CopyrightHeaderEnd) ;
+                        if (clipPos >= 0)
+                            content.remove(0, clipPos + CopyrightHeaderEnd.count());
+                    }
+                    output.append(QStringLiteral("\n// begin \"") + includeName + QStringLiteral("\"\n"));
+                    output.append(resolveShaderIncludes(content, shaderLibraryVersion));
+                    output.append(QStringLiteral("\n// end \"" ) + includeName + QStringLiteral("\"\n"));
+                    isResolved = true;
+                    file.close();
+                    break;
                 }
-                output.append(QStringLiteral("\n// begin \"") + includeName + QStringLiteral("\"\n"));
-                output.append(resolveShaderIncludes(content));
-                output.append(QStringLiteral("\n// end \"" ) + includeName + QStringLiteral("\"\n"));
             }
-            file.close();
+            if (!isResolved)
+                qWarning() << QStringLiteral("Could not find any glsllib includes for: ") << fileNames;
             output.append(QLatin1String("\n"));
         } else {
             output.append(currentLine);
@@ -623,11 +657,14 @@ public:
             }
         }
 
-        QByteArray vertexShaderSource = resolveShaderIncludes(m_vs.m_finalBuilder).toLocal8Bit();
-        QByteArray tcShaderSource = resolveShaderIncludes(m_tc.m_finalBuilder).toLocal8Bit();
-        QByteArray teShaderSource = resolveShaderIncludes(m_te.m_finalBuilder).toLocal8Bit();
-        QByteArray geometryShaderSource = resolveShaderIncludes(m_gs.m_finalBuilder).toLocal8Bit();
-        QByteArray fragmentShaderSource = resolveShaderIncludes(m_fs.m_finalBuilder).toLocal8Bit();
+        if (m_shaderContextLibraryVersion.isEmpty())
+            resolveShaderLibraryVersion();
+
+        QByteArray vertexShaderSource = resolveShaderIncludes(m_vs.m_finalBuilder, m_shaderContextLibraryVersion).toLocal8Bit();
+        QByteArray tcShaderSource = resolveShaderIncludes(m_tc.m_finalBuilder, m_shaderContextLibraryVersion).toLocal8Bit();
+        QByteArray teShaderSource = resolveShaderIncludes(m_te.m_finalBuilder, m_shaderContextLibraryVersion).toLocal8Bit();
+        QByteArray geometryShaderSource = resolveShaderIncludes(m_gs.m_finalBuilder, m_shaderContextLibraryVersion).toLocal8Bit();
+        QByteArray fragmentShaderSource = resolveShaderIncludes(m_fs.m_finalBuilder, m_shaderContextLibraryVersion).toLocal8Bit();
 
         // Debug
         static bool debug = qEnvironmentVariableIntValue("Q3DS_DEBUG") != 0;
@@ -715,6 +752,16 @@ private:
         return m_vs;
     }
 
+    void resolveShaderLibraryVersion()
+    {
+        QString versionString;
+        const QSurfaceFormat &format = Q3DS::graphicsLimits().format;
+        if (format.renderableType() == QSurfaceFormat::OpenGLES)
+            if (format.majorVersion() == 2)
+                versionString = QLatin1Literal("gles2");
+        m_shaderContextLibraryVersion = versionString;
+    }
+
     VertexShaderGenerator m_vs;
     TessControlShaderGenerator m_tc;
     TessEvalShaderGenerator m_te;
@@ -724,6 +771,7 @@ private:
     Q3DSShaderGeneratorStageFlags m_enabledStages;
 
     QCache<QByteArray, Qt3DRender::QShaderProgram> m_cache;
+    QString m_shaderContextLibraryVersion;
 };
 
 } // end namespace

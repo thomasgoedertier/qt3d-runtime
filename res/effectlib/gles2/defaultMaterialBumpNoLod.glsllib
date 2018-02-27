@@ -1,7 +1,7 @@
 /****************************************************************************
 **
 ** Copyright (C) 2017 The Qt Company Ltd.
-** Contact: http://www.qt.io/licensing/
+** Contact: https://www.qt.io/licensing/
 **
 ** This file is part of Qt 3D Studio.
 **
@@ -27,47 +27,26 @@
 **
 ****************************************************************************/
 
-#ifndef Q3DSGRAPHICSLIMITS_P_H
-#define Q3DSGRAPHICSLIMITS_P_H
-
-//
-//  W A R N I N G
-//  -------------
-//
-// This file is not part of the Qt API.  It exists purely as an
-// implementation detail.  This header file may change from version to
-// version without notice, or even be removed.
-//
-// We mean it.
-//
-
-#include "q3dsruntimeglobal_p.h"
-#include <QByteArray>
-#include <QSurfaceFormat>
-#include <QSet>
-
-QT_BEGIN_NAMESPACE
-
-struct Q3DSGraphicsLimits {
-    bool versionedContextFailed = false;
-    int maxDrawBuffers = 4;
-    bool multisampleTextureSupported = false;
-    bool shaderTextureLodSupported = true;
-    bool shaderUniformBufferSupported = true;
-    bool packedDepthStencilBufferSupported = true;
-    QByteArray renderer;
-    QByteArray vendor;
-    QByteArray version;
-    QSet<QByteArray> extensions;
-    QSurfaceFormat format;
-};
-
-Q_DECLARE_TYPEINFO(Q3DSGraphicsLimits, Q_MOVABLE_TYPE);
-
-namespace Q3DS {
-Q3DSV_PRIVATE_EXPORT Q3DSGraphicsLimits graphicsLimits();
+float calcRGBAvg(in vec4 rgba)
+{
+    return (rgba.r + rgba.g + rgba.b) / 3.0;
 }
 
-QT_END_NAMESPACE
+vec3 defaultMaterialBumpNoLod(in sampler2D sampler, in float factor,
+                              in vec2 texCoord, in vec3 tangent, in vec3 binormal,
+                              in vec3 normal, in vec2 bumpSize )
+{
+    // invert factor
+    float invFactor = -factor;
 
-#endif
+    vec2 unitStep = 1.0 / bumpSize;
+
+    float du = calcRGBAvg(texture2D( sampler, vec2( texCoord.x + unitStep.x, texCoord.y )))
+             - calcRGBAvg(texture2D( sampler, vec2( texCoord.x, texCoord.y )));
+    float dv = calcRGBAvg(texture2D( sampler, vec2( texCoord.x, texCoord.y + unitStep.y )))
+             - calcRGBAvg(texture2D( sampler, vec2( texCoord.x, texCoord.y )));
+
+    vec3 n = normalize(vec3(invFactor * du, invFactor * dv, 1.0));
+    n = n.x * normalize(tangent) + n.y * normalize(binormal) + n.z * normal;
+    return normalize(normal + n);
+}

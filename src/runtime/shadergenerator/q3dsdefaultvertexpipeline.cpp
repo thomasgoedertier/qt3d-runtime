@@ -54,13 +54,14 @@ struct ShaderGenerator : public Q3DSDefaultMaterialShaderGenerator
     QString m_ImageRotations;
     QString m_ImageFragCoords;
     QString m_ImageTemp;
+    QString m_ImageSize;
 
     QString m_TexCoordTemp;
 
     QString m_LightStem;
     QString m_LightColor;
     QString m_LightSpecularColor;
-    QString m_LightAttenutation;
+    QString m_lightAttenuation;
     QString m_LightConstantAttenuation;
     QString m_LightLinearAttenuation;
     QString m_LightQuadraticAttenuation;
@@ -113,6 +114,8 @@ struct ShaderGenerator : public Q3DSDefaultMaterialShaderGenerator
         m_ImageRotations.append(QLatin1String("rotations"));
         m_ImageFragCoords = m_ImageStem;
         m_ImageFragCoords.append(QLatin1String("uv_coords"));
+        m_ImageSize = m_ImageStem;
+        m_ImageSize.append(QLatin1String("size"));
     }
 
     void setupTexCoordVariableName(size_t uvSet)
@@ -278,7 +281,7 @@ struct ShaderGenerator : public Q3DSDefaultMaterialShaderGenerator
     void outputDiffuseAreaLighting(Q3DSAbstractShaderStageGenerator &infragmentShader, const QString &inPos,
                                    const QString &inLightPrefix)
     {
-        m_LightAttenutation = inLightPrefix + QLatin1String("_attenuation");
+        m_lightAttenuation = inLightPrefix + QLatin1String("_attenuation");
         m_NormalizedDirection = inLightPrefix + QLatin1String("_areaDir");
         const QByteArray normalizedDirection = m_NormalizedDirection.toUtf8();
         addLocalVariable(infragmentShader, normalizedDirection.constData(), "vec3");
@@ -577,6 +580,10 @@ struct ShaderGenerator : public Q3DSDefaultMaterialShaderGenerator
         bool enableShadowMaps = false;
         bool hasIblProbe = false;
 
+        // specify how to build lights
+        bool isgles2 = Q3DS::graphicsLimits().format.renderableType() == QSurfaceFormat::OpenGLES &&
+                       Q3DS::graphicsLimits().format.majorVersion() == 2;
+
         auto features = featureSet();
         for (const auto &feature : features) {
             if (!feature.enabled)
@@ -647,13 +654,23 @@ struct ShaderGenerator : public Q3DSDefaultMaterialShaderGenerator
 
                 fragmentShader.addUniform("bumpAmount", "float");
 
-                fragmentShader.addInclude("defaultMaterialFileBumpTexture.glsllib");
-                // vec3 simplerFileBumpTexture( in sampler2D sampler, in float factor, vec2
-                // texCoord, vec3 tangent, vec3 binormal, vec3 normal )
+                if (isgles2) {
+                    const QByteArray imageSamplerSize = m_ImageSize.toUtf8();
+                    fragmentShader.addUniform(m_ImageSize.toLatin1(), "vec2");
+                    fragmentShader.addInclude("defaultMaterialBumpNoLod.glsllib");
+                    fragmentShader << "\tworld_normal = defaultMaterialBumpNoLod( " << imageSampler.constData()
+                                   << ", bumpAmount, " << imageFragCoords.constData()
+                                   << ", tangent, binormal, world_normal, "
+                                   << imageSamplerSize.constData() << ");" << "\n";
+                } else {
+                    fragmentShader.addInclude("defaultMaterialFileBumpTexture.glsllib");
+                    // vec3 simplerFileBumpTexture( in sampler2D sampler, in float factor, vec2
+                    // texCoord, vec3 tangent, vec3 binormal, vec3 normal )
 
-                fragmentShader << "\tworld_normal = simplerFileBumpTexture( " << imageSampler.constData()
-                               << ", bumpAmount, " << imageFragCoords.constData()
-                               << ", tangent, binormal, world_normal );" << "\n";
+                    fragmentShader << "\tworld_normal = simplerFileBumpTexture( " << imageSampler.constData()
+                                   << ", bumpAmount, " << imageFragCoords.constData()
+                                   << ", tangent, binormal, world_normal );" << "\n";
+                }
                 // Do gram schmidt
                 fragmentShader << "\tbinormal = normalize(cross(world_normal, tangent) );\n";
                 fragmentShader << "\ttangent = normalize(cross(binormal, world_normal) );\n";

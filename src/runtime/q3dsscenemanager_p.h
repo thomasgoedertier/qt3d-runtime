@@ -133,6 +133,7 @@ Q_DECLARE_TYPEINFO(Q3DSLightSource, Q_MOVABLE_TYPE);
 
 // these are our current shader limits
 #define Q3DS_MAX_NUM_LIGHTS 16
+#define Q3DS_MAX_NUM_LIGHTS_ES2 8
 #define Q3DS_MAX_NUM_SHADOWS 8
 
 // note this struct must exactly match the memory layout of the
@@ -448,8 +449,9 @@ struct Q3DSTextureParameters
     Qt3DRender::QParameter *sampler = nullptr;
     Qt3DRender::QParameter *offsets = nullptr;
     Qt3DRender::QParameter *rotations = nullptr;
+    Qt3DRender::QParameter *size = nullptr;
 
-    QVector<Qt3DRender::QParameter *> parameters() const { return { sampler, offsets, rotations }; }
+    QVector<Qt3DRender::QParameter *> parameters() const { return { sampler, offsets, rotations, size }; }
 
     Qt3DRender::QAbstractTexture *texture = nullptr;
     QString subPresId;
@@ -790,6 +792,7 @@ private:
     void updateLightsBuffer(const QVector<Q3DSLightSource> &lights, Qt3DRender::QBuffer *uniformBuffer);
     void updateModel(Q3DSModelNode *model3DS);
     QVector<Q3DSNodeAttached::LightsData *> getLightsDataForNode(Q3DSGraphObject *object);
+    QVector<Qt3DRender::QParameter *> prepareSeparateLightUniforms(const QVector<Q3DSLightSource> &allLights, const QString &lightsUniformName);
 
     void buildLayerQuadEntity(Q3DSLayerNode *layer3DS, Qt3DCore::QEntity *parentEntity, Qt3DRender::QLayer *tag,
                               BuildLayerQuadFlags flags, int layerDepth = 0);

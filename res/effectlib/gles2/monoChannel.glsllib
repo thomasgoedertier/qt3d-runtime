@@ -1,7 +1,8 @@
 /****************************************************************************
 **
+** Copyright (C) 2014 NVIDIA Corporation.
 ** Copyright (C) 2017 The Qt Company Ltd.
-** Contact: http://www.qt.io/licensing/
+** Contact: https://www.qt.io/licensing/
 **
 ** This file is part of Qt 3D Studio.
 **
@@ -27,47 +28,31 @@
 **
 ****************************************************************************/
 
-#ifndef Q3DSGRAPHICSLIMITS_P_H
-#define Q3DSGRAPHICSLIMITS_P_H
+#ifndef MONO_CHANNEL_GLSLLIB
+#define MONO_CHANNEL_GLSLLIB
 
-//
-//  W A R N I N G
-//  -------------
-//
-// This file is not part of the Qt API.  It exists purely as an
-// implementation detail.  This header file may change from version to
-// version without notice, or even be removed.
-//
-// We mean it.
-//
+#ifdef QT3DS_DEFINE_API
+#define mono_alpha 0
+#define mono_average 1
+#define mono_luminance 2
+#define mono_maximum 3
+#endif
 
-#include "q3dsruntimeglobal_p.h"
-#include <QByteArray>
-#include <QSurfaceFormat>
-#include <QSet>
+float monoChannel( in vec4 t, const in int monoSource )
+{
+    if ( monoSource == mono_alpha )
+        return( t.w );
 
-QT_BEGIN_NAMESPACE
+    if ( monoSource == mono_average )
+        return( ( t.x + t.y + t.z ) / 3.0 );
 
-struct Q3DSGraphicsLimits {
-    bool versionedContextFailed = false;
-    int maxDrawBuffers = 4;
-    bool multisampleTextureSupported = false;
-    bool shaderTextureLodSupported = true;
-    bool shaderUniformBufferSupported = true;
-    bool packedDepthStencilBufferSupported = true;
-    QByteArray renderer;
-    QByteArray vendor;
-    QByteArray version;
-    QSet<QByteArray> extensions;
-    QSurfaceFormat format;
-};
+    if ( monoSource == mono_luminance )
+        return( luminance( t.xyz ) );
 
-Q_DECLARE_TYPEINFO(Q3DSGraphicsLimits, Q_MOVABLE_TYPE);
+    if ( monoSource == mono_maximum )
+        return( max( t.x, max( t.y, t.z ) ) );
 
-namespace Q3DS {
-Q3DSV_PRIVATE_EXPORT Q3DSGraphicsLimits graphicsLimits();
+    return( 1.0 );
 }
-
-QT_END_NAMESPACE
 
 #endif

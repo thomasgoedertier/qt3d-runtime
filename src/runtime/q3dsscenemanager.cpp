@@ -736,16 +736,21 @@ Q3DSSceneManager::Scene Q3DSSceneManager::buildScene(Q3DSUipPresentation *presen
     }
 #endif
 
+    const bool gles2 = m_gfxLimits.format.renderableType() == QSurfaceFormat::OpenGLES && m_gfxLimits.format.majorVersion() == 2;
+
     // Fullscreen quad for bluring the shadow map/cubemap
     Q3DSShaderManager &sm(Q3DSShaderManager::instance());
     QStringList fsQuadPassNames { QLatin1String("shadowOrthoBlurX"), QLatin1String("shadowOrthoBlurY") };
     QVector<Qt3DRender::QShaderProgram *> fsQuadPassProgs { sm.getOrthoShadowBlurXShader(m_rootEntity), sm.getOrthoShadowBlurYShader(m_rootEntity) };
-    if (m_gfxLimits.maxDrawBuffers >= 6) { // ###
-        fsQuadPassNames << QLatin1String("shadowCubeBlurX") << QLatin1String("shadowCubeBlurY");
-        fsQuadPassProgs << sm.getCubeShadowBlurXShader(m_rootEntity, m_gfxLimits) << sm.getCubeShadowBlurYShader(m_rootEntity, m_gfxLimits);
+
+    if (!gles2) {
+        if (m_gfxLimits.maxDrawBuffers >= 6) { // ###
+            fsQuadPassNames << QLatin1String("shadowCubeBlurX") << QLatin1String("shadowCubeBlurY");
+            fsQuadPassProgs << sm.getCubeShadowBlurXShader(m_rootEntity, m_gfxLimits) << sm.getCubeShadowBlurYShader(m_rootEntity, m_gfxLimits);
+        }
+        fsQuadPassNames << QLatin1String("ssao") << QLatin1String("progaa");
+        fsQuadPassProgs << sm.getSsaoTextureShader(m_rootEntity) << sm.getProgAABlendShader(m_rootEntity);
     }
-    fsQuadPassNames << QLatin1String("ssao") << QLatin1String("progaa");
-    fsQuadPassProgs << sm.getSsaoTextureShader(m_rootEntity) << sm.getProgAABlendShader(m_rootEntity);
     FsQuadParams quadInfo;
     quadInfo.parentEntity = m_rootEntity;
     quadInfo.passNames = fsQuadPassNames;
@@ -860,7 +865,7 @@ static Qt3DRender::QAbstractTexture *newColorBuffer(const QSize &layerPixelSize,
     return colorTex;
 }
 
-static Qt3DRender::QAbstractTexture *newDepthStencilBuffer(const QSize &layerPixelSize, int msaaSampleCount)
+static Qt3DRender::QAbstractTexture *newDepthStencilBuffer(const QSize &layerPixelSize, int msaaSampleCount, Qt3DRender::QAbstractTexture::TextureFormat format = Qt3DRender::QAbstractTexture::D24S8)
 {
     // GLES <= 3.1 does not have glFramebufferTexture and support for combined
     // depth-stencil textures. Here we rely on the fact the Qt3D will
@@ -881,7 +886,7 @@ static Qt3DRender::QAbstractTexture *newDepthStencilBuffer(const QSize &layerPix
     } else {
         dsTexOrRb = new Qt3DRender::QTexture2D;
     }
-    dsTexOrRb->setFormat(Qt3DRender::QAbstractTexture::D24S8);
+    dsTexOrRb->setFormat(format);
     dsTexOrRb->setWidth(layerPixelSize.width());
     dsTexOrRb->setHeight(layerPixelSize.height());
     dsTexOrRb->setMinificationFilter(Qt3DRender::QAbstractTexture::Linear);
@@ -903,20 +908,35 @@ Qt3DRender::QRenderTarget *Q3DSSceneManager::newLayerRenderTarget(const QSize &l
                                "Color buffer for layer %s", layer3DS->id().constData());
     (*colorTex)->setParent(textureParentNode);
     color->setTexture(*colorTex);
+    rt->addOutput(color);
 
     Qt3DRender::QRenderTargetOutput *ds = new Qt3DRender::QRenderTargetOutput;
-    ds->setAttachmentPoint(Qt3DRender::QRenderTargetOutput::DepthStencil);
-    if (!existingDS) {
-        *dsTexOrRb = newDepthStencilBuffer(layerPixelSize, msaaSampleCount);
-        m_profiler->trackNewObject(*dsTexOrRb, Q3DSProfiler::Texture2DObject,
-                                   "Depth-stencil buffer for layer %s", layer3DS->id().constData());
-        (*dsTexOrRb)->setParent(textureParentNode);
+    if (m_gfxLimits.packedDepthStencilBufferSupported) {
+        ds->setAttachmentPoint(Qt3DRender::QRenderTargetOutput::DepthStencil);
+        if (!existingDS) {
+            *dsTexOrRb = newDepthStencilBuffer(layerPixelSize, msaaSampleCount);
+            m_profiler->trackNewObject(*dsTexOrRb, Q3DSProfiler::Texture2DObject,
+                                       "Depth-stencil buffer for layer %s", layer3DS->id().constData());
+            (*dsTexOrRb)->setParent(textureParentNode);
+        } else {
+            *dsTexOrRb = existingDS;
+        }
     } else {
-        *dsTexOrRb = existingDS;
+        // This is for ES2 case without support for packed depth-stencil buffers
+        // Depth
+        ds->setAttachmentPoint(Qt3DRender::QRenderTargetOutput::Depth);
+        if (!existingDS) {
+            *dsTexOrRb = newDepthStencilBuffer(layerPixelSize, msaaSampleCount, Qt3DRender::QAbstractTexture::D16);
+            m_profiler->trackNewObject(*dsTexOrRb, Q3DSProfiler::Texture2DObject,
+                                       "Depth buffer for layer %s", layer3DS->id().constData());
+            (*dsTexOrRb)->setParent(textureParentNode);
+        } else {
+            *dsTexOrRb = existingDS;
+        }
     }
+
     ds->setTexture(*dsTexOrRb);
 
-    rt->addOutput(color);
     rt->addOutput(ds);
 
     return rt;
@@ -3959,9 +3979,10 @@ void Q3DSSceneManager::setLightProperties(Q3DSLightNode *light3DS, bool forceUpd
     const bool leftHanded = light3DS->orientation() == Q3DSNode::LeftHanded;
 
     if (forceUpdate || data->frameDirty.testFlag(Q3DSGraphObjectAttached::GlobalTransformDirty)) {
-        if (!ls->positionParam)
+        if (!ls->positionParam) {
             ls->positionParam = new Qt3DRender::QParameter;
-        ls->positionParam->setName(QLatin1String("position"));
+            ls->positionParam->setName(QLatin1String("position"));
+        }
 
         if (light3DS->lightType() == Q3DSLightNode::Directional) {
             // directional lights have a w value of 0 in position
@@ -3973,18 +3994,21 @@ void Q3DSSceneManager::setLightProperties(Q3DSLightNode *light3DS, bool forceUpd
             ls->positionParam->setValue(QVector4D(data->globalTransform.column(3).toVector3D(), 1.0f));
         }
 
-        if (!ls->directionParam)
+        if (!ls->directionParam) {
             ls->directionParam = new Qt3DRender::QParameter;
-        ls->directionParam->setName(QLatin1String("direction"));
+            ls->directionParam->setName(QLatin1String("direction"));
+        }
         ls->directionParam->setValue(directionFromTransform(data->globalTransform, leftHanded));
     }
 
-    if (!ls->upParam)
+    if (!ls->upParam) {
         ls->upParam = new Qt3DRender::QParameter;
-    ls->upParam->setName(QLatin1String("up"));
-    if (!ls->rightParam)
+        ls->upParam->setName(QLatin1String("up"));
+    }
+    if (!ls->rightParam) {
         ls->rightParam = new Qt3DRender::QParameter;
-    ls->rightParam->setName(QLatin1String("right"));
+        ls->rightParam->setName(QLatin1String("right"));
+    }
     if (light3DS->lightType() == Q3DSLightNode::Area) {
         QVector4D v = data->globalTransform * QVector4D(0, 1, 0, 0);
         v.setW(light3DS->areaHeight());
@@ -3999,27 +4023,30 @@ void Q3DSSceneManager::setLightProperties(Q3DSLightNode *light3DS, bool forceUpd
 
     const float normalizedBrightness = light3DS->brightness() / 100.0f;
 
-    if (!ls->diffuseParam)
+    if (!ls->diffuseParam) {
         ls->diffuseParam = new Qt3DRender::QParameter;
-    ls->diffuseParam->setName(QLatin1String("diffuse"));
+        ls->diffuseParam->setName(QLatin1String("diffuse"));
+    }
     auto diffuseColor = QVector4D(float(light3DS->diffuse().redF()) * normalizedBrightness,
                                   float(light3DS->diffuse().greenF()) * normalizedBrightness,
                                   float(light3DS->diffuse().blueF()) * normalizedBrightness,
                                   float(light3DS->diffuse().alphaF()));
     ls->diffuseParam->setValue(diffuseColor);
 
-    if (!ls->ambientParam)
+    if (!ls->ambientParam) {
         ls->ambientParam = new Qt3DRender::QParameter;
-    ls->ambientParam->setName(QLatin1String("ambient"));
+        ls->ambientParam->setName(QLatin1String("ambient"));
+    }
     auto ambientColor = QVector4D(float(light3DS->ambient().redF()),
                                   float(light3DS->ambient().greenF()),
                                   float(light3DS->ambient().blueF()),
                                   float(light3DS->ambient().alphaF()));
     ls->ambientParam->setValue(ambientColor);
 
-    if (!ls->specularParam)
+    if (!ls->specularParam) {
         ls->specularParam = new Qt3DRender::QParameter;
-    ls->specularParam->setName(QLatin1String("specular"));
+        ls->specularParam->setName(QLatin1String("specular"));
+    }
     auto specularColor = QVector4D(float(light3DS->specular().redF()) * normalizedBrightness,
                                    float(light3DS->specular().greenF()) * normalizedBrightness,
                                    float(light3DS->specular().blueF()) * normalizedBrightness,
@@ -4027,44 +4054,51 @@ void Q3DSSceneManager::setLightProperties(Q3DSLightNode *light3DS, bool forceUpd
     ls->specularParam->setValue(specularColor);
 
 /*
-    if (!ls->spotExponentParam)
+    if (!ls->spotExponentParam) {
         ls->spotExponentParam = new Qt3DRender::QParameter;
-    ls->spotExponentParam->setName(QLatin1String("spotExponent"));
+        ls->spotExponentParam->setName(QLatin1String("spotExponent"));
+    }
     ls->spotExponentParam->setValue(1.0f);
 
-    if (!ls->spotCutoffParam)
+    if (!ls->spotCutoffParam) {
         ls->spotCutoffParam = new Qt3DRender::QParameter;
-    ls->spotCutoffParam->setName(QLatin1String("spotCutoff"));
+        ls->spotCutoffParam->setName(QLatin1String("spotCutoff"));
+    }
     ls->spotCutoffParam->setValue(180.0f);
 */
-    if (!ls->constantAttenuationParam)
+    if (!ls->constantAttenuationParam) {
         ls->constantAttenuationParam = new Qt3DRender::QParameter;
-    ls->constantAttenuationParam->setName(QLatin1String("constantAttenuation"));
+        ls->constantAttenuationParam->setName(QLatin1String("constantAttenuation"));
+    }
     ls->constantAttenuationParam->setValue(1.0f);
 
-    if (!ls->linearAttenuationParam)
+    if (!ls->linearAttenuationParam) {
         ls->linearAttenuationParam = new Qt3DRender::QParameter;
-    ls->linearAttenuationParam->setName(QLatin1String("linearAttenuation"));
+        ls->linearAttenuationParam->setName(QLatin1String("linearAttenuation"));
+    }
     ls->linearAttenuationParam->setValue(qBound(0.0f, light3DS->linearFade(), 1000.0f) * 0.0001f);
 
-    if (!ls->quadraticAttenuationParam)
+    if (!ls->quadraticAttenuationParam) {
         ls->quadraticAttenuationParam = new Qt3DRender::QParameter;
-    ls->quadraticAttenuationParam->setName(QLatin1String("quadraticAttenuation"));
+        ls->quadraticAttenuationParam->setName(QLatin1String("quadraticAttenuation"));
+    }
     ls->quadraticAttenuationParam->setValue(qBound(0.0f, light3DS->expFade(), 1000.0f) * 0.0000001f);
 
     // having non-zero values in either width or hight properties
     // determines that this is an area light in shader logic
-    if (!ls->widthParam)
+    if (!ls->widthParam) {
         ls->widthParam = new Qt3DRender::QParameter;
-    ls->widthParam->setName(QLatin1String("width"));
+        ls->widthParam->setName(QLatin1String("width"));
+    }
     if (light3DS->lightType() == Q3DSLightNode::Area)
         ls->widthParam->setValue(light3DS->areaWidth());
     else
         ls->widthParam->setValue(0.0f);
 
-    if (!ls->heightParam)
+    if (!ls->heightParam) {
         ls->heightParam = new Qt3DRender::QParameter;
-    ls->heightParam->setName(QLatin1String("height"));
+        ls->heightParam->setName(QLatin1String("height"));
+    }
     if (light3DS->lightType() == Q3DSLightNode::Area)
         ls->heightParam->setValue(light3DS->areaHeight());
     else
@@ -4072,22 +4106,25 @@ void Q3DSSceneManager::setLightProperties(Q3DSLightNode *light3DS, bool forceUpd
 
     // is this shadow stuff for lightmaps?
     const float shadowDist = 5000.0f; // camera->clipFar() ### FIXME later
-    if (!ls->shadowControlsParam)
+    if (!ls->shadowControlsParam) {
         ls->shadowControlsParam = new Qt3DRender::QParameter;
-    ls->shadowControlsParam->setName(QLatin1String("shadowControls"));
+        ls->shadowControlsParam->setName(QLatin1String("shadowControls"));
+    }
     ls->shadowControlsParam->setValue(QVector4D(light3DS->shadowBias(), light3DS->shadowFactor(), shadowDist, 0));
 
-    if (!ls->shadowViewParam)
+    if (!ls->shadowViewParam) {
         ls->shadowViewParam = new Qt3DRender::QParameter;
-    ls->shadowViewParam->setName(QLatin1String("shadowView"));
+        ls->shadowViewParam->setName(QLatin1String("shadowView"));
+    }
     if (light3DS->lightType() == Q3DSLightNode::Point)
         ls->shadowViewParam->setValue(QMatrix4x4());
     else
         ls->shadowViewParam->setValue(data->globalTransform);
 
-    if (!ls->shadowIdxParam)
+    if (!ls->shadowIdxParam) {
         ls->shadowIdxParam = new Qt3DRender::QParameter;
-    ls->shadowIdxParam->setName(QLatin1String("shadowIdx"));
+        ls->shadowIdxParam->setName(QLatin1String("shadowIdx"));
+    }
     ls->shadowIdxParam->setValue(0); // ### FIXME later
 }
 
@@ -4229,21 +4266,26 @@ void Q3DSSceneManager::buildModelMaterial(Q3DSModelNode *model3DS)
                     lightsData->lightAmbientTotalParamenter->setValue(lightAmbientTotal);
                     params.append(lightsData->lightAmbientTotalParamenter);
 
-                    // Setup lights, use combined buffer for the default material.
-                    if (!lightsData->allLightsConstantBuffer) {
-                        lightsData->allLightsConstantBuffer = new Qt3DRender::QBuffer(layerData->entity);
-                        lightsData->allLightsConstantBuffer->setObjectName(QLatin1String("all lights constant buffer"));
-                        // make sure we pick up all inherited lights in scope
-                        QVector<Q3DSLightSource> allLights;
-                        for (auto light : lights)
-                            allLights.append(light->allLights);
-                        updateLightsBuffer(allLights, lightsData->allLightsConstantBuffer);
+                    if (m_gfxLimits.shaderUniformBufferSupported) {
+                        // Setup lights, use combined buffer for the default material.
+                        if (!lightsData->allLightsConstantBuffer) {
+                            lightsData->allLightsConstantBuffer = new Qt3DRender::QBuffer(layerData->entity);
+                            lightsData->allLightsConstantBuffer->setObjectName(QLatin1String("all lights constant buffer"));
+                            // make sure we pick up all inherited lights in scope
+                            QVector<Q3DSLightSource> allLights;
+                            for (auto light : lights)
+                                allLights.append(light->allLights);
+                            updateLightsBuffer(allLights, lightsData->allLightsConstantBuffer);
+                        }
+                        if (!lightsData->allLightsParam)
+                            lightsData->allLightsParam = new Qt3DRender::QParameter;
+                        lightsData->allLightsParam->setName(QLatin1String("cbBufferLights"));
+                        lightsData->allLightsParam->setValue(QVariant::fromValue(lightsData->allLightsConstantBuffer));
+                        params.append(lightsData->allLightsParam);
+                    } else {
+                        // ubo not supported, create uniforms for each light
+                        params.append(prepareSeparateLightUniforms(lightsData->allLights, QStringLiteral("lights")));
                     }
-                    if (!lightsData->allLightsParam)
-                        lightsData->allLightsParam = new Qt3DRender::QParameter;
-                    lightsData->allLightsParam->setName(QLatin1String("cbBufferLights"));
-                    lightsData->allLightsParam->setValue(QVariant::fromValue(lightsData->allLightsConstantBuffer));
-                    params.append(lightsData->allLightsParam);
                 }
 
                 addShadowSsaoParams(layerData, &params);
@@ -4286,34 +4328,40 @@ void Q3DSSceneManager::buildModelMaterial(Q3DSModelNode *model3DS)
                 updateCustomMaterial(customMaterial, sm.referencedMaterial);
 
                 if (lightsData) {
-                    // Here lights are provided in two separate buffers.
-                    if (!lightsData->nonAreaLightsConstantBuffer) {
-                        lightsData->nonAreaLightsConstantBuffer = new Qt3DRender::QBuffer(layerData->entity);
-                        lightsData->nonAreaLightsConstantBuffer->setObjectName(QLatin1String("non-area lights constant buffer"));
-                        QVector<Q3DSLightSource> nonAreaLights;
-                        for (auto light : lights)
-                            nonAreaLights.append(light->nonAreaLights);
-                        updateLightsBuffer(nonAreaLights, lightsData->nonAreaLightsConstantBuffer);
-                    }
-                    if (!lightsData->nonAreaLightsParam)
-                        lightsData->nonAreaLightsParam = new Qt3DRender::QParameter;
-                    lightsData->nonAreaLightsParam->setName(QLatin1String("cbBufferLights")); // i.e. this cannot be combined with allLightsParam
-                    lightsData->nonAreaLightsParam->setValue(QVariant::fromValue(lightsData->nonAreaLightsConstantBuffer));
-                    params.append(lightsData->nonAreaLightsParam);
+                    if (m_gfxLimits.shaderUniformBufferSupported) {
+                        // Here lights are provided in two separate buffers.
+                        if (!lightsData->nonAreaLightsConstantBuffer) {
+                            lightsData->nonAreaLightsConstantBuffer = new Qt3DRender::QBuffer(layerData->entity);
+                            lightsData->nonAreaLightsConstantBuffer->setObjectName(QLatin1String("non-area lights constant buffer"));
+                            QVector<Q3DSLightSource> nonAreaLights;
+                            for (auto light : lights)
+                                nonAreaLights.append(light->nonAreaLights);
+                            updateLightsBuffer(nonAreaLights, lightsData->nonAreaLightsConstantBuffer);
+                        }
+                        if (!lightsData->nonAreaLightsParam)
+                            lightsData->nonAreaLightsParam = new Qt3DRender::QParameter;
+                        lightsData->nonAreaLightsParam->setName(QLatin1String("cbBufferLights")); // i.e. this cannot be combined with allLightsParam
+                        lightsData->nonAreaLightsParam->setValue(QVariant::fromValue(lightsData->nonAreaLightsConstantBuffer));
+                        params.append(lightsData->nonAreaLightsParam);
 
-                    if (!lightsData->areaLightsConstantBuffer) {
-                        lightsData->areaLightsConstantBuffer = new Qt3DRender::QBuffer(layerData->entity);
-                        lightsData->areaLightsConstantBuffer->setObjectName(QLatin1String("area lights constant buffer"));
-                        QVector<Q3DSLightSource> areaLights;
-                        for (auto light : lights)
-                            areaLights.append(light->areaLights);
-                        updateLightsBuffer(areaLights, lightsData->areaLightsConstantBuffer);
+                        if (!lightsData->areaLightsConstantBuffer) {
+                            lightsData->areaLightsConstantBuffer = new Qt3DRender::QBuffer(layerData->entity);
+                            lightsData->areaLightsConstantBuffer->setObjectName(QLatin1String("area lights constant buffer"));
+                            QVector<Q3DSLightSource> areaLights;
+                            for (auto light : lights)
+                                areaLights.append(light->areaLights);
+                            updateLightsBuffer(areaLights, lightsData->areaLightsConstantBuffer);
+                        }
+                        if (!lightsData->areaLightsParam)
+                            lightsData->areaLightsParam = new Qt3DRender::QParameter;
+                        lightsData->areaLightsParam->setName(QLatin1String("cbBufferAreaLights"));
+                        lightsData->areaLightsParam->setValue(QVariant::fromValue(lightsData->areaLightsConstantBuffer));
+                        params.append(lightsData->areaLightsParam);
+                    } else {
+                        // ubo not supported, create uniforms for each light
+                        params.append(prepareSeparateLightUniforms(lightsData->nonAreaLights, QStringLiteral("lights")));
+                        params.append(prepareSeparateLightUniforms(lightsData->areaLights, QStringLiteral("areaLights")));
                     }
-                    if (!lightsData->areaLightsParam)
-                        lightsData->areaLightsParam = new Qt3DRender::QParameter;
-                    lightsData->areaLightsParam->setName(QLatin1String("cbBufferAreaLights"));
-                    lightsData->areaLightsParam->setValue(QVariant::fromValue(lightsData->areaLightsConstantBuffer));
-                    params.append(lightsData->areaLightsParam);
                 }
 
                 addShadowSsaoParams(layerData, &params);
@@ -4424,6 +4472,9 @@ void Q3DSSceneManager::prepareTextureParameters(Q3DSTextureParameters &texturePa
     textureParameters.rotations = new Qt3DRender::QParameter;
     textureParameters.rotations->setName(name + QLatin1String("_rotations"));
 
+    textureParameters.size = new Qt3DRender::QParameter;
+    textureParameters.size->setName(name + QLatin1String("_size"));
+
     textureParameters.texture = Q3DSImageManager::instance().newTextureForImageFile(
                 m_rootEntity, 0, m_profiler, "Texture for image %s", image3DS->id().constData());
 }
@@ -4487,6 +4538,8 @@ void Q3DSSceneManager::updateTextureParameters(Q3DSTextureParameters &texturePar
 
     QVector4D rotations(m[0], m[4], m[1], m[5]);
     textureParameters.rotations->setValue(rotations);
+
+    textureParameters.size->setValue(QVector2D(texture->width(), texture->height()));
 }
 
 void Q3DSSceneManager::setImageTextureFromSubPresentation(Qt3DRender::QParameter *sampler, Q3DSImage *image)
@@ -6132,6 +6185,86 @@ void Q3DSSceneManager::gatherLights(Q3DSLayerNode *layer)
             }
         }
     });
+}
+
+QVector<Qt3DRender::QParameter*> Q3DSSceneManager::prepareSeparateLightUniforms(const QVector<Q3DSLightSource> &allLights, const QString &lightsUniformName)
+{
+    QVector<Qt3DRender::QParameter*> params;
+    for (int i = 0; i < allLights.size(); ++i) {
+        if (i > Q3DS_MAX_NUM_LIGHTS_ES2)
+            break;
+
+        const QString uniformPrefix = lightsUniformName + QStringLiteral("[") + QString::number(i) + QStringLiteral("].");
+
+        // position
+        allLights[i].positionParam->setName(uniformPrefix + QStringLiteral("position"));
+        params.append(allLights[i].positionParam);
+
+        // direction
+        allLights[i].directionParam->setName(uniformPrefix + QStringLiteral("direction"));
+        params.append(allLights[i].directionParam);
+
+        // up
+        allLights[i].upParam->setName(uniformPrefix + QStringLiteral("up"));
+        params.append(allLights[i].upParam);
+
+        // right
+        allLights[i].rightParam->setName(uniformPrefix + QStringLiteral("right"));
+        params.append(allLights[i].rightParam);
+
+        // diffuse
+        allLights[i].diffuseParam->setName(uniformPrefix + QStringLiteral("diffuse"));
+        params.append(allLights[i].diffuseParam);
+
+        // ambient
+        allLights[i].ambientParam->setName(uniformPrefix + QStringLiteral("ambient"));
+        params.append(allLights[i].ambientParam);
+
+        // specular
+        allLights[i].specularParam->setName(uniformPrefix + QStringLiteral("specular"));
+        params.append(allLights[i].specularParam);
+
+        // spotExponent (not used)
+        //allLights[i].spotExponentParam->setName(uniformPrefix + QStringLiteral("spotExponent"));
+        //params.append(allLights[i].spotExponentParam);
+
+        // spotCutoff (not used)
+        //allLights[i].spotCutoffParam->setName(uniformPrefix + QStringLiteral("spotCutoff"));
+        //params.append(allLights[i].spotCutoffParam);
+
+        // constantAttenuation
+        allLights[i].constantAttenuationParam->setName(uniformPrefix + QStringLiteral("constantAttenuation"));
+        params.append(allLights[i].constantAttenuationParam);
+
+        // linearAttenuation
+        allLights[i].linearAttenuationParam->setName(uniformPrefix + QStringLiteral("linearAttenuation"));
+        params.append(allLights[i].linearAttenuationParam);
+
+        // quadraticAttenuation
+        allLights[i].quadraticAttenuationParam->setName(uniformPrefix + QStringLiteral("quadraticAttenuation"));
+        params.append(allLights[i].quadraticAttenuationParam);
+
+        // width
+        allLights[i].widthParam->setName(uniformPrefix + QStringLiteral("width"));
+        params.append(allLights[i].widthParam);
+
+        // height
+        allLights[i].heightParam->setName(uniformPrefix + QStringLiteral("height"));
+        params.append(allLights[i].heightParam);
+
+        // shadowControls
+        allLights[i].shadowControlsParam->setName(uniformPrefix + QStringLiteral("shadowControls"));
+        params.append(allLights[i].shadowControlsParam);
+
+        // shadowView
+        allLights[i].shadowViewParam->setName(uniformPrefix + QStringLiteral("shadowView"));
+        params.append(allLights[i].shadowViewParam);
+
+        // shadowIdx
+        allLights[i].shadowIdxParam->setName(uniformPrefix + QStringLiteral("shadowIdx"));
+        params.append(allLights[i].shadowIdxParam);
+    }
+    return params;
 }
 
 void Q3DSSceneManager::updateLightsBuffer(const QVector<Q3DSLightSource> &lights, Qt3DRender::QBuffer *uniformBuffer)

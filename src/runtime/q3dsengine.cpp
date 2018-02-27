@@ -203,6 +203,22 @@ static void initGraphicsLimits(QOpenGLContext *ctx)
         qDebug("  version: %s", versionStr);
     }
 
+    auto extensions = ctx->extensions();
+    if (!extensions.isEmpty()) {
+        gfxLimits.extensions = extensions;
+        qDebug() << "  extensions: " << extensions;
+
+        if (ctx->isOpenGLES() && ctx->format().majorVersion() == 2) {
+            gfxLimits.shaderTextureLodSupported = false;
+            gfxLimits.shaderUniformBufferSupported = false;
+            gfxLimits.packedDepthStencilBufferSupported = false;
+        }
+        if (extensions.contains("GL_EXT_shader_texture_lod"))
+            gfxLimits.shaderTextureLodSupported = true;
+        if (extensions.contains("GL_EXT_packed_depth_stencil"))
+            gfxLimits.packedDepthStencilBufferSupported = true;
+    }
+
     gfxLimits.format = ctx->format();
 
     ctx->doneCurrent();
@@ -265,6 +281,14 @@ static QSurfaceFormat findIdealGLESVersion()
         qDebug("Requesting OpenGL ES 3.0 context succeeded");
         initGraphicsLimits(&ctx);
         return ctx.format();
+    }
+
+    fmt.setVersion(2, 0);
+    ctx.setFormat(fmt);
+    if (ctx.create()) {
+        qDebug("Requesting OpenGL ES 2.0 context succeeded");
+        initGraphicsLimits(&ctx);
+        return fmt;
     }
 
     qDebug("Impending doom");

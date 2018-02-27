@@ -1,4 +1,4 @@
-<RCC>
+ <RCC>
     <qresource prefix="/q3ds">
         <file>shaders/compositor_core.vert</file>
         <file>shaders/compositor_core.frag</file>
@@ -12,9 +12,7 @@
         <file>shaders/text_core.frag</file>
         <file>shaders/text.vert</file>
         <file>shaders/text.frag</file>
-
         <file alias="res/DataModelMetadata/en-us/MetaData.xml">../../res/DataModelMetadata/en-us/MetaData.xml</file>
-
         <file alias="res/effectlib/abbeNumberIOR.glsllib">../../res/effectlib/abbeNumberIOR.glsllib</file>
         <file alias="res/effectlib/anisotropyConversion.glsllib">../../res/effectlib/anisotropyConversion.glsllib</file>
         <file alias="res/effectlib/average.glsllib">../../res/effectlib/average.glsllib</file>
@@ -102,13 +100,22 @@
         <file alias="res/effectlib/viewProperties.glsllib">../../res/effectlib/viewProperties.glsllib</file>
         <file alias="res/effectlib/weightedLayer.glsllib">../../res/effectlib/weightedLayer.glsllib</file>
         <file alias="res/effectlib/wireframeCM.glsllib">../../res/effectlib/wireframeCM.glsllib</file>
-
         <file alias="res/Font/TitilliumWeb-Regular.ttf">../../res/Font/TitilliumWeb-Regular.ttf</file>
-
         <file alias="res/primitives/Cone.mesh">../../res/primitives/Cone.mesh</file>
         <file alias="res/primitives/Cube.mesh">../../res/primitives/Cube.mesh</file>
         <file alias="res/primitives/Cylinder.mesh">../../res/primitives/Cylinder.mesh</file>
         <file alias="res/primitives/Rectangle.mesh">../../res/primitives/Rectangle.mesh</file>
         <file alias="res/primitives/Sphere.mesh">../../res/primitives/Sphere.mesh</file>
+        <file alias="res/effectlib/gles2/defaultMaterialBumpNoLod.glsllib">../../res/effectlib/gles2/defaultMaterialBumpNoLod.glsllib</file>
+        <file alias="res/effectlib/gles2/evalEnvironmentMap.glsllib">../../res/effectlib/gles2/evalEnvironmentMap.glsllib</file>
+        <file alias="res/effectlib/gles2/funcareaLightVars.glsllib">../../res/effectlib/gles2/funcareaLightVars.glsllib</file>
+        <file alias="res/effectlib/gles2/funcsampleLightVars.glsllib">../../res/effectlib/gles2/funcsampleLightVars.glsllib</file>
+        <file alias="res/effectlib/gles2/microfacetBSDF.glsllib">../../res/effectlib/gles2/microfacetBSDF.glsllib</file>
+        <file alias="res/effectlib/gles2/monoChannel.glsllib">../../res/effectlib/gles2/monoChannel.glsllib</file>
+        <file alias="res/effectlib/gles2/refraction.glsllib">../../res/effectlib/gles2/refraction.glsllib</file>
+        <file alias="res/effectlib/gles2/sampleProbe.glsllib">../../res/effectlib/gles2/sampleProbe.glsllib</file>
+        <file alias="res/effectlib/gles2/shadowMapping.glsllib">../../res/effectlib/gles2/shadowMapping.glsllib</file>
+        <file alias="res/effectlib/gles2/SSAOCustomMaterial.glsllib">../../res/effectlib/gles2/SSAOCustomMaterial.glsllib</file>
+        <file alias="res/effectlib/gles2/tangentSpaceNormalTexture.glsllib">../../res/effectlib/gles2/tangentSpaceNormalTexture.glsllib</file>
     </qresource>
 </RCC>
