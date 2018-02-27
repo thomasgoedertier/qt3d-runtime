@@ -464,7 +464,7 @@ bool operator!=(const Q3DSLayerAttached::SizeManagedTexture &a, const Q3DSLayerA
     return a.texture != b.texture;
 }
 
-void Q3DSSceneManager::updateSizes(const QSize &size, qreal dpr)
+void Q3DSSceneManager::updateSizes(const QSize &size, qreal dpr, bool forceSynchronous)
 {
     if (!m_scene)
         return;
@@ -486,17 +486,12 @@ void Q3DSSceneManager::updateSizes(const QSize &size, qreal dpr)
     Q3DSUipPresentation::forAllLayers(m_scene, [=](Q3DSLayerNode *layer3DS) {
         Q3DSLayerAttached *data = static_cast<Q3DSLayerAttached *>(layer3DS->attached());
         if (data) {
+            data->parentSize = m_outputPixelSize;
+            data->frameDirty |= Q3DSGraphObjectAttached::LayerDirty;
             // do it right away if there was no size set yet
-            if (data->parentSize.isEmpty()) {
-                updateSizesForLayer(layer3DS, m_outputPixelSize);
-            } else {
-                // Defer otherwise, like it is done for other property changes.
-                // This is not merely an optimization, it is required to defer
-                // everything that affects the logic for - for example -
-                // progressive AA to prepareNextFrame().
-                data->parentSize = m_outputPixelSize;
-                data->frameDirty |= Q3DSGraphObjectAttached::LayerDirty;
-            }
+            if (data->parentSize.isEmpty() || forceSynchronous)
+                updateSubTree(m_scene);
+            // Defer otherwise, like it is done for other property changes.
         }
     });
 }

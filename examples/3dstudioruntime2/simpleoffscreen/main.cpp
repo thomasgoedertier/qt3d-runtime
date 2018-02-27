@@ -105,6 +105,9 @@ int main(int argc, char *argv[])
 
         qDebug("Rendered and saved frame %d to %s", frame, qPrintable(fn));
 
+        // Keep events delivered on this (main) thread.
+        QCoreApplication::processEvents();
+
         // ### hack until QT3DS-1041 is in place
         QThread::msleep(10);
     }

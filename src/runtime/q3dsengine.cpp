@@ -1003,12 +1003,12 @@ bool Q3DSEngine::start()
     return false;
 }
 
-void Q3DSEngine::resize(const QSize &size, qreal dpr)
+void Q3DSEngine::resize(const QSize &size, qreal dpr, bool forceSynchronous)
 {
     m_size = size;
     m_dpr = dpr;
     if (!m_uipPresentations.isEmpty())
-        m_uipPresentations[0].sceneManager->updateSizes(m_size, m_dpr);
+        m_uipPresentations[0].sceneManager->updateSizes(m_size, m_dpr, forceSynchronous);
 }
 
 void Q3DSEngine::setAutoStart(bool autoStart)

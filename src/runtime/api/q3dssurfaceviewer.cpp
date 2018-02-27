@@ -248,7 +248,7 @@ void Q3DSSurfaceViewer::update()
     }
     if (d->actualSize != sz) {
         d->actualSize = sz;
-        d->engine->resize(sz, dpr);
+        d->engine->resize(sz, dpr, true);
         d->sendResizeToQt3D(sz);
     }
 

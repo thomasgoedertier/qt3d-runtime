@@ -550,7 +550,7 @@ public:
 
     Scene buildScene(Q3DSUipPresentation *presentation, const SceneBuilderParams &params);
     void finalizeMainScene(const QVector<Q3DSSubPresentation> &subPresentations);
-    void updateSizes(const QSize &size, qreal dpr);
+    void updateSizes(const QSize &size, qreal dpr, bool forceSynchronous = false);
 
     void prepareEngineReset();
     static void prepareEngineResetGlobal();

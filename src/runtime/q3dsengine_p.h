@@ -119,7 +119,7 @@ public:
 
     bool start();
 
-    void resize(const QSize &size, qreal dpr = qreal(1.0));
+    void resize(const QSize &size, qreal dpr = qreal(1.0), bool forceSynchronous = false);
     void resize(int w, int h, qreal dpr) { resize(QSize(w, h), dpr); }
     void setAutoStart(bool autoStart);
 
