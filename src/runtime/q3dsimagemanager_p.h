@@ -81,7 +81,8 @@ public:
 private:
     QVector<Qt3DRender::QTextureImageDataPtr> load(const QUrl &source, ImageFlags flags, bool *wasCached);
     int blockSizeForFormat(QOpenGLTexture::TextureFormat format);
-    QByteArray generateIblMip(int w, int h, QOpenGLTexture::TextureFormat format,
+    QByteArray generateIblMip(int w, int h, int prevW, int prevH,
+                              QOpenGLTexture::TextureFormat format,
                               int blockSize, const QByteArray &prevLevelData);
 
     struct TextureInfo {

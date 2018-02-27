@@ -189,6 +189,8 @@ QVector<Qt3DRender::QTextureImageDataPtr> Q3DSImageManager::load(const QUrl &sou
             const int blockSize = blockSizeForFormat(data->format());
             QByteArray prevLevelData = data->data();
             for (int i = 1; i <= maxMipLevel; ++i) {
+                int prevW = w;
+                int prevH = h;
                 w >>= 1;
                 h >>= 1;
                 w = qMax(1, w);
@@ -206,7 +208,7 @@ QVector<Qt3DRender::QTextureImageDataPtr> Q3DSImageManager::load(const QUrl &sou
                 mipImageData->setPixelFormat(data->pixelFormat());
                 mipImageData->setPixelType(data->pixelType());
 
-                QByteArray mipData = generateIblMip(w, h, mipImageData->format(), blockSize, prevLevelData);
+                QByteArray mipData = generateIblMip(w, h, prevW, prevH, mipImageData->format(), blockSize, prevLevelData);
                 mipImageData->setData(mipData, blockSize, false);
                 result << mipImageData;
                 prevLevelData = mipData;
@@ -537,12 +539,10 @@ static inline void encodeToPixel(float *inPtr, void *outPtr, int byteOfs,
     }
 }
 
-QByteArray Q3DSImageManager::generateIblMip(int w, int h, QOpenGLTexture::TextureFormat format,
+QByteArray Q3DSImageManager::generateIblMip(int w, int h, int prevW, int prevH,
+                                            QOpenGLTexture::TextureFormat format,
                                             int blockSize, const QByteArray &prevLevelData)
 {
-    const int prevW = w << 1;
-    const int prevH = h << 1;
-
     QByteArray data;
     data.resize(w * h * blockSize);
     char *p = data.data();
