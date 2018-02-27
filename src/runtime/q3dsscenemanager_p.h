@@ -561,7 +561,6 @@ public:
     void setComponentCurrentSlide(Q3DSComponentNode *component, Q3DSSlide *newSlide);
 
     void prepareAnimators();
-    Q3DSAnimationManager *animationManager() { return m_animationManager; }
 
     enum SetNodePropFlag {
         NodePropUpdateGlobalsRecursively = 0x01,
@@ -723,7 +722,6 @@ private:
     Q3DSDefaultMaterialGenerator *m_matGen;
     Q3DSCustomMaterialGenerator *m_customMaterialGen;
     Q3DSTextMaterialGenerator *m_textMatGen;
-    Q3DSAnimationManager *m_animationManager;
     Q3DSTextRenderer *m_textRenderer;
     QSet<Q3DSLayerNode *> m_layersWithDirtyLights;
     QSet<Q3DSDefaultMaterial *> m_pendingDefMatRebuild;

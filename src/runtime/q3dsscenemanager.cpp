@@ -429,10 +429,9 @@ Q3DSSceneManager::Q3DSSceneManager(const Q3DSGraphicsLimits &limits)
       m_matGen(new Q3DSDefaultMaterialGenerator),
       m_customMaterialGen(new Q3DSCustomMaterialGenerator),
       m_textMatGen(new Q3DSTextMaterialGenerator),
-      m_animationManager(new Q3DSAnimationManager),
       m_textRenderer(new Q3DSTextRenderer),
       m_profiler(new Q3DSProfiler(limits)),
-      m_slidePlayer(new Q3DSSlidePlayer(m_animationManager, this))
+      m_slidePlayer(new Q3DSSlidePlayer(this))
 {
     const QString fontDir = Q3DSUtils::resourcePrefix() + QLatin1String("res/Font");
     m_textRenderer->registerFonts({ fontDir });
@@ -447,7 +446,6 @@ Q3DSSceneManager::~Q3DSSceneManager()
 #endif
     delete m_slidePlayer;
     delete m_textRenderer;
-    delete m_animationManager;
     delete m_textMatGen;
     delete m_matGen;
     delete m_frameUpdater;
@@ -545,9 +543,9 @@ void Q3DSSceneManager::prepareEngineReset()
     delete m_frameUpdater;
     m_frameUpdater = nullptr;
 
+    m_slidePlayer->animationManager()->clearPendingChanges();
     delete m_slidePlayer;
     m_slidePlayer = nullptr;
-    m_animationManager->clearPendingChanges();
 
 #if QT_CONFIG(q3ds_profileui)
     if (m_profileUi)
@@ -6208,7 +6206,7 @@ void Q3DSFrameUpdater::frameAction(float dt)
     // Record new frame event.
     m_sceneManager->profiler()->reportNewFrame(dt * 1000.0f);
     // Set and notify the value changes queued by animations.
-    m_sceneManager->animationManager()->applyChanges();
+    m_sceneManager->slidePlayer()->animationManager()->applyChanges();
     // Recursively check dirty flags and update inherited values, execute
     // pending visibility changes, update light cbuffers, etc.
     m_sceneManager->prepareNextFrame();

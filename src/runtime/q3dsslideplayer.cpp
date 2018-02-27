@@ -207,19 +207,19 @@ static void updatePlaybackRate(Q3DSSlide *slide, float rate)
     updateAnimators(data->animators);
 }
 
-Q3DSSlidePlayer::Q3DSSlidePlayer(Q3DSAnimationManager *animationManager,
-                                 Q3DSSceneManager *sceneManager,
+Q3DSSlidePlayer::Q3DSSlidePlayer(Q3DSSceneManager *sceneManager,
                                  QObject *parent)
     : QObject(parent)
     , m_sceneManager(sceneManager)
-    , m_animationManager(animationManager)
+    , m_animationManager(new Q3DSAnimationManager)
 {
-    Q_ASSERT(animationManager);
 }
 
 Q3DSSlidePlayer::~Q3DSSlidePlayer()
 {
     reset();
+    if (!m_component)
+        delete m_animationManager;
 }
 
 Q3DSSlideDeck *Q3DSSlidePlayer::slideDeck() const

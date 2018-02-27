@@ -89,12 +89,13 @@ public:
     };
     Q_ENUM(PlayerType)
 
-    Q3DSSlidePlayer(Q3DSAnimationManager *animationManager,
-                    Q3DSSceneManager *sceneManager,
+    Q3DSSlidePlayer(Q3DSSceneManager *sceneManager,
                     QObject *parent = nullptr);
     ~Q3DSSlidePlayer();
 
     Q3DSSlideDeck *slideDeck() const;
+    Q3DSAnimationManager *animationManager() const { return m_animationManager; }
+
     float duration() const;
     float position() const;
     PlayerState state() const { return m_data.state; }
