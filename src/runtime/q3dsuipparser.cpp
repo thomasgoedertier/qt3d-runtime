@@ -656,13 +656,11 @@ Q3DSGraphObject::DataInputControlledProperties Q3DSUipParser::getDataInputContro
 
 void Q3DSUipParser::resolveReferences(Q3DSGraphObject *obj)
 {
-    if (!obj)
-        return;
-
-    obj->resolveReferences(*m_presentation, *this);
-
-    for (int i = 0, ie = obj->childCount(); i != ie; ++i)
-        resolveReferences(obj->childAtIndex(i));
+    while (obj) {
+        obj->resolveReferences(*m_presentation, *this);
+        resolveReferences(obj->firstChild());
+        obj = obj->nextSibling();
+    }
 }
 
 QT_END_NAMESPACE
