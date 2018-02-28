@@ -38,6 +38,9 @@
 #include <QSpinBox>
 #include <QCheckBox>
 #include <QAbstractListModel>
+#include <QMainWindow>
+#include <QApplication>
+#include <QStatusBar>
 #include <Qt3DAnimation/qclipanimator.h>
 #include <Qt3DAnimation/qabstractanimationclip.h>
 #include <Qt3DCore/qnode.h>
@@ -216,7 +219,7 @@ void SlideExplorerWidget::handleCurrentSlideChanged(Q3DSSlide *slide)
         m_slideSeekSlider->setValue(startTime);
         m_slideSeekSlider->setMaximum(endTime);
         m_slideSeekSlider->setTickPosition(QSlider::TicksBelow);
-        m_slideSeekSlider->setTickInterval(1000);
+        m_slideSeekSlider->setTickInterval(100);
    }
 }
 
@@ -252,11 +255,22 @@ void SlideExplorerWidget::setRate(int rate)
     m_slidePlayer->setPlaybackRate(float(rate));
 }
 
+static QMainWindow* getMainWindow()
+{
+    for (const auto widget : QApplication::topLevelWidgets())
+        if (QMainWindow *mainWindow = qobject_cast<QMainWindow*>(widget))
+            return mainWindow;
+    return nullptr;
+}
+
 void SlideExplorerWidget::seekInCurrentSlide(int value)
 {
     const float duration = m_slidePlayer->duration();
     const float normalized = value / duration;
     m_slidePlayer->seek(normalized);
+    const float seconds = value / 1000.0f;
+    getMainWindow()->statusBar()->showMessage(
+        QString::number(seconds) + QStringLiteral(" seconds"));
 }
 
 void SlideExplorerWidget::setPlayerMode(int value)
@@ -295,7 +309,7 @@ void SlideExplorerWidget::init()
     connect(m_rateWidget, QOverload<int>::of(&QSpinBox::valueChanged), this, &SlideExplorerWidget::setRate);
     mainLayout->addWidget(m_rateWidget);
     m_slideSeekSlider = new QSlider(Qt::Horizontal, this);
-    connect(m_slideSeekSlider, &QSlider::sliderMoved, this, &SlideExplorerWidget::seekInCurrentSlide);
+    connect(m_slideSeekSlider, &QSlider::valueChanged, this, &SlideExplorerWidget::seekInCurrentSlide);
     mainLayout->addWidget(m_slideSeekSlider);
     m_playerModeCheckBox = new QCheckBox("Viewer mode", this);
     connect(m_playerModeCheckBox, &QCheckBox::stateChanged, this, &SlideExplorerWidget::setPlayerMode);
