@@ -335,7 +335,9 @@ void tst_Q3DSUipParser::masterSlide()
     QCOMPARE(master->type(), Q3DSGraphObject::Slide);
     QCOMPARE(master->playMode(), Q3DSSlide::PingPong);
     QCOMPARE(master->initialPlayState(), Q3DSSlide::Play);
-    QCOMPARE(master->playThroughHasExplicitValue(), true);
+    // This makes no sense in practice, as these shouldn't be set on the master slide,
+    // or when the mode is anything but PlayThroughTo, but it still verifies that the values were picked up...
+    QCOMPARE(master->playThrough(), Q3DSSlide::Value);
     QCOMPARE(master->playThroughValue(), 42);
 
     QCOMPARE(master->childCount(), 4);
@@ -349,8 +351,8 @@ void tst_Q3DSUipParser::masterSlide()
             // <State id="Scene-Slide1" name="Slide1" >
             QCOMPARE(slide->playMode(), Q3DSSlide::StopAtEnd);
             QCOMPARE(slide->initialPlayState(), Q3DSSlide::Play);
-            QCOMPARE(slide->playThroughHasExplicitValue(), false);
             QCOMPARE(slide->playThrough(), Q3DSSlide::Next);
+            QCOMPARE(slide->playThroughValue(), QVariant());
             break;
         case 1:
             QVERIFY(slide->previousSibling() == master->childAtIndex(0));
@@ -358,16 +360,16 @@ void tst_Q3DSUipParser::masterSlide()
             // <State id="Scene-Slide-1" name="Slide-1" playthroughto="Previous" >
             QCOMPARE(slide->playMode(), Q3DSSlide::StopAtEnd);
             QCOMPARE(slide->initialPlayState(), Q3DSSlide::Play);
-            QCOMPARE(slide->playThroughHasExplicitValue(), false);
             QCOMPARE(slide->playThrough(), Q3DSSlide::Previous);
+            QCOMPARE(slide->playThroughValue(), QVariant());
             break;
         case 2:
             QVERIFY(slide->previousSibling() == master->childAtIndex(1));
             // <State id="Scene-Slide0" name="Slide0" initialplaystate="Play" playmode="Stop at end" playthroughto="Previous" >
             QCOMPARE(slide->playMode(), Q3DSSlide::StopAtEnd);
             QCOMPARE(slide->initialPlayState(), Q3DSSlide::Play);
-            QCOMPARE(slide->playThroughHasExplicitValue(), false);
             QCOMPARE(slide->playThrough(), Q3DSSlide::Previous);
+            QCOMPARE(slide->playThroughValue(), QVariant());
             break;
         default:
             break;

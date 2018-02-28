@@ -1171,11 +1171,12 @@ void Q3DSSlide::setProps(const V &attrs, PropSetFlags flags)
 
     StringOrInt pt;
     if (parseProperty(attrs, flags, typeName, QStringLiteral("playthroughto"), &pt)) {
-        if (pt.isInt) {
-            m_playThroughHasExplicitValue = true;
-            m_playThroughValue = pt.n;
+        const bool isRef = (!pt.isInt && pt.s.startsWith(QLatin1Char('#')));
+        const bool hasExplicitValue = (pt.isInt || isRef);
+        if (hasExplicitValue) {
+            m_playThrough = Value;
+            m_playThroughValue = isRef ? QVariant::fromValue(pt.s) : QVariant::fromValue(pt.n);
         } else {
-            m_playThroughHasExplicitValue = false;
             Q3DSEnumMap::enumFromStr(QStringRef(&pt.s), &m_playThrough);
         }
     }
@@ -1374,14 +1375,13 @@ Q3DSPropertyChange Q3DSSlide::setInitialPlayState(InitialPlayState v)
 
 Q3DSPropertyChange Q3DSSlide::setPlayThrough(PlayThrough v)
 {
-    m_playThroughHasExplicitValue = false;
     PROP_SETTER(m_playThrough, v, "playthroughto");
     return result;
 }
 
-Q3DSPropertyChange Q3DSSlide::setPlayThroughValue(int v)
+Q3DSPropertyChange Q3DSSlide::setPlayThroughValue(const QVariant &v)
 {
-    m_playThroughHasExplicitValue = true;
+    m_playThrough = Value;
     PROP_SETTER(m_playThroughValue, v, "playthroughto");
     return result;
 }

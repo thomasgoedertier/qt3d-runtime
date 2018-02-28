@@ -552,8 +552,9 @@ public:
     };
 
     enum PlayThrough {
-        Next = 0,
-        Previous
+        Next,
+        Previous,
+        Value
     };
 
     Q3DSSlide();
@@ -619,14 +620,13 @@ public:
     // Properties
     PlayMode playMode() const { return m_playMode; }
     InitialPlayState initialPlayState() const { return m_initialPlayState; }
-    bool playThroughHasExplicitValue() const { return m_playThroughHasExplicitValue; }
     PlayThrough playThrough() const { return m_playThrough; }
-    int playThroughValue() const { return m_playThroughValue; }
+    QVariant playThroughValue() const { return m_playThroughValue; }
 
     Q3DSPropertyChange setPlayMode(PlayMode v);
     Q3DSPropertyChange setInitialPlayState(InitialPlayState v);
     Q3DSPropertyChange setPlayThrough(PlayThrough v);
-    Q3DSPropertyChange setPlayThroughValue(int v);
+    Q3DSPropertyChange setPlayThroughValue(const QVariant &v);
 
 private:
     Q_DISABLE_COPY(Q3DSSlide)
@@ -637,9 +637,8 @@ private:
 
     PlayMode m_playMode = StopAtEnd;
     InitialPlayState m_initialPlayState = Play;
-    bool m_playThroughHasExplicitValue = false;
     PlayThrough m_playThrough = Next;
-    int m_playThroughValue = 0;
+    QVariant m_playThroughValue;
     QSet<Q3DSGraphObject *> m_objects;
     QHash<Q3DSGraphObject *, Q3DSPropertyChangeList *> m_propChanges;
     QVector<Q3DSAnimationTrack> m_anims;

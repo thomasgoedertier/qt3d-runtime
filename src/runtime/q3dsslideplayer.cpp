@@ -713,8 +713,18 @@ void Q3DSSlidePlayer::onSlideFinished(void *slide)
     {
         if (currentSlide->playThrough() == Q3DSSlide::Next) {
             m_data.slideDeck->nextSlide();
-        } else {
+        } else if (currentSlide->playThrough() == Q3DSSlide::Previous) {
             m_data.slideDeck->previousSlide();
+        } else if (currentSlide->playThrough() == Q3DSSlide::Value) {
+            const auto value = currentSlide->playThroughValue();
+            if (value.type() == QVariant::Int) { // Assume this is a fixed index value
+                m_data.slideDeck->setCurrentIndex(value.toInt());
+            } else if (value.type() == QVariant::String) { // Reference to a slide?
+                const QString &slideId = value.toString().mid(1);
+                const int index = m_data.slideDeck->indexOfSlide(slideId.toLocal8Bit());
+                if (!m_data.slideDeck->setCurrentIndex(index))
+                    qCWarning(lcSlidePlayer, "Unable to make slide \"%s\" current", qPrintable(slideId));
+            }
         }
         // Since we're jumping to a new slide, make sure we take the initial play-state into account.
         state = getInitialSlideState(m_data.slideDeck->currentSlide());

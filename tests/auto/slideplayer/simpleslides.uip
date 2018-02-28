@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <UIP version="3" >
 	<Project >
-		<ProjectSettings author="" company="" presentationWidth="800" presentationHeight="480" maintainAspect="F" >
+		<ProjectSettings author="" company="" presentationWidth="800" presentationHeight="480" maintainAspect="False" >
 			<CustomColors count="16" >#ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff</CustomColors>
 		</ProjectSettings>
 		<Graph >
@@ -15,8 +15,14 @@
 					<Model id="Sphere_001" >
 						<Material id="Default_003" name="Default" />
 					</Model>
+					<Model id="Sphere_002" >
+						<Material id="Default_006" name="Default" />
+					</Model>
 					<Model id="Cube" >
 						<Material id="Default_001" name="Default" />
+					</Model>
+					<Model id="Cube_001" >
+						<Material id="Default_007" name="Default" />
 					</Model>
 					<Model id="Cylinder" >
 						<Material id="Default_002" name="Default" />
@@ -27,6 +33,7 @@
 					<Model id="Cylinder_002" >
 						<Material id="Default_005" name="Default" />
 					</Model>
+					<Text id="Text" />
 				</Layer>
 			</Scene>
 		</Graph>
@@ -100,6 +107,31 @@
 						<AnimationTrack property="position.z" type="EaseInOut" >0 0 100 100 1 0 100 100</AnimationTrack>
 					</Add>
 					<Add ref="#Default_005" />
+				</State>
+				<State id="Scene-PlayToFinalSlide" name="PlayToFinalSlide" playmode="Play Through To..." playthroughto="#Scene-FinalSlide" >
+					<Set ref="#Layer" endtime="1000" />
+					<Set ref="#Camera" endtime="1000" />
+					<Set ref="#Light" endtime="1000" />
+					<Add ref="#Sphere_002" name="Sphere" endtime="1000" position="-212.176 -17.3205 0" sourcepath="#Sphere" >
+						<AnimationTrack property="position.x" type="EaseInOut" >0 -200 100 100 1.029 200 100 100</AnimationTrack>
+						<AnimationTrack property="position.y" type="EaseInOut" >0 0 100 100 1.029 0 100 100</AnimationTrack>
+						<AnimationTrack property="position.z" type="EaseInOut" >0 0 100 100 1.029 0 100 100</AnimationTrack>
+					</Add>
+					<Add ref="#Default_006" />
+				</State>
+				<State id="Scene-Dummy" name="Dummy" initialplaystate="Pause" >
+					<Add ref="#Text" name="Text" font="TitilliumWeb-Regular" scale="1 1 1" size="48" textstring="Dummy" />
+				</State>
+				<State id="Scene-FinalSlide" name="FinalSlide" playthroughto="Previous" >
+					<Set ref="#Layer" endtime="1000" />
+					<Set ref="#Camera" endtime="1000" />
+					<Set ref="#Light" endtime="1000" />
+					<Add ref="#Cube_001" name="Cube" endtime="1000" sourcepath="#Cube" >
+						<AnimationTrack property="position.x" type="EaseInOut" >0 -200 100 100 1 200 100 100</AnimationTrack>
+						<AnimationTrack property="position.y" type="EaseInOut" >0 0 100 100 1 0 100 100</AnimationTrack>
+						<AnimationTrack property="position.z" type="EaseInOut" >0 0 100 100 1 0 100 100</AnimationTrack>
+					</Add>
+					<Add ref="#Default_007" />
 				</State>
 			</State>
 		</Logic>

@@ -221,6 +221,21 @@ public:
             m_player->reload();
     }
 
+    Q3DSSlide *setCurrentIndex(int index)
+    {
+        Q_ASSERT(m_masterSlide);
+        const int count = m_masterSlide->childCount();
+        if ((index < 0) || (index > count - 1)) {
+            qWarning("Invalid index!");
+            return nullptr;
+        }
+
+        if (index != m_index)
+            m_index = index;
+
+        return static_cast<Q3DSSlide *>(m_masterSlide->childAtIndex(m_index));
+    }
+
     Q3DSSlide *nextSlide()
     {
         if (!m_masterSlide)
@@ -230,7 +245,7 @@ public:
             return nullptr;
 
         if (m_index < slideCount() - 1) {
-            return (m_lastSlide = static_cast<Q3DSSlide *>(m_masterSlide->childAtIndex(++m_index)));
+            return static_cast<Q3DSSlide *>(m_masterSlide->childAtIndex(++m_index));
         } else {
             return nullptr;
         }
@@ -245,7 +260,7 @@ public:
             return nullptr;
 
         if ((m_index > 0) && (m_index < slideCount())) {
-            return (m_lastSlide = static_cast<Q3DSSlide *>(m_masterSlide->childAtIndex(--m_index)));
+            return static_cast<Q3DSSlide *>(m_masterSlide->childAtIndex(--m_index));
         } else {
             return nullptr;
         }
@@ -260,6 +275,25 @@ public:
         bool found = false;
         while (ns) {
             if (ns == slide) {
+                found = true;
+                break;
+            }
+            ns = static_cast<Q3DSSlide *>(ns->nextSibling());
+            ++index;
+        }
+
+        return found ? index : -1;
+    }
+
+    int indexOfSlide(const QByteArray &slideId)
+    {
+        Q_ASSERT(m_masterSlide);
+
+        Q3DSSlide *ns = static_cast<Q3DSSlide *>(m_masterSlide->firstChild());
+        int index = 0;
+        bool found = false;
+        while (ns) {
+            if (ns->id() == slideId) {
                 found = true;
                 break;
             }
@@ -285,7 +319,6 @@ private:
     friend class Q3DSSlidePlayer;
     Q3DSSlidePlayer *m_player = nullptr;
     Q3DSSlide *m_masterSlide = nullptr;
-    Q3DSSlide *m_lastSlide = nullptr;
     int m_index = -1;
 };
 
