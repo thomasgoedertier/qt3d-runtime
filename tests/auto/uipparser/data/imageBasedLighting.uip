@@ -5,7 +5,7 @@
 			<CustomColors count="16" >#ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff</CustomColors>
 		</ProjectSettings>
 		<Classes >
-			<CustomMaterial id="copper" name="copper" sourcepath="materials/copper.material" />
+			<CustomMaterial id="copper" name="copper" sourcepath="copper.material" />
 		</Classes>
 		<Graph >
 			<Scene id="Scene" >

@@ -1,7 +1,5 @@
 <!DOCTYPE RCC><RCC version="1.0">
 <qresource>
     <file>data</file>
-    <file>data/maps</file>
-    <file>data/materials</file>
 </qresource>
 </RCC>
