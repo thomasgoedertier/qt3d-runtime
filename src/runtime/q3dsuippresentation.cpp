@@ -2049,10 +2049,23 @@ void Q3DSCustomMaterialInstance::setProperties(const QXmlStreamAttributes &attrs
         m_attrs.append(Q3DSPropertyChange(attr.name().toString(), attr.value().toString()));
 }
 
+static void updateCustomProperties(const QMap<QString, Q3DSMaterial::PropertyElement> &propMeta,
+                                   QVariantMap *propTab,
+                                   const Q3DSPropertyChangeList &changeList)
+{
+    for (const Q3DSPropertyChange &change : changeList) {
+        auto it = propTab->find(change.nameStr());
+        if (it != propTab->end())
+            *it = Q3DS::convertToVariant(change.valueStr(), propMeta.value(change.nameStr()));
+    }
+}
+
 void Q3DSCustomMaterialInstance::applyPropertyChanges(const Q3DSPropertyChangeList &changeList)
 {
     Q3DSGraphObject::applyPropertyChanges(changeList);
     setProps(changeList, 0);
+
+    updateCustomProperties(m_material.properties(), &m_materialPropertyVals, changeList);
 }
 
 static void fillCustomProperties(const QMap<QString, Q3DSMaterial::PropertyElement> &propMeta,
@@ -2183,6 +2196,8 @@ void Q3DSEffectInstance::applyPropertyChanges(const Q3DSPropertyChangeList &chan
 {
     Q3DSGraphObject::applyPropertyChanges(changeList);
     setProps(changeList, 0);
+
+    updateCustomProperties(m_effect.properties(), &m_effectPropertyVals, changeList);
 }
 
 void Q3DSEffectInstance::resolveReferences(Q3DSUipPresentation &pres, Q3DSUipParser &parser)
