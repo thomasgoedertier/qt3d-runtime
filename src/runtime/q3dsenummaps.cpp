@@ -367,4 +367,50 @@ Q3DSEnumNameMap *Q3DSEnumParseMap<Q3DSTextNode::VerticalAlignment>::get()
     return g_TextNodevertalign;
 }
 
+static Q3DSEnumNameMap g_actionEventMap[] = {
+    { Q3DSAction::OnPressureDown, "onPressureDown" },
+    { Q3DSAction::OnPressureUp, "onPressureUp" },
+    { Q3DSAction::OnTap, "onTap" },
+    { 0, nullptr }
+};
+
+Q3DSEnumNameMap *Q3DSEnumParseMap<Q3DSAction::Event>::get()
+{
+    return g_actionEventMap;
+}
+
+static Q3DSEnumNameMap g_actionHandlerTypeMap[] = {
+    { Q3DSAction::SetProperty, "Set Property" },
+    { Q3DSAction::FireEvent, "Fire Event" },
+    { Q3DSAction::EmitSignal, "Emit Signal" },
+    { Q3DSAction::GoToSlide, "Go to Slide" },
+    { Q3DSAction::NextSlide, "Next Slide" },
+    { Q3DSAction::PreviousSlide, "Previous Slide" },
+    { Q3DSAction::PrecedingSlide, "Preceding Slide" },
+    { Q3DSAction::Play, "Play" },
+    { Q3DSAction::Pause, "Pause" },
+    { Q3DSAction::GoToTime, "Go to Time" },
+    { 0, nullptr }
+};
+
+Q3DSEnumNameMap *Q3DSEnumParseMap<Q3DSAction::HandlerType>::get()
+{
+    return g_actionHandlerTypeMap;
+}
+
+static Q3DSEnumNameMap g_actionHandlerArgumentTypeMap[] = {
+    { Q3DSAction::HandlerArgument::Property, "Property" },
+    { Q3DSAction::HandlerArgument::Dependent, "Dependent" },
+    { Q3DSAction::HandlerArgument::Slide, "Slide" },
+    { Q3DSAction::HandlerArgument::Event, "Event" },
+    { Q3DSAction::HandlerArgument::Object, "Object" },
+    { Q3DSAction::HandlerArgument::Signal, "Signal" },
+    { 0, nullptr }
+};
+
+Q3DSEnumNameMap *Q3DSEnumParseMap<Q3DSAction::HandlerArgument::Type>::get()
+{
+    return g_actionHandlerArgumentTypeMap;
+}
+
 QT_END_NAMESPACE

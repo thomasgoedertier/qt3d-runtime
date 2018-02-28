@@ -497,30 +497,38 @@ void Q3DSUipParser::parseAddSet(Q3DSSlide *slide, bool isSet, bool isMaster)
             // we only support simple, static action definitions; no changes afterwards
             if (!action.id.isEmpty()) {
                 for (const QXmlStreamAttribute &attr : r->attributes()) {
-                    if (attr.name() == QStringLiteral("eyeball"))
+                    if (attr.name() == QStringLiteral("eyeball")) {
                         Q3DS::convertToBool(attr.value(), &action.eyeball, "'eyeball' attribute value", r);
-                    else if (attr.name() == QStringLiteral("triggerObject"))
+                    } else if (attr.name() == QStringLiteral("triggerObject")) {
                         action.triggerObject_unresolved = attr.value().trimmed().toString();
-                    else if (attr.name() == QStringLiteral("event"))
-                        action.event = attr.value().trimmed().toString();
-                    else if (attr.name() == QStringLiteral("targetObject"))
+                    } else if (attr.name() == QStringLiteral("event")) {
+                        if (!Q3DSEnumMap::enumFromStr(attr.value(), &action.event))
+                            r->raiseError(QObject::tr("Unknown action event %1").arg(attr.value().toString()));
+                    } else if (attr.name() == QStringLiteral("targetObject")) {
                         action.targetObject_unresolved = attr.value().trimmed().toString();
-                    else if (attr.name() == QStringLiteral("handler"))
-                        action.handler = attr.value().trimmed().toString();
+                    } else if (attr.name() == QStringLiteral("handler")) {
+                        if (!Q3DSEnumMap::enumFromStr(attr.value(), &action.handler)) {
+                            action.handler = Q3DSAction::BehaviorHandler;
+                            action.behaviorHandler = attr.value().trimmed().toString();
+                        }
+                    }
                 }
                 // Parse the HandlerArgument children.
                 while (r->readNextStartElement()) {
                     if (r->name() == QStringLiteral("HandlerArgument")) {
                         Q3DSAction::HandlerArgument ha;
                         for (const QXmlStreamAttribute &attr : r->attributes()) {
-                            if (attr.name() == QStringLiteral("name"))
+                            if (attr.name() == QStringLiteral("name")) {
                                 ha.name = attr.value().trimmed().toString();
-                            else if (attr.name() == QStringLiteral("type"))
-                                ha.type = attr.value().trimmed().toString();
-                            else if (attr.name() == QStringLiteral("argtype"))
-                                ha.argType = attr.value().trimmed().toString();
-                            else if (attr.name() == QStringLiteral("value"))
+                            } else if (attr.name() == QStringLiteral("type")) {
+                                if (!Q3DS::convertToPropertyType(attr.value(), &ha.type, nullptr, "handler type", r))
+                                    r->raiseError(QObject::tr("Invalid action handler type %1").arg(attr.value().toString()));
+                            } else if (attr.name() == QStringLiteral("argtype")) {
+                                if (!Q3DSEnumMap::enumFromStr(attr.value(), &ha.argType))
+                                    r->raiseError(QObject::tr("Invalid action handler argtype %1").arg(attr.value().toString()));
+                            } else if (attr.name() == QStringLiteral("value")) {
                                 ha.value = attr.value().trimmed().toString();
+                            }
                         }
                         action.handlerArgs.append(ha);
                     }

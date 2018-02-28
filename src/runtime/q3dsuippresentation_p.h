@@ -438,10 +438,39 @@ inline bool operator!=(const Q3DSAnimationTrack &a, const Q3DSAnimationTrack &b)
 class Q3DSV_PRIVATE_EXPORT Q3DSAction
 {
 public:
+    enum Event {
+        OnPressureDown,
+        OnPressureUp,
+        OnTap
+    };
+
+    enum HandlerType {
+        SetProperty,
+        FireEvent,
+        EmitSignal,
+        GoToSlide,
+        NextSlide,
+        PreviousSlide,
+        PrecedingSlide,
+        Play,
+        Pause,
+        GoToTime,
+        BehaviorHandler
+    };
+
     struct HandlerArgument {
+        enum Type {
+            Property,
+            Dependent,
+            Slide,
+            Event,
+            Object,
+            Signal
+        };
+
         QString name;
-        QString type;
-        QString argType;
+        Q3DS::PropertyType type;
+        Type argType;
         QString value;
     };
 
@@ -449,13 +478,18 @@ public:
     QByteArray id;
 
     bool eyeball = true;
+
     QString triggerObject_unresolved;
     Q3DSGraphObject *triggerObject = nullptr;
-    QString event;
+
+    Event event;
+
     QString targetObject_unresolved;
     Q3DSGraphObject *targetObject = nullptr;
-    QString handler;
-    QVector<HandlerArgument> handlerArgs;
+
+    HandlerType handler;
+    QVector<HandlerArgument> handlerArgs; // when handler != BehaviorHandler
+    QString behaviorHandler; // when handler == BehaviorHandler
 };
 
 Q_DECLARE_TYPEINFO(Q3DSAction::HandlerArgument, Q_MOVABLE_TYPE);

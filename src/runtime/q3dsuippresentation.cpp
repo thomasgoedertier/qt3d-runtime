@@ -71,7 +71,7 @@ bool convertToPropertyType(const QStringRef &value, Q3DS::PropertyType *type, in
     } else if (value == QStringLiteral("Long")) {
         ok = true;
         *type = Q3DS::Long;
-    } else if (value == QStringLiteral("Vector")) {
+    } else if (value == QStringLiteral("Vector") || value == QStringLiteral("Float3")) {
         ok = true;
         *type = Q3DS::Vector;
         if (componentCount)
