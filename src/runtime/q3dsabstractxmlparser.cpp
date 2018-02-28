@@ -63,7 +63,8 @@ bool Q3DSAbstractXmlParser::setSourceData(const QByteArray &data)
     m_reader.clear();
     m_reader.addData(data);
 
-    // TODO: Check that data is valid XML?
+    // ### should have a way to set m_sourceInfo so that assetFileName can
+    // provide results relative to something
 
     return true;
 }

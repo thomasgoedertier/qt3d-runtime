@@ -69,6 +69,7 @@ private slots:
     void lightmapProps();
     void iblProps();
     void action();
+    void behavior();
 };
 
 void tst_Q3DSUipParser::initTestCase()
@@ -1074,6 +1075,50 @@ void tst_Q3DSUipParser::action()
     QCOMPARE(action.handlerArgs[0].type, QStringLiteral("String"));
     QCOMPARE(action.handlerArgs[0].argType, QStringLiteral("Slide"));
     QCOMPARE(action.handlerArgs[0].value, QStringLiteral("Comp1Slide2"));
+}
+
+void tst_Q3DSUipParser::behavior()
+{
+    Q3DSUipParser parser;
+
+    QScopedPointer<Q3DSUipPresentation> pres(parser.parse(QLatin1String(":/data/barrel_with_behavior.uip")));
+    QVERIFY(!pres.isNull());
+
+    QCOMPARE(pres->object<Q3DSLayerNode>("Layer")->parent(), pres->scene());
+
+    auto behavInst = pres->object<Q3DSBehaviorInstance>("CameraLookAt_001");
+    QCOMPARE(behavInst->parent(), pres->scene());
+
+    const Q3DSBehavior *b = behavInst->behavior();
+    QVERIFY(b);
+    QVERIFY(!b->isNull());
+    QVERIFY(b->qmlCode().contains(QStringLiteral("property string cameraTarget")));
+
+    QCOMPARE(b->properties().count(), 2);
+    auto props = b->properties();
+    QCOMPARE(props[0].name, QStringLiteral("cameraTarget"));
+    QCOMPARE(props[0].formalName, QStringLiteral("Camera Target"));
+    QCOMPARE(props[0].type, Q3DS::ObjectRef);
+    QCOMPARE(props[0].defaultValue, QStringLiteral("Scene.Layer.Camera"));
+    QCOMPARE(props[0].publishLevel, QString());
+    QCOMPARE(props[0].description, QStringLiteral("Object in scene the camera should look at"));
+    QCOMPARE(props[1].name, QStringLiteral("startImmediately"));
+    QCOMPARE(props[1].formalName, QStringLiteral("Start Immediately?"));
+    QCOMPARE(props[1].type, Q3DS::Boolean);
+    QCOMPARE(props[1].defaultValue, QStringLiteral("True"));
+    QCOMPARE(props[1].publishLevel, QStringLiteral("Advanced"));
+    QCOMPARE(props[1].description, QStringLiteral("Start immediately, or wait for the Enable action to be called?"));
+
+    QCOMPARE(b->handlers().count(), 2);
+    auto handlers = b->handlers();
+    QCOMPARE(handlers[0].name, QStringLiteral("start"));
+    QCOMPARE(handlers[0].formalName, QStringLiteral("Start"));
+    QCOMPARE(handlers[0].category, QStringLiteral("CameraLookAt"));
+    QCOMPARE(handlers[0].description, QStringLiteral("Begin looking the target"));
+    QCOMPARE(handlers[1].name, QStringLiteral("stop"));
+    QCOMPARE(handlers[1].formalName, QStringLiteral("Stop"));
+    QCOMPARE(handlers[1].category, QStringLiteral("CameraLookAt"));
+    QCOMPARE(handlers[1].description, QStringLiteral("Stop looking the target"));
 }
 
 #include <tst_q3dsuipparser.moc>

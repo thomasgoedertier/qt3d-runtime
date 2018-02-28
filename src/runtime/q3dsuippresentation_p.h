@@ -44,6 +44,7 @@
 #include "q3dsruntimeglobal_p.h"
 #include "q3dscustommaterial_p.h"
 #include "q3dseffect_p.h"
+#include "q3dsbehavior_p.h"
 #include "q3dsmeshloader_p.h"
 #include "q3dsdatainputentry_p.h"
 #include <QString>
@@ -210,6 +211,7 @@ public:
         ReferencedMaterial,
         CustomMaterial,
         Effect,
+        Behavior,
         // node subtypes
         _FirstNodeType = 100,
         Layer = _FirstNodeType,
@@ -1756,6 +1758,30 @@ private:
     Q3DSPropertyChangeList m_attrs;
 };
 
+class Q3DSV_PRIVATE_EXPORT Q3DSBehaviorInstance : public Q3DSGraphObject
+{
+public:
+    Q3DSBehaviorInstance();
+    Q3DSBehaviorInstance(const Q3DSBehavior &behavior);
+
+    void setProperties(const QXmlStreamAttributes &attrs, PropSetFlags flags) override;
+    void applyPropertyChanges(const Q3DSPropertyChangeList &changeList) override;
+    void resolveReferences(Q3DSUipPresentation &pres, Q3DSUipParser &parser) override;
+
+    QStringList gex_propertyNames() const override;
+    QVariantList gex_propertyValues() const override;
+
+    // Properties
+    const Q3DSBehavior *behavior() const { return &m_behavior; }
+
+private:
+    Q_DISABLE_COPY(Q3DSBehaviorInstance)
+    template<typename V> void setProps(const V &attrs, PropSetFlags flags);
+
+    QString m_behavior_unresolved;
+    Q3DSBehavior m_behavior;
+};
+
 class Q3DSV_PRIVATE_EXPORT Q3DSUipPresentation
 {
 public:
@@ -1809,6 +1835,7 @@ public:
 
     Q3DSCustomMaterial customMaterial(const QByteArray &id) const;
     Q3DSEffect effect(const QByteArray &id) const;
+    Q3DSBehavior behavior(const QByteArray &id) const;
     MeshList mesh(const QString &assetFilename, int part = 1);
 
     typedef QHash<QString, bool> ImageBufferMap;
@@ -1857,6 +1884,7 @@ private:
     void setLoadTime(qint64 ms);
     bool loadCustomMaterial(const QStringRef &id, const QStringRef &name, const QString &assetFilename);
     bool loadEffect(const QStringRef &id, const QStringRef &name, const QString &assetFilename);
+    bool loadBehavior(const QStringRef &id, const QStringRef &name, const QString &assetFilename);
     Q3DSGraphObject *getObject(const QByteArray &id) const;
     Q3DSGraphObject *getObjectByName(const QString &name) const;
 
@@ -1881,6 +1909,7 @@ struct Q3DSUipPresentationData
     QHash<QByteArray, Q3DSGraphObject *> objects; // node ptrs managed by scene, not owned
     QHash<QByteArray, Q3DSCustomMaterial> customMaterials;
     QHash<QByteArray, Q3DSEffect> effects;
+    QHash<QByteArray, Q3DSBehavior> behaviors;
     // Note: the key here is the sourcePath before it's resolved!
     QHash<QString, bool /* hasTransparency */> imageBuffers;
 

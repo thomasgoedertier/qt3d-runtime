@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2017 The Qt Company Ltd.
+** Copyright (C) 2018 The Qt Company Ltd.
 ** Contact: http://www.qt.io/licensing/
 **
 ** This file is part of Qt 3D Studio.
@@ -27,8 +27,8 @@
 **
 ****************************************************************************/
 
-#ifndef Q3DSUIPPARSER_P_H
-#define Q3DSUIPPARSER_P_H
+#ifndef Q3DSBEHAVIOR_P_H
+#define Q3DSBEHAVIOR_P_H
 
 //
 //  W A R N I N G
@@ -42,44 +42,56 @@
 //
 
 #include "q3dsruntimeglobal_p.h"
-#include "q3dsabstractxmlparser_p.h"
-#include "q3dsuippresentation_p.h"
-#include <functional>
+#include "q3dspresentationcommon_p.h"
+#include <QVector>
 
 QT_BEGIN_NAMESPACE
 
-class Q3DSV_PRIVATE_EXPORT Q3DSUipParser : public Q3DSAbstractXmlParser
+class Q3DSV_PRIVATE_EXPORT Q3DSBehavior
 {
 public:
-    Q3DSUipPresentation *parse(const QString &filename);
-    Q3DSUipPresentation *parseData(const QByteArray &data);
+    Q3DSBehavior();
+    bool isNull() const;
+
+    QString qmlCode() const { return m_qmlCode; }
+
+    struct Property {
+        QString name;
+        QString formalName;
+        Q3DS::PropertyType type = Q3DS::Float;
+        QString defaultValue;
+        QString publishLevel;
+        QString description;
+    };
+
+    struct Handler {
+        QString name;
+        QString formalName;
+        QString category;
+        QString description;
+    };
+
+    const QVector<Q3DSBehavior::Property> &properties() const { return m_properties; }
+    const QVector<Q3DSBehavior::Handler> &handlers() const { return m_handlers; }
 
 private:
-    Q3DSUipPresentation *createPresentation();
-    void parseUIP();
-    void parseProject();
-    void parseProjectSettings();
-    void parseClasses();
-    void parseBufferData();
-    void parseImageBuffer();
-    void parseGraph();
-    void parseScene();
-    void parseObjects(Q3DSGraphObject *parent);
-    void parseLogic();
-    Q3DSSlide *parseSlide(Q3DSSlide *parent = nullptr, const QByteArray &idPrefix = QByteArray());
-    void parseAddSet(Q3DSSlide *slide, bool isSet, bool isMaster);
-    void parseAnimationKeyFrames(const QString &data, Q3DSAnimationTrack *animTrack);
+    QString m_qmlCode;
+    QVector<Property> m_properties;
+    QVector<Handler> m_handlers;
 
-    QByteArray getId(const QStringRef &desc, bool required = true);
-    Q3DSGraphObject::DataInputControlledProperties getDataInputControlledProperties();
-    void resolveReferences(Q3DSGraphObject *obj);
+    friend class Q3DSBehaviorParser;
+};
 
-    typedef std::function<bool(const QStringRef &, const QStringRef &, const QString &)> ExternalFileLoadCallback;
-    void parseExternalFileRef(ExternalFileLoadCallback callback);
+Q_DECLARE_TYPEINFO(Q3DSBehavior::Property, Q_MOVABLE_TYPE);
+Q_DECLARE_TYPEINFO(Q3DSBehavior::Handler, Q_MOVABLE_TYPE);
+Q_DECLARE_TYPEINFO(Q3DSBehavior, Q_MOVABLE_TYPE);
 
-    QScopedPointer<Q3DSUipPresentation> m_presentation;
+class Q3DSV_PRIVATE_EXPORT Q3DSBehaviorParser
+{
+public:
+    Q3DSBehavior parse(const QString &filename, bool *ok = nullptr);
 };
 
 QT_END_NAMESPACE
 
-#endif
+#endif // Q3DSBEHAVIOR_P_H

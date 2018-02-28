@@ -214,18 +214,24 @@ void Q3DSUipParser::parseClasses()
 {
     QXmlStreamReader *r = reader();
     while (r->readNextStartElement()) {
-        if (r->name() == QStringLiteral("CustomMaterial"))
-            parseCustomMaterial();
-        else if (r->name() == QStringLiteral("Effect"))
-            parseEffect();
-        else if (r->name() == QStringLiteral("RenderPlugin"))
+        if (r->name() == QStringLiteral("CustomMaterial")) {
+            parseExternalFileRef(std::bind(&Q3DSUipPresentation::loadCustomMaterial, m_presentation.data(),
+                                           std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
+        } else if (r->name() == QStringLiteral("Effect")) {
+            parseExternalFileRef(std::bind(&Q3DSUipPresentation::loadEffect, m_presentation.data(),
+                                           std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
+        } else if (r->name() == QStringLiteral("Behavior")) {
+            parseExternalFileRef(std::bind(&Q3DSUipPresentation::loadBehavior, m_presentation.data(),
+                                           std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
+        } else if (r->name() == QStringLiteral("RenderPlugin")) {
             r->raiseError(QObject::tr("RenderPlugin not supported"));
-        else
+        } else {
             r->skipCurrentElement();
+        }
     }
 }
 
-void Q3DSUipParser::parseCustomMaterial()
+void Q3DSUipParser::parseExternalFileRef(ExternalFileLoadCallback callback)
 {
     QXmlStreamReader *r = reader();
     auto a = r->attributes();
@@ -235,24 +241,8 @@ void Q3DSUipParser::parseCustomMaterial()
     QStringRef sourcePath = a.value(QStringLiteral("sourcepath"));
 
     const QString src = assetFileName(sourcePath.toString(), nullptr);
-    if (!m_presentation->loadCustomMaterial(id, name, src))
-        r->raiseError(QObject::tr("Failed to parse custom material %1").arg(src));
-
-    r->skipCurrentElement();
-}
-
-void Q3DSUipParser::parseEffect()
-{
-    QXmlStreamReader *r = reader();
-    auto a = r->attributes();
-
-    QStringRef id = a.value(QStringLiteral("id"));
-    QStringRef name = a.value(QStringLiteral("name"));
-    QStringRef sourcePath = a.value(QStringLiteral("sourcepath"));
-
-    const QString src = assetFileName(sourcePath.toString(), nullptr);
-    if (!m_presentation->loadEffect(id, name, src))
-        r->raiseError(QObject::tr("Failed to parse effect %1").arg(src));
+    if (!callback(id, name, src))
+        r->raiseError(QObject::tr("Failed to load external file %1").arg(src));
 
     r->skipCurrentElement();
 }
@@ -313,10 +303,10 @@ void Q3DSUipParser::parseScene()
     m_presentation->setScene(scene);
 
     while (r->readNextStartElement()) {
-        if (r->name() == QStringLiteral("Layer"))
+        if (r->name() == QStringLiteral("Layer") || r->name() == QStringLiteral("Behavior"))
             parseObjects(scene);
         else
-            r->raiseError(QObject::tr("Scene can only have Layer children."));
+            r->raiseError(QObject::tr("Scene can only have Layer or Behavior children."));
     }
 }
 
@@ -352,6 +342,8 @@ void Q3DSUipParser::parseObjects(Q3DSGraphObject *parent)
         obj = new Q3DSCustomMaterialInstance;
     else if (r->name() == QStringLiteral("Effect"))
         obj = new Q3DSEffectInstance;
+    else if (r->name() == QStringLiteral("Behavior"))
+        obj = new Q3DSBehaviorInstance;
     else if (r->name() == QStringLiteral("Image"))
         obj = new Q3DSImage;
 

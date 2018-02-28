@@ -31,7 +31,8 @@ SOURCES += \
     q3dsuiadocument.cpp \
     q3dsqmldocument.cpp \
     q3dsslideplayer.cpp \
-    q3dsimagemanager.cpp
+    q3dsimagemanager.cpp \
+    q3dsbehavior.cpp
 
 HEADERS += \
     q3dsruntimeglobal.h \
@@ -67,7 +68,8 @@ HEADERS += \
     q3dsslideplayer_p.h \
     q3dsdatainputentry_p.h \
     q3dsimagemanager_p.h \
-    q3dsimageloaders_p.h
+    q3dsimageloaders_p.h \
+    q3dsbehavior_p.h
 
 RESOURCES += \
     q3dsres.qrc

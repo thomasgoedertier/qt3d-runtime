@@ -660,6 +660,9 @@ QString Q3DSGraphObject::gex_typeAsString() const
     case Effect:
         s = QLatin1String("Effect");
         break;
+    case Behavior:
+        s = QLatin1String("Behavior");
+        break;
     case Layer:
         s = QLatin1String("Layer");
         break;
@@ -2215,6 +2218,59 @@ Q3DSPropertyChange Q3DSEffectInstance::setCustomProperty(const QString &name, co
     return Q3DSPropertyChange();
 }
 
+Q3DSBehaviorInstance::Q3DSBehaviorInstance()
+    : Q3DSGraphObject(Q3DSGraphObject::Behavior)
+{
+}
+
+Q3DSBehaviorInstance::Q3DSBehaviorInstance(const Q3DSBehavior &behavior)
+    : Q3DSGraphObject(Q3DSGraphObject::Behavior),
+      m_behavior(behavior)
+{
+}
+
+template<typename V>
+void Q3DSBehaviorInstance::setProps(const V &attrs, PropSetFlags flags)
+{
+    const QString typeName = QStringLiteral("Behavior");
+    parseProperty(attrs, flags, typeName, QStringLiteral("class"), &m_behavior_unresolved);
+
+    // Different default value.
+    parseProperty(attrs, flags, typeName, QStringLiteral("name"), &m_name);
+}
+
+void Q3DSBehaviorInstance::setProperties(const QXmlStreamAttributes &attrs, PropSetFlags flags)
+{
+    Q3DSGraphObject::setProperties(attrs, flags);
+    setProps(attrs, flags);
+}
+
+void Q3DSBehaviorInstance::applyPropertyChanges(const Q3DSPropertyChangeList &changeList)
+{
+    Q3DSGraphObject::applyPropertyChanges(changeList);
+    setProps(changeList, 0);
+}
+
+void Q3DSBehaviorInstance::resolveReferences(Q3DSUipPresentation &pres, Q3DSUipParser &)
+{
+    if (m_behavior_unresolved.startsWith('#'))
+        m_behavior = pres.behavior(m_behavior_unresolved.mid(1).toUtf8());
+}
+
+QStringList Q3DSBehaviorInstance::gex_propertyNames() const
+{
+    QStringList s = Q3DSGraphObject::gex_propertyNames();
+    s << QLatin1String("class");
+    return s;
+}
+
+QVariantList Q3DSBehaviorInstance::gex_propertyValues() const
+{
+    QVariantList s = Q3DSGraphObject::gex_propertyValues();
+    s << m_behavior_unresolved;
+    return s;
+}
+
 Q3DSNode::Q3DSNode(Type type)
     : Q3DSGraphObject(type)
 {
@@ -3386,6 +3442,24 @@ Q3DSEffect Q3DSUipPresentation::effect(const QByteArray &id) const
     return d->effects.value(id);
 }
 
+bool Q3DSUipPresentation::loadBehavior(const QStringRef &id, const QStringRef &, const QString &assetFilename)
+{
+    Q3DSBehaviorParser p;
+    bool ok = false;
+    Q3DSBehavior eff = p.parse(assetFilename, &ok);
+    if (!ok) {
+        qWarning("Failed to parse behavior %s", qPrintable(assetFilename));
+        return false;
+    }
+    d->behaviors.insert(id.toUtf8(), eff);
+    return true;
+}
+
+Q3DSBehavior Q3DSUipPresentation::behavior(const QByteArray &id) const
+{
+    return d->behaviors.value(id);
+}
+
 MeshList Q3DSUipPresentation::mesh(const QString &assetFilename, int part)
 {
     Q3DSUipPresentationData::MeshId id(assetFilename, part);
@@ -3505,8 +3579,6 @@ void Q3DSUipPresentation::forAllLayers(Q3DSScene *scene, std::function<void(Q3DS
                 f(layer3DS);
             else
                 layers.append(layer3DS);
-        } else {
-            qWarning("Child %p of Scene is not a Layer", obj);
         }
         obj = obj->nextSibling();
     }
