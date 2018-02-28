@@ -265,9 +265,7 @@ static QMainWindow* getMainWindow()
 
 void SlideExplorerWidget::seekInCurrentSlide(int value)
 {
-    const float duration = m_slidePlayer->duration();
-    const float normalized = value / duration;
-    m_slidePlayer->seek(normalized);
+    m_slidePlayer->seek(value);
     const float seconds = value / 1000.0f;
     getMainWindow()->statusBar()->showMessage(
         QString::number(seconds) + QStringLiteral(" seconds"));
@@ -331,7 +329,12 @@ void SlideExplorerWidget::updateModel()
         m_slidePlayer = m_sceneManager->slidePlayer();
         setPlayerMode(m_playerModeCheckBox->checkState());
         connect(m_slidePlayer, &Q3DSSlidePlayer::positionChanged, [this](float v) {
-            m_slideSeekSlider->setValue(int(m_slidePlayer->duration() * v));
+            m_slideSeekSlider->blockSignals(true);
+            m_slideSeekSlider->setValue(int(v));
+            const float seconds = v / 1000.0f;
+            getMainWindow()->statusBar()->showMessage(
+                QString::number(seconds) + QStringLiteral(" seconds"));
+            m_slideSeekSlider->blockSignals(false);
         });
         connect(m_slidePlayer, &Q3DSSlidePlayer::slideChanged,
                 this, &SlideExplorerWidget::handleCurrentSlideChanged);

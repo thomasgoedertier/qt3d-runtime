@@ -138,7 +138,9 @@ private:
                                    bool forceUpdate = false);
 
     // TODO: Move out to a "slide manager"?
-    void updateSlideVisibility(Q3DSSlide *slide, bool visible);
+    void setSlideTime(Q3DSSlide *slide, float time);
+    void sendPositionChanged(Q3DSSlide *slide, float pos);
+    void updateNodeVisibility(Q3DSNode *node, bool visible);
     bool isSlideVisible(Q3DSSlide *slide);
 
     struct Data {
@@ -155,6 +157,9 @@ private:
     QSharedPointer<Q3DSAnimationManager> m_animationManager;
     PlayerMode m_mode = PlayerMode::Viewer;
     PlayerType m_type = PlayerType::Slide;
+
+    // This class handles animation callback from animationmanager and calls setSlideTime
+    friend class DummyCallback;
 };
 
 class Q3DSV_PRIVATE_EXPORT Q3DSSlideDeck

@@ -41,6 +41,7 @@
 // We mean it.
 //
 
+#include "q3dsslideplayer_p.h"
 #include "q3dsuippresentation_p.h"
 #include <QDebug>
 
@@ -49,6 +50,8 @@ QT_BEGIN_NAMESPACE
 class Q3DSAnimationManager
 {
 public:
+    Q3DSAnimationManager(Q3DSSlidePlayer *slidePlayer) : m_slidePlayer(slidePlayer) {}
+
     void updateAnimations(Q3DSSlide *slide);
     void clearAnimations(Q3DSSlide *slide);
     void applyChanges();
@@ -89,6 +92,8 @@ private:
                                AnimatableTab *animatables,
                                Q3DSSlide *slide);
 
+    void buildClipAnimator(Q3DSSlide *slide);
+
     AnimatableTab m_defaultMaterialAnimatables;
     AnimatableTab m_cameraAnimatables;
     AnimatableTab m_lightAnimatables;
@@ -100,6 +105,8 @@ private:
     AnimatableTab m_layerAnimatables;
 
     QMultiHash<Q3DSGraphObject *, AnimationValueChange> m_changes;
+
+    Q3DSSlidePlayer *m_slidePlayer;
 
     friend class Q3DSAnimationCallback;
 };

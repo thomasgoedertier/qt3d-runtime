@@ -33,6 +33,7 @@
 #include <private/q3dsutils_p.h>
 #include <private/q3dsuippresentation_p.h>
 #include <private/q3dsscenemanager_p.h>
+#include <private/q3dsslideplayer_p.h>
 #include <Qt3DCore/QEntity>
 #include <Qt3DRender/QLayer>
 
@@ -56,6 +57,7 @@ private Q_SLOTS:
     void setDeepComponentSlides();
     void deepComponentRollback();
     void setNonVisibleComponentSlides();
+    void testTimeLineVisibility();
 
 private:
     Q3DSModelNode *getModelWithName(const QString &name, Q3DSGraphObject *parent);
@@ -77,6 +79,7 @@ private:
     Q3DSSlide *m_presentationSlide2 = nullptr;
     Q3DSSlide *m_presentationSlide3 = nullptr;
     Q3DSSlide *m_presentationSlide4 = nullptr;
+    Q3DSSlide *m_presentationSlide5 = nullptr;
 
     // Slide 3 ComponentSlides
     Q3DSSlide *m_componentMasterSlide = nullptr;
@@ -97,6 +100,9 @@ private:
     Q3DSModelNode *m_slide2Sphere = nullptr;
     Q3DSComponentNode *m_slide3Component = nullptr;
     Q3DSModelNode *m_slide4Cone = nullptr;
+    Q3DSModelNode *m_slide5Rect = nullptr;
+    Q3DSModelNode *m_slide5Sphere = nullptr;
+    Q3DSComponentNode *m_slide5Component = nullptr;
 
     // Component Objects
     Q3DSModelNode *m_componentMasterCube = nullptr;
@@ -145,7 +151,7 @@ void tst_Q3DSSlides::initTestCase()
 
     // Presentation Slides
     m_presentationMasterSlide = m_presentation->masterSlide();
-    QVERIFY(m_presentationMasterSlide->childCount() == 4);
+    QVERIFY(m_presentationMasterSlide->childCount() == 5);
     m_presentationSlide1 = static_cast<Q3DSSlide *>(m_presentationMasterSlide->firstChild());
     QVERIFY(m_presentationSlide1);
     m_presentationSlide2 = static_cast<Q3DSSlide *>(m_presentationSlide1->nextSibling());
@@ -154,10 +160,12 @@ void tst_Q3DSSlides::initTestCase()
     QVERIFY(m_presentationSlide3);
     m_presentationSlide4 = static_cast<Q3DSSlide *>(m_presentationSlide3->nextSibling());
     QVERIFY(m_presentationSlide4);
+    m_presentationSlide5 = static_cast<Q3DSSlide *>(m_presentationSlide4->nextSibling());
+    QVERIFY(m_presentationSlide5);
 
     // Presentation Objects
     auto sceneLayer = m_scene->firstChild();
-    QVERIFY(sceneLayer->childCount() == 8);
+    QVERIFY(sceneLayer->childCount() == 11);
     m_masterCylinder = getModelWithName(QStringLiteral("MasterCylinder"), sceneLayer);
     QVERIFY(m_masterCylinder);
     m_dynamicSphere = getModelWithName(QStringLiteral("DynamicSphere"), sceneLayer);
@@ -170,6 +178,12 @@ void tst_Q3DSSlides::initTestCase()
     QVERIFY(m_slide3Component);
     m_slide4Cone = getModelWithName(QStringLiteral("Slide4Cone"), sceneLayer);
     QVERIFY(m_slide4Cone);
+    m_slide5Rect = getModelWithName(QStringLiteral("Slide5Rect"), sceneLayer);
+    QVERIFY(m_slide5Rect);
+    m_slide5Sphere = getModelWithName(QStringLiteral("Slide5Sphere"), sceneLayer);
+    QVERIFY(m_slide5Sphere);
+    m_slide5Component = getComponentWithName(QStringLiteral("Slide5Component"), sceneLayer);
+    QVERIFY(m_slide5Component);
 
     // Component Slides
     m_componentMasterSlide = m_slide3Component->masterSlide();
@@ -534,6 +548,77 @@ void tst_Q3DSSlides::setNonVisibleComponentSlides()
     QVERIFY(!isNodeVisible(m_deepComponentSlide2Sphere));
     QVERIFY(!isNodeVisible(m_deepComponentSlide2Moon));
     QVERIFY(!isNodeVisible(m_deepComponentMasterText));
+}
+
+void tst_Q3DSSlides::testTimeLineVisibility()
+{
+    // Select a presentation slide that has items with different starttimes
+    // and endtimes than the slide they are on
+    m_sceneManager->setCurrentSlide(m_presentationSlide5);
+
+    QVERIFY(isNodeVisible(m_masterCylinder));
+    QVERIFY(isNodeVisible(m_dynamicSphere));
+    QVERIFY(!isNodeVisible(m_slide5Rect));
+    QVERIFY(isNodeVisible(m_slide5Sphere));
+
+    Q3DSSlidePlayer *player = m_sceneManager->slidePlayer();
+    player->stop();
+    QVERIFY(player);
+
+    QSignalSpy updateSpy(m_engine, SIGNAL(nextFrameStarting()));
+    QSignalSpy positionChangedSpy(player, &Q3DSSlidePlayer::positionChanged);
+
+    const auto seekAndWait = [player, &updateSpy, &positionChangedSpy](int value) {
+        const float t = value;
+        player->seek(t);
+        QVERIFY(positionChangedSpy.wait(5000));
+        QVERIFY(updateSpy.wait(5000));
+    };
+
+    seekAndWait(999);
+
+    // Still invisible
+    QVERIFY(isNodeVisible(m_masterCylinder));
+    QVERIFY(isNodeVisible(m_dynamicSphere));
+    QVERIFY(!isNodeVisible(m_slide5Rect));
+    QVERIFY(isNodeVisible(m_slide5Sphere));
+    QVERIFY(!isNodeVisible(m_slide5Component));
+
+    seekAndWait(1000);
+
+    // Everything now visible
+    QVERIFY(isNodeVisible(m_masterCylinder));
+    QVERIFY(isNodeVisible(m_dynamicSphere));
+    QVERIFY(isNodeVisible(m_slide5Rect));
+    QVERIFY(isNodeVisible(m_slide5Sphere));
+    QVERIFY(isNodeVisible(m_slide5Component));
+
+    seekAndWait(2000);
+
+    // Everything still visible
+    QVERIFY(isNodeVisible(m_masterCylinder));
+    QVERIFY(isNodeVisible(m_dynamicSphere));
+    QVERIFY(isNodeVisible(m_slide5Rect));
+    QVERIFY(isNodeVisible(m_slide5Sphere));
+    QVERIFY(isNodeVisible(m_slide5Component));
+
+    seekAndWait(2001);
+
+    // Neither rect nor sphere are visible
+    QVERIFY(isNodeVisible(m_masterCylinder));
+    QVERIFY(isNodeVisible(m_dynamicSphere));
+    QVERIFY(!isNodeVisible(m_slide5Rect));
+    QVERIFY(!isNodeVisible(m_slide5Sphere));
+    QVERIFY(isNodeVisible(m_slide5Component));
+
+    seekAndWait(0);
+
+    // Back to the beginning
+    QVERIFY(isNodeVisible(m_masterCylinder));
+    QVERIFY(isNodeVisible(m_dynamicSphere));
+    QVERIFY(!isNodeVisible(m_slide5Rect));
+    QVERIFY(isNodeVisible(m_slide5Sphere));
+    QVERIFY(!isNodeVisible(m_slide5Component));
 }
 
 Q3DSModelNode *tst_Q3DSSlides::getModelWithName(const QString &name, Q3DSGraphObject *parent)

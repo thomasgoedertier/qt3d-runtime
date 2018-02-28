@@ -45,6 +45,33 @@
 					<Model id="Cone_001" >
 						<Material id="Material_006" />
 					</Model>
+					<Model id="Rectangle_001" >
+						<Material id="Default" name="Default" />
+					</Model>
+					<Model id="Sphere_001" >
+						<Material id="Default_001" name="Default" />
+					</Model>
+					<Component id="Slide3Component2" >
+						<Model id="ComponentMasterCube" >
+							<Material id="Material_010" />
+							<Model id="ComponentSlide1Cone" >
+								<Material id="Material_011" />
+							</Model>
+						</Model>
+						<Component id="ComponentSlide3Component" >
+							<Model id="DeepComponentSlide1Cylinder" >
+								<Material id="Material_012" />
+							</Model>
+							<Model id="DeepComponentSlide2Sphere_001" >
+								<Material id="Material_013" />
+								<Model id="DeepComponentSlide2Moon_001" >
+									<Material id="Material_014" />
+								</Model>
+							</Model>
+							<Text id="DeepComponentMasterText" />
+						</Component>
+						<Text id="ComponentSlide2Text" />
+					</Component>
 				</Layer>
 			</Scene>
 		</Graph>
@@ -60,17 +87,17 @@
 				</Add>
 				<Add ref="#Material_004" />
 				<Add ref="#Sphere2" name="DynamicSphere" endtime="12028" position="-509.518 -272.9 0" sourcepath="#Sphere" >
-					<AnimationTrack property="scale.x" type="EaseInOut" dynamic="True" >0 1 100 100 2.884 2 100 100 6.884 1 100 100 9.721 1 100 100</AnimationTrack>
-					<AnimationTrack property="scale.y" type="EaseInOut" dynamic="True" >0 1 100 100 2.884 2 100 100 6.884 2 100 100 9.721 1 100 100</AnimationTrack>
-					<AnimationTrack property="scale.z" type="EaseInOut" dynamic="True" >0 1 100 100 2.884 2 100 100 6.884 2 100 100 9.721 1 100 100</AnimationTrack>
+					<AnimationTrack property="scale.x" type="EaseInOut" dynamic="T" >0 1 100 100 2.884 2 100 100 6.884 1 100 100 9.721 1 100 100</AnimationTrack>
+					<AnimationTrack property="scale.y" type="EaseInOut" dynamic="T" >0 1 100 100 2.884 2 100 100 6.884 2 100 100 9.721 1 100 100</AnimationTrack>
+					<AnimationTrack property="scale.z" type="EaseInOut" dynamic="T" >0 1 100 100 2.884 2 100 100 6.884 2 100 100 9.721 1 100 100</AnimationTrack>
 				</Add>
 				<Add ref="#Material_005" />
 				<State id="Scene-Slide1" name="Slide1" playmode="Ping" >
 					<Add ref="#Rectangle" name="Slide1Rect" locked="False" sourcepath="#Rectangle" >
-						<AnimationTrack property="position.x" type="EaseInOut" dynamic="True" >0 0 100 100 10 566.151 100 100</AnimationTrack>
-						<AnimationTrack property="position.y" type="EaseInOut" dynamic="True" >0 0 100 100 10 0 100 100</AnimationTrack>
-						<AnimationTrack property="position.z" type="EaseInOut" dynamic="True" >0 0 100 100 10 0 100 100</AnimationTrack>
-						<Action id="Slide1Rect-Action" eyeball="True" triggerObject="#Rectangle" event="onPressureDown" targetObject="#Scene" handler="Go to Slide" >
+						<AnimationTrack property="position.x" type="EaseInOut" dynamic="T" >0 0 100 100 10 566.151 100 100</AnimationTrack>
+						<AnimationTrack property="position.y" type="EaseInOut" dynamic="T" >0 0 100 100 10 0 100 100</AnimationTrack>
+						<AnimationTrack property="position.z" type="EaseInOut" dynamic="T" >0 0 100 100 10 0 100 100</AnimationTrack>
+						<Action id="Slide1Rect-Action" eyeball="T" triggerObject="#Rectangle" event="onPressureDown" targetObject="#Scene" handler="Go to Slide" >
 							<HandlerArgument name="Slide" type="String" argtype="Slide" value="Slide2" />
 						</Action>
 					</Add>
@@ -82,7 +109,7 @@
 						<AnimationTrack property="scale.x" type="EaseInOut" >0 1 100 100 10 3.8 100 100</AnimationTrack>
 						<AnimationTrack property="scale.y" type="EaseInOut" >0 1 100 100 10 3.8 100 100</AnimationTrack>
 						<AnimationTrack property="scale.z" type="EaseInOut" >0 1 100 100 10 3.8 100 100</AnimationTrack>
-						<Action id="Slide2Sphere-Action" eyeball="True" triggerObject="#Sphere" event="onTap" targetObject="#Scene" handler="Go to Slide" >
+						<Action id="Slide2Sphere-Action" eyeball="T" triggerObject="#Sphere" event="onTap" targetObject="#Scene" handler="Go to Slide" >
 							<HandlerArgument name="Slide" type="String" argtype="Slide" value="Slide1" />
 						</Action>
 					</Add>
@@ -103,6 +130,22 @@
 						<AnimationTrack property="rotation.z" type="EaseInOut" >0 0 100 100 9.154 0 100 100</AnimationTrack>
 					</Add>
 					<Add ref="#Material_006" />
+				</State>
+				<State id="Scene-Slide5" name="Slide5" initialplaystate="Play" playmode="Stop at end" playthroughto="Previous" >
+					<Set ref="#Layer" endtime="12028" />
+					<Set ref="#Camera" endtime="12028" />
+					<Set ref="#Light" endtime="12028" />
+					<Set ref="#Cylinder" endtime="12028" />
+					<Set ref="#Sphere2" endtime="12028" />
+					<Add ref="#Rectangle_001" name="Slide5Rect" endtime="2000" sourcepath="#Rectangle" starttime="1000" />
+					<Add ref="#Default" />
+					<Add ref="#Sphere_001" name="Slide5Sphere" endtime="2000" position="0 166.788 0" sourcepath="#Sphere" >
+						<AnimationTrack property="position.x" type="EaseInOut" >0 0 100 100 2 0 100 100</AnimationTrack>
+						<AnimationTrack property="position.y" type="EaseInOut" >0 166.788 100 100 2 -176.367 100 100</AnimationTrack>
+						<AnimationTrack property="position.z" type="EaseInOut" >0 0 100 100 2 0 100 100</AnimationTrack>
+					</Add>
+					<Add ref="#Default_001" />
+					<Add ref="#Slide3Component2" name="Slide5Component" endtime="2884" position="150 0 0" starttime="1000" />
 				</State>
 			</State>
 			<State name="Master Slide" component="#Component" >
@@ -148,6 +191,51 @@
 					<Add ref="#Material_008" />
 					<Add ref="#DeepComponentSlide2Moon" name="DeepComponentSlide2Moon" position="111.618 0 0" scale="0.1 0.1 0.1" sourcepath="#Sphere" />
 					<Add ref="#Material_009" />
+				</State>
+			</State>
+			<State name="Master Slide" component="#Slide3Component2" >
+				<Add ref="#ComponentMasterCube" name="ComponentMasterCube" rotation="0 45 0" sourcepath="#Cube" >
+					<AnimationTrack property="position.x" type="EaseInOut" >0 0 100 100 4.923 0 100 100 10 0 100 100</AnimationTrack>
+					<AnimationTrack property="position.y" type="EaseInOut" >0 0 100 100 4.923 -50 100 100 10 0 100 100</AnimationTrack>
+					<AnimationTrack property="position.z" type="EaseInOut" >0 0 100 100 4.923 0 100 100 10 0 100 100</AnimationTrack>
+				</Add>
+				<Add ref="#Material_010" />
+				<State id="Slide5Component-Slide1" name="Slide1" >
+					<Add ref="#ComponentSlide1Cone" name="ComponentSlide1Cone" scale="1 2.79372 1" sourcepath="#Cone" >
+						<AnimationTrack property="position.x" type="EaseInOut" >0 0 100 100 10 0 100 100</AnimationTrack>
+						<AnimationTrack property="position.y" type="EaseInOut" >0 0 100 100 10 319.489 100 100</AnimationTrack>
+						<AnimationTrack property="position.z" type="EaseInOut" >0 0 100 100 10 0 100 100</AnimationTrack>
+					</Add>
+					<Add ref="#Material_011" />
+				</State>
+				<State id="Slide5Component-Slide2" name="Slide2" playthroughto="Previous" >
+					<Set ref="#ComponentMasterCube" eyeball="False" />
+					<Add ref="#ComponentSlide2Text" name="ComponentSlide2Text" font="TitilliumWeb-Regular" size="120" textstring="Slide 2!" />
+				</State>
+				<State id="Slide5Component-Slide3" name="Slide3" playthroughto="Previous" >
+					<Add ref="#ComponentSlide3Component" name="ComponentSlide3Component" position="-334.863 0 0" />
+				</State>
+			</State>
+			<State name="Master Slide" component="#ComponentSlide3Component" >
+				<Add ref="#DeepComponentMasterText" name="DeepComponentMasterText" font="TitilliumWeb-Regular" position="0 164.376 0" textstring="Master Text!" />
+				<State id="ComponentSlide3Component-Slide1_001" name="Slide1" >
+					<Add ref="#DeepComponentSlide1Cylinder" name="DeepComponentSlide1Cylinder" position="13.4715 -17.3205 0" scale="2.64539 2.25806 1" sourcepath="#Cylinder" >
+						<AnimationTrack property="rotation.x" type="EaseInOut" >0 0 100 100 10 360 100 100</AnimationTrack>
+						<AnimationTrack property="rotation.y" type="EaseInOut" >0 0 100 100 10 0 100 100</AnimationTrack>
+						<AnimationTrack property="rotation.z" type="EaseInOut" >0 0 100 100 10 0 100 100</AnimationTrack>
+					</Add>
+					<Add ref="#Material_012" />
+				</State>
+				<State id="ComponentSlide3Component-Slide2_001" name="Slide2" initialplaystate="Play" playmode="Stop at end" playthroughto="Previous" >
+					<Set ref="#DeepComponentMasterText" eyeball="False" />
+					<Add ref="#DeepComponentSlide2Sphere_001" name="DeepComponentSlide2Sphere" sourcepath="#Sphere" >
+						<AnimationTrack property="rotation.x" type="EaseInOut" >0 0 100 100 10 0 100 100</AnimationTrack>
+						<AnimationTrack property="rotation.y" type="EaseInOut" >0 0 100 100 10 360 100 100</AnimationTrack>
+						<AnimationTrack property="rotation.z" type="EaseInOut" >0 0 100 100 10 0 100 100</AnimationTrack>
+					</Add>
+					<Add ref="#Material_013" />
+					<Add ref="#DeepComponentSlide2Moon_001" name="DeepComponentSlide2Moon" position="111.618 0 0" scale="0.1 0.1 0.1" sourcepath="#Sphere" />
+					<Add ref="#Material_014" />
 				</State>
 			</State>
 		</Logic>
