@@ -41,16 +41,16 @@ public:
 
     bool parse();
 
-    const QVector<Q3DSBehavior::Property> &properties() const { return m_properties; }
-    const QVector<Q3DSBehavior::Handler> &handlers() const { return m_handlers; }
+    const QMap<QString, Q3DSBehavior::Property> &properties() const { return m_properties; }
+    const QMap<QString, Q3DSBehavior::Handler> &handlers() const { return m_handlers; }
 
 private:
     void registerProperty(const QXmlStreamAttributes &attrs);
     void registerHandler(const QXmlStreamAttributes &attrs);
 
     QString m_data;
-    QVector<Q3DSBehavior::Property> m_properties;
-    QVector<Q3DSBehavior::Handler> m_handlers;
+    QMap<QString, Q3DSBehavior::Property> m_properties;
+    QMap<QString, Q3DSBehavior::Handler> m_handlers;
 };
 
 BehaviorMetaDataParser::BehaviorMetaDataParser(const QString &data)
@@ -92,7 +92,7 @@ void BehaviorMetaDataParser::registerProperty(const QXmlStreamAttributes &attrs)
     p.defaultValue = attrs.value(QLatin1String("default")).toString();
     p.publishLevel = attrs.value(QLatin1String("publishLevel")).toString();
     p.description = attrs.value(QLatin1String("description")).toString();
-    m_properties.append(p);
+    m_properties.insert(p.name, p);
 }
 
 void BehaviorMetaDataParser::registerHandler(const QXmlStreamAttributes &attrs)
@@ -102,7 +102,7 @@ void BehaviorMetaDataParser::registerHandler(const QXmlStreamAttributes &attrs)
     h.formalName = attrs.value(QLatin1String("formalName")).toString();
     h.category = attrs.value(QLatin1String("category")).toString();
     h.description = attrs.value(QLatin1String("description")).toString();
-    m_handlers.append(h);
+    m_handlers.insert(h.name, h);
 }
 
 Q3DSBehavior::Q3DSBehavior()

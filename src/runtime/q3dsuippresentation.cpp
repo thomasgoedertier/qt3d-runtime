@@ -264,9 +264,9 @@ int animatablePropertyTypeToMetaType(Q3DS::PropertyType type)
     }
 }
 
-QVariant convertToVariant(const QString &value, const Q3DSMaterial::PropertyElement &propMeta)
+QVariant convertToVariant(const QString &value, Q3DS::PropertyType type)
 {
-    switch (propMeta.type) {
+    switch (type) {
     case StringList:
     case Slide:
     case Font:
@@ -315,17 +315,24 @@ QVariant convertToVariant(const QString &value, const Q3DSMaterial::PropertyElem
             return v;
     }
         break;
-    case Enum:
-    {
-        int idx = propMeta.enumValues.indexOf(value);
-        return idx >= 0 ? idx : 0;
-    }
-        break;
     default:
         break;
     }
 
     return QVariant();
+}
+
+QVariant convertToVariant(const QString &value, const Q3DSMaterial::PropertyElement &propMeta)
+{
+    switch (propMeta.type) {
+    case Enum:
+    {
+        int idx = propMeta.enumValues.indexOf(value);
+        return idx >= 0 ? idx : 0;
+    }
+    default:
+        return convertToVariant(value, propMeta.type);
+    }
 }
 
 QString convertFromVariant(const QVariant &value)
@@ -2068,6 +2075,19 @@ void Q3DSCustomMaterialInstance::applyPropertyChanges(const Q3DSPropertyChangeLi
     updateCustomProperties(m_material.properties(), &m_materialPropertyVals, changeList);
 }
 
+template<typename T>
+void mapCustomPropertyFileNames(QVariantMap *propTab, const T &propMeta, const Q3DSUipParser &parser)
+{
+    for (auto it = propTab->begin(), ite = propTab->end(); it != ite; ++it) {
+        Q3DS::PropertyType t = propMeta[it.key()].type;
+        if (t == Q3DS::Texture) {
+            const QString fn = it->toString();
+            if (!fn.isEmpty())
+                *it = parser.assetFileName(fn, nullptr);
+        }
+    }
+}
+
 static void fillCustomProperties(const QMap<QString, Q3DSMaterial::PropertyElement> &propMeta,
                                  QVariantMap *propTab,
                                  const Q3DSPropertyChangeList &instanceProps,
@@ -2090,14 +2110,7 @@ static void fillCustomProperties(const QMap<QString, Q3DSMaterial::PropertyEleme
     }
 
     // Fix up the filenames to that no further adjustment is necessary from this point on.
-    for (auto it = propTab->begin(), ite = propTab->end(); it != ite; ++it) {
-        Q3DS::PropertyType t = propMeta[it.key()].type;
-        if (t == Q3DS::Texture) {
-            const QString fn = it->toString();
-            if (!fn.isEmpty())
-                *it = parser.assetFileName(fn, nullptr);
-        }
-    }
+    mapCustomPropertyFileNames(propTab, propMeta, parser);
 }
 
 void Q3DSCustomMaterialInstance::resolveReferences(Q3DSUipPresentation &pres, Q3DSUipParser &parser)
@@ -2258,18 +2271,55 @@ void Q3DSBehaviorInstance::setProperties(const QXmlStreamAttributes &attrs, Prop
 {
     Q3DSGraphObject::setProperties(attrs, flags);
     setProps(attrs, flags);
+
+    // Save attributes for the 2nd pass (resolveReferences) since they may
+    // refer to custom properties defined in the behavior.
+    for (const QXmlStreamAttribute &attr : attrs)
+        m_attrs.append(Q3DSPropertyChange(attr.name().toString(), attr.value().toString()));
 }
 
 void Q3DSBehaviorInstance::applyPropertyChanges(const Q3DSPropertyChangeList &changeList)
 {
     Q3DSGraphObject::applyPropertyChanges(changeList);
     setProps(changeList, 0);
+
+    // could be a custom behavior property
+    for (const Q3DSPropertyChange &change : changeList) {
+        auto it = m_behaviorPropertyVals.find(change.nameStr());
+        if (it != m_behaviorPropertyVals.end()) {
+            Q3DS::PropertyType type = m_behavior.properties().value(change.nameStr()).type;
+            *it = Q3DS::convertToVariant(change.valueStr(), type);
+        }
+    }
 }
 
-void Q3DSBehaviorInstance::resolveReferences(Q3DSUipPresentation &pres, Q3DSUipParser &)
+void Q3DSBehaviorInstance::resolveReferences(Q3DSUipPresentation &pres, Q3DSUipParser &parser)
 {
-    if (m_behavior_unresolved.startsWith('#'))
+    if (m_behavior_unresolved.startsWith('#')) {
         m_behavior = pres.behavior(m_behavior_unresolved.mid(1).toUtf8());
+        if (!m_behavior.isNull()) {
+            // Now it's time to fill out the custom property value table.
+            for (auto metaIt = m_behavior.properties().cbegin(), metaItEnd = m_behavior.properties().cend();
+                 metaIt != metaItEnd; ++metaIt)
+            {
+                const QString propertyName = metaIt.key();
+                bool found = false;
+                for (auto instIt = m_attrs.cbegin(), instItEnd = m_attrs.cend(); instIt != instItEnd; ++instIt) {
+                    if (instIt->nameStr() == propertyName) {
+                        found = true;
+                        m_behaviorPropertyVals.insert(propertyName,
+                                                      Q3DS::convertToVariant(instIt->valueStr(), metaIt->type));
+                        break;
+                    }
+                }
+                if (!found)
+                    m_behaviorPropertyVals.insert(propertyName,
+                                                  Q3DS::convertToVariant(metaIt->defaultValue, metaIt->type));
+            }
+            // Fix up the filenames to that no further adjustment is necessary from this point on.
+            mapCustomPropertyFileNames(&m_behaviorPropertyVals, m_behavior.properties(), parser);
+        }
+    }
 }
 
 QStringList Q3DSBehaviorInstance::gex_propertyNames() const
@@ -2284,6 +2334,16 @@ QVariantList Q3DSBehaviorInstance::gex_propertyValues() const
     QVariantList s = Q3DSGraphObject::gex_propertyValues();
     s << m_behavior_unresolved;
     return s;
+}
+
+Q3DSPropertyChange Q3DSBehaviorInstance::setCustomProperty(const QString &name, const QVariant &value)
+{
+    auto it = m_behaviorPropertyVals.find(name);
+    if (it != m_behaviorPropertyVals.end()) {
+        *it = value;
+        return Q3DSPropertyChange(name);
+    }
+    return Q3DSPropertyChange();
 }
 
 Q3DSNode::Q3DSNode(Type type)

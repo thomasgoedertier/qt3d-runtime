@@ -698,6 +698,20 @@ void tst_Q3DSUipParser::customMaterial()
     const QVariantMap &p = mat->customProperties();
     QVERIFY(p.contains(QStringLiteral("uEnvironmentTexture")));
     QCOMPARE(p.value("uEnvironmentTexture").toString(), QStringLiteral(":/data/maps/materials/spherical_checker.png"));
+
+    // "static" custom property setting
+    const QString tilingKey = QLatin1String("tiling");
+    QVERIFY(p.contains(tilingKey));
+    Q3DSPropertyChange tilingChange = mat->setCustomProperty(tilingKey, QVector3D(1, 2, 3));
+    QCOMPARE(tilingChange.nameStr(), tilingKey);
+    QCOMPARE(mat->customProperties().value(tilingKey).value<QVector3D>(), QVector3D(1, 2, 3));
+    QCOMPARE(mat->customProperty(tilingKey).value<QVector3D>(), QVector3D(1, 2, 3));
+
+    // "dynamic" custom property setting
+    tilingChange = Q3DSPropertyChange::fromVariant(tilingKey, QVector3D(4, 5, 6));
+    mat->applyPropertyChanges({ tilingChange });
+    QCOMPARE(mat->customProperties().value(tilingKey).value<QVector3D>(), QVector3D(4, 5, 6));
+    QCOMPARE(mat->customProperty(tilingKey).value<QVector3D>(), QVector3D(4, 5, 6));
 }
 
 void tst_Q3DSUipParser::effect()
@@ -712,9 +726,21 @@ void tst_Q3DSUipParser::effect()
     QCOMPARE(eff->parent(), pres->scene()->firstChild());
 
     Q3DSEffectInstance *e = static_cast<Q3DSEffectInstance *>(eff);
-    const QVariantMap &p = e->customProperties();
-    QCOMPARE(p.count(), 5);
-    QCOMPARE(p.value(QStringLiteral("FocusDistance")).toFloat(), 100.0f);
+    QCOMPARE(e->customProperties().count(), 5);
+    const QString focusDistanceKey = QLatin1String("FocusDistance");
+    QCOMPARE(e->customProperties().value(focusDistanceKey).toFloat(), 100.0f);
+
+    // "static" custom property setting
+    Q3DSPropertyChange focusDistanceChange = e->setCustomProperty(focusDistanceKey, 50.0f);
+    QCOMPARE(focusDistanceChange.nameStr(), focusDistanceKey);
+    QCOMPARE(e->customProperties().value(focusDistanceKey).toFloat(), 50.0f);
+    QCOMPARE(e->customProperty(focusDistanceKey).toFloat(), 50.0f);
+
+    // "dynamic" custom property setting
+    focusDistanceChange = Q3DSPropertyChange::fromVariant(focusDistanceKey, 20.0f);
+    e->applyPropertyChanges({ focusDistanceChange });
+    QCOMPARE(e->customProperties().value(focusDistanceKey).toFloat(), 20.0f);
+    QCOMPARE(e->customProperty(focusDistanceKey).toFloat(), 20.0f);
 }
 
 void tst_Q3DSUipParser::primitiveMeshes()
@@ -1096,29 +1122,62 @@ void tst_Q3DSUipParser::behavior()
 
     QCOMPARE(b->properties().count(), 2);
     auto props = b->properties();
-    QCOMPARE(props[0].name, QStringLiteral("cameraTarget"));
-    QCOMPARE(props[0].formalName, QStringLiteral("Camera Target"));
-    QCOMPARE(props[0].type, Q3DS::ObjectRef);
-    QCOMPARE(props[0].defaultValue, QStringLiteral("Scene.Layer.Camera"));
-    QCOMPARE(props[0].publishLevel, QString());
-    QCOMPARE(props[0].description, QStringLiteral("Object in scene the camera should look at"));
-    QCOMPARE(props[1].name, QStringLiteral("startImmediately"));
-    QCOMPARE(props[1].formalName, QStringLiteral("Start Immediately?"));
-    QCOMPARE(props[1].type, Q3DS::Boolean);
-    QCOMPARE(props[1].defaultValue, QStringLiteral("True"));
-    QCOMPARE(props[1].publishLevel, QStringLiteral("Advanced"));
-    QCOMPARE(props[1].description, QStringLiteral("Start immediately, or wait for the Enable action to be called?"));
+    {
+        auto p = props[QLatin1String("cameraTarget")];
+        QCOMPARE(p.name, QStringLiteral("cameraTarget"));
+        QCOMPARE(p.formalName, QStringLiteral("Camera Target"));
+        QCOMPARE(p.type, Q3DS::ObjectRef);
+        QCOMPARE(p.defaultValue, QStringLiteral("Scene.Layer.Camera"));
+        QCOMPARE(p.publishLevel, QString());
+        QCOMPARE(p.description, QStringLiteral("Object in scene the camera should look at"));
+    }
+    {
+        auto p = props[QLatin1String("startImmediately")];
+        QCOMPARE(p.name, QStringLiteral("startImmediately"));
+        QCOMPARE(p.formalName, QStringLiteral("Start Immediately?"));
+        QCOMPARE(p.type, Q3DS::Boolean);
+        QCOMPARE(p.defaultValue, QStringLiteral("True"));
+        QCOMPARE(p.publishLevel, QStringLiteral("Advanced"));
+        QCOMPARE(p.description, QStringLiteral("Start immediately, or wait for the Enable action to be called?"));
+    }
+
+    // check value given in the uip
+    const QString smKey = QLatin1String("startImmediately");
+    QVERIFY(behavInst->customProperties().contains(smKey));
+    QCOMPARE(behavInst->customProperties().value(smKey).toBool(), false);
+
+    // check default value
+    QCOMPARE(behavInst->customProperties().value(QLatin1String("cameraTarget")).toString(),
+             QStringLiteral("Scene.Layer.Camera"));
+
+    // "static" custom property setting
+    Q3DSPropertyChange smChange = behavInst->setCustomProperty(smKey, false);
+    QCOMPARE(smChange.nameStr(), smKey);
+    QCOMPARE(behavInst->customProperties().value(smKey).toBool(), false);
+    QCOMPARE(behavInst->customProperty(smKey).toBool(), false);
+
+    // "dynamic" custom property setting
+    smChange = Q3DSPropertyChange::fromVariant(smKey, true);
+    behavInst->applyPropertyChanges({ smChange });
+    QCOMPARE(behavInst->customProperties().value(smKey).toBool(), true);
+    QCOMPARE(behavInst->customProperty(smKey).toBool(), true);
 
     QCOMPARE(b->handlers().count(), 2);
     auto handlers = b->handlers();
-    QCOMPARE(handlers[0].name, QStringLiteral("start"));
-    QCOMPARE(handlers[0].formalName, QStringLiteral("Start"));
-    QCOMPARE(handlers[0].category, QStringLiteral("CameraLookAt"));
-    QCOMPARE(handlers[0].description, QStringLiteral("Begin looking the target"));
-    QCOMPARE(handlers[1].name, QStringLiteral("stop"));
-    QCOMPARE(handlers[1].formalName, QStringLiteral("Stop"));
-    QCOMPARE(handlers[1].category, QStringLiteral("CameraLookAt"));
-    QCOMPARE(handlers[1].description, QStringLiteral("Stop looking the target"));
+    {
+        auto h = handlers[QLatin1String("start")];
+        QCOMPARE(h.name, QStringLiteral("start"));
+        QCOMPARE(h.formalName, QStringLiteral("Start"));
+        QCOMPARE(h.category, QStringLiteral("CameraLookAt"));
+        QCOMPARE(h.description, QStringLiteral("Begin looking the target"));
+    }
+    {
+        auto h = handlers[QLatin1String("stop")];
+        QCOMPARE(h.name, QStringLiteral("stop"));
+        QCOMPARE(h.formalName, QStringLiteral("Stop"));
+        QCOMPARE(h.category, QStringLiteral("CameraLookAt"));
+        QCOMPARE(h.description, QStringLiteral("Stop looking the target"));
+    }
 }
 
 #include <tst_q3dsuipparser.moc>

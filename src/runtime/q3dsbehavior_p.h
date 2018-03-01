@@ -43,7 +43,7 @@
 
 #include "q3dsruntimeglobal_p.h"
 #include "q3dspresentationcommon_p.h"
-#include <QVector>
+#include <QMap>
 
 QT_BEGIN_NAMESPACE
 
@@ -71,13 +71,13 @@ public:
         QString description;
     };
 
-    const QVector<Q3DSBehavior::Property> &properties() const { return m_properties; }
-    const QVector<Q3DSBehavior::Handler> &handlers() const { return m_handlers; }
+    const QMap<QString, Q3DSBehavior::Property> &properties() const { return m_properties; }
+    const QMap<QString, Q3DSBehavior::Handler> &handlers() const { return m_handlers; }
 
 private:
     QString m_qmlCode;
-    QVector<Property> m_properties;
-    QVector<Handler> m_handlers;
+    QMap<QString, Property> m_properties;
+    QMap<QString, Handler> m_handlers;
 
     friend class Q3DSBehaviorParser;
 };

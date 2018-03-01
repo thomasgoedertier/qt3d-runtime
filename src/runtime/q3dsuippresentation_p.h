@@ -1808,12 +1808,18 @@ public:
     // Properties
     const Q3DSBehavior *behavior() const { return &m_behavior; }
 
+    QVariantMap customProperties() const { return m_behaviorPropertyVals; }
+    QVariant customProperty(const QString &name) const { return m_behaviorPropertyVals.value(name); }
+    Q3DSPropertyChange setCustomProperty(const QString &name, const QVariant &value);
+
 private:
     Q_DISABLE_COPY(Q3DSBehaviorInstance)
     template<typename V> void setProps(const V &attrs, PropSetFlags flags);
 
     QString m_behavior_unresolved;
     Q3DSBehavior m_behavior;
+    Q3DSPropertyChangeList m_attrs;
+    QVariantMap m_behaviorPropertyVals;
 };
 
 class Q3DSV_PRIVATE_EXPORT Q3DSUipPresentation
