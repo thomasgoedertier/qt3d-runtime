@@ -59,8 +59,6 @@ public:
     quint64 elapsedSinceSetSource() const { return m_parseTimer.elapsed(); }
     QString readerErrorString() const;
 
-    QString assetFileName(const QString &xmlFileNameRef, int *part) const;
-
 protected:
     bool setSource(const QString &filename);
     bool setSourceData(const QByteArray &data);

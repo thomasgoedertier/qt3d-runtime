@@ -146,6 +146,7 @@ public:
 
     bool isEmpty() const { return m_changes.isEmpty(); }
     int count() const { return m_changes.count(); }
+    void clear() { m_changes.clear(); m_keys.clear(); }
     void append(const Q3DSPropertyChange &change);
     QSet<QString> keys() const { return m_keys; }
 
@@ -197,6 +198,35 @@ public:
 };
 
 Q_DECLARE_OPERATORS_FOR_FLAGS(Q3DSGraphObjectAttached::FrameDirtyFlags)
+
+// GraphObjects have 4 types of setters:
+//
+// 1. setProperties -> initialize from XML (all properties), called once per
+// object from the parser. This is followed up by a call to resolveReferences
+// from the parser after the graph is complete.
+//
+// 2. applyPropertyChanges -> update the value of the given properties (e.g. on
+// slide change or when invoked manually)
+//
+// 3. normal setters, with the twist of returning a Q3DSPropertyChange
+//
+// 4. static setters in a separate Q3DSXxxxAnimator -> used by the animation
+// system
+//
+// Note that there is no implicit resolveReferences() in cases 2, 3, 4.
+// Changing an Image or ObjectRef property thus needs an explicit call to it.
+// Also note that 1 & 2 work with XML-style "#id" strings for image and object
+// references.
+//
+// None of these invoke the property change callbacks -> that needs an explicit
+// notifyPropertyChanges().
+//
+// Instances of custom materials, effects and behaviors have custom properties
+// on top (customProperty(), setCustomProperty()). These are settable via
+// applyPropertyChanges as well.
+//
+// Similarly, getters have two variants: animatable properties have a static
+// getter as well.
 
 class Q3DSV_PRIVATE_EXPORT Q3DSGraphObject
 {
@@ -258,7 +288,7 @@ public:
 
     virtual void setProperties(const QXmlStreamAttributes &attrs, PropSetFlags flags);
     virtual void applyPropertyChanges(const Q3DSPropertyChangeList &changeList);
-    virtual void resolveReferences(Q3DSUipPresentation &, Q3DSUipParser &) { }
+    virtual void resolveReferences(Q3DSUipPresentation &) { }
 
     virtual int mapChangeFlags(const Q3DSPropertyChangeList &changeList);
     void notifyPropertyChanges(const Q3DSPropertyChangeList &changeList);
@@ -531,7 +561,7 @@ public:
 
     void setProperties(const QXmlStreamAttributes &attrs, PropSetFlags flags) override;
     void applyPropertyChanges(const Q3DSPropertyChangeList &changeList) override;
-    void resolveReferences(Q3DSUipPresentation &pres, Q3DSUipParser &parser) override;
+    void resolveReferences(Q3DSUipPresentation &pres) override;
 
     const QSet<Q3DSGraphObject *> &objects() const { return m_objects; } // NB does not include objects from master
     void addObject(Q3DSGraphObject *obj);
@@ -623,17 +653,6 @@ private:
 
 Q_DECLARE_TYPEINFO(Q3DSSlide::SlideObjectChange, Q_MOVABLE_TYPE);
 
-// Node/material/resource-like GraphObjects have 3 types of setters:
-//
-// 1. setProperties -> initialize from XML (all properties)
-// 2. applyPropertyChanges -> just update the value of the given properties, used when changing slides
-// 3. normal setters, with the twist of returning a Q3DSPropertyChange
-// 4. static setters in a separate Q3DSXxxxAnimator -> used by the animation system
-//
-// None of these invoke the property change callbacks -> that needs an explicit notifyPropertyChanges()
-//
-// Similarly, getters have two variants: animatable properties have a static getter as well.
-
 class Q3DSV_PRIVATE_EXPORT Q3DSImage : public Q3DSGraphObject
 {
 public:
@@ -654,7 +673,7 @@ public:
 
     void setProperties(const QXmlStreamAttributes &attrs, PropSetFlags flags) override;
     void applyPropertyChanges(const Q3DSPropertyChangeList &changeList) override;
-    void resolveReferences(Q3DSUipPresentation &pres, Q3DSUipParser &parser) override;
+    void resolveReferences(Q3DSUipPresentation &pres) override;
 
     QStringList gex_propertyNames() const override;
     QVariantList gex_propertyValues() const override;
@@ -917,7 +936,7 @@ public:
 
     void setProperties(const QXmlStreamAttributes &attrs, PropSetFlags flags) override;
     void applyPropertyChanges(const Q3DSPropertyChangeList &changeList) override;
-    void resolveReferences(Q3DSUipPresentation &pres, Q3DSUipParser &parser) override;
+    void resolveReferences(Q3DSUipPresentation &pres) override;
     int mapChangeFlags(const Q3DSPropertyChangeList &changeList) override;
 
     QStringList gex_propertyNames() const override;
@@ -1193,7 +1212,7 @@ public:
 
     void setProperties(const QXmlStreamAttributes &attrs, PropSetFlags flags) override;
     void applyPropertyChanges(const Q3DSPropertyChangeList &changeList) override;
-    void resolveReferences(Q3DSUipPresentation &pres, Q3DSUipParser &parser) override;
+    void resolveReferences(Q3DSUipPresentation &pres) override;
 
     QStringList gex_propertyNames() const override;
     QVariantList gex_propertyValues() const override;
@@ -1306,7 +1325,7 @@ public:
 
     void setProperties(const QXmlStreamAttributes &attrs, PropSetFlags flags) override;
     void applyPropertyChanges(const Q3DSPropertyChangeList &changeList) override;
-    void resolveReferences(Q3DSUipPresentation &pres, Q3DSUipParser &parser) override;
+    void resolveReferences(Q3DSUipPresentation &pres) override;
 
     QStringList gex_propertyNames() const override;
     QVariantList gex_propertyValues() const override;
@@ -1373,7 +1392,7 @@ public:
 
     void setProperties(const QXmlStreamAttributes &attrs, PropSetFlags flags) override;
     void applyPropertyChanges(const Q3DSPropertyChangeList &changeList) override;
-    void resolveReferences(Q3DSUipPresentation &, Q3DSUipParser &) override;
+    void resolveReferences(Q3DSUipPresentation &) override;
 
     Q3DSSlide *masterSlide() const { return m_masterSlide; }
     Q3DSSlide *currentSlide() const { return m_currentSlide; }
@@ -1500,7 +1519,7 @@ public:
 
     void setProperties(const QXmlStreamAttributes &attrs, PropSetFlags flags) override;
     void applyPropertyChanges(const Q3DSPropertyChangeList &changeList) override;
-    void resolveReferences(Q3DSUipPresentation &pres, Q3DSUipParser &parser) override;
+    void resolveReferences(Q3DSUipPresentation &pres) override;
     int mapChangeFlags(const Q3DSPropertyChangeList &changeList) override;
 
     QStringList gex_propertyNames() const override;
@@ -1669,7 +1688,7 @@ public:
 
     void setProperties(const QXmlStreamAttributes &attrs, PropSetFlags flags) override;
     void applyPropertyChanges(const Q3DSPropertyChangeList &changeList) override;
-    void resolveReferences(Q3DSUipPresentation &pres, Q3DSUipParser &parser) override;
+    void resolveReferences(Q3DSUipPresentation &pres) override;
 
     QStringList gex_propertyNames() const override;
     QVariantList gex_propertyValues() const override;
@@ -1715,7 +1734,7 @@ public:
 
     void setProperties(const QXmlStreamAttributes &attrs, PropSetFlags flags) override;
     void applyPropertyChanges(const Q3DSPropertyChangeList &changeList) override;
-    void resolveReferences(Q3DSUipPresentation &pres, Q3DSUipParser &parser) override;
+    void resolveReferences(Q3DSUipPresentation &pres) override;
 
     QStringList gex_propertyNames() const override;
     QVariantList gex_propertyValues() const override;
@@ -1746,8 +1765,9 @@ private:
 
     QString m_material_unresolved;
     Q3DSCustomMaterial m_material;
+    bool m_materialIsResolved = false;
     QVariantMap m_materialPropertyVals;
-    Q3DSPropertyChangeList m_attrs;
+    Q3DSPropertyChangeList m_pendingCustomProperties;
     // lightmaps
     QString m_lightmapIndirectMap_unresolved;
     Q3DSImage *m_lightmapIndirectMap = nullptr;
@@ -1768,7 +1788,7 @@ public:
 
     void setProperties(const QXmlStreamAttributes &attrs, PropSetFlags flags) override;
     void applyPropertyChanges(const Q3DSPropertyChangeList &changeList) override;
-    void resolveReferences(Q3DSUipPresentation &pres, Q3DSUipParser &parser) override;
+    void resolveReferences(Q3DSUipPresentation &pres) override;
 
     QStringList gex_propertyNames() const override;
     QVariantList gex_propertyValues() const override;
@@ -1788,8 +1808,9 @@ private:
 
     QString m_effect_unresolved;
     Q3DSEffect m_effect;
+    bool m_effectIsResolved = false;
     QVariantMap m_effectPropertyVals;
-    Q3DSPropertyChangeList m_attrs;
+    Q3DSPropertyChangeList m_pendingCustomProperties;
 };
 
 class Q3DSV_PRIVATE_EXPORT Q3DSBehaviorInstance : public Q3DSGraphObject
@@ -1800,7 +1821,7 @@ public:
 
     void setProperties(const QXmlStreamAttributes &attrs, PropSetFlags flags) override;
     void applyPropertyChanges(const Q3DSPropertyChangeList &changeList) override;
-    void resolveReferences(Q3DSUipPresentation &pres, Q3DSUipParser &parser) override;
+    void resolveReferences(Q3DSUipPresentation &pres) override;
 
     QStringList gex_propertyNames() const override;
     QVariantList gex_propertyValues() const override;
@@ -1818,7 +1839,8 @@ private:
 
     QString m_behavior_unresolved;
     Q3DSBehavior m_behavior;
-    Q3DSPropertyChangeList m_attrs;
+    bool m_behaviorIsResolved = false;
+    Q3DSPropertyChangeList m_pendingCustomProperties;
     QVariantMap m_behaviorPropertyVals;
 };
 
@@ -1837,6 +1859,8 @@ public:
     };
 
     QString sourceFile() const;
+    void setSourceFile(const QString &s);
+    QString assetFileName(const QString &xmlFileNameRef, int *part) const;
 
     QString author() const;
     QString company() const;
@@ -1920,7 +1944,6 @@ public:
 private:
     Q_DISABLE_COPY(Q3DSUipPresentation)
 
-    void setSourceFile(const QString &s);
     void setLoadTime(qint64 ms);
     bool loadCustomMaterial(const QStringRef &id, const QStringRef &name, const QString &assetFilename);
     bool loadEffect(const QStringRef &id, const QStringRef &name, const QString &assetFilename);

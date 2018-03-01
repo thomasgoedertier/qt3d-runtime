@@ -178,31 +178,30 @@ void tst_Q3DSUipParser::assetRef()
     QScopedPointer<Q3DSUipPresentation> pres(parser.parse(QLatin1String(":/data/modded_cube.uip")));
     QVERIFY(!pres.isNull());
 
-
     int part = -123;
-    QString fn = parser.assetFileName(".\\Headphones\\meshes\\Headphones.mesh#1", &part);
+    QString fn = pres->assetFileName(".\\Headphones\\meshes\\Headphones.mesh#1", &part);
     QCOMPARE(part, 1);
     QCOMPARE(fn, QLatin1String(":/data/Headphones/meshes/Headphones.mesh"));
 
-    fn = parser.assetFileName("something", nullptr);
+    fn = pres->assetFileName("something", nullptr);
     QCOMPARE(fn, QLatin1String(":/data/something"));
 
     part = -123;
-    fn = parser.assetFileName("something", &part);
+    fn = pres->assetFileName("something", &part);
     QCOMPARE(fn, QLatin1String(":/data/something"));
     QCOMPARE(part, 1);
 
-    fn = parser.assetFileName("/absolute/blah#32", &part);
+    fn = pres->assetFileName("/absolute/blah#32", &part);
     QCOMPARE(fn, QLatin1String("/absolute/blah"));
     QCOMPARE(part, 32);
 
     part = 26;
-    fn = parser.assetFileName("bad_part#abcd", &part);
+    fn = pres->assetFileName("bad_part#abcd", &part);
     QVERIFY(fn.isEmpty());
     QCOMPARE(part, 26);
 
     part = -123;
-    fn = parser.assetFileName("#Cube", &part);
+    fn = pres->assetFileName("#Cube", &part);
     QCOMPARE(fn, QLatin1String("#Cube"));
     QCOMPARE(part, 1);
 }
@@ -674,6 +673,20 @@ void tst_Q3DSUipParser::imageObj()
 
     // Image reference in (default) Material
     Q3DSDefaultMaterial *mat = static_cast<Q3DSDefaultMaterial *>(img->parent());
+    QCOMPARE(mat->diffuseMap(), img);
+
+    // Changes to an Image reference:
+
+    // "static" (switch to probeImage)
+    Q3DSPropertyChange diffuseMapChange = mat->setDiffuseMap(probeImage);
+    QCOMPARE(diffuseMapChange.nameStr(), QStringLiteral("diffusemap"));
+    QCOMPARE(mat->diffuseMap(), probeImage);
+
+    // "dynamic" with id ref (switch to img)
+    diffuseMapChange = Q3DSPropertyChange::fromVariant(QLatin1String("diffusemap"),
+                                                       QLatin1String("#Material_001_diffusemap"));
+    mat->applyPropertyChanges({ diffuseMapChange });
+    mat->resolveReferences(*pres.data());
     QCOMPARE(mat->diffuseMap(), img);
 }
 

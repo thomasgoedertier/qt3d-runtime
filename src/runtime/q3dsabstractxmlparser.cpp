@@ -84,48 +84,4 @@ QString Q3DSAbstractXmlParser::readerErrorString() const
             .arg(m_reader.errorString());
 }
 
-/*!
-    Maps a raw XML filename ref like ".\Headphones\meshes\Headphones.mesh#1"
-    onto a fully qualified filename that can be opened as-is (even if the uip
-    is in qrc etc.), and also decodes the optional part index.
- */
-QString Q3DSAbstractXmlParser::assetFileName(const QString &xmlFileNameRef, int *part) const
-{
-    QString rawName = xmlFileNameRef;
-    if (rawName.startsWith('#')) {
-        // Can be a built-in primitive ref, like #Cube.
-        if (part)
-            *part = 1;
-        return rawName;
-    }
-
-    if (rawName.contains('#')) {
-        int pos = rawName.lastIndexOf('#');
-        bool ok = false;
-        int idx = rawName.mid(pos + 1).toInt(&ok);
-        if (!ok) {
-            Q3DSUtils::showMessage(QObject::tr("Invalid part index '%1'").arg(rawName));
-            return QString();
-        }
-        if (part)
-            *part = idx;
-        rawName = rawName.left(pos);
-    } else {
-        if (part)
-            *part = 1;
-    }
-
-    rawName.replace('\\', '/');
-    if (rawName.startsWith(QStringLiteral("./")))
-        rawName = rawName.mid(2);
-
-    if (QFileInfo(rawName).isAbsolute())
-        return rawName;
-
-    QString fn = m_sourceInfo.canonicalPath();
-    fn += QLatin1Char('/');
-    fn += rawName;
-    return QFileInfo(fn).absoluteFilePath();
-}
-
 QT_END_NAMESPACE

@@ -240,7 +240,7 @@ void Q3DSUipParser::parseExternalFileRef(ExternalFileLoadCallback callback)
     QStringRef name = a.value(QStringLiteral("name"));
     QStringRef sourcePath = a.value(QStringLiteral("sourcepath"));
 
-    const QString src = assetFileName(sourcePath.toString(), nullptr);
+    const QString src = m_presentation->assetFileName(sourcePath.toString(), nullptr);
     if (!callback(id, name, src))
         r->raiseError(QObject::tr("Failed to load external file %1").arg(src));
 
@@ -651,7 +651,7 @@ Q3DSGraphObject::DataInputControlledProperties Q3DSUipParser::getDataInputContro
 void Q3DSUipParser::resolveReferences(Q3DSGraphObject *obj)
 {
     while (obj) {
-        obj->resolveReferences(*m_presentation, *this);
+        obj->resolveReferences(*m_presentation);
         resolveReferences(obj->firstChild());
         obj = obj->nextSibling();
     }

@@ -32,6 +32,7 @@
 #include "q3dsenummaps_p.h"
 #include "q3dsuipparser_p.h"
 #include "q3dsscenemanager_p.h"
+#include "q3dsutils_p.h"
 #include <QXmlStreamReader>
 #include <QLoggingCategory>
 #include <functional>
@@ -1182,7 +1183,7 @@ void Q3DSSlide::applyPropertyChanges(const Q3DSPropertyChangeList &changeList)
     setProps(changeList, 0);
 }
 
-void Q3DSSlide::resolveReferences(Q3DSUipPresentation &pres, Q3DSUipParser &)
+void Q3DSSlide::resolveReferences(Q3DSUipPresentation &pres)
 {
     for (Q3DSAction &action : m_actions) {
         resolveRef(action.targetObject_unresolved, Q3DSGraphObject::AnyObject, &action.targetObject, pres);
@@ -1409,7 +1410,7 @@ void Q3DSImage::applyPropertyChanges(const Q3DSPropertyChangeList &changeList)
     calculateTextureTransform();
 }
 
-void Q3DSImage::resolveReferences(Q3DSUipPresentation &presentation, Q3DSUipParser &parser)
+void Q3DSImage::resolveReferences(Q3DSUipPresentation &presentation)
 {
     if (!m_sourcePath.isEmpty()) {
         // We'll use this chance to check if the image contains has an alpha channel.
@@ -1420,7 +1421,7 @@ void Q3DSImage::resolveReferences(Q3DSUipPresentation &presentation, Q3DSUipPars
             m_hasTransparency = *it;
             m_scannedForTransparency = true;
         }
-        m_sourcePath = parser.assetFileName(m_sourcePath, nullptr);
+        m_sourcePath = presentation.assetFileName(m_sourcePath, nullptr);
     }
 }
 
@@ -1714,7 +1715,7 @@ void Q3DSDefaultMaterial::applyPropertyChanges(const Q3DSPropertyChangeList &cha
     setProps(changeList, 0);
 }
 
-void Q3DSDefaultMaterial::resolveReferences(Q3DSUipPresentation &pres, Q3DSUipParser &)
+void Q3DSDefaultMaterial::resolveReferences(Q3DSUipPresentation &pres)
 {
     resolveRef(m_diffuseMap_unresolved, Q3DSGraphObject::Image, &m_diffuseMap, pres);
     resolveRef(m_diffuseMap2_unresolved, Q3DSGraphObject::Image, &m_diffuseMap2, pres);
@@ -1966,7 +1967,7 @@ void Q3DSReferencedMaterial::applyPropertyChanges(const Q3DSPropertyChangeList &
     setProps(changeList, 0);
 }
 
-void Q3DSReferencedMaterial::resolveReferences(Q3DSUipPresentation &pres, Q3DSUipParser &)
+void Q3DSReferencedMaterial::resolveReferences(Q3DSUipPresentation &pres)
 {
     // can be DefaultMaterial or CustomMaterial so stick with a generic object
     resolveRef(m_referencedMaterial_unresolved, Q3DSGraphObject::AnyObject, &m_referencedMaterial, pres);
@@ -2053,7 +2054,7 @@ void Q3DSCustomMaterialInstance::setProperties(const QXmlStreamAttributes &attrs
     // Save attributes for the 2nd pass (resolveReferences) since they may
     // refer to custom properties defined in the custom material.
     for (const QXmlStreamAttribute &attr : attrs)
-        m_attrs.append(Q3DSPropertyChange(attr.name().toString(), attr.value().toString()));
+        m_pendingCustomProperties.append(Q3DSPropertyChange(attr.name().toString(), attr.value().toString()));
 }
 
 static void updateCustomProperties(const QMap<QString, Q3DSMaterial::PropertyElement> &propMeta,
@@ -2076,14 +2077,14 @@ void Q3DSCustomMaterialInstance::applyPropertyChanges(const Q3DSPropertyChangeLi
 }
 
 template<typename T>
-void mapCustomPropertyFileNames(QVariantMap *propTab, const T &propMeta, const Q3DSUipParser &parser)
+void mapCustomPropertyFileNames(QVariantMap *propTab, const T &propMeta, const Q3DSUipPresentation &pres)
 {
     for (auto it = propTab->begin(), ite = propTab->end(); it != ite; ++it) {
         Q3DS::PropertyType t = propMeta[it.key()].type;
         if (t == Q3DS::Texture) {
             const QString fn = it->toString();
             if (!fn.isEmpty())
-                *it = parser.assetFileName(fn, nullptr);
+                *it = pres.assetFileName(fn, nullptr);
         }
     }
 }
@@ -2091,7 +2092,7 @@ void mapCustomPropertyFileNames(QVariantMap *propTab, const T &propMeta, const Q
 static void fillCustomProperties(const QMap<QString, Q3DSMaterial::PropertyElement> &propMeta,
                                  QVariantMap *propTab,
                                  const Q3DSPropertyChangeList &instanceProps,
-                                 const Q3DSUipParser &parser)
+                                 const Q3DSUipPresentation &pres)
 {
     // Take all properties from the metadata and fill them all into the
     // instance-specific table either with the default value or the
@@ -2110,14 +2111,20 @@ static void fillCustomProperties(const QMap<QString, Q3DSMaterial::PropertyEleme
     }
 
     // Fix up the filenames to that no further adjustment is necessary from this point on.
-    mapCustomPropertyFileNames(propTab, propMeta, parser);
+    mapCustomPropertyFileNames(propTab, propMeta, pres);
 }
 
-void Q3DSCustomMaterialInstance::resolveReferences(Q3DSUipPresentation &pres, Q3DSUipParser &parser)
+void Q3DSCustomMaterialInstance::resolveReferences(Q3DSUipPresentation &pres)
 {
-    if (m_material_unresolved.startsWith('#')) {
+    // changing the material class dynamically is not supported. do it only once.
+    if (!m_materialIsResolved && m_material_unresolved.startsWith('#')) {
         m_material = pres.customMaterial(m_material_unresolved.mid(1).toUtf8());
-        fillCustomProperties(m_material.properties(), &m_materialPropertyVals, m_attrs, parser);
+        m_materialIsResolved = true;
+        if (!m_material.isNull()) {
+            fillCustomProperties(m_material.properties(), &m_materialPropertyVals,
+                                 m_pendingCustomProperties, pres);
+            m_pendingCustomProperties.clear();
+        }
     }
 
     resolveRef(m_lightmapIndirectMap_unresolved, Q3DSGraphObject::Image, &m_lightmapIndirectMap, pres);
@@ -2202,7 +2209,7 @@ void Q3DSEffectInstance::setProperties(const QXmlStreamAttributes &attrs, PropSe
     // Save attributes for the 2nd pass (resolveReferences) since they may
     // refer to custom properties defined in the effect.
     for (const QXmlStreamAttribute &attr : attrs)
-        m_attrs.append(Q3DSPropertyChange(attr.name().toString(), attr.value().toString()));
+        m_pendingCustomProperties.append(Q3DSPropertyChange(attr.name().toString(), attr.value().toString()));
 }
 
 void Q3DSEffectInstance::applyPropertyChanges(const Q3DSPropertyChangeList &changeList)
@@ -2213,12 +2220,17 @@ void Q3DSEffectInstance::applyPropertyChanges(const Q3DSPropertyChangeList &chan
     updateCustomProperties(m_effect.properties(), &m_effectPropertyVals, changeList);
 }
 
-void Q3DSEffectInstance::resolveReferences(Q3DSUipPresentation &pres, Q3DSUipParser &parser)
+void Q3DSEffectInstance::resolveReferences(Q3DSUipPresentation &pres)
 {
-    if (m_effect_unresolved.startsWith('#')) {
+    // changing the effect class dynamically is not supported. do it only once.
+    if (!m_effectIsResolved && m_effect_unresolved.startsWith('#')) {
         m_effect = pres.effect(m_effect_unresolved.mid(1).toUtf8());
-        if (!m_effect.isNull())
-            fillCustomProperties(m_effect.properties(), &m_effectPropertyVals, m_attrs, parser);
+        m_effectIsResolved = true;
+        if (!m_effect.isNull()) {
+            fillCustomProperties(m_effect.properties(), &m_effectPropertyVals,
+                                 m_pendingCustomProperties, pres);
+            m_pendingCustomProperties.clear();
+        }
     }
 }
 
@@ -2275,7 +2287,7 @@ void Q3DSBehaviorInstance::setProperties(const QXmlStreamAttributes &attrs, Prop
     // Save attributes for the 2nd pass (resolveReferences) since they may
     // refer to custom properties defined in the behavior.
     for (const QXmlStreamAttribute &attr : attrs)
-        m_attrs.append(Q3DSPropertyChange(attr.name().toString(), attr.value().toString()));
+        m_pendingCustomProperties.append(Q3DSPropertyChange(attr.name().toString(), attr.value().toString()));
 }
 
 void Q3DSBehaviorInstance::applyPropertyChanges(const Q3DSPropertyChangeList &changeList)
@@ -2293,10 +2305,12 @@ void Q3DSBehaviorInstance::applyPropertyChanges(const Q3DSPropertyChangeList &ch
     }
 }
 
-void Q3DSBehaviorInstance::resolveReferences(Q3DSUipPresentation &pres, Q3DSUipParser &parser)
+void Q3DSBehaviorInstance::resolveReferences(Q3DSUipPresentation &pres)
 {
-    if (m_behavior_unresolved.startsWith('#')) {
+    // changing the behavior class dynamically is not supported. do it only once.
+    if (!m_behaviorIsResolved && m_behavior_unresolved.startsWith('#')) {
         m_behavior = pres.behavior(m_behavior_unresolved.mid(1).toUtf8());
+        m_behaviorIsResolved = true;
         if (!m_behavior.isNull()) {
             // Now it's time to fill out the custom property value table.
             for (auto metaIt = m_behavior.properties().cbegin(), metaItEnd = m_behavior.properties().cend();
@@ -2304,7 +2318,9 @@ void Q3DSBehaviorInstance::resolveReferences(Q3DSUipPresentation &pres, Q3DSUipP
             {
                 const QString propertyName = metaIt.key();
                 bool found = false;
-                for (auto instIt = m_attrs.cbegin(), instItEnd = m_attrs.cend(); instIt != instItEnd; ++instIt) {
+                for (auto instIt = m_pendingCustomProperties.cbegin(), instItEnd = m_pendingCustomProperties.cend();
+                     instIt != instItEnd; ++instIt)
+                {
                     if (instIt->nameStr() == propertyName) {
                         found = true;
                         m_behaviorPropertyVals.insert(propertyName,
@@ -2317,7 +2333,9 @@ void Q3DSBehaviorInstance::resolveReferences(Q3DSUipPresentation &pres, Q3DSUipP
                                                   Q3DS::convertToVariant(metaIt->defaultValue, metaIt->type));
             }
             // Fix up the filenames to that no further adjustment is necessary from this point on.
-            mapCustomPropertyFileNames(&m_behaviorPropertyVals, m_behavior.properties(), parser);
+            mapCustomPropertyFileNames(&m_behaviorPropertyVals, m_behavior.properties(), pres);
+
+            m_pendingCustomProperties.clear();
         }
     }
 }
@@ -2564,9 +2582,9 @@ void Q3DSLayerNode::applyPropertyChanges(const Q3DSPropertyChangeList &changeLis
     setProps(changeList, 0);
 }
 
-void Q3DSLayerNode::resolveReferences(Q3DSUipPresentation &pres, Q3DSUipParser &parser)
+void Q3DSLayerNode::resolveReferences(Q3DSUipPresentation &pres)
 {
-    Q3DSNode::resolveReferences(pres, parser);
+    Q3DSNode::resolveReferences(pres);
     resolveRef(m_lightProbe_unresolved, Q3DSGraphObject::Image, &m_lightProbe, pres);
     resolveRef(m_lightProbe2_unresolved, Q3DSGraphObject::Image, &m_lightProbe2, pres);
 }
@@ -2940,9 +2958,9 @@ void Q3DSLightNode::applyPropertyChanges(const Q3DSPropertyChangeList &changeLis
     setProps(changeList, 0);
 }
 
-void Q3DSLightNode::resolveReferences(Q3DSUipPresentation &pres, Q3DSUipParser &parser)
+void Q3DSLightNode::resolveReferences(Q3DSUipPresentation &pres)
 {
-    Q3DSNode::resolveReferences(pres, parser);
+    Q3DSNode::resolveReferences(pres);
     resolveRef(m_scope_unresolved, Q3DSGraphObject::AnyObject, &m_scope, pres);
 }
 
@@ -3082,12 +3100,12 @@ void Q3DSModelNode::applyPropertyChanges(const Q3DSPropertyChangeList &changeLis
     setProps(changeList, 0);
 }
 
-void Q3DSModelNode::resolveReferences(Q3DSUipPresentation &pres, Q3DSUipParser &parser)
+void Q3DSModelNode::resolveReferences(Q3DSUipPresentation &pres)
 {
-    Q3DSNode::resolveReferences(pres, parser);
+    Q3DSNode::resolveReferences(pres);
     if (!m_mesh_unresolved.isEmpty()) {
         int part = 1;
-        QString fn = parser.assetFileName(m_mesh_unresolved, &part);
+        QString fn = pres.assetFileName(m_mesh_unresolved, &part);
         m_mesh = pres.mesh(fn, part);
     }
 }
@@ -3201,12 +3219,12 @@ void Q3DSComponentNode::applyPropertyChanges(const Q3DSPropertyChangeList &chang
     setProps(changeList, 0);
 }
 
-void Q3DSComponentNode::resolveReferences(Q3DSUipPresentation &pres, Q3DSUipParser &parser)
+void Q3DSComponentNode::resolveReferences(Q3DSUipPresentation &pres)
 {
     // There is an own little slide graph in each component, make sure object
     // refs in actions are resolved in these as well.
     pres.forAllObjectsOfType(m_masterSlide, Q3DSGraphObject::Slide, [&](Q3DSGraphObject *obj) {
-        obj->resolveReferences(pres, parser);
+        obj->resolveReferences(pres);
     });
 }
 
@@ -3439,6 +3457,50 @@ Q3DSGraphObject *Q3DSUipPresentation::getObjectByName(const QString &name) const
             return *it;
     }
     return nullptr;
+}
+
+/*!
+    Maps a raw XML filename ref like ".\Headphones\meshes\Headphones.mesh#1"
+    onto a fully qualified filename that can be opened as-is (even if the uip
+    is in qrc etc.), and also decodes the optional part index.
+ */
+QString Q3DSUipPresentation::assetFileName(const QString &xmlFileNameRef, int *part) const
+{
+    QString rawName = xmlFileNameRef;
+    if (rawName.startsWith('#')) {
+        // Can be a built-in primitive ref, like #Cube.
+        if (part)
+            *part = 1;
+        return rawName;
+    }
+
+    if (rawName.contains('#')) {
+        int pos = rawName.lastIndexOf('#');
+        bool ok = false;
+        int idx = rawName.mid(pos + 1).toInt(&ok);
+        if (!ok) {
+            Q3DSUtils::showMessage(QObject::tr("Invalid part index '%1'").arg(rawName));
+            return QString();
+        }
+        if (part)
+            *part = idx;
+        rawName = rawName.left(pos);
+    } else {
+        if (part)
+            *part = 1;
+    }
+
+    rawName.replace('\\', '/');
+    if (rawName.startsWith(QStringLiteral("./")))
+        rawName = rawName.mid(2);
+
+    if (QFileInfo(rawName).isAbsolute())
+        return rawName;
+
+    QString fn = QFileInfo(d->sourceFile).canonicalPath();
+    fn += QLatin1Char('/');
+    fn += rawName;
+    return QFileInfo(fn).absoluteFilePath();
 }
 
 void Q3DSUipPresentation::setSourceFile(const QString &s)
