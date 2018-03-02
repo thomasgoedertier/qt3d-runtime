@@ -333,25 +333,29 @@ void Q3DSAnimationManager::updateAnimationHelper(const AnimationTrackListMap<T *
                     // option we support at the moment.
 
                     // Get normalized value [0..1]
-                    const float easeIn = qBound(0.0f, (it->easeIn / 100.0f) / 2.0f, 1.0f);
-                    const float easeOut = qBound(0.0f, (it->easeOut / 100.0f) / 2.0f, 1.0f);
+                    const float easeIn = qBound(0.0f, (it->easeIn / 100.0f), 1.0f);
+                    const float easeOut = qBound(0.0f, (it->easeOut / 100.0f), 1.0f);
 
                     // Next and previous keyframes, if any.
                     const auto next = ((it + 1) != end) ? (it + 1) : it;
                     const auto previous = (it != begin) ? (it - 1) : it;
+
+                    // Adjustment to the easing values, to limit the range of the control points,
+                    // so we get the same "smooth" easing curves as in Studio 1.0
+                    static const float adjustment = 0.3333334f;
 
                     // p0
                     const QVector2D coordinates(it->time, it->value);
 
                     // c1
                     float dt = (next->time - it->time);
-                    const float p1t = qBound(it->time, it->time + (dt * easeIn), next->time);
+                    const float p1t = qBound(it->time, it->time + (dt * easeIn * adjustment), next->time);
                     const float p1v = it->value;
                     const QVector2D rightControlPoint(p1t, p1v);
 
                     // c2
                     dt = (it->time - previous->time);
-                    const float p2t = qBound(previous->time, it->time - (dt * easeOut), it->time);
+                    const float p2t = qBound(previous->time, it->time - (dt * easeOut * adjustment), it->time);
                     const float p2v = it->value;
                     const QVector2D leftControlPoint(p2t, p2v);
 
