@@ -118,38 +118,35 @@ Q3DSTextRenderer::Font *Q3DSTextRenderer::findFont(const QString &name)
 
 void Q3DSTextRenderer::updateFontInfo(Font *font, Q3DSTextNode *text3DS)
 {
-    font->font.setPointSizeF(text3DS->size());
-    font->font.setLetterSpacing(QFont::AbsoluteSpacing, text3DS->tracking());
+    font->font.setPointSizeF(qreal(text3DS->size()));
+    font->font.setLetterSpacing(QFont::AbsoluteSpacing, qreal(text3DS->tracking()));
 }
 
 QRectF Q3DSTextRenderer::textBoundingBox(Q3DSTextNode *text3DS, const QFontMetricsF &fm,
                                          const QStringList &lineList, QVector<float> *lineWidths)
 {
     QRectF boundingBox;
-    boundingBox.setHeight(lineList.size() * fm.height() + qCeil(float(lineList.size() - 1) * text3DS->leading()));
+    boundingBox.setHeight(lineList.size() * fm.height() + qCeil(qreal(lineList.size() - 1) * qreal(text3DS->leading())));
 
     lineWidths->resize(lineList.size());
 
     for (int i = 0; i < lineList.size(); ++i) {
-        float width = fm.width(lineList[i]);
-        float right = fm.boundingRect(lineList[i]).right();
-        float lineWidth = qMax(width, right);
+        const float width = float(fm.width(lineList[i]));
+        const float right = float(fm.boundingRect(lineList[i]).right());
+        const float lineWidth = qMax(width, right);
         (*lineWidths)[i] = lineWidth;
-        if (boundingBox.width() < lineWidth)
-            boundingBox.setWidth(lineWidth);
+        if (float(boundingBox.width()) < lineWidth)
+            boundingBox.setWidth(qreal(lineWidth));
     }
 
-    boundingBox.setRight(qMax(boundingBox.left(), boundingBox.right() - qFloor(text3DS->tracking())));
+    boundingBox.setRight(qMax(boundingBox.left(), boundingBox.right() - qFloor(qreal(text3DS->tracking()))));
 
     return boundingBox;
 }
 
-static inline uint nextMultipleOf4(uint v)
+static constexpr int nextMultipleOf4(int v)
 {
-    uint rem(v % 4);
-    if (rem)
-        v += 4 - rem;
-    return v;
+    return (v >= 0 && v % 4) ? v += 4 - (v % 4) : v;
 }
 
 static inline int mapVertAlign(Q3DSTextNode *text3DS)
@@ -178,7 +175,7 @@ QSize Q3DSTextRenderer::textImageSize(Q3DSTextNode *text3DS)
     if (boundingBox.isEmpty())
         boundingBox.setSize(QSizeF(4, 4));
 
-    return QSize(nextMultipleOf4(boundingBox.width()), nextMultipleOf4(boundingBox.height()));
+    return QSize(nextMultipleOf4(int(boundingBox.width())), nextMultipleOf4(int(boundingBox.height())));
 }
 
 void Q3DSTextRenderer::renderText(QPainter *painter, Q3DSTextNode *text3DS)
@@ -195,7 +192,7 @@ void Q3DSTextRenderer::renderText(QPainter *painter, Q3DSTextNode *text3DS)
     if (boundingBox.isEmpty())
         boundingBox.setSize(QSizeF(4, 4));
 
-    const QSize sz(nextMultipleOf4(boundingBox.width()), nextMultipleOf4(boundingBox.height()));
+    const QSize sz(nextMultipleOf4(int(boundingBox.width())), nextMultipleOf4(int(boundingBox.height())));
     painter->setCompositionMode(QPainter::CompositionMode_Source);
     painter->fillRect(0, 0, sz.width(), sz.height(), Qt::transparent);
     painter->setCompositionMode(QPainter::CompositionMode_SourceOver);
@@ -203,37 +200,37 @@ void Q3DSTextRenderer::renderText(QPainter *painter, Q3DSTextNode *text3DS)
     painter->setPen(Qt::white); // coloring is done in the shader
     painter->setFont(font->font);
 
-    float tracking = 0;
+    qreal tracking = 0.0;
     switch (text3DS->horizontalAlignment()) {
     case Q3DSTextNode::Center:
-        tracking += text3DS->tracking() / 2.0f;
+        tracking += qreal(text3DS->tracking()) / 2.0;
         break;
     case Q3DSTextNode::Right:
-        tracking += text3DS->tracking();
+        tracking += qreal(text3DS->tracking());
         break;
     default:
         break;
     }
 
-    const int lineHeight = fm.height();
-    float nextHeight = 0;
+    const qreal lineHeight = fm.height();
+    qreal nextHeight = 0.0;
     for (int i = 0; i < lineList.size(); ++i) {
         const QString &line = lineList.at(i);
-        float xTranslation = tracking;
+        qreal xTranslation = tracking;
         switch (text3DS->horizontalAlignment()) {
         case Q3DSTextNode::Center:
-            xTranslation += (boundingBox.width() - lineWidths.at(i)) / 2.0f;
+            xTranslation += (boundingBox.width() - qreal(lineWidths.at(i))) / 2.0;
             break;
         case Q3DSTextNode::Right:
-            xTranslation += boundingBox.width() - lineWidths.at(i);
+            xTranslation += boundingBox.width() - qreal(lineWidths.at(i));
             break;
         default:
             break;
         }
-        QRectF bound(xTranslation, nextHeight, lineWidths.at(i), lineHeight);
+        QRectF bound(xTranslation, nextHeight, qreal(lineWidths.at(i)), lineHeight);
         QRectF actualBound;
         painter->drawText(bound, mapVertAlign(text3DS) | Qt::TextDontClip | Qt::AlignLeft, line, &actualBound);
-        nextHeight += lineHeight + text3DS->leading();
+        nextHeight += lineHeight + qreal(text3DS->leading());
     }
 }
 
