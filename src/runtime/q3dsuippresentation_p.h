@@ -1337,7 +1337,7 @@ public:
     float edgeTess() const { return m_edgeTess; }
     float innerTess() const { return m_innerTess; }
 
-    Q3DSPropertyChange setMesh(const MeshList &v);
+    Q3DSPropertyChange setMesh(const QString &v, Q3DSUipPresentation &pres);
     Q3DSPropertyChange setSkeletonRoot(int v);
     Q3DSPropertyChange setTessellation(Tessellation v);
     Q3DSPropertyChange setEdgeTess(float v);
@@ -1346,6 +1346,7 @@ public:
 private:
     Q_DISABLE_COPY(Q3DSModelNode)
     template<typename V> void setProps(const V &attrs, PropSetFlags flags);
+    void updateMesh(Q3DSUipPresentation &pres);
     friend class Q3DSModelNodeAnimator;
 
     QString m_mesh_unresolved;

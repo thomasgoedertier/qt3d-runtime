@@ -791,6 +791,16 @@ void tst_Q3DSUipParser::primitiveMeshes()
     QVERIFY(!m.isEmpty());
     QCOMPARE(m.count(), 1);
     QVERIFY(m.first()->vertexCount() > 0);
+
+    // test changing using the "static" setter
+    cylinder->setMesh(QLatin1String("#Cone"), *pres.data());
+    // can just compare the MeshLists due to presentation's caching
+    QCOMPARE(cylinder->mesh(), cone->mesh());
+
+    // test changing using the "dynamic" setter
+    cylinder->applyPropertyChanges({ Q3DSPropertyChange::fromVariant("sourcepath", QLatin1String("#Sphere")) });
+    cylinder->resolveReferences(*pres.data());
+    QCOMPARE(cylinder->mesh(), sphere->mesh());
 }
 
 void tst_Q3DSUipParser::customMesh()
