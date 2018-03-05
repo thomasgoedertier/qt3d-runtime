@@ -614,6 +614,14 @@ void Q3DSGraphObject::notifyPropertyChanges(const Q3DSPropertyChangeList &change
     } \
     return Q3DSPropertyChange()
 
+#define PROP_OBJREF_SETTER(member, value, uipname) \
+    if (member != value) { \
+        member = value; \
+        member##_unresolved = QLatin1String("#") + QString::fromUtf8(value->id()); \
+        return Q3DSPropertyChange(QLatin1String(uipname)); \
+    } \
+    return Q3DSPropertyChange()
+
 #define PROP_FLAG_SETTER(member, flag, bvalue, uipname) \
     const bool wasSet = member & flag; \
     if (wasSet != bvalue) { \
@@ -1792,22 +1800,22 @@ Q3DSPropertyChange Q3DSDefaultMaterial::setDiffuse(const QColor &v)
 
 Q3DSPropertyChange Q3DSDefaultMaterial::setDiffuseMap(Q3DSImage *v)
 {
-    PROP_SETTER(m_diffuseMap, v, "diffusemap");
+    PROP_OBJREF_SETTER(m_diffuseMap, v, "diffusemap");
 }
 
 Q3DSPropertyChange Q3DSDefaultMaterial::setDiffuseMap2(Q3DSImage *v)
 {
-    PROP_SETTER(m_diffuseMap2, v, "diffusemap2");
+    PROP_OBJREF_SETTER(m_diffuseMap2, v, "diffusemap2");
 }
 
 Q3DSPropertyChange Q3DSDefaultMaterial::setDiffuseMap3(Q3DSImage *v)
 {
-    PROP_SETTER(m_diffuseMap3, v, "diffusemap3");
+    PROP_OBJREF_SETTER(m_diffuseMap3, v, "diffusemap3");
 }
 
 Q3DSPropertyChange Q3DSDefaultMaterial::setSpecularReflection(Q3DSImage *v)
 {
-    PROP_SETTER(m_specularReflection, v, "specularreflection");
+    PROP_OBJREF_SETTER(m_specularReflection, v, "specularreflection");
 }
 
 Q3DSPropertyChange Q3DSDefaultMaterial::setSpecularTint(const QColor &v)
@@ -1822,7 +1830,7 @@ Q3DSPropertyChange Q3DSDefaultMaterial::setSpecularAmount(float v)
 
 Q3DSPropertyChange Q3DSDefaultMaterial::setSpecularMap(Q3DSImage *v)
 {
-    PROP_SETTER(m_specularMap, v, "specularmap");
+    PROP_OBJREF_SETTER(m_specularMap, v, "specularmap");
 }
 
 Q3DSPropertyChange Q3DSDefaultMaterial::setSpecularModel(SpecularModel v)
@@ -1847,12 +1855,12 @@ Q3DSPropertyChange Q3DSDefaultMaterial::setIor(float v)
 
 Q3DSPropertyChange Q3DSDefaultMaterial::setBumpMap(Q3DSImage *v)
 {
-    PROP_SETTER(m_bumpMap, v, "bumpmap");
+    PROP_OBJREF_SETTER(m_bumpMap, v, "bumpmap");
 }
 
 Q3DSPropertyChange Q3DSDefaultMaterial::setNormalMap(Q3DSImage *v)
 {
-    PROP_SETTER(m_normalMap, v, "normalmap");
+    PROP_OBJREF_SETTER(m_normalMap, v, "normalmap");
 }
 
 Q3DSPropertyChange Q3DSDefaultMaterial::setBumpAmount(float v)
@@ -1862,7 +1870,7 @@ Q3DSPropertyChange Q3DSDefaultMaterial::setBumpAmount(float v)
 
 Q3DSPropertyChange Q3DSDefaultMaterial::setDisplacementMap(Q3DSImage *v)
 {
-    PROP_SETTER(m_displacementMap, v, "displacementmap");
+    PROP_OBJREF_SETTER(m_displacementMap, v, "displacementmap");
 }
 
 Q3DSPropertyChange Q3DSDefaultMaterial::setDisplaceAmount(float v)
@@ -1877,7 +1885,7 @@ Q3DSPropertyChange Q3DSDefaultMaterial::setOpacity(float v)
 
 Q3DSPropertyChange Q3DSDefaultMaterial::setOpacityMap(Q3DSImage *v)
 {
-    PROP_SETTER(m_opacityMap, v, "opacitymap");
+    PROP_OBJREF_SETTER(m_opacityMap, v, "opacitymap");
 }
 
 Q3DSPropertyChange Q3DSDefaultMaterial::setEmissiveColor(const QColor &v)
@@ -1892,17 +1900,17 @@ Q3DSPropertyChange Q3DSDefaultMaterial::setEmissivePower(float v)
 
 Q3DSPropertyChange Q3DSDefaultMaterial::setEmissiveMap(Q3DSImage *v)
 {
-    PROP_SETTER(m_emissiveMap, v, "emissivemap");
+    PROP_OBJREF_SETTER(m_emissiveMap, v, "emissivemap");
 }
 
 Q3DSPropertyChange Q3DSDefaultMaterial::setEmissiveMap2(Q3DSImage *v)
 {
-    PROP_SETTER(m_emissiveMap2, v, "emissivemap2");
+    PROP_OBJREF_SETTER(m_emissiveMap2, v, "emissivemap2");
 }
 
 Q3DSPropertyChange Q3DSDefaultMaterial::setTranslucencyMap(Q3DSImage *v)
 {
-    PROP_SETTER(m_translucencyMap, v, "translucencymap");
+    PROP_OBJREF_SETTER(m_translucencyMap, v, "translucencymap");
 }
 
 Q3DSPropertyChange Q3DSDefaultMaterial::setTranslucentFalloff(float v)
@@ -1917,22 +1925,22 @@ Q3DSPropertyChange Q3DSDefaultMaterial::setDiffuseLightWrap(float v)
 
 Q3DSPropertyChange Q3DSDefaultMaterial::setLightmapIndirectMap(Q3DSImage *v)
 {
-    PROP_SETTER(m_lightmapIndirectMap, v, "lightmapindirect");
+    PROP_OBJREF_SETTER(m_lightmapIndirectMap, v, "lightmapindirect");
 }
 
 Q3DSPropertyChange Q3DSDefaultMaterial::setLightmapRadiosityMap(Q3DSImage *v)
 {
-    PROP_SETTER(m_lightmapRadiosityMap, v, "lightmapradiosity");
+    PROP_OBJREF_SETTER(m_lightmapRadiosityMap, v, "lightmapradiosity");
 }
 
 Q3DSPropertyChange Q3DSDefaultMaterial::setLightmapShadowMap(Q3DSImage *v)
 {
-    PROP_SETTER(m_lightmapShadowMap, v, "lightmapshadow");
+    PROP_OBJREF_SETTER(m_lightmapShadowMap, v, "lightmapshadow");
 }
 
 Q3DSPropertyChange Q3DSDefaultMaterial::setLightProbe(Q3DSImage *v)
 {
-    PROP_SETTER(m_lightProbe, v, "iblprobe");
+    PROP_OBJREF_SETTER(m_lightProbe, v, "iblprobe");
 }
 
 Q3DSReferencedMaterial::Q3DSReferencedMaterial()
@@ -2002,22 +2010,22 @@ Q3DSPropertyChange Q3DSReferencedMaterial::setReferencedMaterial(Q3DSGraphObject
 
 Q3DSPropertyChange Q3DSReferencedMaterial::setLightmapIndirectMap(Q3DSImage *v)
 {
-    PROP_SETTER(m_lightmapIndirectMap, v, "lightmapindirect");
+    PROP_OBJREF_SETTER(m_lightmapIndirectMap, v, "lightmapindirect");
 }
 
 Q3DSPropertyChange Q3DSReferencedMaterial::setLightmapRadiosityMap(Q3DSImage *v)
 {
-    PROP_SETTER(m_lightmapRadiosityMap, v, "lightmapradiosity");
+    PROP_OBJREF_SETTER(m_lightmapRadiosityMap, v, "lightmapradiosity");
 }
 
 Q3DSPropertyChange Q3DSReferencedMaterial::setLightmapShadowMap(Q3DSImage *v)
 {
-    PROP_SETTER(m_lightmapShadowMap, v, "lightmapshadow");
+    PROP_OBJREF_SETTER(m_lightmapShadowMap, v, "lightmapshadow");
 }
 
 Q3DSPropertyChange Q3DSReferencedMaterial::setLightProbe(Q3DSImage *v)
 {
-    PROP_SETTER(m_lightProbe, v, "iblprobe");
+    PROP_OBJREF_SETTER(m_lightProbe, v, "iblprobe");
 }
 
 Q3DSCustomMaterialInstance::Q3DSCustomMaterialInstance()
@@ -2152,22 +2160,22 @@ QVariantList Q3DSCustomMaterialInstance::gex_propertyValues() const
 
 Q3DSPropertyChange Q3DSCustomMaterialInstance::setLightmapIndirectMap(Q3DSImage *v)
 {
-    PROP_SETTER(m_lightmapIndirectMap, v, "lightmapindirect");
+    PROP_OBJREF_SETTER(m_lightmapIndirectMap, v, "lightmapindirect");
 }
 
 Q3DSPropertyChange Q3DSCustomMaterialInstance::setLightmapRadiosityMap(Q3DSImage *v)
 {
-    PROP_SETTER(m_lightmapRadiosityMap, v, "lightmapradiosity");
+    PROP_OBJREF_SETTER(m_lightmapRadiosityMap, v, "lightmapradiosity");
 }
 
 Q3DSPropertyChange Q3DSCustomMaterialInstance::setLightmapShadowMap(Q3DSImage *v)
 {
-    PROP_SETTER(m_lightmapShadowMap, v, "lightmapshadow");
+    PROP_OBJREF_SETTER(m_lightmapShadowMap, v, "lightmapshadow");
 }
 
 Q3DSPropertyChange Q3DSCustomMaterialInstance::setLightProbe(Q3DSImage *v)
 {
-    PROP_SETTER(m_lightProbe, v, "iblprobe");
+    PROP_OBJREF_SETTER(m_lightProbe, v, "iblprobe");
 }
 
 Q3DSPropertyChange Q3DSCustomMaterialInstance::setCustomProperty(const QString &name, const QVariant &value)
@@ -2796,7 +2804,7 @@ Q3DSPropertyChange Q3DSLayerNode::setShadowBias(float v)
 
 Q3DSPropertyChange Q3DSLayerNode::setLightProbe(Q3DSImage *v)
 {
-    PROP_SETTER(m_lightProbe, v, "lightprobe");
+    PROP_OBJREF_SETTER(m_lightProbe, v, "lightprobe");
 }
 
 Q3DSPropertyChange Q3DSLayerNode::setProbeBright(float v)
@@ -2816,7 +2824,7 @@ Q3DSPropertyChange Q3DSLayerNode::setProbeFov(float v)
 
 Q3DSPropertyChange Q3DSLayerNode::setLightProbe2(Q3DSImage *v)
 {
-    PROP_SETTER(m_lightProbe2, v, "lightprobe2");
+    PROP_OBJREF_SETTER(m_lightProbe2, v, "lightprobe2");
 }
 
 Q3DSPropertyChange Q3DSLayerNode::setProbe2Fade(float v)
@@ -2991,7 +2999,7 @@ Q3DSPropertyChange Q3DSLightNode::setLightType(LightType v)
 
 Q3DSPropertyChange Q3DSLightNode::setScope(Q3DSGraphObject *v)
 {
-    PROP_SETTER(m_scope, v, "scope");
+    PROP_OBJREF_SETTER(m_scope, v, "scope");
 }
 
 Q3DSPropertyChange Q3DSLightNode::setDiffuse(const QColor &v)

@@ -681,6 +681,9 @@ void tst_Q3DSUipParser::imageObj()
     Q3DSPropertyChange diffuseMapChange = mat->setDiffuseMap(probeImage);
     QCOMPARE(diffuseMapChange.nameStr(), QStringLiteral("diffusemap"));
     QCOMPARE(mat->diffuseMap(), probeImage);
+    // verify that a subsequent resolveReferences does not overwrite what was set above
+    mat->resolveReferences(*pres.data());
+    QCOMPARE(mat->diffuseMap(), probeImage);
 
     // "dynamic" with id ref (switch to img)
     diffuseMapChange = Q3DSPropertyChange::fromVariant(QLatin1String("diffusemap"),
