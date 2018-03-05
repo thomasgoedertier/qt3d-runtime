@@ -263,6 +263,8 @@ void Q3DSProfileView::frame()
         ImGui::Text("  of which image file I/O: %u ms\n  IBL mipmap gen: %u ms",
                     (uint) Q3DSImageManager::instance().ioTimeMsecs(),
                     (uint) Q3DSImageManager::instance().iblTimeMsecs());
+        ImGui::Text("  Behavior QML components: %d, load time %u ms",
+                    m_profiler->behaviorLoadCount(), (uint) m_profiler->behaviorLoadTime());
         ImGui::Separator();
         const QVector<Q3DSProfiler::FrameData> *frameData = m_profiler->frameData();
         const Q3DSProfiler::FrameData *lastFrameData = !frameData->isEmpty() ? &frameData->last() : nullptr;

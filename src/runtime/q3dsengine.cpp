@@ -36,6 +36,7 @@
 #include <QKeyEvent>
 #include <QMouseEvent>
 #include <QtQml/qqmlengine.h>
+#include <QtQml/qqmlcontext.h>
 
 #include <QOpenGLContext>
 #include <QOpenGLFunctions>
@@ -296,6 +297,11 @@ QString Q3DSEngine::source() const
     return m_source;
 }
 
+qint64 Q3DSEngine::behaviorLoadTimeMsecs() const
+{
+    return m_behaviorLoadTime;
+}
+
 qint64 Q3DSEngine::totalLoadTimeMsecs() const
 {
     return m_loadTime;
@@ -538,6 +544,8 @@ void Q3DSEngine::finalizePresentations()
 
     m_uipPresentations[0].sceneManager->finalizeMainScene(subPresentations);
 
+    loadBehaviors();
+
     if (m_aspectEngine.isNull())
         createAspectEngine();
 
@@ -616,7 +624,10 @@ bool Q3DSEngine::buildUipPresentationScene(UipPresentation *pres)
     pres->sceneManager->updateSizes(effectiveSize, effectiveDpr);
 
     // Expose update signal
-    connect(pres->q3dscene.frameAction, &Qt3DLogic::QFrameAction::triggered, this, &Q3DSEngine::nextFrameStarting);
+    connect(pres->q3dscene.frameAction, &Qt3DLogic::QFrameAction::triggered, this, [this]() {
+        behaviorFrameUpdate();
+        emit nextFrameStarting();
+    });
 
     // Insert Render Capture node to framegraph for grabbing
     m_capture = new Qt3DRender::QRenderCapture();
@@ -884,6 +895,12 @@ bool Q3DSEngine::parseUiaDocument(Q3DSUiaParser::Uia &uiaDoc, const QString &sou
 
 void Q3DSEngine::destroy()
 {
+    for (const auto &h : m_behaviorHandles)
+        destroyBehaviorHandle(h);
+    m_behaviorHandles.clear();
+    delete m_behaviorQmlEngine;
+    m_behaviorQmlEngine = nullptr;
+
     for (UipPresentation &pres : m_uipPresentations) {
         delete pres.sceneManager;
         // Nulling out may seem unnecessary due to the clear() below but it is
@@ -898,9 +915,9 @@ void Q3DSEngine::destroy()
     m_uipPresentations.clear();
     m_capture = nullptr;
 
-    for (QmlPresentation &pres : m_qmlPresentations) {
+    for (QmlPresentation &pres : m_qmlPresentations)
         delete pres.qmlDocument;
-    }
+
     m_qmlPresentations.clear();
 
     // wish I knew why this is needed. Qt 3D tends not to shut down its threads correctly on exit otherwise.
@@ -912,6 +929,10 @@ void Q3DSEngine::destroy()
 
 void Q3DSEngine::prepareForReload()
 {
+    for (const auto &h : m_behaviorHandles)
+        destroyBehaviorHandle(h);
+    m_behaviorHandles.clear();
+
     if (!m_uipPresentations.isEmpty()) {
         for (UipPresentation &pres : m_uipPresentations) {
             if (pres.sceneManager)
@@ -1116,6 +1137,160 @@ void Q3DSEngine::setDataInputValue(const QString &name, const QVariant &value)
     for (const UipPresentation &pres : qAsConst(m_uipPresentations)) {
         if (pres.sceneManager)
             pres.sceneManager->setDataInputValue(name, value);
+    }
+}
+
+void Q3DSEngine::loadBehaviorInstance(Q3DSBehaviorInstance *behaviorInstance, BehaviorLoadedCallback callback)
+{
+    const Q3DSBehavior *behavior = behaviorInstance->behavior();
+    if (behavior->qmlCode().isEmpty()) {
+        callback(behaviorInstance, QLatin1String("No QML source code present"));
+        return;
+    }
+
+    auto component = new QQmlComponent(m_behaviorQmlEngine);
+    component->setData(behavior->qmlCode().toUtf8(), behavior->qmlSourceUrl());
+
+    auto buildComponent = [=]() {
+        Q3DSBehaviorHandle h;
+        h.behaviorInstance = behaviorInstance;
+        h.component = component;
+
+        QQmlContext *context = new QQmlContext(m_behaviorQmlEngine, component);
+        QObject *obj = component->beginCreate(context);
+        if (!obj) {
+            qCWarning(lcUip, "Failed to create behavior object");
+            delete context;
+            return;
+        }
+        h.object = qobject_cast<Q3DSBehaviorObject *>(obj);
+        if (!h.object) {
+            qCWarning(lcUip, "QML root item is not a Behavior");
+            delete obj;
+            delete context;
+            return;
+        }
+        h.updateProperties();
+        component->completeCreate();
+
+        m_behaviorHandles.insert(behaviorInstance, h);
+
+        callback(behaviorInstance, QString());
+    };
+
+    if (component->isReady()) {
+        buildComponent();
+    } else if (component->isLoading()) {
+        QObject::connect(component, &QQmlComponent::statusChanged,
+                         [=](QQmlComponent::Status status) {
+            if (status == QQmlComponent::Status::Ready) {
+                buildComponent();
+            } else {
+                callback(behaviorInstance, component->errorString());
+                delete component;
+            }
+        });
+    } else {
+        callback(behaviorInstance, component->errorString());
+        delete component;
+    }
+}
+
+void Q3DSEngine::unloadBehaviorInstance(Q3DSBehaviorInstance *behaviorInstance)
+{
+    auto it = m_behaviorHandles.find(behaviorInstance);
+    if (it != m_behaviorHandles.end()) {
+        destroyBehaviorHandle(*it);
+        m_behaviorHandles.erase(it);
+    }
+}
+
+void Q3DSEngine::destroyBehaviorHandle(const Q3DSBehaviorHandle &h)
+{
+    delete h.object;
+    delete h.component;
+}
+
+void Q3DSEngine::loadBehaviors()
+{
+    m_behaviorLoadTime = 0;
+
+    QVector<Q3DSBehaviorInstance *> behaviorInstances;
+    for (int i = 0, ie = presentationCount(); i != ie; ++i) {
+        Q3DSUipPresentation::forAllObjectsOfType(presentation(i)->scene(),
+                                                 Q3DSGraphObject::Behavior,
+                                                 [&behaviorInstances](Q3DSGraphObject *obj)
+        {
+            behaviorInstances.append(static_cast<Q3DSBehaviorInstance *>(obj));
+        });
+    }
+
+    qCDebug(lcUip, "Found %d behavior instances in total", behaviorInstances.count());
+    if (behaviorInstances.isEmpty())
+        return;
+
+    if (!m_behaviorQmlEngine) {
+        m_behaviorQmlEngine = new QQmlEngine;
+        qmlRegisterType<Q3DSBehaviorObject>("QtStudio3D.Behavior", 1, 0, "Behavior");
+        qmlRegisterType<Q3DSBehaviorObject, 1>("QtStudio3D.Behavior", 1, 1, "Behavior");
+        qmlRegisterType<Q3DSBehaviorObject, 2>("QtStudio3D.Behavior", 2, 0, "Behavior");
+    }
+
+    for (Q3DSBehaviorInstance *behaviorInstance : behaviorInstances) {
+        QElapsedTimer loadTime;
+        loadTime.start();
+        loadBehaviorInstance(behaviorInstance,
+                             [this, loadTime](Q3DSBehaviorInstance *behaviorInstance, const QString &error)
+        {
+            if (error.isEmpty()) {
+                m_behaviorLoadTime += loadTime.elapsed();
+                qCDebug(lcUip, "Loaded QML code for behavior %s in %lld ms",
+                        behaviorInstance->id().constData(), loadTime.elapsed());
+            } else {
+                qCWarning(lcUip, "Failed to load behavior QML code: %s",
+                          qPrintable(error));
+            }
+        });
+    }
+}
+
+void Q3DSBehaviorHandle::updateProperties() const
+{
+    // Push all custom property values from the behavior instance to the
+    // QObject (and so to QML).
+    const QVariantMap props = behaviorInstance->customProperties();
+    for (auto it = props.cbegin(), itEnd = props.cend(); it != itEnd; ++it) {
+        const QByteArray name = it.key().toUtf8();
+        const QVariant value = it.value();
+        object->setProperty(name.constData(), value);
+    }
+}
+
+void Q3DSEngine::behaviorFrameUpdate()
+{
+    // Called once per frame. Update properties and emit signals on the object
+    // when necessary.
+
+    for (auto &h : m_behaviorHandles) {
+        h.updateProperties();
+
+        const bool active = true; // ### what is this?
+
+        if (active && !h.initialized) {
+            h.initialized = true;
+            emit h.object->initialize();
+        }
+
+        if (active != h.active) {
+            h.active = active;
+            if (active)
+                emit h.object->activate();
+            else
+                emit h.object->deactivate();
+        }
+
+        if (active)
+            emit h.object->update();
     }
 }
 

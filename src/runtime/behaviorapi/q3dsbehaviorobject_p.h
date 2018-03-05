@@ -27,8 +27,8 @@
 **
 ****************************************************************************/
 
-#ifndef Q3DSBEHAVIOR_P_H
-#define Q3DSBEHAVIOR_P_H
+#ifndef Q3DSBEHAVIOROBJECT_P_H
+#define Q3DSBEHAVIOROBJECT_P_H
 
 //
 //  W A R N I N G
@@ -41,60 +41,49 @@
 // We mean it.
 //
 
-#include "q3dsruntimeglobal_p.h"
-#include "q3dspresentationcommon_p.h"
-#include <QMap>
-#include <QUrl>
+#include <QObject>
+#include <QVariant>
+#include <QJSValue>
+#include <QVector2D>
+#include <QVector3D>
+#include <QMatrix4x4>
 
 QT_BEGIN_NAMESPACE
 
-class Q3DSV_PRIVATE_EXPORT Q3DSBehavior
+class Q3DSBehaviorObject : public QObject
 {
+    Q_OBJECT
+
 public:
-    Q3DSBehavior();
-    bool isNull() const;
+    Q3DSBehaviorObject(QObject *parent = nullptr);
 
-    QString qmlCode() const { return m_qmlCode; }
-    QUrl qmlSourceUrl() const { return m_qmlSourceUrl; }
+    Q_INVOKABLE float getDeltaTime();
+    Q_INVOKABLE float getAttribute(const QString &attribute);
+    Q_INVOKABLE void setAttribute(const QString &attribute, const QVariant &value);
+    Q_INVOKABLE void setAttribute(const QString &handle, const QString &attribute,
+                                  const QVariant &value);
+    Q_INVOKABLE void fireEvent(const QString &event);
+    Q_INVOKABLE void registerForEvent(const QString &event, const QJSValue &function);
+    Q_INVOKABLE void registerForEvent(const QString &handle, const QString &event,
+                                      const QJSValue &function);
+    Q_INVOKABLE void unregisterForEvent(const QString &event);
+    Q_INVOKABLE void unregisterForEvent(const QString &handle, const QString &event);
+    Q_INVOKABLE QVector2D getMousePosition();
+    Q_INVOKABLE QMatrix4x4 calculateGlobalTransform(const QString &handle = QString());
+    Q_INVOKABLE QVector3D lookAt(const QVector3D &target);
+    Q_INVOKABLE QVector3D matrixToEuler(const QMatrix4x4 &matrix);
+    Q_INVOKABLE QString getParent(const QString &handle = QString());
+    Q_REVISION(1) Q_INVOKABLE void setDataInputValue(const QString &name, const QVariant &value);
 
-    struct Property {
-        QString name;
-        QString formalName;
-        Q3DS::PropertyType type = Q3DS::Float;
-        QString defaultValue;
-        QString publishLevel;
-        QString description;
-    };
-
-    struct Handler {
-        QString name;
-        QString formalName;
-        QString category;
-        QString description;
-    };
-
-    const QMap<QString, Q3DSBehavior::Property> &properties() const { return m_properties; }
-    const QMap<QString, Q3DSBehavior::Handler> &handlers() const { return m_handlers; }
+signals:
+    void initialize();
+    void activate();
+    void update();
+    void deactivate();
 
 private:
-    QString m_qmlCode;
-    QUrl m_qmlSourceUrl;
-    QMap<QString, Property> m_properties;
-    QMap<QString, Handler> m_handlers;
-
-    friend class Q3DSBehaviorParser;
-};
-
-Q_DECLARE_TYPEINFO(Q3DSBehavior::Property, Q_MOVABLE_TYPE);
-Q_DECLARE_TYPEINFO(Q3DSBehavior::Handler, Q_MOVABLE_TYPE);
-Q_DECLARE_TYPEINFO(Q3DSBehavior, Q_MOVABLE_TYPE);
-
-class Q3DSV_PRIVATE_EXPORT Q3DSBehaviorParser
-{
-public:
-    Q3DSBehavior parse(const QString &filename, bool *ok = nullptr);
 };
 
 QT_END_NAMESPACE
 
-#endif // Q3DSBEHAVIOR_P_H
+#endif // Q3DSBEHAVIOROBJECT_P_H

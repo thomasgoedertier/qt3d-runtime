@@ -12,7 +12,8 @@ SUBDIRS += \
     documents \
     surfaceviewer \
     slidedeck \
-    uippresentation
+    uippresentation \
+    behaviors
 
 qtHaveModule(quick): SUBDIRS += studio3d
 

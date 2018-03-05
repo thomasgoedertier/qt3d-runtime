@@ -131,6 +131,7 @@ Q3DSBehavior Q3DSBehaviorParser::parse(const QString &filename, bool *ok)
 
     Q3DSBehavior behavior;
     behavior.m_qmlCode = contents;
+    behavior.m_qmlSourceUrl = QUrl::fromLocalFile(filename);
 
     // Find the metadata looking like this:
     // /*[[

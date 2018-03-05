@@ -132,6 +132,12 @@ void Q3DSProfiler::reportTotalParseBuildTime(qint64 ms)
     m_totalParseBuildTime = ms;
 }
 
+void Q3DSProfiler::reportBehaviorStats(qint64 loadTimeMs, int loadCount)
+{
+    m_behaviorLoadTime = loadTimeMs;
+    m_behaviorLoadCount = loadCount;
+}
+
 void Q3DSProfiler::reportTimeAfterBuildUntilFirstFrameAction(qint64 ms)
 {
     m_firstFrameActionTime = ms;

@@ -77,6 +77,7 @@ RESOURCES += \
 mingw: LIBS += -lpsapi
 
 include(api/api.pri)
+include(behaviorapi/behaviorapi.pri)
 include(shadergenerator/shadergenerator.pri)
 
 qtConfig(q3ds-profileui): include(profileui/profileui.pri)

@@ -49,6 +49,7 @@
 #include "q3dsuiadocument_p.h"
 #include "q3dsuiaparser_p.h"
 #include "q3dsscenemanager_p.h"
+#include "private/q3dsbehaviorobject_p.h"
 
 QT_BEGIN_NAMESPACE
 
@@ -56,6 +57,7 @@ class QKeyEvent;
 class QMouseEvent;
 class QWheelEvent;
 class QQmlEngine;
+class QQmlComponent;
 
 namespace Qt3DRender {
 class QRenderCapture;
@@ -64,6 +66,18 @@ namespace Quick {
 class QScene2D;
 }
 }
+
+struct Q3DSV_PRIVATE_EXPORT Q3DSBehaviorHandle
+{
+    Q3DSBehaviorInstance *behaviorInstance = nullptr;
+    QQmlComponent *component = nullptr;
+    Q3DSBehaviorObject *object = nullptr;
+
+    bool initialized = false;
+    bool active = false;
+
+    void updateProperties() const;
+};
 
 class Q3DSV_PRIVATE_EXPORT Q3DSEngine : public QObject
 {
@@ -99,6 +113,7 @@ public:
     // Provide pre-constructed presentation(s).
     bool setPresentations(const QVector<Q3DSUipPresentation *> &presentations);
 
+    qint64 behaviorLoadTimeMsecs() const;
     qint64 totalLoadTimeMsecs() const;
 
     int presentationCount() const;
@@ -136,6 +151,13 @@ public:
 #endif
 
     void setProfileUiEnabled(bool enabled) { m_profileUiEnabled = enabled; }
+
+    typedef QHash<Q3DSBehaviorInstance *, Q3DSBehaviorHandle> BehaviorMap;
+
+    typedef std::function<void(Q3DSBehaviorInstance *, const QString &)> BehaviorLoadedCallback;
+    void loadBehaviorInstance(Q3DSBehaviorInstance *behaviorInstance, BehaviorLoadedCallback callback);
+    void unloadBehaviorInstance(Q3DSBehaviorInstance *behaviorInstance);
+    const BehaviorMap &behaviorHandles() const { return m_behaviorHandles; }
 
 public Q_SLOTS:
     void requestGrab();
@@ -180,6 +202,10 @@ private:
     void destroy();
     void prepareForReload();
 
+    void loadBehaviors();
+    void destroyBehaviorHandle(const Q3DSBehaviorHandle &h);
+    void behaviorFrameUpdate();
+
     QObject *m_surface = nullptr;
     QSize m_implicitSize;
     QSize m_size;
@@ -191,9 +217,10 @@ private:
     Q3DSDataInputEntry::Map m_dataInputEntries;
 
     QScopedPointer<QQmlEngine> m_qmlEngine;
-    qint64 m_loadTime = 0;
-
     QScopedPointer<Qt3DCore::QAspectEngine> m_aspectEngine;
+
+    qint64 m_loadTime = 0;
+    qint64 m_behaviorLoadTime = 0;
 
     QElapsedTimer m_profilerActivateTimer;
     QElapsedTimer m_sourceLoadTimer;
@@ -205,6 +232,9 @@ private:
     bool m_autoStart = true;
     float m_profileUiScale = 1;
     bool m_profileUiEnabled = true;
+
+    QQmlEngine *m_behaviorQmlEngine = nullptr;
+    BehaviorMap m_behaviorHandles;
 };
 
 Q_DECLARE_OPERATORS_FOR_FLAGS(Q3DSEngine::Flags)

@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<UIP version="3" >
+	<Project >
+		<ProjectSettings author="" company="" presentationWidth="1366" presentationHeight="768" maintainAspect="False" >
+			<CustomColors count="16" >#ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff</CustomColors>
+		</ProjectSettings>
+		<Classes >
+			<Behavior id="Behav1" name="Behavior 1" sourcepath="dummy.qml" />
+		</Classes>
+		<Graph >
+			<Scene id="Scene" backgroundcolor="0.929412 0.956863 0.34902" >
+				<Layer id="Layer" >
+					<Camera id="Camera" />
+					<Light id="Light" />
+					<Model id="Rectangle" >
+						<Material id="Material" />
+					</Model>
+					<Model id="Sphere" >
+						<Material id="Material_001" />
+					</Model>
+					<Model id="Cylinder" >
+						<Material id="Material_002" />
+					</Model>
+					<Model id="Cone" >
+						<Material id="Material_003" />
+					</Model>
+				</Layer>
+				<Layer id="Layer2" >
+					<Camera id="Camera_001" />
+					<Light id="Light_001" />
+					<Group id="Group" >
+						<Model id="Rectangle_001" >
+							<Material id="Material_004" />
+						</Model>
+						<Model id="Cube" >
+							<Material id="Material_005" />
+						</Model>
+					</Group>
+					<Model id="Cone_001" >
+						<Material id="Material_006" />
+					</Model>
+				</Layer>
+				<Behavior id="Behavior_001" class="#Behav1" />
+			</Scene>
+		</Graph>
+		<Logic >
+			<State name="Master Slide" component="#Scene" >
+				<Add ref="#Layer" />
+				<Add ref="#Camera" position="0 -40 -600" rotation="-10 0 -10" />
+				<Add ref="#Light" />
+				<State id="Scene-Slide1" name="Slide1" >
+					<Add ref="#Rectangle" name="Rectangle" position="-407.032 -97.8609 0" sourcepath="#Rectangle" />
+					<Add ref="#Material" />
+					<Add ref="#Sphere" name="Sphere" position="-479.719 208.826 220.558" rotation="-20.8358 34.3489 -62.5045" sourcepath="#Sphere" />
+					<Add ref="#Material_001" blendmode="Normal" diffuse="0.341176 0.258824 0.8" />
+					<Add ref="#Cylinder" name="Cylinder" position="211.66 54.7973 -123.049" rotation="-29.16 22.9975 -41.0578" scale="0.89855 0.969231 1" sourcepath="#Cylinder" />
+					<Add ref="#Material_002" diffuse="0.215686 0.815686 0.756863" />
+					<Add ref="#Cone" name="Cone" rotation="-47.4815 2.69907 11.9215" sourcepath="#Cone" />
+					<Add ref="#Material_003" diffuse="0.890196 0.341176 0.615686" />
+					<Add ref="#Layer2" name="Layer2" background="Transparent" blendtype="Normal" disabledepthtest="False" />
+					<Add ref="#Camera_001" />
+					<Add ref="#Light_001" />
+					<Add ref="#Group" name="Group" opacity="50" />
+					<Add ref="#Rectangle_001" name="Rectangle" scale="10 6 1" sourcepath="#Rectangle" />
+					<Add ref="#Material_004" diffuse="0.65098 0.619608 0.533333" />
+					<Add ref="#Cube" name="Cube" position="482.629 -108.253 10" rotation="-12.3559 8.88262 8.26342" sourcepath="#Cube" />
+					<Add ref="#Material_005" />
+					<Add ref="#Cone_001" name="Cone" position="501.573 148.848 10" sourcepath="#Cone" />
+					<Add ref="#Material_006" />
+					<Add ref="#Behavior_001" name="Behavior instance 1" />
+				</State>
+			</State>
+		</Logic>
+	</Project>
+</UIP>
