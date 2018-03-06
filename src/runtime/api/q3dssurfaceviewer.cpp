@@ -256,7 +256,7 @@ void Q3DSSurfaceViewer::update()
     f->glBindFramebuffer(GL_FRAMEBUFFER, d->fbo);
 
     auto renderAspectD = static_cast<Qt3DRender::QRenderAspectPrivate *>(Qt3DRender::QRenderAspectPrivate::get(d->renderAspect));
-    renderAspectD->tryRenderSynchronous();
+    renderAspectD->renderSynchronous();
 
     if (d->wantsGrab) {
         d->context->makeCurrent(d->surface);

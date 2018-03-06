@@ -107,7 +107,7 @@ void Q3DSStudio3DRenderer::renderOffscreen()
     ContextSaver saver;
     w->resetOpenGLState();
     m_fbo->bind();
-    m_renderAspectD->tryRenderSynchronous();
+    m_renderAspectD->renderSynchronous();
     if (saver.context()->surface() != saver.surface())
         saver.context()->makeCurrent(saver.surface());
     w->resetOpenGLState();
