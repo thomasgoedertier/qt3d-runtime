@@ -32,7 +32,6 @@
 #include "q3dsdefaultmaterialgenerator_p.h"
 #include "q3dscustommaterialgenerator_p.h"
 #include "q3dstextmaterialgenerator_p.h"
-#include "q3dsanimationmanager_p.h"
 #include "q3dstextrenderer_p.h"
 #include "q3dsutils_p.h"
 #include "q3dsprofiler_p.h"
@@ -543,7 +542,6 @@ void Q3DSSceneManager::prepareEngineReset()
     delete m_frameUpdater;
     m_frameUpdater = nullptr;
 
-    m_slidePlayer->animationManager()->clearPendingChanges();
     delete m_slidePlayer;
     m_slidePlayer = nullptr;
 
@@ -6206,7 +6204,7 @@ void Q3DSFrameUpdater::frameAction(float dt)
     // Record new frame event.
     m_sceneManager->profiler()->reportNewFrame(dt * 1000.0f);
     // Set and notify the value changes queued by animations.
-    m_sceneManager->slidePlayer()->animationManager()->applyChanges();
+    m_sceneManager->slidePlayer()->advanceFrame();
     // Recursively check dirty flags and update inherited values, execute
     // pending visibility changes, update light cbuffers, etc.
     m_sceneManager->prepareNextFrame();

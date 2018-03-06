@@ -217,14 +217,20 @@ Q3DSSlidePlayer::Q3DSSlidePlayer(Q3DSSceneManager *sceneManager,
 
 Q3DSSlidePlayer::~Q3DSSlidePlayer()
 {
-    reset();
     if (!m_component)
-        delete m_animationManager;
+        m_animationManager->clearPendingChanges();
+
+    reset();
 }
 
 Q3DSSlideDeck *Q3DSSlidePlayer::slideDeck() const
 {
     return m_data.slideDeck;
+}
+
+void Q3DSSlidePlayer::advanceFrame()
+{
+    m_animationManager->applyChanges();
 }
 
 float Q3DSSlidePlayer::duration() const
@@ -449,7 +455,7 @@ void Q3DSSlidePlayer::reload()
         setInternalState(getInitialSlideState(m_data.slideDeck->currentSlide()));
 }
 
-Q3DSSlidePlayer::Q3DSSlidePlayer(Q3DSAnimationManager *animationManager,
+Q3DSSlidePlayer::Q3DSSlidePlayer(QSharedPointer<Q3DSAnimationManager> animationManager,
                                  Q3DSSceneManager *sceneManager,
                                  Q3DSComponentNode *component,
                                  QObject *parent)

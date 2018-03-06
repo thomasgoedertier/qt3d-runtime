@@ -94,7 +94,7 @@ public:
     ~Q3DSSlidePlayer();
 
     Q3DSSlideDeck *slideDeck() const;
-    Q3DSAnimationManager *animationManager() const { return m_animationManager; }
+    void advanceFrame();
 
     float duration() const;
     float position() const;
@@ -122,7 +122,7 @@ Q_SIGNALS:
     void slideChanged(Q3DSSlide *);
 
 private:
-    Q3DSSlidePlayer(Q3DSAnimationManager *animationManager,
+    Q3DSSlidePlayer(QSharedPointer<Q3DSAnimationManager> animationManager,
                     Q3DSSceneManager *sceneManager,
                     Q3DSComponentNode *component,
                     QObject *parent = nullptr);
@@ -152,7 +152,7 @@ private:
 
     Q3DSSceneManager *m_sceneManager;
     Q3DSComponentNode *m_component = nullptr;
-    Q3DSAnimationManager *m_animationManager;
+    QSharedPointer<Q3DSAnimationManager> m_animationManager;
     PlayerMode m_mode = PlayerMode::Viewer;
     PlayerType m_type = PlayerType::Slide;
 };
