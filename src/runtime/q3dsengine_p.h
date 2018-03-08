@@ -207,7 +207,7 @@ private:
 
     void loadBehaviors();
     void destroyBehaviorHandle(const Q3DSBehaviorHandle &h);
-    void behaviorFrameUpdate();
+    void behaviorFrameUpdate(float dt);
 
     QObject *m_surface = nullptr;
     QSize m_implicitSize;

@@ -62,6 +62,7 @@ class Q3DSBehaviorObject : public QObject
 public:
     Q3DSBehaviorObject(QObject *parent = nullptr);
     void init(Q3DSEngine *engine, Q3DSUipPresentation *presentation, Q3DSBehaviorInstance *behaviorInstance);
+    void prepareUpdate(float dt);
 
     Q_INVOKABLE float getDeltaTime();
     Q_INVOKABLE QVariant getAttribute(const QString &attribute);
@@ -96,6 +97,7 @@ private:
     Q3DSEngine *m_engine = nullptr;
     Q3DSUipPresentation *m_presentation = nullptr;
     Q3DSBehaviorInstance *m_behaviorInstance = nullptr;
+    float m_deltaTime = 0;
 };
 
 QT_END_NAMESPACE

@@ -626,8 +626,8 @@ bool Q3DSEngine::buildUipPresentationScene(UipPresentation *pres)
     pres->sceneManager->updateSizes(effectiveSize, effectiveDpr);
 
     // Expose update signal
-    connect(pres->q3dscene.frameAction, &Qt3DLogic::QFrameAction::triggered, this, [this]() {
-        behaviorFrameUpdate();
+    connect(pres->q3dscene.frameAction, &Qt3DLogic::QFrameAction::triggered, this, [this](float dt) {
+        behaviorFrameUpdate(dt);
         emit nextFrameStarting();
     });
 
@@ -1283,7 +1283,7 @@ void Q3DSBehaviorHandle::updateProperties() const
     }
 }
 
-void Q3DSEngine::behaviorFrameUpdate()
+void Q3DSEngine::behaviorFrameUpdate(float dt)
 {
     // Called once per frame. Update properties and emit signals on the object
     // when necessary.
@@ -1306,8 +1306,10 @@ void Q3DSEngine::behaviorFrameUpdate()
                 emit h.object->deactivate();
         }
 
-        if (active)
+        if (active) {
+            h.object->prepareUpdate(dt);
             emit h.object->update();
+        }
     }
 }
 

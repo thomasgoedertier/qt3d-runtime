@@ -46,9 +46,14 @@ void Q3DSBehaviorObject::init(Q3DSEngine *engine,
     m_behaviorInstance = behaviorInstance;
 }
 
+void Q3DSBehaviorObject::prepareUpdate(float dt)
+{
+    m_deltaTime = dt;
+}
+
 float Q3DSBehaviorObject::getDeltaTime()
 {
-    return 0;
+    return m_deltaTime;
 }
 
 // Object reference format:
@@ -307,8 +312,9 @@ QString Q3DSBehaviorObject::getParent()
 
 QString Q3DSBehaviorObject::getParent(const QString &handle)
 {
-    Q_UNUSED(handle);
-    return QString();
+    // highly sophisticated implementation. this function should not exist.
+    const QString parentStr = QLatin1String("parent");
+    return handle.isEmpty() ? parentStr : handle + QLatin1Char('.') + parentStr;
 }
 
 void Q3DSBehaviorObject::setDataInputValue(const QString &name, const QVariant &value)
