@@ -112,16 +112,18 @@ static Q3DSSlidePlayer::PlayerState getInitialSlideState(Q3DSSlide *slide)
 
 static void updatePosition(Q3DSSlide *slide, float pos, float duration)
 {
-    const auto updateAnimator = [pos, duration](Qt3DAnimation::QClipAnimator *animator) {
+    const auto updateAnimator = [pos](Qt3DAnimation::QClipAnimator *animator, float duration) {
         if (!animator)
             return;
 
-        const float f = qMax(pos / duration, 0.0f);
+        const float f = qBound(0.0f, pos / duration, 1.0f);
         animator->setNormalizedTime(f);
     };
     const auto updateAnimators = [&updateAnimator](const QVector<Qt3DAnimation::QClipAnimator *> &animators) {
-        for (auto animator : animators)
-            updateAnimator(animator);
+        for (auto animator : animators) {
+            const float duration = animator->clip()->duration() * 1000.0f;
+            updateAnimator(animator, duration);
+        }
     };
 
     const auto updateAllComponentPlayers = [pos](Q3DSSlide *slide) {
@@ -139,7 +141,7 @@ static void updatePosition(Q3DSSlide *slide, float pos, float duration)
     Q_ASSERT(data);
 
     updateAllComponentPlayers(slide);
-    updateAnimator(data->animator);
+    updateAnimator(data->animator, duration);
     updateAnimators(data->animators);
 };
 
