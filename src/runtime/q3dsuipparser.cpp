@@ -87,28 +87,29 @@ Q_DECLARE_LOGGING_CATEGORY(lcPerf)
  */
 
 // Returns a Presentation and does not maintain ownership
-Q3DSUipPresentation *Q3DSUipParser::parse(const QString &filename)
+Q3DSUipPresentation *Q3DSUipParser::parse(const QString &filename, const QString &presentationName)
 {
     if (!setSource(filename))
         return nullptr;
 
-    return createPresentation();
+    return createPresentation(presentationName);
 }
 
-Q3DSUipPresentation *Q3DSUipParser::parseData(const QByteArray &data)
+Q3DSUipPresentation *Q3DSUipParser::parseData(const QByteArray &data, const QString &presentationName)
 {
     if (!setSourceData(data))
         return nullptr;
 
-    return createPresentation();
+    return createPresentation(presentationName);
 }
 
-Q3DSUipPresentation *Q3DSUipParser::createPresentation()
+Q3DSUipPresentation *Q3DSUipParser::createPresentation(const QString &presentationName)
 {
     // reset (not owned by Q3DSUipParser)
     m_presentation.reset(new Q3DSUipPresentation);
 
     m_presentation->setSourceFile(sourceInfo()->absoluteFilePath());
+    m_presentation->setName(presentationName.isEmpty() ? QLatin1String("main") : presentationName);
 
     QXmlStreamReader *r = reader();
     if (r->readNextStartElement()) {

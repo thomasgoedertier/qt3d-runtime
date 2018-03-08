@@ -50,15 +50,22 @@
 
 QT_BEGIN_NAMESPACE
 
+class Q3DSEngine;
+class Q3DSUipPresentation;
+class Q3DSGraphObject;
+class Q3DSBehaviorInstance;
+
 class Q3DSBehaviorObject : public QObject
 {
     Q_OBJECT
 
 public:
     Q3DSBehaviorObject(QObject *parent = nullptr);
+    void init(Q3DSEngine *engine, Q3DSUipPresentation *presentation, Q3DSBehaviorInstance *behaviorInstance);
 
     Q_INVOKABLE float getDeltaTime();
-    Q_INVOKABLE float getAttribute(const QString &attribute);
+    Q_INVOKABLE QVariant getAttribute(const QString &attribute);
+    Q_REVISION(2) Q_INVOKABLE QVariant getAttribute(const QString &handle, const QString &attribute);
     Q_INVOKABLE void setAttribute(const QString &attribute, const QVariant &value);
     Q_INVOKABLE void setAttribute(const QString &handle, const QString &attribute,
                                   const QVariant &value);
@@ -69,10 +76,12 @@ public:
     Q_INVOKABLE void unregisterForEvent(const QString &event);
     Q_INVOKABLE void unregisterForEvent(const QString &handle, const QString &event);
     Q_INVOKABLE QVector2D getMousePosition();
-    Q_INVOKABLE QMatrix4x4 calculateGlobalTransform(const QString &handle = QString());
+    Q_REVISION(2) Q_INVOKABLE QMatrix4x4 calculateGlobalTransform();
+    Q_INVOKABLE QMatrix4x4 calculateGlobalTransform(const QString &handle);
     Q_INVOKABLE QVector3D lookAt(const QVector3D &target);
     Q_INVOKABLE QVector3D matrixToEuler(const QMatrix4x4 &matrix);
-    Q_INVOKABLE QString getParent(const QString &handle = QString());
+    Q_REVISION(2) Q_INVOKABLE QString getParent();
+    Q_INVOKABLE QString getParent(const QString &handle);
     Q_REVISION(1) Q_INVOKABLE void setDataInputValue(const QString &name, const QVariant &value);
 
 signals:
@@ -82,6 +91,11 @@ signals:
     void deactivate();
 
 private:
+    Q3DSGraphObject *findObject(const QString &attribute);
+
+    Q3DSEngine *m_engine = nullptr;
+    Q3DSUipPresentation *m_presentation = nullptr;
+    Q3DSBehaviorInstance *m_behaviorInstance = nullptr;
 };
 
 QT_END_NAMESPACE

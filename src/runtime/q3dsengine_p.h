@@ -120,6 +120,7 @@ public:
     QString uipFileName(int index = 0) const;
     Q3DSUipDocument *uipDocument(int index = 0) const;
     Q3DSUipPresentation *presentation(int index = 0) const;
+    Q3DSUipPresentation *presentationByName(const QString &name) const;
     Q3DSSceneManager *sceneManager(int index = 0) const;
 
     Qt3DCore::QAspectEngine *aspectEngine() const;
@@ -155,7 +156,9 @@ public:
     typedef QHash<Q3DSBehaviorInstance *, Q3DSBehaviorHandle> BehaviorMap;
 
     typedef std::function<void(Q3DSBehaviorInstance *, const QString &)> BehaviorLoadedCallback;
-    void loadBehaviorInstance(Q3DSBehaviorInstance *behaviorInstance, BehaviorLoadedCallback callback);
+    void loadBehaviorInstance(Q3DSBehaviorInstance *behaviorInstance,
+                              Q3DSUipPresentation *pres,
+                              BehaviorLoadedCallback callback);
     void unloadBehaviorInstance(Q3DSBehaviorInstance *behaviorInstance);
     const BehaviorMap &behaviorHandles() const { return m_behaviorHandles; }
 

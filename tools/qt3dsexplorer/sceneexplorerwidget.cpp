@@ -157,7 +157,7 @@ QVariant SceneTreeModel::data(const QModelIndex &index, int role) const
         return QVariant();
 
     Q3DSGraphObject *item = static_cast<Q3DSGraphObject* >(index.internalPointer());
-    QString typeStr = item->gex_typeAsString();
+    QString typeStr = item->typeAsString();
     if (item->type() == Q3DSGraphObject::Slide && item == m_root)
         typeStr = QLatin1String("Master Slide");
     QString s = tr("%1 %2").arg(typeStr).arg((quintptr) item, 0, 16);
@@ -200,8 +200,8 @@ void SceneExplorerWidget::handleSelectionChanged(const QModelIndex &current, con
                 return;
             // Everything here is pretty expensive, but there isn't
             // an easier way to do things yet.
-            const QStringList pnames = object->gex_propertyNames();
-            const QVariantList pvalues = object->gex_propertyValues();
+            const QStringList pnames = object->propertyNames();
+            const QVariantList pvalues = object->propertyValues();
 
             for (auto key : keys) {
                 auto property = m_propertyMap.value(key);
@@ -213,9 +213,9 @@ void SceneExplorerWidget::handleSelectionChanged(const QModelIndex &current, con
         });
 
     // Set the initial settings
-    const QStringList pnames = m_currentObject->gex_propertyNames();
-    const QVariantList pvalues = m_currentObject->gex_propertyValues();
-    QtProperty *topLevelItem = m_variantManager->addProperty(QtVariantPropertyManager::groupTypeId(), m_currentObject->gex_typeAsString());
+    const QStringList pnames = m_currentObject->propertyNames();
+    const QVariantList pvalues = m_currentObject->propertyValues();
+    QtProperty *topLevelItem = m_variantManager->addProperty(QtVariantPropertyManager::groupTypeId(), m_currentObject->typeAsString());
     Q_ASSERT(pnames.count() == pvalues.count());
     for (int i = 0; i < pnames.count(); ++i) {
         auto item = m_variantManager->addProperty(pvalues[i].type(), pnames[i]);

@@ -38,9 +38,9 @@
 					</Group>
 					<Model id="Cone_001" >
 						<Material id="Material_006" />
+						<Behavior id="Behavior_001" class="#Behav1" />
 					</Model>
 				</Layer>
-				<Behavior id="Behavior_001" class="#Behav1" />
 			</Scene>
 		</Graph>
 		<Logic >
@@ -69,6 +69,7 @@
 					<Add ref="#Material_006" />
 					<Add ref="#Behavior_001" name="Behavior instance 1" />
 				</State>
+				<State id="Scene-Slide2" name="Slide2" initialplaystate="Play" playmode="Stop at end" playthroughto="Previous" />
 			</State>
 		</Logic>
 	</Project>

@@ -51,11 +51,11 @@ QT_BEGIN_NAMESPACE
 class Q3DSV_PRIVATE_EXPORT Q3DSUipParser : public Q3DSAbstractXmlParser
 {
 public:
-    Q3DSUipPresentation *parse(const QString &filename);
-    Q3DSUipPresentation *parseData(const QByteArray &data);
+    Q3DSUipPresentation *parse(const QString &filename, const QString &presentationName);
+    Q3DSUipPresentation *parseData(const QByteArray &data, const QString &presentationName);
 
 private:
-    Q3DSUipPresentation *createPresentation();
+    Q3DSUipPresentation *createPresentation(const QString &presentationName);
     void parseUIP();
     void parseProject();
     void parseProjectSettings();

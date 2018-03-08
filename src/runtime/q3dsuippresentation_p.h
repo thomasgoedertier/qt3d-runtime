@@ -226,7 +226,8 @@ Q_DECLARE_OPERATORS_FOR_FLAGS(Q3DSGraphObjectAttached::FrameDirtyFlags)
 // applyPropertyChanges as well.
 //
 // Similarly, getters have two variants: animatable properties have a static
-// getter as well.
+// getter as well. To read properties dynamically (e.g. when implementing
+// getAttribute for behavior scripts) use propertyNames()/propertyValues().
 
 class Q3DSV_PRIVATE_EXPORT Q3DSGraphObject
 {
@@ -311,10 +312,9 @@ public:
     void setDataInputControlledProperties(const DataInputControlledProperties &props)
     { m_dataInputControlledProperties = props; }
 
-    // for the built-in graph explorer
-    QString gex_typeAsString() const;
-    virtual QStringList gex_propertyNames() const;
-    virtual QVariantList gex_propertyValues() const;
+    QString typeAsString() const;
+    virtual QStringList propertyNames() const;
+    virtual QVariantList propertyValues() const;
 
     // Properties
     QByteArray id() const { return m_id; } // always unique
@@ -366,8 +366,8 @@ public:
     int addSceneChangeObserver(SceneChangeCallback callback);
     void removeSceneChangeObserver(int callbackId);
 
-    QStringList gex_propertyNames() const override;
-    QVariantList gex_propertyValues() const override;
+    QStringList propertyNames() const override;
+    QVariantList propertyValues() const override;
 
     // Properties
     bool useClearColor() const { return m_useClearColor; }
@@ -614,8 +614,8 @@ public:
     int addSlideObjectChangeObserver(SlideObjectChangeCallback callback);
     void removeSlideObjectChangeObserver(int callbackId);
 
-    QStringList gex_propertyNames() const override;
-    QVariantList gex_propertyValues() const override;
+    QStringList propertyNames() const override;
+    QVariantList propertyValues() const override;
 
     // Properties
     PlayMode playMode() const { return m_playMode; }
@@ -674,8 +674,8 @@ public:
     void applyPropertyChanges(const Q3DSPropertyChangeList &changeList) override;
     void resolveReferences(Q3DSUipPresentation &pres) override;
 
-    QStringList gex_propertyNames() const override;
-    QVariantList gex_propertyValues() const override;
+    QStringList propertyNames() const override;
+    QVariantList propertyValues() const override;
 
     void calculateTextureTransform();
     const QMatrix4x4 &textureTransform() const { return m_textureTransform; }
@@ -808,8 +808,8 @@ public:
 
     const Q3DSPropertyChangeList *masterRollbackList() const { return m_masterRollbackList.data(); }
 
-    QStringList gex_propertyNames() const override;
-    QVariantList gex_propertyValues() const override;
+    QStringList propertyNames() const override;
+    QVariantList propertyValues() const override;
 
     // Properties
     Flags flags() const { return m_flags; }
@@ -938,8 +938,8 @@ public:
     void resolveReferences(Q3DSUipPresentation &pres) override;
     int mapChangeFlags(const Q3DSPropertyChangeList &changeList) override;
 
-    QStringList gex_propertyNames() const override;
-    QVariantList gex_propertyValues() const override;
+    QStringList propertyNames() const override;
+    QVariantList propertyValues() const override;
 
     // Properties
     Flags layerFlags() const { return m_layerFlags; }
@@ -1155,8 +1155,8 @@ public:
     void setProperties(const QXmlStreamAttributes &attrs, PropSetFlags flags) override;
     void applyPropertyChanges(const Q3DSPropertyChangeList &changeList) override;
 
-    QStringList gex_propertyNames() const override;
-    QVariantList gex_propertyValues() const override;
+    QStringList propertyNames() const override;
+    QVariantList propertyValues() const override;
 
     // Properties
     bool orthographic() const { return m_orthographic; }
@@ -1213,8 +1213,8 @@ public:
     void applyPropertyChanges(const Q3DSPropertyChangeList &changeList) override;
     void resolveReferences(Q3DSUipPresentation &pres) override;
 
-    QStringList gex_propertyNames() const override;
-    QVariantList gex_propertyValues() const override;
+    QStringList propertyNames() const override;
+    QVariantList propertyValues() const override;
 
     // Properties
     LightType lightType() const { return m_lightType; }
@@ -1326,8 +1326,8 @@ public:
     void applyPropertyChanges(const Q3DSPropertyChangeList &changeList) override;
     void resolveReferences(Q3DSUipPresentation &pres) override;
 
-    QStringList gex_propertyNames() const override;
-    QVariantList gex_propertyValues() const override;
+    QStringList propertyNames() const override;
+    QVariantList propertyValues() const override;
 
     // Properties
     MeshList mesh() const { return m_mesh; }
@@ -1374,8 +1374,8 @@ public:
     void setProperties(const QXmlStreamAttributes &attrs, PropSetFlags flags) override;
     void applyPropertyChanges(const Q3DSPropertyChangeList &changeList) override;
 
-    QStringList gex_propertyNames() const override;
-    QVariantList gex_propertyValues() const override;
+    QStringList propertyNames() const override;
+    QVariantList propertyValues() const override;
 
     // Properties
 
@@ -1398,8 +1398,8 @@ public:
     Q3DSSlide *currentSlide() const { return m_currentSlide; }
     void setCurrentSlide(Q3DSSlide *slide);
 
-    QStringList gex_propertyNames() const override;
-    QVariantList gex_propertyValues() const override;
+    QStringList propertyNames() const override;
+    QVariantList propertyValues() const override;
 
     // Properties
 
@@ -1439,8 +1439,8 @@ public:
     void applyPropertyChanges(const Q3DSPropertyChangeList &changeList) override;
     int mapChangeFlags(const Q3DSPropertyChangeList &changeList) override;
 
-    QStringList gex_propertyNames() const override;
-    QVariantList gex_propertyValues() const override;
+    QStringList propertyNames() const override;
+    QVariantList propertyValues() const override;
 
     // Properties
     QString text() const { return m_text; }
@@ -1522,8 +1522,8 @@ public:
     void resolveReferences(Q3DSUipPresentation &pres) override;
     int mapChangeFlags(const Q3DSPropertyChangeList &changeList) override;
 
-    QStringList gex_propertyNames() const override;
-    QVariantList gex_propertyValues() const override;
+    QStringList propertyNames() const override;
+    QVariantList propertyValues() const override;
 
     // Properties
     ShaderLighting shaderLighting() const { return m_shaderLighting; }
@@ -1690,8 +1690,8 @@ public:
     void applyPropertyChanges(const Q3DSPropertyChangeList &changeList) override;
     void resolveReferences(Q3DSUipPresentation &pres) override;
 
-    QStringList gex_propertyNames() const override;
-    QVariantList gex_propertyValues() const override;
+    QStringList propertyNames() const override;
+    QVariantList propertyValues() const override;
 
     // Properties
     Q3DSGraphObject *referencedMaterial() const { return m_referencedMaterial; }
@@ -1736,8 +1736,8 @@ public:
     void applyPropertyChanges(const Q3DSPropertyChangeList &changeList) override;
     void resolveReferences(Q3DSUipPresentation &pres) override;
 
-    QStringList gex_propertyNames() const override;
-    QVariantList gex_propertyValues() const override;
+    QStringList propertyNames() const override;
+    QVariantList propertyValues() const override;
 
     // Properties
     const Q3DSCustomMaterial *material() const { return &m_material; }
@@ -1790,8 +1790,8 @@ public:
     void applyPropertyChanges(const Q3DSPropertyChangeList &changeList) override;
     void resolveReferences(Q3DSUipPresentation &pres) override;
 
-    QStringList gex_propertyNames() const override;
-    QVariantList gex_propertyValues() const override;
+    QStringList propertyNames() const override;
+    QVariantList propertyValues() const override;
 
     // Properties
     const Q3DSEffect *effect() const { return &m_effect; }
@@ -1823,8 +1823,8 @@ public:
     void applyPropertyChanges(const Q3DSPropertyChangeList &changeList) override;
     void resolveReferences(Q3DSUipPresentation &pres) override;
 
-    QStringList gex_propertyNames() const override;
-    QVariantList gex_propertyValues() const override;
+    QStringList propertyNames() const override;
+    QVariantList propertyValues() const override;
 
     // Properties
     const Q3DSBehavior *behavior() const { return &m_behavior; }
@@ -1861,6 +1861,9 @@ public:
     QString sourceFile() const;
     void setSourceFile(const QString &s);
     QString assetFileName(const QString &xmlFileNameRef, int *part) const;
+
+    QString name() const;
+    void setName(const QString &s);
 
     QString author() const;
     QString company() const;
@@ -1958,6 +1961,7 @@ private:
 struct Q3DSUipPresentationData
 {
     QString sourceFile;
+    QString name;
     QString author;
     QString company;
     int presentationWidth = 0;

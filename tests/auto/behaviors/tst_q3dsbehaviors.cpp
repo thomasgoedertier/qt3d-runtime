@@ -145,7 +145,9 @@ void tst_Q3DSBehaviors::behaviorReload()
     QVERIFY(!m_engine->behaviorHandles().contains(bi));
 
     bool loadOk = false;
-    m_engine->loadBehaviorInstance(bi, [bi, &loadOk](Q3DSBehaviorInstance *behaviorInstance, const QString &error) {
+    m_engine->loadBehaviorInstance(bi, m_presentation,
+                                   [bi, &loadOk](Q3DSBehaviorInstance *behaviorInstance, const QString &error)
+    {
         if (error.isEmpty() && bi == behaviorInstance)
             loadOk = true;
     });

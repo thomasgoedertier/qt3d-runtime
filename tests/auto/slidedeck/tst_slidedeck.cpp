@@ -68,7 +68,7 @@ tst_slidedeck::~tst_slidedeck()
 void tst_slidedeck::initTestCase()
 {
     Q3DSUipParser parser;
-    m_pres.reset(parser.parse(QLatin1String(":/simple.uip")));
+    m_pres.reset(parser.parse(QLatin1String(":/simple.uip"), QLatin1String("pres")));
     QVERIFY(!m_pres.isNull());
 
     m_masterSlide = m_pres->masterSlide();

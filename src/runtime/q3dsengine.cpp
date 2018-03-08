@@ -483,6 +483,8 @@ bool Q3DSEngine::setPresentations(const QVector<Q3DSUipPresentation *> &presenta
 
     UipPresentation mainPres;
     mainPres.presentation = presentations[0];
+    if (mainPres.presentation->name().isEmpty())
+        mainPres.presentation->setName(QLatin1String("main"));
     mainPres.presentation->setDataInputEntries(&m_dataInputEntries);
     if (buildUipPresentationScene(&mainPres))
         m_uipPresentations.append(mainPres);
@@ -842,9 +844,9 @@ bool Q3DSEngine::parseUipDocument(UipPresentation *pres)
 
     Q3DSUipParser parser;
     if (!pres->uipDocument->source().isEmpty())
-        pres->presentation = parser.parse(pres->uipDocument->source());
+        pres->presentation = parser.parse(pres->uipDocument->source(), pres->uipDocument->id());
     else if (!pres->uipDocument->sourceData().isEmpty())
-        pres->presentation = parser.parseData(pres->uipDocument->sourceData());
+        pres->presentation = parser.parseData(pres->uipDocument->sourceData(), pres->uipDocument->id());
 
     // Expose the data input metadata to the presentation.
     if (pres->presentation)
@@ -973,6 +975,15 @@ Q3DSUipPresentation *Q3DSEngine::presentation(int index) const
 {
     return (index >= 0 && index < m_uipPresentations.count()) ?
                 m_uipPresentations[index].presentation : nullptr;
+}
+
+Q3DSUipPresentation *Q3DSEngine::presentationByName(const QString &name) const
+{
+    for (const auto &p : m_uipPresentations) {
+        if (p.presentation && p.presentation->name() == name)
+            return p.presentation;
+    }
+    return nullptr;
 }
 
 Q3DSSceneManager *Q3DSEngine::sceneManager(int index) const
@@ -1140,7 +1151,9 @@ void Q3DSEngine::setDataInputValue(const QString &name, const QVariant &value)
     }
 }
 
-void Q3DSEngine::loadBehaviorInstance(Q3DSBehaviorInstance *behaviorInstance, BehaviorLoadedCallback callback)
+void Q3DSEngine::loadBehaviorInstance(Q3DSBehaviorInstance *behaviorInstance,
+                                      Q3DSUipPresentation *pres,
+                                      BehaviorLoadedCallback callback)
 {
     const Q3DSBehavior *behavior = behaviorInstance->behavior();
     if (behavior->qmlCode().isEmpty()) {
@@ -1170,6 +1183,7 @@ void Q3DSEngine::loadBehaviorInstance(Q3DSBehaviorInstance *behaviorInstance, Be
             delete context;
             return;
         }
+        h.object->init(this, pres, behaviorInstance);
         h.updateProperties();
         component->completeCreate();
 
@@ -1215,13 +1229,14 @@ void Q3DSEngine::loadBehaviors()
 {
     m_behaviorLoadTime = 0;
 
-    QVector<Q3DSBehaviorInstance *> behaviorInstances;
+    QVector<QPair<Q3DSBehaviorInstance *, Q3DSUipPresentation *> > behaviorInstances;
     for (int i = 0, ie = presentationCount(); i != ie; ++i) {
-        Q3DSUipPresentation::forAllObjectsOfType(presentation(i)->scene(),
+        Q3DSUipPresentation *pres = presentation(i);
+        Q3DSUipPresentation::forAllObjectsOfType(pres->scene(),
                                                  Q3DSGraphObject::Behavior,
-                                                 [&behaviorInstances](Q3DSGraphObject *obj)
+                                                 [&behaviorInstances, pres](Q3DSGraphObject *obj)
         {
-            behaviorInstances.append(static_cast<Q3DSBehaviorInstance *>(obj));
+            behaviorInstances.append({ static_cast<Q3DSBehaviorInstance *>(obj), pres });
         });
     }
 
@@ -1236,10 +1251,12 @@ void Q3DSEngine::loadBehaviors()
         qmlRegisterType<Q3DSBehaviorObject, 2>("QtStudio3D.Behavior", 2, 0, "Behavior");
     }
 
-    for (Q3DSBehaviorInstance *behaviorInstance : behaviorInstances) {
+    for (auto biPresPair : behaviorInstances) {
+        Q3DSBehaviorInstance *behaviorInstance = biPresPair.first;
         QElapsedTimer loadTime;
         loadTime.start();
         loadBehaviorInstance(behaviorInstance,
+                             biPresPair.second,
                              [this, loadTime](Q3DSBehaviorInstance *behaviorInstance, const QString &error)
         {
             if (error.isEmpty()) {
