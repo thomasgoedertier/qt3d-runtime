@@ -49,6 +49,7 @@ private Q_SLOTS:
     void behaviorLoad();
     void behaviorUnload();
     void behaviorReload();
+    void events();
 
 private:
     Q3DSEngine *m_engine = nullptr;
@@ -76,7 +77,7 @@ void tst_Q3DSBehaviors::initTestCase()
     m_view->forceResize(640, 480);
 
     Q3DSUtils::setDialogsEnabled(false);
-    QVERIFY(m_view->engine()->setSource(QLatin1String(":/data/dummy_behavior.uip")));
+    QVERIFY(m_view->engine()->setSource(QLatin1String(":/data/behaviors.uip")));
 
     m_view->show();
     QVERIFY(QTest::qWaitForWindowExposed(m_view));
@@ -103,7 +104,7 @@ void tst_Q3DSBehaviors::behaviorLoad()
     QCOMPARE(props.value(QLatin1String("startImmediately")).toBool(), true);
 
     const Q3DSEngine::BehaviorMap loadedBehaviors = m_engine->behaviorHandles();
-    QCOMPARE(loadedBehaviors.count(), 1);
+    QCOMPARE(loadedBehaviors.count(), 2);
     QVERIFY(loadedBehaviors.contains(bi));
 
     Q3DSBehaviorHandle h = loadedBehaviors.value(bi);
@@ -159,6 +160,47 @@ void tst_Q3DSBehaviors::behaviorReload()
     QVERIFY(h.object);
     QCOMPARE(h.object->property("target").toString(), QStringLiteral("Scene.Layer.Camera"));
     QCOMPARE(h.object->property("startImmediately").toBool(), true);
+}
+
+void tst_Q3DSBehaviors::events()
+{
+    auto bi = m_presentation->objectByName<Q3DSBehaviorInstance>(QLatin1String("Event handling behavior instance"));
+    QVERIFY(bi);
+
+    Q3DSBehaviorHandle h = m_engine->behaviorHandles().value(bi);
+    QTRY_COMPARE(h.object->property("gotInitialize").toBool(), true);
+    QTRY_VERIFY(h.object->property("updateCount").toInt() > 0);
+    int u = h.object->property("updateCount").toInt();
+
+    QCOMPARE(bi->parent()->id(), QByteArrayLiteral("Rectangle"));
+    auto behaviorOwner = bi->parent();
+
+    QCOMPARE(h.object->property("eventCount").toInt(), 0);
+    const QString eventKey = QLatin1String("meltdown");
+
+    behaviorOwner->processEvent(eventKey);
+    QTRY_VERIFY(h.object->property("updateCount").toInt() > u);
+    u = h.object->property("updateCount").toInt();
+    QCOMPARE(h.object->property("eventCount").toInt(), 1);
+
+    behaviorOwner->processEvent(eventKey);
+    QTRY_VERIFY(h.object->property("updateCount").toInt() > u);
+    u = h.object->property("updateCount").toInt();
+    QCOMPARE(h.object->property("eventCount").toInt(), 2);
+
+    behaviorOwner->processEvent(QLatin1String("not interested"));
+    QTRY_VERIFY(h.object->property("updateCount").toInt() > u);
+    u = h.object->property("updateCount").toInt();
+    QCOMPARE(h.object->property("eventCount").toInt(), 2); // must not have changed
+
+    // wait until the 50th update when the script unregisters its event handler
+    QTRY_VERIFY(h.object->property("updateCount").toInt() > 50);
+    u = h.object->property("updateCount").toInt();
+
+    behaviorOwner->processEvent(eventKey);
+    QTRY_VERIFY(h.object->property("updateCount").toInt() > u);
+    u = h.object->property("updateCount").toInt();
+    QCOMPARE(h.object->property("eventCount").toInt(), 2); // must not have changed
 }
 
 QTEST_MAIN(tst_Q3DSBehaviors);

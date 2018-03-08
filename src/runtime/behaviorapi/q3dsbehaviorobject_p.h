@@ -43,6 +43,7 @@
 
 #include <QObject>
 #include <QVariant>
+#include <QHash>
 #include <QJSValue>
 #include <QVector2D>
 #include <QVector3D>
@@ -93,11 +94,19 @@ signals:
 
 private:
     Q3DSGraphObject *findObject(const QString &attribute);
+    void eventHandler(Q3DSGraphObject *obj, const QString &event);
 
     Q3DSEngine *m_engine = nullptr;
     Q3DSUipPresentation *m_presentation = nullptr;
     Q3DSBehaviorInstance *m_behaviorInstance = nullptr;
     float m_deltaTime = 0;
+
+    typedef QPair<Q3DSGraphObject *, QString> EventDef;
+    struct EventHandlerData {
+        int callbackId;
+        QJSValue function;
+    };
+    QHash<EventDef, EventHandlerData> m_eventHandlers;
 };
 
 QT_END_NAMESPACE

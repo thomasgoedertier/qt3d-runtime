@@ -1090,6 +1090,7 @@ void Q3DSEngine::handleKeyReleaseEvent(QKeyEvent *e)
 
 void Q3DSEngine::handleMousePressEvent(QMouseEvent *e)
 {
+    m_lastMousePressPos = e->pos();
     QCoreApplication::sendEvent(&m_profileUiEventSource, e);
 
     if (m_uipPresentations.isEmpty())
@@ -1112,6 +1113,7 @@ void Q3DSEngine::handleMouseMoveEvent(QMouseEvent *e)
 
 void Q3DSEngine::handleMouseReleaseEvent(QMouseEvent *e)
 {
+    m_lastMousePressPos = e->pos();
     QCoreApplication::sendEvent(&m_profileUiEventSource, e);
 
     if (m_uipPresentations.isEmpty())

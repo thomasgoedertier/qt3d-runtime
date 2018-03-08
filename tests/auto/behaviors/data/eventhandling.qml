@@ -56,20 +56,28 @@
     <Handler name="stop" formalName="Stop" category="Dummy" description="Stop" />
 ]]*/
 
-import QtQuick 2.0
 import QtStudio3D.Behavior 2.0
 
 Behavior {
     property string target
     property bool startImmediately
 
-    onInitialize: console.log("initialize")
-    onActivate: console.log("activate")
-    onDeactivate: console.log("deactivate")
+    property bool gotInitialize: false
+    property bool gotActivate: false
+    property int updateCount: 0
+    property int eventCount: 0
+
+    onInitialize: {
+        gotInitialize = true;
+        registerForEvent("meltdown", function () {
+            eventCount += 1;
+        });
+    }
+    onActivate: gotActivate = true
+    onDeactivate: {}
     onUpdate: {
-        console.log("Elapsed since last update: " + getDeltaTime());
-        var m = calculateGlobalTransform();
-        console.log(getAttribute("id") + " has world position " + m.column(3).toVector3d())
-        console.log("Last mouse position: " + getMousePosition())
+        updateCount += 1;
+        if (updateCount == 50)
+            unregisterForEvent("meltdown");
     }
 }

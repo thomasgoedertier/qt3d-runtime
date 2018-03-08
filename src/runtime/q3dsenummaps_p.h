@@ -207,12 +207,6 @@ struct Q3DSEnumParseMap<Q3DSTextNode::VerticalAlignment>
 };
 
 template <>
-struct Q3DSEnumParseMap<Q3DSAction::Event>
-{
-    static Q3DSEnumNameMap *get();
-};
-
-template <>
 struct Q3DSEnumParseMap<Q3DSAction::HandlerType>
 {
     static Q3DSEnumNameMap *get();

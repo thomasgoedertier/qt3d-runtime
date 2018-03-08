@@ -29,6 +29,9 @@
 
 #include "q3dsbehaviorobject_p.h"
 #include "q3dsengine_p.h"
+#include <QQuaternion>
+#include <qmath.h>
+#include <functional>
 
 QT_BEGIN_NAMESPACE
 
@@ -135,8 +138,10 @@ QVariant Q3DSBehaviorObject::getAttribute(const QString &attribute)
 QVariant Q3DSBehaviorObject::getAttribute(const QString &handle, const QString &attribute)
 {
     Q3DSGraphObject *obj = findObject(handle);
-    if (!obj)
+    if (!obj) {
+        qWarning("getAttribute: Invalid object reference %s", qPrintable(handle));
         return 0;
+    }
 
     if (attribute.contains(QLatin1Char('.'))) {
         // for example, rotation.x
@@ -192,8 +197,10 @@ void Q3DSBehaviorObject::setAttribute(const QString &attribute, const QVariant &
 void Q3DSBehaviorObject::setAttribute(const QString &handle, const QString &attribute, const QVariant &value)
 {
     Q3DSGraphObject *obj = findObject(handle);
-    if (!obj)
+    if (!obj) {
+        qWarning("setAttribute: Invalid object reference %s", qPrintable(handle));
         return;
+    }
 
     Q3DSPropertyChangeList cl;
     if (attribute.contains(QLatin1Char('.'))) {
@@ -262,9 +269,39 @@ void Q3DSBehaviorObject::registerForEvent(const QString &event, const QJSValue &
     registerForEvent(QString(), event, function);
 }
 
+void Q3DSBehaviorObject::eventHandler(Q3DSGraphObject *obj, const QString &event)
+{
+    EventDef e(obj, event);
+    auto it = m_eventHandlers.find(e);
+    if (it != m_eventHandlers.end())
+        it->function.call();
+}
+
 void Q3DSBehaviorObject::registerForEvent(const QString &handle, const QString &event, const QJSValue &function)
 {
-    Q_UNUSED(handle); Q_UNUSED(event); Q_UNUSED(function);
+    Q3DSGraphObject *obj = findObject(handle);
+    if (!obj) {
+        qWarning("registerForEvent: Invalid object reference %s", qPrintable(handle));
+        return;
+    }
+
+    if (!function.isCallable()) {
+        qWarning("registerForEvent: Function is not callable");
+        return;
+    }
+
+    EventDef e(obj, event);
+    if (m_eventHandlers.contains(e)) {
+        qWarning("registerForEvent: Already registered a handler for event %s on %s",
+                 qPrintable(event), handle.isEmpty() ? "this" : qPrintable(handle));
+        return;
+    }
+
+    EventHandlerData d;
+    d.function = function;
+    d.callbackId = obj->addEventHandler(event, std::bind(&Q3DSBehaviorObject::eventHandler,
+                                                         this, std::placeholders::_1, std::placeholders::_2));
+    m_eventHandlers.insert(e, d);
 }
 
 void Q3DSBehaviorObject::unregisterForEvent(const QString &event)
@@ -274,12 +311,24 @@ void Q3DSBehaviorObject::unregisterForEvent(const QString &event)
 
 void Q3DSBehaviorObject::unregisterForEvent(const QString &handle, const QString &event)
 {
-    Q_UNUSED(handle); Q_UNUSED(event);
+    Q3DSGraphObject *obj = findObject(handle);
+    if (!obj) {
+        qWarning("unregisterForEvent: Invalid object reference %s", qPrintable(handle));
+        return;
+    }
+
+    EventDef e(obj, event);
+    auto it = m_eventHandlers.find(e);
+    if (it != m_eventHandlers.end()) {
+        obj->removeEventHandler(event, it->callbackId);
+        m_eventHandlers.erase(it);
+    }
 }
 
 QVector2D Q3DSBehaviorObject::getMousePosition()
 {
-    return QVector2D();
+    const QPoint p = m_engine->lastMousePressPos();
+    return QVector2D(p.x(), p.y());
 }
 
 QMatrix4x4 Q3DSBehaviorObject::calculateGlobalTransform()
@@ -289,20 +338,35 @@ QMatrix4x4 Q3DSBehaviorObject::calculateGlobalTransform()
 
 QMatrix4x4 Q3DSBehaviorObject::calculateGlobalTransform(const QString &handle)
 {
-    Q_UNUSED(handle);
-    return QMatrix4x4();
+    Q3DSGraphObject *obj = findObject(handle);
+    if (!obj || !obj->isNode()) {
+        qWarning("calculateGlobalTransform: Invalid node reference %s", qPrintable(handle));
+        return QMatrix4x4();
+    }
+
+    auto d = static_cast<Q3DSNode *>(obj)->attached<Q3DSNodeAttached>();
+    if (!d)
+        return QMatrix4x4();
+
+    return d->globalTransform;
 }
 
 QVector3D Q3DSBehaviorObject::lookAt(const QVector3D &target)
 {
-    Q_UNUSED(target);
-    return QVector3D();
+    const float mag = qSqrt(target.x() * target.x() + target.z() * target.z());
+    const float pitch = -qAtan2(target.y(), mag);
+    const float yaw = qAtan2(target.x(), target.z());
+    return QVector3D(pitch, yaw, 0);
 }
 
 QVector3D Q3DSBehaviorObject::matrixToEuler(const QMatrix4x4 &matrix)
 {
-    Q_UNUSED(matrix);
-    return QVector3D();
+    // ### check if this gives results comparable to what 3DS1 does
+    const float *p = matrix.constData();
+    const float rowMajor3x3[] = { p[0], p[4], p[8],
+                                  p[1], p[5], p[9],
+                                  p[2], p[6], p[10] };
+    return QQuaternion::fromRotationMatrix(QMatrix3x3(rowMajor3x3)).toEulerAngles();
 }
 
 QString Q3DSBehaviorObject::getParent()

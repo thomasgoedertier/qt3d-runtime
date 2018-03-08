@@ -372,9 +372,33 @@ Q3DSPropertyChange Q3DSPropertyChange::fromVariant(const QString &name, const QV
     return Q3DSPropertyChange(name, Q3DS::convertFromVariant(value));
 }
 
+QString Q3DSGraphObjectEvents::pressureDownEvent()
+{
+    return QLatin1String("onPressureDown");
+}
+
+QString Q3DSGraphObjectEvents::pressureUpEvent()
+{
+    return QLatin1String("onPressureUp");
+}
+
+QString Q3DSGraphObjectEvents::tapEvent()
+{
+    return QLatin1String("onTap");
+}
+
+QString Q3DSGraphObjectEvents::slideEnterEvent()
+{
+    return QLatin1String("onSlideEnter");
+}
+
+QString Q3DSGraphObjectEvents::slideExitEvent()
+{
+    return QLatin1String("onSlideExit");
+}
+
 Q3DSGraphObjectAttached::~Q3DSGraphObjectAttached()
 {
-
 }
 
 Q3DSGraphObject::Q3DSGraphObject(Q3DSGraphObject::Type type)
@@ -646,6 +670,40 @@ Q3DSPropertyChange Q3DSGraphObject::setEndTime(qint32 v)
 {
     PROP_SETTER(m_endTime, v, "endtime");
     return result;
+}
+
+int Q3DSGraphObject::addEventHandler(const QString &event, EventCallback callback)
+{
+    QVector<EventCallback> &handlerList(m_eventHandlers[event]);
+    handlerList.append(callback);
+    return handlerList.count() - 1;
+}
+
+void Q3DSGraphObject::removeEventHandler(const QString &event, int callbackId)
+{
+    auto it = m_eventHandlers.find(event);
+    if (it != m_eventHandlers.end())
+        (*it)[callbackId] = nullptr;
+}
+
+void Q3DSGraphObject::processEvent(const QString &event)
+{
+    auto it = m_eventHandlers.constFind(event);
+    if (it != m_eventHandlers.constEnd()) {
+        for (EventCallback callback : *it) {
+            if (callback)
+                callback(this, event);
+        }
+    }
+
+    bool bubbleUp = true;
+    // onSlideEnter/Exit for a component slide must not bubble to outside the component
+    if (m_type == Component) {
+        if (event == Q3DSGraphObjectEvents::slideEnterEvent() || event == Q3DSGraphObjectEvents::slideExitEvent())
+            bubbleUp = false;
+    }
+    if (bubbleUp && m_parent)
+        m_parent->processEvent(event);
 }
 
 QString Q3DSGraphObject::typeAsString() const

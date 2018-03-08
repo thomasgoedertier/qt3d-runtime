@@ -42,6 +42,7 @@ private slots:
     void sceneChangeNotification();
     void slideGraphChangeNotification();
     void slideConstruct();
+    void events();
 
 private:
     void makePresentation(Q3DSUipPresentation &presentation);
@@ -459,6 +460,80 @@ void tst_Q3DSUipPresentation::slideConstruct()
     slide2->removeAnimation(anim);
     QCOMPARE(slide2AnimAddCount, 1);
     QCOMPARE(slide2AnimRemoveCount, 1);
+}
+
+void tst_Q3DSUipPresentation::events()
+{
+    Q3DSUipPresentation presentation;
+    makePresentation(presentation);
+
+    Q3DSModelNode *model1 = presentation.object<Q3DSModelNode>("model1");
+    QVERIFY(model1);
+    const QString event1Key = QLatin1String("some event");
+    const QString event2Key = QLatin1String("another event");
+    int triggerCount[] = { 0, 0, 0, 0, 0 };
+    int id0 = model1->addEventHandler(event1Key, [model1, &triggerCount, event1Key](Q3DSGraphObject *obj, const QString &event) {
+        if (obj == model1 && event == event1Key)
+            ++triggerCount[0];
+    });
+    int id1 = model1->addEventHandler(event1Key, [model1, &triggerCount, event1Key](Q3DSGraphObject *obj, const QString &event) {
+        if (obj == model1 && event == event1Key)
+            ++triggerCount[1];
+    });
+    int id2 = model1->addEventHandler(event2Key, [model1, &triggerCount, event2Key](Q3DSGraphObject *obj, const QString &event) {
+        if (obj == model1 && event == event2Key)
+            ++triggerCount[2];
+    });
+
+    model1->processEvent(event1Key);
+    QCOMPARE(triggerCount[0], 1);
+    QCOMPARE(triggerCount[1], 1);
+    QCOMPARE(triggerCount[2], 0);
+
+    model1->processEvent(event2Key);
+    QCOMPARE(triggerCount[0], 1);
+    QCOMPARE(triggerCount[1], 1);
+    QCOMPARE(triggerCount[2], 1);
+
+    model1->removeEventHandler(event2Key, id2);
+    model1->processEvent(event2Key);
+    QCOMPARE(triggerCount[0], 1);
+    QCOMPARE(triggerCount[1], 1);
+    QCOMPARE(triggerCount[2], 1);
+
+    model1->removeEventHandler(event1Key, id1);
+    model1->processEvent(event1Key);
+    QCOMPARE(triggerCount[0], 2);
+    QCOMPARE(triggerCount[1], 1);
+    QCOMPARE(triggerCount[2], 1);
+
+    // test bubbling up
+    Q3DSGraphObject *model1Parent = model1->parent(); // layer1
+    QVERIFY(model1Parent);
+    model1Parent->addEventHandler(event1Key, [model1Parent, &triggerCount, event1Key](Q3DSGraphObject *obj, const QString &event) {
+        if (obj == model1Parent && event == event1Key)
+            ++triggerCount[3];
+    });
+    Q3DSGraphObject *model1GrandParent = model1Parent->parent(); // scene
+    QVERIFY(model1GrandParent);
+    model1GrandParent->addEventHandler(event1Key, [model1GrandParent, &triggerCount, event1Key](Q3DSGraphObject *obj, const QString &event) {
+        if (obj == model1GrandParent && event == event1Key)
+            ++triggerCount[4];
+    });
+    model1->processEvent(event1Key);
+    QCOMPARE(triggerCount[0], 3);
+    QCOMPARE(triggerCount[1], 1);
+    QCOMPARE(triggerCount[2], 1);
+    QCOMPARE(triggerCount[3], 1);
+    QCOMPARE(triggerCount[4], 1);
+
+    model1->removeEventHandler(event1Key, id0);
+    model1->processEvent(event1Key);
+    QCOMPARE(triggerCount[0], 3);
+    QCOMPARE(triggerCount[1], 1);
+    QCOMPARE(triggerCount[2], 1);
+    QCOMPARE(triggerCount[3], 2);
+    QCOMPARE(triggerCount[4], 2);
 }
 
 #include <tst_q3dsuippresentation.moc>

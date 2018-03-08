@@ -6,7 +6,8 @@
 		</ProjectSettings>
 		<Classes >
 			<Behavior id="Behav1" name="Behavior 1" sourcepath="dummy.qml" />
-		</Classes>
+                        <Behavior id="Behav2" name="Behavior 2" sourcepath="eventhandling.qml" />
+                </Classes>
 		<Graph >
 			<Scene id="Scene" backgroundcolor="0.929412 0.956863 0.34902" >
 				<Layer id="Layer" >
@@ -14,6 +15,7 @@
 					<Light id="Light" />
 					<Model id="Rectangle" >
 						<Material id="Material" />
+                                                <Behavior id="Behavior_002" class="#Behav2" />
 					</Model>
 					<Model id="Sphere" >
 						<Material id="Material_001" />
@@ -68,7 +70,8 @@
 					<Add ref="#Cone_001" name="Cone" position="501.573 148.848 10" sourcepath="#Cone" />
 					<Add ref="#Material_006" />
 					<Add ref="#Behavior_001" name="Behavior instance 1" />
-				</State>
+                                        <Add ref="#Behavior_002" name="Event handling behavior instance" />
+                                </State>
 			</State>
 		</Logic>
 	</Project>

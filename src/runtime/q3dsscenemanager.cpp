@@ -1825,10 +1825,7 @@ Q3DSCameraNode *Q3DSSceneManager::findFirstCamera(Q3DSLayerNode *layer3DS)
                 const bool active = cam->flags().testFlag(Q3DSNode::Active);;
                 if (active) {
                     // Check if camera is on the current slide
-                    Q3DSNodeAttached *nodeData = static_cast<Q3DSNodeAttached *>(obj->attached());
-                    Q3DSComponentNode *component = nullptr;
-                    if (nodeData && nodeData->component)
-                        component = nodeData->component;
+                    Q3DSComponentNode *component = cam->attached() ? cam->attached()->component : nullptr;
                     // Check that object exists current slide scope (master + current)
                     Q3DSSlide *master = component ? component->masterSlide () : m_masterSlide;
                     Q3DSSlide *currentSlide = component ? component->currentSlide() : m_currentSlide;
@@ -3317,6 +3314,9 @@ void Q3DSSceneManager::buildLayerScene(Q3DSGraphObject *obj, Q3DSLayerNode *laye
         if (obj->type() == Q3DSGraphObject::Effect)
             buildEffect(static_cast<Q3DSEffectInstance *>(obj), layer3DS);
 
+        if (obj->attached())
+            obj->attached()->component = m_componentNodeStack.top();
+
         return;
     }
 
@@ -3372,9 +3372,9 @@ void Q3DSSceneManager::buildLayerScene(Q3DSGraphObject *obj, Q3DSLayerNode *laye
     default:
         break;
     }
-    auto nodeData = static_cast<Q3DSNodeAttached*>(obj->attached());
-    if (nodeData)
-        nodeData->component = m_componentNodeStack.top();
+
+    if (obj->attached())
+        obj->attached()->component = m_componentNodeStack.top();
 }
 
 Qt3DCore::QTransform *Q3DSSceneManager::initEntityForNode(Qt3DCore::QEntity *entity, Q3DSNode *node, Q3DSLayerNode *layer3DS)

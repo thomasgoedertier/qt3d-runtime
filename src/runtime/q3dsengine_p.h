@@ -162,6 +162,8 @@ public:
     void unloadBehaviorInstance(Q3DSBehaviorInstance *behaviorInstance);
     const BehaviorMap &behaviorHandles() const { return m_behaviorHandles; }
 
+    QPoint lastMousePressPos() const { return m_lastMousePressPos; }
+
 public Q_SLOTS:
     void requestGrab();
 
@@ -238,6 +240,8 @@ private:
 
     QQmlEngine *m_behaviorQmlEngine = nullptr;
     BehaviorMap m_behaviorHandles;
+
+    QPoint m_lastMousePressPos;
 };
 
 Q_DECLARE_OPERATORS_FOR_FLAGS(Q3DSEngine::Flags)

@@ -65,6 +65,7 @@ class Q3DSUipParser;
 class Q3DSUipPresentation;
 struct Q3DSUipPresentationData;
 class Q3DSLayerNode;
+class Q3DSComponentNode;
 class Q3DSSceneManager;
 class QXmlStreamAttributes;
 
@@ -157,6 +158,17 @@ private:
     QSet<QString> m_keys;
 };
 
+class Q3DSV_PRIVATE_EXPORT Q3DSGraphObjectEvents
+{
+public:
+    static QString pressureDownEvent();
+    static QString pressureUpEvent();
+    static QString tapEvent();
+
+    static QString slideEnterEvent();
+    static QString slideExitEvent();
+};
+
 class Q3DSV_PRIVATE_EXPORT Q3DSGraphObjectAttached
 {
 public:
@@ -166,6 +178,7 @@ public:
     };
     QHash<Q3DSSlide *, AnimationData *> animationDataMap;
     Qt3DCore::QEntity *entity = nullptr;
+    Q3DSComponentNode *component = nullptr;
 
     struct AnimatedValueRollbackData {
         Q3DSGraphObject *obj;
@@ -312,6 +325,11 @@ public:
     void setDataInputControlledProperties(const DataInputControlledProperties &props)
     { m_dataInputControlledProperties = props; }
 
+    typedef std::function<void(Q3DSGraphObject *, const QString &)> EventCallback;
+    int addEventHandler(const QString &event, EventCallback callback);
+    void removeEventHandler(const QString &event, int callbackId);
+    void processEvent(const QString &event);
+
     QString typeAsString() const;
     virtual QStringList propertyNames() const;
     virtual QVariantList propertyValues() const;
@@ -329,10 +347,12 @@ public:
 
 protected:
     void destroyGraph();
+
     QByteArray m_id;
     QString m_name;
     qint32 m_startTime = 0;
     qint32 m_endTime = 10000;
+    QHash<QString, QVector<EventCallback> > m_eventHandlers;
 
 private:
     Q_DISABLE_COPY(Q3DSGraphObject)
@@ -468,12 +488,6 @@ inline bool operator!=(const Q3DSAnimationTrack &a, const Q3DSAnimationTrack &b)
 class Q3DSV_PRIVATE_EXPORT Q3DSAction
 {
 public:
-    enum Event {
-        OnPressureDown,
-        OnPressureUp,
-        OnTap
-    };
-
     enum HandlerType {
         SetProperty,
         FireEvent,
@@ -512,7 +526,7 @@ public:
     QString triggerObject_unresolved;
     Q3DSGraphObject *triggerObject = nullptr;
 
-    Event event;
+    QString event;
 
     QString targetObject_unresolved;
     Q3DSGraphObject *targetObject = nullptr;
@@ -751,8 +765,6 @@ public:
     static QVariant getPivotV(Q3DSGraphObject *obj, const QString &) { return static_cast<Q3DSImage *>(obj)->m_pivotV; }
 };
 
-class Q3DSComponentNode;
-
 class Q3DSV_PRIVATE_EXPORT Q3DSNodeAttached : public Q3DSGraphObjectAttached
 {
 public:
@@ -761,7 +773,6 @@ public:
     float globalOpacity = 1;
     bool globalVisibility = true;
     Q3DSLayerNode *layer3DS = nullptr;
-    Q3DSComponentNode *component = nullptr;
 };
 
 class Q3DSV_PRIVATE_EXPORT Q3DSNode : public Q3DSGraphObject

@@ -367,18 +367,6 @@ Q3DSEnumNameMap *Q3DSEnumParseMap<Q3DSTextNode::VerticalAlignment>::get()
     return g_TextNodevertalign;
 }
 
-static Q3DSEnumNameMap g_actionEventMap[] = {
-    { Q3DSAction::OnPressureDown, "onPressureDown" },
-    { Q3DSAction::OnPressureUp, "onPressureUp" },
-    { Q3DSAction::OnTap, "onTap" },
-    { 0, nullptr }
-};
-
-Q3DSEnumNameMap *Q3DSEnumParseMap<Q3DSAction::Event>::get()
-{
-    return g_actionEventMap;
-}
-
 static Q3DSEnumNameMap g_actionHandlerTypeMap[] = {
     { Q3DSAction::SetProperty, "Set Property" },
     { Q3DSAction::FireEvent, "Fire Event" },

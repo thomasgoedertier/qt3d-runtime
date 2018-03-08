@@ -1070,7 +1070,7 @@ void tst_Q3DSUipParser::action()
     QCOMPARE(action.triggerObject_unresolved, QStringLiteral("#Barrel"));
     QVERIFY(action.triggerObject);
     QCOMPARE(action.triggerObject, pres->object("Barrel"));
-    QCOMPARE(action.event, Q3DSAction::OnPressureDown);
+    QCOMPARE(action.event, Q3DSGraphObjectEvents::pressureDownEvent());
     QCOMPARE(action.targetObject_unresolved, QStringLiteral("#Material"));
     QVERIFY(action.targetObject);
     QCOMPARE(action.targetObject, pres->object("Material"));
@@ -1101,7 +1101,7 @@ void tst_Q3DSUipParser::action()
     QCOMPARE(action.triggerObject_unresolved, QStringLiteral("#Cube"));
     QVERIFY(action.triggerObject);
     QCOMPARE(action.triggerObject, pres->object("Cube"));
-    QCOMPARE(action.event, Q3DSAction::OnPressureDown);
+    QCOMPARE(action.event, Q3DSGraphObjectEvents::pressureDownEvent());
     QCOMPARE(action.targetObject_unresolved, QStringLiteral("#CubeComp"));
     QVERIFY(action.targetObject);
     QCOMPARE(action.targetObject, pres->object("CubeComp"));
@@ -1124,7 +1124,7 @@ void tst_Q3DSUipParser::action()
     QCOMPARE(action.triggerObject_unresolved, QStringLiteral("#Cube"));
     QVERIFY(action.triggerObject);
     QCOMPARE(action.triggerObject, pres->object("Cube"));
-    QCOMPARE(action.event, Q3DSAction::OnPressureDown);
+    QCOMPARE(action.event, Q3DSGraphObjectEvents::pressureDownEvent());
     QCOMPARE(action.targetObject_unresolved, QStringLiteral("#CubeComp"));
     QVERIFY(action.targetObject);
     QCOMPARE(action.targetObject, pres->object("CubeComp"));

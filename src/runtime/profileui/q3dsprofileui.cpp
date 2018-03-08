@@ -125,6 +125,9 @@ Q3DSProfileView::Q3DSProfileView(Q3DSProfiler *profiler)
     m_logFilterPrefixes[i] = "q3ds.widget";
     m_logFilterEnabled[i] = true;
     ++i;
+    m_logFilterPrefixes[i] = "qml";
+    m_logFilterEnabled[i] = true;
+    ++i;
     m_logFilterPrefixes[i] = nullptr;
 }
 

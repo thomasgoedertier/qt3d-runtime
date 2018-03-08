@@ -503,8 +503,7 @@ void Q3DSUipParser::parseAddSet(Q3DSSlide *slide, bool isSet, bool isMaster)
                     } else if (attr.name() == QStringLiteral("triggerObject")) {
                         action.triggerObject_unresolved = attr.value().trimmed().toString();
                     } else if (attr.name() == QStringLiteral("event")) {
-                        if (!Q3DSEnumMap::enumFromStr(attr.value(), &action.event))
-                            r->raiseError(QObject::tr("Unknown action event %1").arg(attr.value().toString()));
+                        action.event = attr.value().trimmed().toString();
                     } else if (attr.name() == QStringLiteral("targetObject")) {
                         action.targetObject_unresolved = attr.value().trimmed().toString();
                     } else if (attr.name() == QStringLiteral("handler")) {
