@@ -46,6 +46,7 @@
 #include <QMultiMap>
 #include <QObject>
 #include <QHash>
+#include <QSet>
 #include "q3dsgraphicslimits_p.h"
 
 QT_BEGIN_NAMESPACE
@@ -53,6 +54,10 @@ QT_BEGIN_NAMESPACE
 class Q3DSSceneManager;
 class Q3DSUipPresentation;
 class Q3DSMesh;
+
+namespace Qt3DRender {
+class QFrameGraphNode;
+}
 
 class Q3DSProfiler
 {
@@ -116,6 +121,11 @@ public:
     const QVector<Q3DSProfiler *> *subPresentationProfilers() const { return &m_subPresProfilers; }
     Q3DSProfiler *mainPresentationProfiler();
 
+    void reportFrameGraphRoot(Qt3DRender::QFrameGraphNode *fgNode);
+    void reportFrameGraphStopNode(Qt3DRender::QFrameGraphNode *fgNode);
+    Qt3DRender::QFrameGraphNode *frameGraphRoot() const { return m_frameGraphRoot; }
+    QSet<Qt3DRender::QFrameGraphNode *> frameGraphStopNodes() const { return m_fgStopNodes; }
+
     const Q3DSGraphicsLimits *graphicsLimits() const { return &m_gfxLimits; }
 
     const Q3DSUipPresentation *presentation() const { return m_presentation; }
@@ -153,6 +163,8 @@ private:
     QStringList m_log;
     bool m_logChanged = false;
     Q3DSProfiler *m_mainProfiler = nullptr;
+    Qt3DRender::QFrameGraphNode *m_frameGraphRoot = nullptr;
+    QSet<Qt3DRender::QFrameGraphNode *> m_fgStopNodes;
 
     QElapsedTimer m_cpuLoadTimer;
     float m_lastCpuLoad = 0;

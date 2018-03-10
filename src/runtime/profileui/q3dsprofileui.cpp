@@ -36,7 +36,7 @@
 #include "q3dsimagemanager_p.h"
 #include <QLoggingCategory>
 #include <QGuiApplication>
-#include <QHash>
+#include <QMetaObject>
 #include <QClipboard>
 #include <Qt3DRender/QTexture>
 #include <Qt3DRender/QPaintedTextureImage>
@@ -44,6 +44,10 @@
 #include <Qt3DRender/QAttribute>
 #include <Qt3DRender/QBuffer>
 #include <Qt3DRender/QShaderProgram>
+#include <Qt3DRender/QLayerFilter>
+#include <Qt3DRender/QLayer>
+#include <Qt3DRender/QRenderPassFilter>
+#include <Qt3DRender/QFilterKey>
 
 #include <imgui.h>
 
@@ -67,10 +71,12 @@ private:
     void addQt3DObjectsWindow();
     void addLayerWindow();
     void addLogWindow();
+    void addFrameGraphWindow();
     void addAlterSceneStuff();
     void addPresentationSelector();
     Q3DSProfiler *selectedProfiler() const;
     bool isFiltered(const QString &s) const;
+    void addFrameGraphNode(Qt3DRender::QFrameGraphNode *fg, const QSet<Qt3DRender::QFrameGraphNode *> &stopNodes);
 
     Q3DSProfiler *m_profiler;
     int m_frameDeltaCount = 100; // last 100 frames
@@ -88,6 +94,7 @@ private:
     const char *m_logFilterPrefixes[MAX_LOG_FILTER_ENTRIES];
     bool m_logFilterEnabled[MAX_LOG_FILTER_ENTRIES];
     bool m_dataInputWindowOpen = false;
+    bool m_frameGraphWindowOpen = false;
     QHash<QString, QByteArray> m_dataInputTextBuf;
     QHash<QString, float> m_dataInputFloatBuf;
     QHash<QString, QVector2D> m_dataInputVec2Buf;
@@ -278,12 +285,14 @@ void Q3DSProfileView::frame()
     }
 
     if (ImGui::CollapsingHeader("Scene info")) {
-        if (ImGui::Button("Qt 3D object list"))
-            m_qt3dObjectsWindowOpen = !m_qt3dObjectsWindowOpen;
-        if (ImGui::Button("Layer list"))
-            m_layerWindowOpen = !m_layerWindowOpen;
         if (ImGui::Button("Log window"))
             m_logWindowOpen = !m_logWindowOpen;
+        if (ImGui::Button("Layer list"))
+            m_layerWindowOpen = !m_layerWindowOpen;
+        if (ImGui::Button("Qt 3D object list"))
+            m_qt3dObjectsWindowOpen = !m_qt3dObjectsWindowOpen;
+        if (ImGui::Button("Qt 3D frame graph"))
+            m_frameGraphWindowOpen = !m_frameGraphWindowOpen;
     }
 
     if (ImGui::CollapsingHeader("Alter scene"))
@@ -299,6 +308,9 @@ void Q3DSProfileView::frame()
 
     if (m_logWindowOpen)
         addLogWindow();
+
+    if (m_frameGraphWindowOpen)
+        addFrameGraphWindow();
 }
 
 void Q3DSProfileView::addQt3DObjectsWindow()
@@ -658,6 +670,88 @@ void Q3DSProfileView::addLogWindow()
         ImGui::Separator();
         ImGui::End();
     }
+}
+
+void Q3DSProfileView::addFrameGraphNode(Qt3DRender::QFrameGraphNode *fg, const QSet<Qt3DRender::QFrameGraphNode *> &stopNodes)
+{
+    if (stopNodes.contains(fg))
+        return;
+
+    QString extraInfo;
+    Qt3DRender::QLayerFilter *layerFilter = qobject_cast<Qt3DRender::QLayerFilter *>(fg);
+    if (layerFilter) {
+        switch (layerFilter->filterMode()) {
+        case Qt3DRender::QLayerFilter::AcceptAnyMatchingLayers:
+            extraInfo += QLatin1String("\naccepts any of");
+            break;
+        case Qt3DRender::QLayerFilter::AcceptAllMatchingLayers:
+            extraInfo += QLatin1String("\naccepts when matches all of");
+            break;
+        case Qt3DRender::QLayerFilter::DiscardAnyMatchingLayers:
+            extraInfo += QLatin1String("\ndiscards any of");
+            break;
+        case Qt3DRender::QLayerFilter::DiscardAllMatchingLayers:
+            extraInfo += QLatin1String("\ndiscards when matches all of");
+            break;
+        default:
+            Q_UNREACHABLE();
+            break;
+        }
+        for (Qt3DRender::QLayer *layer : layerFilter->layers()) {
+            extraInfo += QLatin1String(" \"");
+            extraInfo += layer->objectName();
+            extraInfo += QLatin1Char('\"');
+        }
+    }
+
+    Qt3DRender::QRenderPassFilter *renderPassFilter = qobject_cast<Qt3DRender::QRenderPassFilter *>(fg);
+    if (renderPassFilter) {
+        QVector<Qt3DRender::QFilterKey *> keys = renderPassFilter->matchAny();
+        extraInfo += QLatin1String("\naccepts any of");
+        for (Qt3DRender::QFilterKey *key : keys) {
+            extraInfo += QLatin1String(" \"");
+            extraInfo += key->name();
+            extraInfo += QLatin1Char('=');
+            extraInfo += key->value().toString();
+            extraInfo += QLatin1Char('\"');
+        }
+    }
+
+    QByteArray label = QString(QLatin1String("%1 (0x%2)%3"))
+            .arg(fg->metaObject()->className())
+            .arg((quintptr) fg, 0, 16)
+            .arg(extraInfo)
+            .toUtf8();
+    int f = 0;
+    QVarLengthArray<Qt3DRender::QFrameGraphNode *, 32> fgChildren;
+
+    for (QObject *obj : fg->children()) {
+        auto child = qobject_cast<Qt3DRender::QFrameGraphNode *>(obj);
+        if (child)
+            fgChildren.append(child);
+    }
+
+    if (fgChildren.isEmpty())
+        f |= ImGuiTreeNodeFlags_Leaf;
+
+    if (ImGui::TreeNodeEx(label.constData(), f)) {
+        for (auto child : fgChildren)
+            addFrameGraphNode(child, stopNodes);
+        ImGui::TreePop();
+    }
+}
+
+void Q3DSProfileView::addFrameGraphWindow()
+{
+    ImGui::SetNextWindowSize(ImVec2(500, 400), ImGuiCond_FirstUseEver);
+    ImGui::Begin("Frame graph", &m_frameGraphWindowOpen, ImGuiWindowFlags_NoSavedSettings);
+
+    addPresentationSelector();
+    ImGui::Text("Frame graph for the above presentation,\nexcluding nodes for this UI\nbut including the layer composition");
+    ImGui::Separator();
+    addFrameGraphNode(selectedProfiler()->frameGraphRoot(), selectedProfiler()->frameGraphStopNodes());
+
+    ImGui::End();
 }
 
 static void changeProperty(Q3DSGraphObject *obj, const QString &name, const QString &value)

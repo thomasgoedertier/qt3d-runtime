@@ -662,14 +662,17 @@ Q3DSSceneManager::Scene Q3DSSceneManager::buildScene(Q3DSUipPresentation *presen
         Q_ASSERT(!m_flags.testFlag(SubPresentation));
         frameGraphComponent = new Qt3DRender::QRenderSettings(m_rootEntity);
         frameGraphRoot = new Qt3DRender::QRenderSurfaceSelector;
+        m_profiler->reportFrameGraphRoot(frameGraphRoot);
         // a node under which subpresentation framegraphs can be added
         subPresFrameGraphRoot = new Qt3DRender::QFrameGraphNode(frameGraphRoot);
+        m_profiler->reportFrameGraphStopNode(subPresFrameGraphRoot);
         // but do nothing there when there are no subpresentations
         new Qt3DRender::QNoDraw(subPresFrameGraphRoot);
     } else {
         Q_ASSERT(m_flags.testFlag(SubPresentation));
         frameGraphComponent = nullptr;
         frameGraphRoot = params.frameGraphRoot;
+        m_profiler->reportFrameGraphRoot(frameGraphRoot);
         subPresFrameGraphRoot = nullptr;
         Q_ASSERT(frameGraphRoot);
     }
@@ -684,6 +687,7 @@ Q3DSSceneManager::Scene Q3DSSceneManager::buildScene(Q3DSUipPresentation *presen
     // that might be something that gets destroyed over time, e.g. in a
     // framegraph subtree that gets removed or replaced at some point.
     m_fsQuadTag = new Qt3DRender::QLayer(frameGraphRoot);
+    m_fsQuadTag->setObjectName(QLatin1String("Fullscreen quad pass"));
 
     // Prepare image objects (these are non-nodes and not covered in layer building below).
     m_presentation->forAllImages([this](Q3DSImage *image) {
@@ -958,9 +962,9 @@ void Q3DSSceneManager::buildLayer(Q3DSLayerNode *layer3DS,
     mainTechniqueSelector->addMatch(techniqueFilterKey);
 
     Qt3DRender::QLayer *opaqueTag = new Qt3DRender::QLayer;
-    opaqueTag->setObjectName(QObject::tr("Opaque pass tag"));
+    opaqueTag->setObjectName(QLatin1String("Opaque pass"));
     Qt3DRender::QLayer *transparentTag = new Qt3DRender::QLayer;
-    transparentTag->setObjectName(QObject::tr("Transparent pass tag"));
+    transparentTag->setObjectName(QLatin1String("Transparent pass"));
 
     // Depth texture pass, optional, with its own rendertarget and clear. Just
     // a placeholder for now since it is disabled by default.
@@ -3024,7 +3028,7 @@ void Q3DSSceneManager::buildCompositor(Qt3DRender::QFrameGraphNode *parent, Qt3D
     viewport->setNormalizedRect(QRectF(0, 0, 1, 1));
 
     Qt3DRender::QCamera *camera = new Qt3DRender::QCamera;
-    camera->setObjectName(QObject::tr("compositor camera"));
+    camera->setObjectName(QLatin1String("compositor camera"));
     camera->setProjectionType(Qt3DRender::QCameraLens::OrthographicProjection);
     camera->setLeft(-1);
     camera->setRight(1);
@@ -3074,6 +3078,7 @@ void Q3DSSceneManager::buildCompositor(Qt3DRender::QFrameGraphNode *parent, Qt3D
     if (!needsAdvanced) {
         Qt3DRender::QLayerFilter *layerFilter = new Qt3DRender::QLayerFilter(cameraSelector);
         Qt3DRender::QLayer *tag = new Qt3DRender::QLayer;
+        tag->setObjectName(QLatin1String("Compositor quad pass"));
         layerFilter->addLayer(tag);
 
         int layerDepth = 1;
@@ -3156,6 +3161,7 @@ void Q3DSSceneManager::buildCompositor(Qt3DRender::QFrameGraphNode *parent, Qt3D
 
                 Qt3DRender::QLayerFilter *layerFilter = new Qt3DRender::QLayerFilter(cameraSelector);
                 Qt3DRender::QLayer *tag = new Qt3DRender::QLayer;
+                tag->setObjectName(QLatin1String("Adv. blend mode compositor quad pass"));
                 layerFilter->addLayer(tag);
 
                 // Now we do not need normal blending and will provide a custom shader program.
@@ -3189,6 +3195,7 @@ void Q3DSSceneManager::buildCompositor(Qt3DRender::QFrameGraphNode *parent, Qt3D
             } else {
                 Qt3DRender::QLayerFilter *layerFilter = new Qt3DRender::QLayerFilter(cameraSelector);
                 Qt3DRender::QLayer *tag = new Qt3DRender::QLayer;
+                tag->setObjectName(QLatin1String("Compositor quad pass (adv.blend path)"));
                 layerFilter->addLayer(tag);
 
                 BuildLayerQuadFlags flags = 0;
@@ -3216,6 +3223,7 @@ void Q3DSSceneManager::buildGuiPass(Qt3DRender::QFrameGraphNode *parent, Qt3DCor
     m_guiData.rootEntity = parentEntity;
 
     Qt3DRender::QTechniqueFilter *tfilter = new Qt3DRender::QTechniqueFilter(parent);
+    m_profiler->reportFrameGraphStopNode(tfilter);
     tfilter->addMatch(m_guiData.techniqueFilterKey);
 
     Qt3DRender::QViewport *viewport = new Qt3DRender::QViewport(tfilter);
@@ -3245,7 +3253,7 @@ void Q3DSSceneManager::buildFsQuad(const FsQuadParams &info)
     Q_ASSERT(info.passNames.count() == info.passProgs.count());
 
     Qt3DCore::QEntity *fsQuadEntity = new Qt3DCore::QEntity(info.parentEntity);
-    fsQuadEntity->setObjectName(QObject::tr("fullscreen quad"));
+    fsQuadEntity->setObjectName(QLatin1String("fullscreen quad"));
 
     // The shaders should be prepared for Qt3D attribute names...
     Qt3DExtras::QPlaneMesh *mesh = new Qt3DExtras::QPlaneMesh;
@@ -5307,6 +5315,7 @@ void Q3DSSceneManager::finalizeEffects(Q3DSLayerNode *layer3DS)
                                                                                              decoratedFragmentShader);
 
             effData->quadEntityTag = new Qt3DRender::QLayer;
+            effData->quadEntityTag->setObjectName(QLatin1String("Effect quad pass"));
 
             FsQuadParams quadInfo;
             quadInfo.parentEntity = m_rootEntity;

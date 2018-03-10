@@ -162,6 +162,16 @@ Q3DSProfiler *Q3DSProfiler::mainPresentationProfiler()
     return m_mainProfiler ? m_mainProfiler : this;
 }
 
+void Q3DSProfiler::reportFrameGraphRoot(Qt3DRender::QFrameGraphNode *fgNode)
+{
+    m_frameGraphRoot = fgNode;
+}
+
+void Q3DSProfiler::reportFrameGraphStopNode(Qt3DRender::QFrameGraphNode *fgNode)
+{
+    m_fgStopNodes.insert(fgNode);
+}
+
 bool Q3DSProfiler::hasLogChanged()
 {
     bool b = m_logChanged;
