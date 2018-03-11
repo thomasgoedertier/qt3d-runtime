@@ -65,6 +65,7 @@ class Q3DSEngine;
 class Q3DSMesh;
 class Q3DSSlidePlayer;
 class Q3DSInputManager;
+class Q3DSConsoleCommands;
 
 namespace Qt3DCore {
 class QEntity;
@@ -742,6 +743,7 @@ private:
     Q3DSProfiler *m_profiler = nullptr;
     Q3DSGuiData m_guiData;
     Q3DSProfileUi *m_profileUi = nullptr;
+    Q3DSConsoleCommands *m_consoleCommands = nullptr;
     QSize m_outputPixelSize;
     QVector<std::function<void()> > m_compositorOutputSizeChangeCallbacks;
     qint64 m_firstFrameActionTime = 0;
@@ -753,6 +755,7 @@ private:
     friend class Q3DSProfiler;
     friend class Q3DSSlidePlayer;
     friend class Q3DSInputManager;
+    friend class Q3DSConsoleCommands;
 };
 
 Q_DECLARE_OPERATORS_FOR_FLAGS(Q3DSSceneManager::SceneBuilderFlags)

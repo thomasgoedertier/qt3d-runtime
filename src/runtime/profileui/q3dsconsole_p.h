@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2017 The Qt Company Ltd.
+** Copyright (C) 2018 The Qt Company Ltd.
 ** Contact: http://www.qt.io/licensing/
 **
 ** This file is part of Qt 3D Studio.
@@ -27,8 +27,8 @@
 **
 ****************************************************************************/
 
-#ifndef Q3DSPROFILEUI_P_H
-#define Q3DSPROFILEUI_P_H
+#ifndef Q3DSCONSOLE_P_H
+#define Q3DSCONSOLE_P_H
 
 //
 //  W A R N I N G
@@ -41,38 +41,54 @@
 // We mean it.
 //
 
-#include "q3dsscenemanager_p.h"
+#include <QString>
+#include <QVector>
+#include <QColor>
+#include <functional>
+
+struct ImGuiTextEditCallbackData;
 
 QT_BEGIN_NAMESPACE
 
-class Q3DSImguiManager;
-class Q3DSProfiler;
-class Q3DSProfileView;
-class Q3DSConsole;
-
-class Q3DSProfileUi
+class Q3DSConsole
 {
 public:
-    typedef std::function<void(Q3DSConsole *)> ConsoleInitFunc;
-    Q3DSProfileUi(Q3DSGuiData *guiData, Q3DSProfiler *profiler, ConsoleInitFunc consoleInitFunc);
-    ~Q3DSProfileUi();
+    Q3DSConsole();
+    void draw();
+    void addMessage(const QString &msg, const QColor &color = Qt::white);
+    void addMessageFmt(const QColor &color, const char *msg, ...);
 
-    void setInputEventSource(QObject *obj);
-    void configure(float scale);
+    typedef std::function<void(const QByteArray &)> CommandFunc;
+    struct Command {
+        QByteArray name;
+        CommandFunc callback = nullptr;
+    };
+    static Command makeCommand(const char *name, CommandFunc cb) {
+        Command c;
+        c.name = name;
+        c.callback = cb;
+        return c;
+    }
+    void addCommand(const Command &command);
 
-    void releaseResources();
-
-    bool visible() const { return m_visible; }
-    void setVisible(bool visible);
-
-    void openLog();
+    void clear();
 
 private:
-    Q3DSGuiData *m_data;
-    Q3DSImguiManager *m_guiMgr;
-    Q3DSProfileView *m_view;
-    bool m_inited = false;
-    bool m_visible = false;
+    static int editCallbackStatic(ImGuiTextEditCallbackData *data);
+    int editCallback(ImGuiTextEditCallbackData *data);
+
+    struct Item {
+        QByteArray text;
+        QColor color;
+    };
+
+    QVector<Item> m_contents;
+    QVector<Command> m_commands;
+    bool m_scrollToBottom = true;
+    static const int InputBufSize = 512;
+    char m_inputBuf[InputBufSize];
+    QByteArrayList m_history;
+    int m_historyPos = -1;
 };
 
 QT_END_NAMESPACE

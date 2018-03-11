@@ -9,8 +9,8 @@
 
     "features": {
         "q3ds-profileui": {
-            "label": "Profiling pane",
-            "purpose": "Enable the ImGui-based profiling pane",
+            "label": "Profiling pane and console",
+            "purpose": "Enable the ImGui-based, in-scene profiling pane and console window",
             "output": [ "privateFeature" ]
         }
     },

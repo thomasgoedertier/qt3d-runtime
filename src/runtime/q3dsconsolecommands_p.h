@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2017 The Qt Company Ltd.
+** Copyright (C) 2018 The Qt Company Ltd.
 ** Contact: http://www.qt.io/licensing/
 **
 ** This file is part of Qt 3D Studio.
@@ -27,8 +27,8 @@
 **
 ****************************************************************************/
 
-#ifndef Q3DSPROFILEUI_P_H
-#define Q3DSPROFILEUI_P_H
+#ifndef Q3DSCONSOLECOMMANDS_P_H
+#define Q3DSCONSOLECOMMANDS_P_H
 
 //
 //  W A R N I N G
@@ -41,40 +41,32 @@
 // We mean it.
 //
 
-#include "q3dsscenemanager_p.h"
+#include <qglobal.h>
 
 QT_BEGIN_NAMESPACE
 
-class Q3DSImguiManager;
-class Q3DSProfiler;
-class Q3DSProfileView;
+class Q3DSSceneManager;
+class Q3DSUipPresentation;
 class Q3DSConsole;
+class Q3DSGraphObject;
 
-class Q3DSProfileUi
+class Q3DSConsoleCommands
 {
 public:
-    typedef std::function<void(Q3DSConsole *)> ConsoleInitFunc;
-    Q3DSProfileUi(Q3DSGuiData *guiData, Q3DSProfiler *profiler, ConsoleInitFunc consoleInitFunc);
-    ~Q3DSProfileUi();
+    Q3DSConsoleCommands(Q3DSSceneManager *mainPresSceneManager);
 
-    void setInputEventSource(QObject *obj);
-    void configure(float scale);
-
-    void releaseResources();
-
-    bool visible() const { return m_visible; }
-    void setVisible(bool visible);
-
-    void openLog();
+    void setupConsole(Q3DSConsole *console);
 
 private:
-    Q3DSGuiData *m_data;
-    Q3DSImguiManager *m_guiMgr;
-    Q3DSProfileView *m_view;
-    bool m_inited = false;
-    bool m_visible = false;
+    void setCurrentPresentation(Q3DSUipPresentation *pres);
+    Q3DSGraphObject *resolveObj(const QByteArray &ref, bool showErrorWhenNotFound = true);
+    QString printGraph(Q3DSGraphObject *root) const;
+
+    Q3DSSceneManager *m_sceneManager;
+    Q3DSConsole *m_console = nullptr;
+    Q3DSUipPresentation *m_currentPresentation = nullptr;
 };
 
 QT_END_NAMESPACE
 
-#endif
+#endif // Q3DSCONSOLECOMMANDS_P_H

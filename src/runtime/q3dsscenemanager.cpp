@@ -40,6 +40,7 @@
 #include "q3dsimagemanager_p.h"
 #if QT_CONFIG(q3ds_profileui)
 #include "profileui/q3dsprofileui_p.h"
+#include "q3dsconsolecommands_p.h"
 #endif
 #include "q3dsinputmanager_p.h"
 
@@ -444,6 +445,7 @@ Q3DSSceneManager::Q3DSSceneManager(const Q3DSGraphicsLimits &limits)
 Q3DSSceneManager::~Q3DSSceneManager()
 {
 #if QT_CONFIG(q3ds_profileui)
+    delete m_consoleCommands;
     delete m_profileUi;
 #endif
     delete m_slidePlayer;
@@ -709,11 +711,13 @@ Q3DSSceneManager::Scene Q3DSSceneManager::buildScene(Q3DSUipPresentation *presen
     // Onscreen (or not) compositor (still offscreen when this is a subpresentation)
     buildCompositor(frameGraphRoot, m_rootEntity);
 
-    // Profiling UI
+    // Profiling UI (main presentation only)
 #if QT_CONFIG(q3ds_profileui)
     if (!m_flags.testFlag(SubPresentation)) {
         buildGuiPass(frameGraphRoot, m_rootEntity);
-        m_profileUi = new Q3DSProfileUi(&m_guiData, m_profiler);
+        m_consoleCommands = new Q3DSConsoleCommands(this);
+        m_profileUi = new Q3DSProfileUi(&m_guiData, m_profiler,
+                                        std::bind(&Q3DSConsoleCommands::setupConsole, m_consoleCommands, std::placeholders::_1));
     }
 #endif
 

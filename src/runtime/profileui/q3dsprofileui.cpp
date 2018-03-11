@@ -50,6 +50,7 @@
 #include <Qt3DRender/QFilterKey>
 
 #include <imgui.h>
+#include "q3dsconsole_p.h"
 
 QT_BEGIN_NAMESPACE
 
@@ -61,16 +62,18 @@ static const int MAX_LOG_FILTER_ENTRIES = 20;
 class Q3DSProfileView
 {
 public:
-    Q3DSProfileView(Q3DSProfiler *profiler);
+    Q3DSProfileView(Q3DSProfiler *profiler, Q3DSProfileUi::ConsoleInitFunc consoleInitFunc);
+    ~Q3DSProfileView();
 
     void frame();
 
-    void openLog() { m_logWindowOpen = true; }
+    void openLog() { m_logWindowOpen = m_consoleWindowOpen = true; }
 
 private:
     void addQt3DObjectsWindow();
     void addLayerWindow();
     void addLogWindow();
+    void addConsoleWindow();
     void addFrameGraphWindow();
     void addAlterSceneStuff();
     void addPresentationSelector();
@@ -79,6 +82,8 @@ private:
     void addFrameGraphNode(Qt3DRender::QFrameGraphNode *fg, const QSet<Qt3DRender::QFrameGraphNode *> &stopNodes);
 
     Q3DSProfiler *m_profiler;
+    Q3DSProfileUi::ConsoleInitFunc m_consoleInitFunc;
+
     int m_frameDeltaCount = 100; // last 100 frames
     float m_frameDeltaPlotMin = 0; // bottom 0 ms
     float m_frameDeltaPlotMax = 100; // top 100 ms
@@ -88,6 +93,7 @@ private:
     bool m_qt3dObjectsWindowOpen = false;
     bool m_layerWindowOpen = false;
     bool m_logWindowOpen = false;
+    bool m_consoleWindowOpen = false;
     bool m_logScrollToBottomOnChange = true;
     int m_currentPresentationIndex = 0;
     bool m_logFilterWindowOpen = false;
@@ -99,10 +105,12 @@ private:
     QHash<QString, float> m_dataInputFloatBuf;
     QHash<QString, QVector2D> m_dataInputVec2Buf;
     QHash<QString, QVector3D> m_dataInputVec3Buf;
+    Q3DSConsole *m_console = nullptr;
 };
 
-Q3DSProfileView::Q3DSProfileView(Q3DSProfiler *profiler)
-    : m_profiler(profiler)
+Q3DSProfileView::Q3DSProfileView(Q3DSProfiler *profiler, Q3DSProfileUi::ConsoleInitFunc consoleInitFunc)
+    : m_profiler(profiler),
+      m_consoleInitFunc(consoleInitFunc)
 {
     int i = 0;
     m_logFilterPrefixes[i] = "q3ds.perf";
@@ -136,6 +144,11 @@ Q3DSProfileView::Q3DSProfileView(Q3DSProfiler *profiler)
     m_logFilterEnabled[i] = true;
     ++i;
     m_logFilterPrefixes[i] = nullptr;
+}
+
+Q3DSProfileView::~Q3DSProfileView()
+{
+    delete m_console;
 }
 
 static void addTip(const char *s)
@@ -287,6 +300,8 @@ void Q3DSProfileView::frame()
     if (ImGui::CollapsingHeader("Scene info")) {
         if (ImGui::Button("Log window"))
             m_logWindowOpen = !m_logWindowOpen;
+        if (ImGui::Button("Console window"))
+            m_consoleWindowOpen = !m_consoleWindowOpen;
         if (ImGui::Button("Layer list"))
             m_layerWindowOpen = !m_layerWindowOpen;
         if (ImGui::Button("Qt 3D object list"))
@@ -308,6 +323,9 @@ void Q3DSProfileView::frame()
 
     if (m_logWindowOpen)
         addLogWindow();
+
+    if (m_consoleWindowOpen)
+        addConsoleWindow();
 
     if (m_frameGraphWindowOpen)
         addFrameGraphWindow();
@@ -623,6 +641,7 @@ void Q3DSProfileView::addLayerWindow()
 void Q3DSProfileView::addLogWindow()
 {
     ImGui::SetNextWindowSize(ImVec2(500, 400), ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowPos(ImVec2(200, 0), ImGuiCond_FirstUseEver);
     ImGui::Begin("Log", &m_logWindowOpen, ImGuiWindowFlags_NoSavedSettings);
 
     if (ImGui::Button("Clear"))
@@ -670,6 +689,21 @@ void Q3DSProfileView::addLogWindow()
         ImGui::Separator();
         ImGui::End();
     }
+}
+
+void Q3DSProfileView::addConsoleWindow()
+{
+    ImGui::SetNextWindowSize(ImVec2(500, 400), ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowPosCenter(ImGuiCond_FirstUseEver);
+    ImGui::Begin("Console", &m_consoleWindowOpen, ImGuiWindowFlags_NoSavedSettings);
+
+    if (!m_console) {
+        m_console = new Q3DSConsole;
+        m_consoleInitFunc(m_console);
+    }
+    m_console->draw();
+
+    ImGui::End();
 }
 
 void Q3DSProfileView::addFrameGraphNode(Qt3DRender::QFrameGraphNode *fg, const QSet<Qt3DRender::QFrameGraphNode *> &stopNodes)
@@ -893,11 +927,11 @@ void Q3DSProfileView::addAlterSceneStuff()
     }
 }
 
-Q3DSProfileUi::Q3DSProfileUi(Q3DSGuiData *guiData, Q3DSProfiler *profiler)
+Q3DSProfileUi::Q3DSProfileUi(Q3DSGuiData *guiData, Q3DSProfiler *profiler, ConsoleInitFunc consoleInitFunc)
     : m_data(guiData)
 {
     m_guiMgr = new Q3DSImguiManager;
-    m_view = new Q3DSProfileView(profiler);
+    m_view = new Q3DSProfileView(profiler, consoleInitFunc);
     m_guiMgr->setFrameFunc(std::bind(&Q3DSProfileView::frame, m_view));
     m_guiMgr->setOutputInfoFunc([this]() {
         Q3DSImguiManager::OutputInfo inf;

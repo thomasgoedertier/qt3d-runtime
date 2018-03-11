@@ -870,6 +870,7 @@ bool Q3DSEngine::parseUiaDocument(Q3DSUiaParser::Uia &uiaDoc, const QString &sou
             Q3DSUipDocument *uipDoc = new Q3DSUipDocument;
             // assume the .uip name in the .uia is relative to the .uia's location
             uipDoc->setSource(sourcePrefix + p.source);
+            uipDoc->setId(p.id);
             UipPresentation pres;
             pres.subPres.id = p.id;
             pres.uipDocument = uipDoc;
@@ -883,6 +884,7 @@ bool Q3DSEngine::parseUiaDocument(Q3DSUiaParser::Uia &uiaDoc, const QString &sou
         } else if (p.type == Q3DSUiaParser::Uia::Presentation::Qml) {
             Q3DSQmlDocument *qmlDoc = new Q3DSQmlDocument;
             qmlDoc->setSource(sourcePrefix + p.source);
+            qmlDoc->setId(p.id);
             QmlPresentation pres;
             pres.subPres.id = p.id;
             pres.qmlDocument = qmlDoc;
@@ -1055,32 +1057,39 @@ void Q3DSEngine::setAutoStart(bool autoStart)
 
 void Q3DSEngine::handleKeyPressEvent(QKeyEvent *e)
 {
-    QCoreApplication::sendEvent(&m_profileUiEventSource, e);
+    bool forwardEvent = true;
 
-    if (!m_profileUiEnabled)
-        return;
+    if (m_profileUiEnabled) {
+        Q3DSSceneManager *sm = !m_uipPresentations.isEmpty() ? m_uipPresentations[0].sceneManager : nullptr;
 
-    Q3DSSceneManager *sm = !m_uipPresentations.isEmpty() ? m_uipPresentations[0].sceneManager : nullptr;
+        // not ideal since the window needs focus which it often won't have. also no keyboard on embedded/mobile.
+        Qt::KeyboardModifiers mods = e->modifiers();
+        if (sm && e->key() == Qt::Key_F10 && mods == Qt::NoModifier) {
+            sm->setProfileUiVisible(!sm->isProfileUiVisible());
+            forwardEvent = false;
+        }
 
-    // not ideal since the window needs focus which it often won't have. also no keyboard on embedded/mobile.
-    Qt::KeyboardModifiers mods = e->modifiers();
-    if (sm && e->key() == Qt::Key_F10 && mods == Qt::NoModifier)
-        sm->setProfileUiVisible(!sm->isProfileUiVisible());
+        if (sm && e->key() == Qt::Key_QuoteLeft) {
+            const bool v = !sm->isProfileUiVisible();
+            sm->setProfileUiVisible(v, v);
+            forwardEvent = false; // prevent the backtick from showing up in the console
+        }
 
-    if (sm && e->key() == Qt::Key_QuoteLeft) {
-        const bool v = !sm->isProfileUiVisible();
-        sm->setProfileUiVisible(v, v);
+        if (sm && e->key() == Qt::Key_F10 && mods == Qt::AltModifier) {
+            m_profileUiScale -= 0.2f;
+            sm->configureProfileUi(m_profileUiScale);
+            forwardEvent = false;
+        }
+
+        if (sm && e->key() == Qt::Key_F10 && mods == Qt::ControlModifier) {
+            m_profileUiScale += 0.2f;
+            sm->configureProfileUi(m_profileUiScale);
+            forwardEvent = false;
+        }
     }
 
-    if (sm && e->key() == Qt::Key_F10 && mods == Qt::AltModifier) {
-        m_profileUiScale -= 0.2f;
-        sm->configureProfileUi(m_profileUiScale);
-    }
-
-    if (sm && e->key() == Qt::Key_F10 && mods == Qt::ControlModifier) {
-        m_profileUiScale += 0.2f;
-        sm->configureProfileUi(m_profileUiScale);
-    }
+    if (forwardEvent)
+        QCoreApplication::sendEvent(&m_profileUiEventSource, e);
 }
 
 void Q3DSEngine::handleKeyReleaseEvent(QKeyEvent *e)
