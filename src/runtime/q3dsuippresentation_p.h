@@ -1919,6 +1919,8 @@ public:
     typedef QHash<QString, bool> ImageBufferMap;
     const ImageBufferMap &imageBuffer() const;
 
+    static void forAllObjects(Q3DSGraphObject *root,
+                              std::function<void(Q3DSGraphObject *)> f);
     static void forAllObjectsOfType(Q3DSGraphObject *root,
                                     Q3DSGraphObject::Type type,
                                     std::function<void(Q3DSGraphObject *)> f);
@@ -1950,7 +1952,9 @@ public:
 
     void unlinkObject(Q3DSGraphObject *obj)
     {
-        unregisterObject(obj->id());
+        Q3DSUipPresentation::forAllObjects(obj, [this](Q3DSGraphObject *objOrChild) {
+            unregisterObject(objOrChild->id());
+        });
         if (obj->parent())
             obj->parent()->removeChildNode(obj);
     }

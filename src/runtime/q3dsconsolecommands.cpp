@@ -54,6 +54,57 @@ static QByteArray unquote(const QByteArray &s)
     return r;
 }
 
+static QString printObject(Q3DSGraphObject *obj)
+{
+    return QString(QLatin1String("%1 id='%2' name='%3'"))
+            .arg(obj->typeAsString()).arg(obj->id().constData()).arg(obj->name());
+}
+
+static void graphPrinter(QString *dst, Q3DSGraphObject *obj, int indent)
+{
+    while (obj) {
+        QString spaces;
+        spaces.fill(QLatin1Char(' '), indent);
+        *dst += spaces + printObject(obj) + QLatin1Char('\n');
+        graphPrinter(dst, obj->firstChild(), indent + 2);
+        if (indent != 0)
+            obj = obj->nextSibling();
+        else
+            break; // skip siblings of the root node (relevant when printing a subtree, i.e. root != pres->scene())
+    }
+}
+
+static QString printGraph(Q3DSGraphObject *root)
+{
+    QString result;
+    graphPrinter(&result, root, 0);
+    return result;
+}
+
+static QString printMatrix(const QMatrix4x4 &m)
+{
+    QString result = QLatin1String("( ");
+    const float *p = m.constData();
+    for (int i = 0; i < 16; ++i) {
+        result += QString::number(*p++);
+        result += QLatin1Char(' ');
+    }
+    result += QLatin1Char(')');
+    return result;
+}
+
+static void removeFromSlide_helper(Q3DSGraphObject *obj, Q3DSSlide *slide)
+{
+    while (slide) {
+        if (slide->objects().contains(obj)) {
+            slide->removeObject(obj);
+            return;
+        }
+        removeFromSlide_helper(obj, static_cast<Q3DSSlide *>(slide->firstChild()));
+        slide = static_cast<Q3DSSlide *>(slide->nextSibling());
+    }
+}
+
 void Q3DSConsoleCommands::setupConsole(Q3DSConsole *console)
 {
 #if QT_CONFIG(q3ds_profileui)
@@ -74,9 +125,11 @@ void Q3DSConsoleCommands::setupConsole(Q3DSConsole *console)
                                "slidegraph - Prints the slide graph in the current presentation.\n"
                                "slidegraph(obj) - Prints the slide graph in the given component node.\n"
                                "properties(obj) - Prints the properties for the given object.\n"
-                               "info(obj) - Prints derived scene properties for the given object.\n"
+                               "info(obj) - Prints additional properties for the given object (node or slide).\n"
                                "get(obj, property) - Prints the property value.\n"
                                "set(obj, property, value) - Applies and notifies a change to the given property.\n"
+                               "kill(obj) - Removes a node from the scene graph.\n"
+                               "primitive(id, name, source, parentObj, slide) - Adds a model node with one default material. (source == #Cube, #Cone, etc.)\n"
                                );
         m_console->addMessageFmt(responseColor, "\nObject references (obj) are either by id ('#id') or by name ('name')\n");
     }));
@@ -155,6 +208,15 @@ void Q3DSConsoleCommands::setupConsole(Q3DSConsole *console)
                                          qPrintable(printMatrix(d->globalTransform)),
                                          d->globalOpacity,
                                          d->globalVisibility);
+            } else if (obj->type() == Q3DSGraphObject::Slide) {
+                auto slide = static_cast<Q3DSSlide *>(obj);
+                m_console->addMessageFmt(longResponseColor,
+                                         "This slide has %d animation tracks and %d property changes.",
+                                         slide->animations().count(),
+                                         slide->propertyChanges().count());
+                m_console->addMessageFmt(longResponseColor, "Objects belonging to this slide:\n");
+                for (Q3DSGraphObject *slideObj : slide->objects())
+                    m_console->addMessageFmt(longResponseColor, "  %s\n", qPrintable(printObject(slideObj)));
             }
         }
     }));
@@ -193,6 +255,49 @@ void Q3DSConsoleCommands::setupConsole(Q3DSConsole *console)
             m_console->addMessageFmt(errorColor, "Invalid arguments, expected 3");
         }
     }));
+    m_console->addCommand(Q3DSConsole::makeCommand("kill", [this](const QByteArray &args) {
+        Q3DSGraphObject *obj = resolveObj(args);
+        if (obj) {
+            // Unlink (incl. all children) from the slide.
+            Q3DSSlide *slide = m_currentPresentation->masterSlide();
+            if (obj->attached()->component)
+                slide = obj->attached()->component->masterSlide();
+            Q3DSUipPresentation::forAllObjects(obj, [slide](Q3DSGraphObject *objOrChild) {
+                removeFromSlide_helper(objOrChild, slide);
+            });
+            // Unregister from presentation and unlink from parent. This
+            // triggers the scene change notification.
+            m_currentPresentation->unlinkObject(obj);
+            // Bye bye.
+            delete obj;
+            m_console->addMessageFmt(responseColor, "Removed");
+        }
+    }));
+    m_console->addCommand(Q3DSConsole::makeCommand("primitive", [this](const QByteArray &args) {
+        QByteArrayList splitArgs = args.split(',');
+        if (splitArgs.count() >= 5) {
+            const QByteArray id = unquote(splitArgs[0]);
+            const QString name = QString::fromUtf8(unquote(splitArgs[1]));
+            const QString source = QString::fromUtf8(unquote(splitArgs[2]));
+            Q3DSGraphObject *parent = resolveObj(splitArgs[3]);
+            Q3DSSlide *slide = static_cast<Q3DSSlide *>(resolveObj(splitArgs[4]));
+            if (parent) {
+                Q3DSModelNode *model = m_currentPresentation->newObject<Q3DSModelNode>(id);
+                model->setName(name);
+                model->setMesh(source, *m_currentPresentation);
+                const QByteArray matId = id + QByteArrayLiteral("_material");
+                Q3DSDefaultMaterial *mat = m_currentPresentation->newObject<Q3DSDefaultMaterial>(matId);
+                mat->setName(QString::fromUtf8(matId));
+                model->appendChildNode(mat);
+                slide->addObject(model);
+                slide->addObject(mat);
+                // adding to parent must be the last, since it triggers a scene
+                // change notification to the scene manager
+                parent->appendChildNode(model);
+                m_console->addMessageFmt(responseColor, "Added");
+            }
+        }
+    }));
 #else
     Q_UNUSED(console);
 #endif
@@ -223,41 +328,6 @@ Q3DSGraphObject *Q3DSConsoleCommands::resolveObj(const QByteArray &ref, bool sho
         m_console->addMessageFmt(errorColor, "Object '%s' not found", r.constData());
 
     return obj;
-}
-
-static void graphPrinter(QString *dst, Q3DSGraphObject *obj, int indent)
-{
-    while (obj) {
-        QByteArray spaces;
-        spaces.resize(indent);
-        spaces.fill(' ');
-        *dst += QString(QLatin1String("%1%2 id='%3' name='%4'\n"))
-                .arg(spaces.constData()).arg(obj->typeAsString()).arg(obj->id().constData()).arg(obj->name());
-        graphPrinter(dst, obj->firstChild(), indent + 2);
-        if (indent != 0)
-            obj = obj->nextSibling();
-        else
-            break; // skip siblings of the root node (relevant when printing a subtree, i.e. root != pres->scene())
-    }
-}
-
-QString Q3DSConsoleCommands::printGraph(Q3DSGraphObject *root) const
-{
-    QString result;
-    graphPrinter(&result, root, 0);
-    return result;
-}
-
-QString Q3DSConsoleCommands::printMatrix(const QMatrix4x4 &m) const
-{
-    QString result = QLatin1String("( ");
-    const float *p = m.constData();
-    for (int i = 0; i < 16; ++i) {
-        result += QString::number(*p++);
-        result += QLatin1Char(' ');
-    }
-    result += QLatin1Char(')');
-    return result;
 }
 
 QT_END_NAMESPACE

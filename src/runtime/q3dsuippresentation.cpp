@@ -3906,6 +3906,17 @@ void Q3DSUipPresentation::applySlidePropertyChanges(Q3DSSlide *slide) const
         it.key()->notifyPropertyChanges(*it.value());
 }
 
+void Q3DSUipPresentation::forAllObjects(Q3DSGraphObject *root,
+                                        std::function<void(Q3DSGraphObject *)> f)
+{
+    Q3DSGraphObject *obj = root;
+    while (obj) {
+        f(obj);
+        forAllObjects(obj->firstChild(), f);
+        obj = obj->nextSibling();
+    }
+}
+
 void Q3DSUipPresentation::forAllObjectsOfType(Q3DSGraphObject *root,
                                            Q3DSGraphObject::Type type,
                                            std::function<void(Q3DSGraphObject *)> f)

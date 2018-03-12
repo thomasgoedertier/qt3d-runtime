@@ -713,6 +713,8 @@ private:
                            Q3DSSlide *currentSlide);
     void setNodeVisibility(Q3DSNode *node, bool visible);
 
+    void handleSceneChange(Q3DSScene *scene, Q3DSGraphObject::DirtyFlag change, Q3DSGraphObject *obj);
+
     Qt3DRender::QAbstractTexture *dummyTexture();
 
     Q3DSGraphicsLimits m_gfxLimits;

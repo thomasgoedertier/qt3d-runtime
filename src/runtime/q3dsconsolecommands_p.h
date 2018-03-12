@@ -60,8 +60,6 @@ public:
 private:
     void setCurrentPresentation(Q3DSUipPresentation *pres);
     Q3DSGraphObject *resolveObj(const QByteArray &ref, bool showErrorWhenNotFound = true);
-    QString printGraph(Q3DSGraphObject *root) const;
-    QString printMatrix(const QMatrix4x4 &m) const;
 
     Q3DSSceneManager *m_sceneManager;
     Q3DSConsole *m_console = nullptr;

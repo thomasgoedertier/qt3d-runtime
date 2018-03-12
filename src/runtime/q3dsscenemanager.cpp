@@ -757,6 +757,10 @@ Q3DSSceneManager::Scene Q3DSSceneManager::buildScene(Q3DSUipPresentation *presen
     // We now set of slide handling, updating object visibility etc.
     m_slidePlayer->setSlideDeck(slideDeck);
 
+    // Listen to future changes to the scene graph.
+    m_scene->addSceneChangeObserver(std::bind(&Q3DSSceneManager::handleSceneChange,
+                                              this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
+
     // measure the time from the end of scene building to the invocation of the first frame action
     m_frameUpdater->startTimeFirstFrame();
 
@@ -3858,6 +3862,11 @@ Qt3DCore::QEntity *Q3DSSceneManager::buildModel(Q3DSModelNode *model3DS, Q3DSLay
     for (int i = 0; i < meshCount; ++i) {
         auto material = materials.at(i);
         auto mesh = meshList.at(i);
+        // Now this is tricky. The presentation caches the meshes which means
+        // we cannot just let the mesh to be parented to the entity (in the
+        // addComponent). For now keep meshes alive by parenting them to
+        // something else.
+        mesh->setParent(m_rootEntity);
         m_profiler->trackNewObject(mesh, Q3DSProfiler::MeshObject,
                                    "Mesh %d for model %s", i, model3DS->id().constData());
 
@@ -3980,8 +3989,10 @@ void Q3DSSceneManager::buildModelMaterial(Q3DSModelNode *model3DS)
                 // parented) QParameters. Parent them to some other QNode. This
                 // is important here due to rebuildModelMaterial() where
                 // sm.materialComponent may get destroyed afterwards.
-                for (Qt3DRender::QParameter *param : params)
-                    param->setParent(sm.entity);
+                for (Qt3DRender::QParameter *param : params) {
+                    // sm.entity is not suitable either since nodes and so their entities may come and go
+                    param->setParent(layerData->entity);
+                }
 
                 sm.materialComponent = m_matGen->generateMaterial(defaultMaterial, sm.referencedMaterial, params, layerData->lightNodes, modelData->layer3DS);
                 sm.entity->addComponent(sm.materialComponent);
@@ -4037,8 +4048,10 @@ void Q3DSSceneManager::buildModelMaterial(Q3DSModelNode *model3DS)
                 }
 
                 // Like for the default material, be careful with the parent.
-                for (Qt3DRender::QParameter *param : params)
-                    param->setParent(sm.entity);
+                for (Qt3DRender::QParameter *param : params) {
+                    // sm.entity is not suitable either since nodes and so their entities may come and go
+                    param->setParent(layerData->entity);
+                }
 
                 // ### TODO support more than one pass
                 auto pass = customMaterial->material()->passes().first();
@@ -6393,6 +6406,36 @@ void Q3DSSceneManager::setDataInputValue(const QString &dataInputName, const QVa
             obj->notifyPropertyChanges(changeList);
         }
         ++it;
+    }
+}
+
+void Q3DSSceneManager::handleSceneChange(Q3DSScene *, Q3DSGraphObject::DirtyFlag change, Q3DSGraphObject *obj)
+{
+    if (change == Q3DSGraphObject::DirtyNodeAdded) {
+        if (obj->isNode()) {
+            if (obj->type() != Q3DSGraphObject::Layer) {
+                Q3DSGraphObject *parent = obj->parent();
+                Q_ASSERT(parent);
+                Q_ASSERT(parent->attached());
+                Q3DSLayerNode *layer3DS = nullptr;
+                Q3DSGraphObject *o = parent;
+                while (o && o->type() != Q3DSGraphObject::Layer)
+                    o = o->parent();
+                Q_ASSERT(o);
+                layer3DS = static_cast<Q3DSLayerNode *>(o);
+                buildLayerScene(obj, layer3DS, parent->attached()->entity);
+                qCDebug(lcScene) << "Dyn.added" << obj->attached()->entity;
+                if (obj->type() == Q3DSGraphObject::Model)
+                    buildModelMaterial(static_cast<Q3DSModelNode *>(obj));
+            }
+        }
+    } else if (change == Q3DSGraphObject::DirtyNodeRemoved) {
+        if (obj->isNode()) {
+            if (obj->type() != Q3DSGraphObject::Layer) {
+                qCDebug(lcScene) << "Dyn.removing" << obj->attached()->entity;
+                delete obj->attached()->entity;
+            }
+        }
     }
 }
 
