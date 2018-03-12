@@ -70,9 +70,11 @@ void Q3DSConsoleCommands::setupConsole(Q3DSConsole *console)
                                "presentations - Lists all presentations. (main+sub)\n"
                                "pres(id) - Changes to the given presentation. (id == the id from the .uia or main) Default is main.\n"
                                "scenegraph - Prints the scene graph in the current presentation.\n"
+                               "scenegraph(obj) - Prints the scene graph subtree starting from the given object in the current presentation.\n"
                                "slidegraph - Prints the slide graph in the current presentation.\n"
                                "slidegraph(obj) - Prints the slide graph in the given component node.\n"
                                "properties(obj) - Prints the properties for the given object.\n"
+                               "info(obj) - Prints derived scene properties for the given object.\n"
                                "get(obj, property) - Prints the property value.\n"
                                "set(obj, property, value) - Applies and notifies a change to the given property.\n"
                                );
@@ -106,8 +108,12 @@ void Q3DSConsoleCommands::setupConsole(Q3DSConsole *console)
         if (!found)
             m_console->addMessageFmt(errorColor, "Unknown presentation '%s'", qPrintable(id));
     }));
-    m_console->addCommand(Q3DSConsole::makeCommand("scenegraph", [this](const QByteArray &) {
-        m_console->addMessage(printGraph(m_currentPresentation->scene()), longResponseColor);
+    m_console->addCommand(Q3DSConsole::makeCommand("scenegraph", [this](const QByteArray &args) {
+        Q3DSGraphObject *root = m_currentPresentation->scene();
+        if (!args.isEmpty())
+            root = resolveObj(args);
+        if (root)
+            m_console->addMessage(printGraph(root), longResponseColor);
     }));
     m_console->addCommand(Q3DSConsole::makeCommand("slidegraph", [this](const QByteArray &args) {
         Q3DSGraphObject *obj = nullptr;
@@ -133,6 +139,22 @@ void Q3DSConsoleCommands::setupConsole(Q3DSConsole *console)
                 m_console->addMessageFmt(longResponseColor, "%s = %s",
                                          qPrintable(names[i]),
                                          qPrintable(Q3DS::convertFromVariant(values[i])));
+            }
+        }
+    }));
+    m_console->addCommand(Q3DSConsole::makeCommand("info", [this](const QByteArray &args) {
+        Q3DSGraphObject *obj = resolveObj(args);
+        if (obj) {
+            Q3DSComponentNode *owningComponent = obj->attached()->component;
+            m_console->addMessageFmt(longResponseColor, "Owner component node: %s (%p)",
+                                     owningComponent ? owningComponent->id().constData() : "",
+                                     owningComponent);
+            if (obj->isNode()) {
+                auto d = obj->attached<Q3DSNodeAttached>();
+                m_console->addMessageFmt(longResponseColor, "Global transform: %s\nGlobal opacity: %f\nGlobal visibility: %d\n",
+                                         qPrintable(printMatrix(d->globalTransform)),
+                                         d->globalOpacity,
+                                         d->globalVisibility);
             }
         }
     }));
@@ -212,7 +234,10 @@ static void graphPrinter(QString *dst, Q3DSGraphObject *obj, int indent)
         *dst += QString(QLatin1String("%1%2 id='%3' name='%4'\n"))
                 .arg(spaces.constData()).arg(obj->typeAsString()).arg(obj->id().constData()).arg(obj->name());
         graphPrinter(dst, obj->firstChild(), indent + 2);
-        obj = obj->nextSibling();
+        if (indent != 0)
+            obj = obj->nextSibling();
+        else
+            break; // skip siblings of the root node (relevant when printing a subtree, i.e. root != pres->scene())
     }
 }
 
@@ -220,6 +245,18 @@ QString Q3DSConsoleCommands::printGraph(Q3DSGraphObject *root) const
 {
     QString result;
     graphPrinter(&result, root, 0);
+    return result;
+}
+
+QString Q3DSConsoleCommands::printMatrix(const QMatrix4x4 &m) const
+{
+    QString result = QLatin1String("( ");
+    const float *p = m.constData();
+    for (int i = 0; i < 16; ++i) {
+        result += QString::number(*p++);
+        result += QLatin1Char(' ');
+    }
+    result += QLatin1Char(')');
     return result;
 }
 

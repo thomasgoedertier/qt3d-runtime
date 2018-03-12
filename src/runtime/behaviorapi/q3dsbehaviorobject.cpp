@@ -344,7 +344,7 @@ QMatrix4x4 Q3DSBehaviorObject::calculateGlobalTransform(const QString &handle)
         return QMatrix4x4();
     }
 
-    auto d = static_cast<Q3DSNode *>(obj)->attached<Q3DSNodeAttached>();
+    auto d = obj->attached<Q3DSNodeAttached>();
     if (!d)
         return QMatrix4x4();
 

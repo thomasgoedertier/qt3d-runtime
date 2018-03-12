@@ -120,11 +120,11 @@ void Q3DSConsole::draw()
             auto it = std::find_if(m_commands.cbegin(), m_commands.cend(), [cmd](const Command &c) { return c.name == cmd; });
             if (it != m_commands.cend()) {
                 if (it->callback) {
-                    addMessage(QLatin1String("\n"));
+                    addMessageFmt(Qt::white, "\n > %s\n", qPrintable(fullCmd));
                     it->callback(args);
                 }
             } else {
-                addMessageFmt(Qt::red, "Unknown command '%s'", cmd.constData());
+                addMessageFmt(Qt::red, "\nUnknown command '%s'", cmd.constData());
             }
         }
         m_inputBuf[0] = '\0';
