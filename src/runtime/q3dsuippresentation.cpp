@@ -631,45 +631,64 @@ void Q3DSGraphObject::notifyPropertyChanges(const Q3DSPropertyChangeList &change
 // value does not change, the returned change object has isValid()==false, these
 // are ignored by the changelist.
 
-#define PROP_SETTER(member, value, uipname) \
-    Q3DSPropertyChange result; \
-    if (member != value) { \
-        member = value; \
-        result = Q3DSPropertyChange(QLatin1String(uipname)); \
+template <typename Member, typename Value>
+static Q3DSPropertyChange createPropSetter(Member &member, const Value &value, const char *uipname)
+{
+    Q3DSPropertyChange result;
+    if (member != value) {
+        member = value;
+        result = Q3DSPropertyChange(QLatin1String(uipname));
     }
 
-#define PROP_OBJREF_SETTER(member, value, uipname) \
-    Q3DSPropertyChange result; \
-    if (member != value) { \
-        member = value; \
-        member##_unresolved = QLatin1String("#") + QString::fromUtf8(value->id()); \
-        result = Q3DSPropertyChange(QLatin1String(uipname)); \
+    return result;
+}
+
+#define MEMBER_PAIR(M) M, M##_unresolved
+template <typename Member, typename MemberUnresolved, typename Value>
+static Q3DSPropertyChange createObjectRefSetter(Member &member,
+                                                MemberUnresolved &memberUnresolved,
+                                                const Value &value,
+                                                const char *uipname)
+{
+    Q3DSPropertyChange result;
+    if (member != value) {
+        member = value;
+        memberUnresolved = QLatin1String("#") + QString::fromUtf8(value->id());
+        result = Q3DSPropertyChange(QLatin1String(uipname));
     }
 
-#define PROP_FLAG_SETTER(member, flag, bvalue, uipname) \
-    Q3DSPropertyChange result; \
-    const bool wasSet = member & flag; \
+    return result;
+}
+
+template <typename Member, typename Flag>
+static Q3DSPropertyChange createPropFlagSetter(Member &member,
+                                               const Flag &flag,
+                                               bool bvalue,
+                                               const char *uipname)
+{
+    Q3DSPropertyChange result;
+    const bool wasSet = member & flag;
     if (wasSet != bvalue) { \
-        if (bvalue) member |= flag; else member &= ~flag; \
-        result = Q3DSPropertyChange(QLatin1String(uipname)); \
+        if (bvalue) member |= flag; else member &= ~flag;
+        result = Q3DSPropertyChange(QLatin1String(uipname));
     }
+
+    return result;
+}
 
 Q3DSPropertyChange Q3DSGraphObject::setName(const QString &v)
 {
-    PROP_SETTER(m_name, v, "name");
-    return result;
+    return createPropSetter(m_name, v, "name");
 }
 
 Q3DSPropertyChange Q3DSGraphObject::setStartTime(qint32 v)
 {
-    PROP_SETTER(m_startTime, v, "starttime");
-    return result;
+    return createPropSetter(m_startTime, v, "starttime");
 }
 
 Q3DSPropertyChange Q3DSGraphObject::setEndTime(qint32 v)
 {
-    PROP_SETTER(m_endTime, v, "endtime");
-    return result;
+    return createPropSetter(m_endTime, v, "endtime");
 }
 
 int Q3DSGraphObject::addEventHandler(const QString &event, EventCallback callback)
@@ -1165,14 +1184,12 @@ QVariantList Q3DSScene::propertyValues() const
 
 Q3DSPropertyChange Q3DSScene::setUseClearColor(bool v)
 {
-    PROP_SETTER(m_useClearColor, v, "bgcolorenable");
-    return result;
+    return createPropSetter(m_useClearColor, v, "bgcolorenable");
 }
 
 Q3DSPropertyChange Q3DSScene::setClearColor(const QColor &v)
 {
-    PROP_SETTER(m_clearColor, v, "backgroundcolor");
-    return result;
+    return createPropSetter(m_clearColor, v, "backgroundcolor");
 }
 
 // Note that invalid changes are not added (great for an efficient yet simple
@@ -1417,27 +1434,23 @@ QVariantList Q3DSSlide::propertyValues() const
 
 Q3DSPropertyChange Q3DSSlide::setPlayMode(PlayMode v)
 {
-    PROP_SETTER(m_playMode, v, "playmode");
-    return result;
+    return createPropSetter(m_playMode, v, "playmode");
 }
 
 Q3DSPropertyChange Q3DSSlide::setInitialPlayState(InitialPlayState v)
 {
-    PROP_SETTER(m_initialPlayState, v, "initialplaystate");
-    return result;
+    return createPropSetter(m_initialPlayState, v, "initialplaystate");
 }
 
 Q3DSPropertyChange Q3DSSlide::setPlayThrough(PlayThrough v)
 {
-    PROP_SETTER(m_playThrough, v, "playthroughto");
-    return result;
+    return createPropSetter(m_playThrough, v, "playthroughto");
 }
 
 Q3DSPropertyChange Q3DSSlide::setPlayThroughValue(const QVariant &v)
 {
     m_playThrough = Value;
-    PROP_SETTER(m_playThroughValue, v, "playthroughto");
-    return result;
+    return createPropSetter(m_playThroughValue, v, "playthroughto");
 }
 
 Q3DSImage::Q3DSImage()
@@ -1656,74 +1669,62 @@ void Q3DSImage::calculateTextureTransform()
 
 Q3DSPropertyChange Q3DSImage::setSourcePath(const QString &v)
 {
-    PROP_SETTER(m_sourcePath, v, "sourcepath");
-    return result;
+    return createPropSetter(m_sourcePath, v, "sourcepath");
 }
 
 Q3DSPropertyChange Q3DSImage::setScaleU(float v)
 {
-    PROP_SETTER(m_scaleU, v, "scaleu");
-    return result;
+    return createPropSetter(m_scaleU, v, "scaleu");
 }
 
 Q3DSPropertyChange Q3DSImage::setScaleV(float v)
 {
-    PROP_SETTER(m_scaleV, v, "scalev");
-    return result;
+    return createPropSetter(m_scaleV, v, "scalev");
 }
 
 Q3DSPropertyChange Q3DSImage::setMappingMode(MappingMode v)
 {
-    PROP_SETTER(m_mappingMode, v, "mappingmode");
-    return result;
+    return createPropSetter(m_mappingMode, v, "mappingmode");
 }
 
 Q3DSPropertyChange Q3DSImage::setHorizontalTiling(TilingMode v)
 {
-    PROP_SETTER(m_tilingHoriz, v, "tilingmodehorz");
-    return result;
+    return createPropSetter(m_tilingHoriz, v, "tilingmodehorz");
 }
 
 Q3DSPropertyChange Q3DSImage::setVerticalTiling(TilingMode v)
 {
-    PROP_SETTER(m_tilingVert, v, "tilingmodevert");
-    return result;
+    return createPropSetter(m_tilingVert, v, "tilingmodevert");
 }
 
 Q3DSPropertyChange Q3DSImage::setRotationUV(float v)
 {
-    PROP_SETTER(m_rotationUV, v, "rotationuv");
-    return result;
+    return createPropSetter(m_rotationUV, v, "rotationuv");
 }
 
 Q3DSPropertyChange Q3DSImage::setPositionU(float v)
 {
-    PROP_SETTER(m_positionU, v, "positionu");
-    return result;
+    return createPropSetter(m_positionU, v, "positionu");
 }
 
 Q3DSPropertyChange Q3DSImage::setPositionV(float v)
 {
-    PROP_SETTER(m_positionV, v, "positionv");
-    return result;
+    return createPropSetter(m_positionV, v, "positionv");
 }
 
 Q3DSPropertyChange Q3DSImage::setPivotU(float v)
 {
-    PROP_SETTER(m_pivotU, v, "pivotu");
-    return result;
+    return createPropSetter(m_pivotU, v, "pivotu");
 }
 
 Q3DSPropertyChange Q3DSImage::setPivotV(float v)
 {
-    PROP_SETTER(m_pivotV, v, "pivotv");
-    return result;
+    return createPropSetter(m_pivotV, v, "pivotv");
 }
 
 Q3DSPropertyChange Q3DSImage::setSubPresentation(const QString &v)
 {
-    PROP_SETTER(m_subPresentation, v, "subpresentation");
-    return result;
+    return createPropSetter(m_subPresentation, v, "subpresentation");
 }
 
 Q3DSDefaultMaterial::Q3DSDefaultMaterial()
@@ -1860,194 +1861,162 @@ QVariantList Q3DSDefaultMaterial::propertyValues() const
 
 Q3DSPropertyChange Q3DSDefaultMaterial::setShaderLighting(ShaderLighting v)
 {
-    PROP_SETTER(m_shaderLighting, v, "shaderlighting");
-    return result;
+    return createPropSetter(m_shaderLighting, v, "shaderlighting");
 }
 
 Q3DSPropertyChange Q3DSDefaultMaterial::setBlendMode(BlendMode v)
 {
-    PROP_SETTER(m_blendMode, v, "blendmode");
-    return result;
+    return createPropSetter(m_blendMode, v, "blendmode");
 }
 
 Q3DSPropertyChange Q3DSDefaultMaterial::setDiffuse(const QColor &v)
 {
-    PROP_SETTER(m_diffuse, v, "diffuse");
-    return result;
+    return createPropSetter(m_diffuse, v, "diffuse");
 }
 
 Q3DSPropertyChange Q3DSDefaultMaterial::setDiffuseMap(Q3DSImage *v)
 {
-    PROP_OBJREF_SETTER(m_diffuseMap, v, "diffusemap");
-    return result;
+    return createObjectRefSetter(MEMBER_PAIR(m_diffuseMap), v, "diffusemap");
 }
 
 Q3DSPropertyChange Q3DSDefaultMaterial::setDiffuseMap2(Q3DSImage *v)
 {
-    PROP_OBJREF_SETTER(m_diffuseMap2, v, "diffusemap2");
-    return result;
+    return createObjectRefSetter(MEMBER_PAIR(m_diffuseMap2), v, "diffusemap2");
 }
 
 Q3DSPropertyChange Q3DSDefaultMaterial::setDiffuseMap3(Q3DSImage *v)
 {
-    PROP_OBJREF_SETTER(m_diffuseMap3, v, "diffusemap3");
-    return result;
+    return createObjectRefSetter(MEMBER_PAIR(m_diffuseMap3), v, "diffusemap3");
 }
 
 Q3DSPropertyChange Q3DSDefaultMaterial::setSpecularReflection(Q3DSImage *v)
 {
-    PROP_OBJREF_SETTER(m_specularReflection, v, "specularreflection");
-    return result;
+    return createObjectRefSetter(MEMBER_PAIR(m_specularReflection), v, "specularreflection");
 }
 
 Q3DSPropertyChange Q3DSDefaultMaterial::setSpecularTint(const QColor &v)
 {
-    PROP_SETTER(m_specularTint, v, "speculartint");
-    return result;
+    return createPropSetter(m_specularTint, v, "speculartint");
 }
 
 Q3DSPropertyChange Q3DSDefaultMaterial::setSpecularAmount(float v)
 {
-    PROP_SETTER(m_specularAmount, v, "specularamount");
-    return result;
+    return createPropSetter(m_specularAmount, v, "specularamount");
 }
 
 Q3DSPropertyChange Q3DSDefaultMaterial::setSpecularMap(Q3DSImage *v)
 {
-    PROP_OBJREF_SETTER(m_specularMap, v, "specularmap");
-    return result;
+    return createObjectRefSetter(MEMBER_PAIR(m_specularMap), v, "specularmap");
 }
 
 Q3DSPropertyChange Q3DSDefaultMaterial::setSpecularModel(SpecularModel v)
 {
-    PROP_SETTER(m_specularModel, v, "specularmodel");
-    return result;
+    return createPropSetter(m_specularModel, v, "specularmodel");
 }
 
 Q3DSPropertyChange Q3DSDefaultMaterial::setSpecularRoughness(float v)
 {
-    PROP_SETTER(m_specularRoughness, v, "specularroughness");
-    return result;
+    return createPropSetter(m_specularRoughness, v, "specularroughness");
 }
 
 Q3DSPropertyChange Q3DSDefaultMaterial::setFresnelPower(float v)
 {
-    PROP_SETTER(m_fresnelPower, v, "fresnelPower");
-    return result;
+    return createPropSetter(m_fresnelPower, v, "fresnelPower");
 }
 
 Q3DSPropertyChange Q3DSDefaultMaterial::setIor(float v)
 {
-    PROP_SETTER(m_ior, v, "ior");
-    return result;
+    return createPropSetter(m_ior, v, "ior");
 }
 
 Q3DSPropertyChange Q3DSDefaultMaterial::setBumpMap(Q3DSImage *v)
 {
-    PROP_OBJREF_SETTER(m_bumpMap, v, "bumpmap");
-    return result;
+    return createObjectRefSetter(MEMBER_PAIR(m_bumpMap), v, "bumpmap");
 }
 
 Q3DSPropertyChange Q3DSDefaultMaterial::setNormalMap(Q3DSImage *v)
 {
-    PROP_OBJREF_SETTER(m_normalMap, v, "normalmap");
-    return result;
+    return createObjectRefSetter(MEMBER_PAIR(m_normalMap), v, "normalmap");
 }
 
 Q3DSPropertyChange Q3DSDefaultMaterial::setBumpAmount(float v)
 {
-    PROP_SETTER(m_bumpAmount, v, "bumpamount");
-    return result;
+    return createPropSetter(m_bumpAmount, v, "bumpamount");
 }
 
 Q3DSPropertyChange Q3DSDefaultMaterial::setDisplacementMap(Q3DSImage *v)
 {
-    PROP_OBJREF_SETTER(m_displacementMap, v, "displacementmap");
-    return result;
+    return createObjectRefSetter(MEMBER_PAIR(m_displacementMap), v, "displacementmap");
 }
 
 Q3DSPropertyChange Q3DSDefaultMaterial::setDisplaceAmount(float v)
 {
-    PROP_SETTER(m_displaceAmount, v, "displaceamount");
-    return result;
+    return createPropSetter(m_displaceAmount, v, "displaceamount");
 }
 
 Q3DSPropertyChange Q3DSDefaultMaterial::setOpacity(float v)
 {
-    PROP_SETTER(m_opacity, v, "opacity");
-    return result;
+    return createPropSetter(m_opacity, v, "opacity");
 }
 
 Q3DSPropertyChange Q3DSDefaultMaterial::setOpacityMap(Q3DSImage *v)
 {
-    PROP_OBJREF_SETTER(m_opacityMap, v, "opacitymap");
-    return result;
+    return createObjectRefSetter(MEMBER_PAIR(m_opacityMap), v, "opacitymap");
 }
 
 Q3DSPropertyChange Q3DSDefaultMaterial::setEmissiveColor(const QColor &v)
 {
-    PROP_SETTER(m_emissiveColor, v, "emissivecolor");
-    return result;
+    return createPropSetter(m_emissiveColor, v, "emissivecolor");
 }
 
 Q3DSPropertyChange Q3DSDefaultMaterial::setEmissivePower(float v)
 {
-    PROP_SETTER(m_emissivePower, v, "emissivepower");
-    return result;
+    return createPropSetter(m_emissivePower, v, "emissivepower");
 }
 
 Q3DSPropertyChange Q3DSDefaultMaterial::setEmissiveMap(Q3DSImage *v)
 {
-    PROP_OBJREF_SETTER(m_emissiveMap, v, "emissivemap");
-    return result;
+    return createObjectRefSetter(MEMBER_PAIR(m_emissiveMap), v, "emissivemap");
 }
 
 Q3DSPropertyChange Q3DSDefaultMaterial::setEmissiveMap2(Q3DSImage *v)
 {
-    PROP_OBJREF_SETTER(m_emissiveMap2, v, "emissivemap2");
-    return result;
+    return createObjectRefSetter(MEMBER_PAIR(m_emissiveMap2), v, "emissivemap2");
 }
 
 Q3DSPropertyChange Q3DSDefaultMaterial::setTranslucencyMap(Q3DSImage *v)
 {
-    PROP_OBJREF_SETTER(m_translucencyMap, v, "translucencymap");
-    return result;
+    return createObjectRefSetter(MEMBER_PAIR(m_translucencyMap), v, "translucencymap");
 }
 
 Q3DSPropertyChange Q3DSDefaultMaterial::setTranslucentFalloff(float v)
 {
-    PROP_SETTER(m_translucentFalloff, v, "translucentfalloff");
-    return result;
+    return createPropSetter(m_translucentFalloff, v, "translucentfalloff");
 }
 
 Q3DSPropertyChange Q3DSDefaultMaterial::setDiffuseLightWrap(float v)
 {
-    PROP_SETTER(m_diffuseLightWrap, v, "diffuselightwrap");
-    return result;
+    return createPropSetter(m_diffuseLightWrap, v, "diffuselightwrap");
 }
 
 Q3DSPropertyChange Q3DSDefaultMaterial::setLightmapIndirectMap(Q3DSImage *v)
 {
-    PROP_OBJREF_SETTER(m_lightmapIndirectMap, v, "lightmapindirect");
-    return result;
+    return createObjectRefSetter(MEMBER_PAIR(m_lightmapIndirectMap), v, "lightmapindirect");
 }
 
 Q3DSPropertyChange Q3DSDefaultMaterial::setLightmapRadiosityMap(Q3DSImage *v)
 {
-    PROP_OBJREF_SETTER(m_lightmapRadiosityMap, v, "lightmapradiosity");
-    return result;
+    return createObjectRefSetter(MEMBER_PAIR(m_lightmapRadiosityMap), v, "lightmapradiosity");
 }
 
 Q3DSPropertyChange Q3DSDefaultMaterial::setLightmapShadowMap(Q3DSImage *v)
 {
-    PROP_OBJREF_SETTER(m_lightmapShadowMap, v, "lightmapshadow");
-    return result;
+    return createObjectRefSetter(MEMBER_PAIR(m_lightmapShadowMap), v, "lightmapshadow");
 }
 
 Q3DSPropertyChange Q3DSDefaultMaterial::setLightProbe(Q3DSImage *v)
 {
-    PROP_OBJREF_SETTER(m_lightProbe, v, "iblprobe");
-    return result;
+    return createObjectRefSetter(MEMBER_PAIR(m_lightProbe), v, "iblprobe");
 }
 
 Q3DSReferencedMaterial::Q3DSReferencedMaterial()
@@ -2111,32 +2080,27 @@ QVariantList Q3DSReferencedMaterial::propertyValues() const
 
 Q3DSPropertyChange Q3DSReferencedMaterial::setReferencedMaterial(Q3DSGraphObject *v)
 {
-    PROP_SETTER(m_referencedMaterial, v, "referencedmaterial");
-    return result;
+    return createPropSetter(m_referencedMaterial, v, "referencedmaterial");
 }
 
 Q3DSPropertyChange Q3DSReferencedMaterial::setLightmapIndirectMap(Q3DSImage *v)
 {
-    PROP_OBJREF_SETTER(m_lightmapIndirectMap, v, "lightmapindirect");
-    return result;
+    return createObjectRefSetter(MEMBER_PAIR(m_lightmapIndirectMap), v, "lightmapindirect");
 }
 
 Q3DSPropertyChange Q3DSReferencedMaterial::setLightmapRadiosityMap(Q3DSImage *v)
 {
-    PROP_OBJREF_SETTER(m_lightmapRadiosityMap, v, "lightmapradiosity");
-    return result;
+    return createObjectRefSetter(MEMBER_PAIR(m_lightmapRadiosityMap), v, "lightmapradiosity");
 }
 
 Q3DSPropertyChange Q3DSReferencedMaterial::setLightmapShadowMap(Q3DSImage *v)
 {
-    PROP_OBJREF_SETTER(m_lightmapShadowMap, v, "lightmapshadow");
-    return result;
+    return createObjectRefSetter(MEMBER_PAIR(m_lightmapShadowMap), v, "lightmapshadow");
 }
 
 Q3DSPropertyChange Q3DSReferencedMaterial::setLightProbe(Q3DSImage *v)
 {
-    PROP_OBJREF_SETTER(m_lightProbe, v, "iblprobe");
-    return result;
+    return createObjectRefSetter(MEMBER_PAIR(m_lightProbe), v, "iblprobe");
 }
 
 Q3DSCustomMaterialInstance::Q3DSCustomMaterialInstance()
@@ -2270,26 +2234,22 @@ QVariantList Q3DSCustomMaterialInstance::propertyValues() const
 
 Q3DSPropertyChange Q3DSCustomMaterialInstance::setLightmapIndirectMap(Q3DSImage *v)
 {
-    PROP_OBJREF_SETTER(m_lightmapIndirectMap, v, "lightmapindirect");
-    return result;
+    return createObjectRefSetter(MEMBER_PAIR(m_lightmapIndirectMap), v, "lightmapindirect");
 }
 
 Q3DSPropertyChange Q3DSCustomMaterialInstance::setLightmapRadiosityMap(Q3DSImage *v)
 {
-    PROP_OBJREF_SETTER(m_lightmapRadiosityMap, v, "lightmapradiosity");
-    return result;
+    return createObjectRefSetter(MEMBER_PAIR(m_lightmapRadiosityMap), v, "lightmapradiosity");
 }
 
 Q3DSPropertyChange Q3DSCustomMaterialInstance::setLightmapShadowMap(Q3DSImage *v)
 {
-    PROP_OBJREF_SETTER(m_lightmapShadowMap, v, "lightmapshadow");
-    return result;
+    return createObjectRefSetter(MEMBER_PAIR(m_lightmapShadowMap), v, "lightmapshadow");
 }
 
 Q3DSPropertyChange Q3DSCustomMaterialInstance::setLightProbe(Q3DSImage *v)
 {
-    PROP_OBJREF_SETTER(m_lightProbe, v, "iblprobe");
-    return result;
+    return createObjectRefSetter(MEMBER_PAIR(m_lightProbe), v, "iblprobe");
 }
 
 Q3DSPropertyChange Q3DSCustomMaterialInstance::setCustomProperty(const QString &name, const QVariant &value)
@@ -2574,59 +2534,51 @@ QVariantList Q3DSNode::propertyValues() const
 Q3DSPropertyChange Q3DSNode::setFlag(NodeFlag flag, bool v)
 {
     if (flag == Active) {
-        PROP_FLAG_SETTER(m_flags, flag, v, "eyeball");
+        return createPropFlagSetter(m_flags, flag, v, "eyeball");
     } else if (flag == IgnoresParentTransform) {
-        PROP_FLAG_SETTER(m_flags, flag, v, "ignoresparent");
+        return createPropFlagSetter(m_flags, flag, v, "ignoresparent");
     }
     return Q3DSPropertyChange();
 }
 
 Q3DSPropertyChange Q3DSNode::setRotation(const QVector3D &v)
 {
-    PROP_SETTER(m_rotation, v, "rotation");
-    return result;
+    return createPropSetter(m_rotation, v, "rotation");
 }
 
 Q3DSPropertyChange Q3DSNode::setPosition(const QVector3D &v)
 {
-    PROP_SETTER(m_position, v, "position");
-    return result;
+    return createPropSetter(m_position, v, "position");
 }
 
 Q3DSPropertyChange Q3DSNode::setScale(const QVector3D &v)
 {
-    PROP_SETTER(m_scale, v, "scale");
-    return result;
+    return createPropSetter(m_scale, v, "scale");
 }
 
 Q3DSPropertyChange Q3DSNode::setPivot(const QVector3D &v)
 {
-    PROP_SETTER(m_pivot, v, "pivot");
-    return result;
+    return createPropSetter(m_pivot, v, "pivot");
 }
 
 Q3DSPropertyChange Q3DSNode::setLocalOpacity(float v)
 {
-    PROP_SETTER(m_localOpacity, v, "opacity");
-    return result;
+    return createPropSetter(m_localOpacity, v, "opacity");
 }
 
 Q3DSPropertyChange Q3DSNode::setSkeletonId(int v)
 {
-    PROP_SETTER(m_skeletonId, v, "boneid");
-    return result;
+    return createPropSetter(m_skeletonId, v, "boneid");
 }
 
 Q3DSPropertyChange Q3DSNode::setRotationOrder(RotationOrder v)
 {
-    PROP_SETTER(m_rotationOrder, v, "rotationorder");
-    return result;
+    return createPropSetter(m_rotationOrder, v, "rotationorder");
 }
 
 Q3DSPropertyChange Q3DSNode::setOrientation(Orientation v)
 {
-    PROP_SETTER(m_orientation, v, "orientation");
-    return result;
+    return createPropSetter(m_orientation, v, "orientation");
 }
 
 Q3DSLayerNode::Q3DSLayerNode()
@@ -2771,243 +2723,205 @@ QVariantList Q3DSLayerNode::propertyValues() const
 Q3DSPropertyChange Q3DSLayerNode::setLayerFlag(Flag flag, bool v)
 {
     if (flag == DisableDepthTest) {
-        PROP_FLAG_SETTER(m_layerFlags, flag, v, "disabledepthtest");
+        return createPropFlagSetter(m_layerFlags, flag, v, "disabledepthtest");
     } else if (flag == DisableDepthPrePass) {
-        PROP_FLAG_SETTER(m_layerFlags, flag, v, "disabledepthprepass");
+        return createPropFlagSetter(m_layerFlags, flag, v, "disabledepthprepass");
     } else if (flag == TemporalAA) {
-        PROP_FLAG_SETTER(m_layerFlags, flag, v, "temporalaa");
+        return createPropFlagSetter(m_layerFlags, flag, v, "temporalaa");
     } else if (flag == FastIBL) {
-        PROP_FLAG_SETTER(m_layerFlags, flag, v, "fastibl");
+        return createPropFlagSetter(m_layerFlags, flag, v, "fastibl");
     }
     return Q3DSPropertyChange();
 }
 
 Q3DSPropertyChange Q3DSLayerNode::setProgressiveAA(ProgressiveAA v)
 {
-    PROP_SETTER(m_progressiveAA, v, "progressiveaa");
-    return result;
+    return createPropSetter(m_progressiveAA, v, "progressiveaa");
 }
 
 Q3DSPropertyChange Q3DSLayerNode::setMultisampleAA(MultisampleAA v)
 {
-    PROP_SETTER(m_multisampleAA, v, "multisampleaa");
-    return result;
+    return createPropSetter(m_multisampleAA, v, "multisampleaa");
 }
 
 Q3DSPropertyChange Q3DSLayerNode::setLayerBackground(LayerBackground v)
 {
-    PROP_SETTER(m_layerBackground, v, "background");
-    return result;
+    return createPropSetter(m_layerBackground, v, "background");
 }
 
 Q3DSPropertyChange Q3DSLayerNode::setBackgroundColor(const QColor &v)
 {
-    PROP_SETTER(m_backgroundColor, v, "backgroundcolor");
-    return result;
+    return createPropSetter(m_backgroundColor, v, "backgroundcolor");
 }
 
 Q3DSPropertyChange Q3DSLayerNode::setBlendType(BlendType v)
 {
-    PROP_SETTER(m_blendType, v, "blendtype");
-    return result;
+    return createPropSetter(m_blendType, v, "blendtype");
 }
 
 Q3DSPropertyChange Q3DSLayerNode::setHorizontalFields(HorizontalFields v)
 {
-    PROP_SETTER(m_horizontalFields, v, "horzfields");
-    return result;
+    return createPropSetter(m_horizontalFields, v, "horzfields");
 }
 
 Q3DSPropertyChange Q3DSLayerNode::setLeft(float v)
 {
-    PROP_SETTER(m_left, v, "left");
-    return result;
+    return createPropSetter(m_left, v, "left");
 }
 
 Q3DSPropertyChange Q3DSLayerNode::setLeftUnits(Units v)
 {
-    PROP_SETTER(m_leftUnits, v, "leftunits");
-    return result;
+    return createPropSetter(m_leftUnits, v, "leftunits");
 }
 
 Q3DSPropertyChange Q3DSLayerNode::setWidth(float v)
 {
-    PROP_SETTER(m_width, v, "width");
-    return result;
+    return createPropSetter(m_width, v, "width");
 }
 
 Q3DSPropertyChange Q3DSLayerNode::setWidthUnits(Units v)
 {
-    PROP_SETTER(m_widthUnits, v, "widthunits");
-    return result;
+    return createPropSetter(m_widthUnits, v, "widthunits");
 }
 
 Q3DSPropertyChange Q3DSLayerNode::setRight(float v)
 {
-    PROP_SETTER(m_right, v, "right");
-    return result;
+    return createPropSetter(m_right, v, "right");
 }
 
 Q3DSPropertyChange Q3DSLayerNode::setRightUnits(Units v)
 {
-    PROP_SETTER(m_rightUnits, v, "rightunits");
-    return result;
+    return createPropSetter(m_rightUnits, v, "rightunits");
 }
 
 Q3DSPropertyChange Q3DSLayerNode::setVerticalFields(VerticalFields v)
 {
-    PROP_SETTER(m_verticalFields, v, "vertfields");
-    return result;
+    return createPropSetter(m_verticalFields, v, "vertfields");
 }
 
 Q3DSPropertyChange Q3DSLayerNode::setTop(float v)
 {
-    PROP_SETTER(m_top, v, "top");
-    return result;
+    return createPropSetter(m_top, v, "top");
 }
 
 Q3DSPropertyChange Q3DSLayerNode::setTopUnits(Units v)
 {
-    PROP_SETTER(m_topUnits, v, "topunits");
-    return result;
+    return createPropSetter(m_topUnits, v, "topunits");
 }
 
 Q3DSPropertyChange Q3DSLayerNode::setHeight(float v)
 {
-    PROP_SETTER(m_height, v, "height");
-    return result;
+    return createPropSetter(m_height, v, "height");
 }
 
 Q3DSPropertyChange Q3DSLayerNode::setHeightUnits(Units v)
 {
-    PROP_SETTER(m_heightUnits, v, "heightunits");
-    return result;
+    return createPropSetter(m_heightUnits, v, "heightunits");
 }
 
 Q3DSPropertyChange Q3DSLayerNode::setBottom(float v)
 {
-    PROP_SETTER(m_bottom, v, "bottom");
-    return result;
+    return createPropSetter(m_bottom, v, "bottom");
 }
 
 Q3DSPropertyChange Q3DSLayerNode::setBottomUnits(Units v)
 {
-    PROP_SETTER(m_bottomUnits, v, "bottomunits");
-    return result;
+    return createPropSetter(m_bottomUnits, v, "bottomunits");
 }
 
 Q3DSPropertyChange Q3DSLayerNode::setSourcePath(const QString &v)
 {
-    PROP_SETTER(m_sourcePath, v, "sourcepath");
-    return result;
+    return createPropSetter(m_sourcePath, v, "sourcepath");
 }
 
 Q3DSPropertyChange Q3DSLayerNode::setAoStrength(float v)
 {
-    PROP_SETTER(m_aoStrength, v, "aostrength");
-    return result;
+    return createPropSetter(m_aoStrength, v, "aostrength");
 }
 
 Q3DSPropertyChange Q3DSLayerNode::setAoDistance(float v)
 {
-    PROP_SETTER(m_aoDistance, v, "aodistance");
-    return result;
+    return createPropSetter(m_aoDistance, v, "aodistance");
 }
 
 Q3DSPropertyChange Q3DSLayerNode::setAoSoftness(float v)
 {
-    PROP_SETTER(m_aoSoftness, v, "aosoftness");
-    return result;
+    return createPropSetter(m_aoSoftness, v, "aosoftness");
 }
 
 Q3DSPropertyChange Q3DSLayerNode::setAoBias(float v)
 {
-    PROP_SETTER(m_aoBias, v, "aobias");
-    return result;
+    return createPropSetter(m_aoBias, v, "aobias");
 }
 
 Q3DSPropertyChange Q3DSLayerNode::setAoSampleRate(int v)
 {
-    PROP_SETTER(m_aoSampleRate, v, "aosamplerate");
-    return result;
+    return createPropSetter(m_aoSampleRate, v, "aosamplerate");
 }
 
 Q3DSPropertyChange Q3DSLayerNode::setAoDither(bool v)
 {
-    PROP_SETTER(m_aoDither, v, "aodither");
-    return result;
+    return createPropSetter(m_aoDither, v, "aodither");
 }
 
 Q3DSPropertyChange Q3DSLayerNode::setShadowStrength(float v)
 {
-    PROP_SETTER(m_shadowStrength, v, "shadowstrength");
-    return result;
+    return createPropSetter(m_shadowStrength, v, "shadowstrength");
 }
 
 Q3DSPropertyChange Q3DSLayerNode::setShadowDist(float v)
 {
-    PROP_SETTER(m_shadowDist, v, "shadowdist");
-    return result;
+    return createPropSetter(m_shadowDist, v, "shadowdist");
 }
 
 Q3DSPropertyChange Q3DSLayerNode::setShadowSoftness(float v)
 {
-    PROP_SETTER(m_shadowSoftness, v, "shadowsoftness");
-    return result;
+    return createPropSetter(m_shadowSoftness, v, "shadowsoftness");
 }
 
 Q3DSPropertyChange Q3DSLayerNode::setShadowBias(float v)
 {
-    PROP_SETTER(m_shadowBias, v, "shadowbias");
-    return result;
+    return createPropSetter(m_shadowBias, v, "shadowbias");
 }
 
 Q3DSPropertyChange Q3DSLayerNode::setLightProbe(Q3DSImage *v)
 {
-    PROP_OBJREF_SETTER(m_lightProbe, v, "lightprobe");
-    return result;
+    return createObjectRefSetter(MEMBER_PAIR(m_lightProbe), v, "lightprobe");
 }
 
 Q3DSPropertyChange Q3DSLayerNode::setProbeBright(float v)
 {
-    PROP_SETTER(m_probeBright, v, "probebright");
-    return result;
+    return createPropSetter(m_probeBright, v, "probebright");
 }
 
 Q3DSPropertyChange Q3DSLayerNode::setProbeHorizon(float v)
 {
-    PROP_SETTER(m_probeHorizon, v, "probehorizon");
-    return result;
+    return createPropSetter(m_probeHorizon, v, "probehorizon");
 }
 
 Q3DSPropertyChange Q3DSLayerNode::setProbeFov(float v)
 {
-    PROP_SETTER(m_probeFov, v, "probefov");
-    return result;
+    return createPropSetter(m_probeFov, v, "probefov");
 }
 
 Q3DSPropertyChange Q3DSLayerNode::setLightProbe2(Q3DSImage *v)
 {
-    PROP_OBJREF_SETTER(m_lightProbe2, v, "lightprobe2");
-    return result;
+    return createObjectRefSetter(MEMBER_PAIR(m_lightProbe2), v, "lightprobe2");
 }
 
 Q3DSPropertyChange Q3DSLayerNode::setProbe2Fade(float v)
 {
-    PROP_SETTER(m_probe2Fade, v, "probe2fade");
-    return result;
+    return createPropSetter(m_probe2Fade, v, "probe2fade");
 }
 
 Q3DSPropertyChange Q3DSLayerNode::setProbe2Window(float v)
 {
-    PROP_SETTER(m_probe2Window, v, "probe2window");
-    return result;
+    return createPropSetter(m_probe2Window, v, "probe2window");
 }
 
 Q3DSPropertyChange Q3DSLayerNode::setProbe2Pos(float v)
 {
-    PROP_SETTER(m_probe2Pos, v, "probe2pos");
-    return result;
+    return createPropSetter(m_probe2Pos, v, "probe2pos");
 }
 
 Q3DSCameraNode::Q3DSCameraNode()
@@ -3061,38 +2975,32 @@ QVariantList Q3DSCameraNode::propertyValues() const
 
 Q3DSPropertyChange Q3DSCameraNode::setOrthographic(bool v)
 {
-    PROP_SETTER(m_orthographic, v, "orthographic");
-    return result;
+    return createPropSetter(m_orthographic, v, "orthographic");
 }
 
 Q3DSPropertyChange Q3DSCameraNode::setFov(float v)
 {
-    PROP_SETTER(m_fov, v, "fov");
-    return result;
+    return createPropSetter(m_fov, v, "fov");
 }
 
 Q3DSPropertyChange Q3DSCameraNode::setClipNear(float v)
 {
-    PROP_SETTER(m_clipNear, v, "clipnear");
-    return result;
+    return createPropSetter(m_clipNear, v, "clipnear");
 }
 
 Q3DSPropertyChange Q3DSCameraNode::setClipFar(float v)
 {
-    PROP_SETTER(m_clipFar, v, "clipfar");
-    return result;
+    return createPropSetter(m_clipFar, v, "clipfar");
 }
 
 Q3DSPropertyChange Q3DSCameraNode::setScaleMode(ScaleMode v)
 {
-    PROP_SETTER(m_scaleMode, v, "scalemode");
-    return result;
+    return createPropSetter(m_scaleMode, v, "scalemode");
 }
 
 Q3DSPropertyChange Q3DSCameraNode::setScaleAnchor(ScaleAnchor v)
 {
-    PROP_SETTER(m_scaleAnchor, v, "scaleanchor");
-    return result;
+    return createPropSetter(m_scaleAnchor, v, "scaleanchor");
 }
 
 Q3DSLightNode::Q3DSLightNode()
@@ -3168,104 +3076,87 @@ QVariantList Q3DSLightNode::propertyValues() const
 
 Q3DSPropertyChange Q3DSLightNode::setLightType(LightType v)
 {
-    PROP_SETTER(m_lightType, v, "lighttype");
-    return result;
+    return createPropSetter(m_lightType, v, "lighttype");
 }
 
 Q3DSPropertyChange Q3DSLightNode::setScope(Q3DSGraphObject *v)
 {
-    PROP_OBJREF_SETTER(m_scope, v, "scope");
-    return result;
+    return createObjectRefSetter(MEMBER_PAIR(m_scope), v, "scope");
 }
 
 Q3DSPropertyChange Q3DSLightNode::setDiffuse(const QColor &v)
 {
-    PROP_SETTER(m_lightDiffuse, v, "lightdiffuse");
-    return result;
+    return createPropSetter(m_lightDiffuse, v, "lightdiffuse");
 }
 
 Q3DSPropertyChange Q3DSLightNode::setSpecular(const QColor &v)
 {
-    PROP_SETTER(m_lightSpecular, v, "lightspecular");
-    return result;
+    return createPropSetter(m_lightSpecular, v, "lightspecular");
 }
 
 Q3DSPropertyChange Q3DSLightNode::setAmbient(const QColor &v)
 {
-    PROP_SETTER(m_lightAmbient, v, "lightambient");
-    return result;
+    return createPropSetter(m_lightAmbient, v, "lightambient");
 }
 
 Q3DSPropertyChange Q3DSLightNode::setBrightness(float v)
 {
-    PROP_SETTER(m_brightness, v, "brightness");
-    return result;
+    return createPropSetter(m_brightness, v, "brightness");
 }
 
 Q3DSPropertyChange Q3DSLightNode::setLinearFade(float v)
 {
-    PROP_SETTER(m_linearFade, v, "linearfade");
-    return result;
+    return createPropSetter(m_linearFade, v, "linearfade");
 }
 
 Q3DSPropertyChange Q3DSLightNode::setExpFade(float v)
 {
-    PROP_SETTER(m_expFade, v, "expfade");
-    return result;
+    return createPropSetter(m_expFade, v, "expfade");
 }
 
 Q3DSPropertyChange Q3DSLightNode::setAreaWidth(float v)
 {
-    PROP_SETTER(m_areaWidth, v, "areawidth");
-    return result;
+    return createPropSetter(m_areaWidth, v, "areawidth");
 }
 
 Q3DSPropertyChange Q3DSLightNode::setAreaHeight(float v)
 {
-    PROP_SETTER(m_areaHeight, v, "areaheight");
-    return result;
+    return createPropSetter(m_areaHeight, v, "areaheight");
 }
 
 Q3DSPropertyChange Q3DSLightNode::setCastShadow(bool v)
 {
-    PROP_SETTER(m_castShadow, v, "castshadow");
-    return result;
+    return createPropSetter(m_castShadow, v, "castshadow");
 }
 
 Q3DSPropertyChange Q3DSLightNode::setShadowFactor(float v)
 {
-    PROP_SETTER(m_shadowFactor, v, "shdwfactor");
-    return result;
+    return createPropSetter(m_shadowFactor, v, "shdwfactor");
 }
 
 Q3DSPropertyChange Q3DSLightNode::setShadowFilter(float v)
 {
-    PROP_SETTER(m_shadowFilter, v, "shdwfilter");
-    return result;
+    return createPropSetter(m_shadowFilter, v, "shdwfilter");
 }
 
 Q3DSPropertyChange Q3DSLightNode::setShadowMapRes(int v)
 {
-    PROP_SETTER(m_shadowMapRes, v, "shdwmapres");
-    return result;
+    return createPropSetter(m_shadowMapRes, v, "shdwmapres");
 }
 
 Q3DSPropertyChange Q3DSLightNode::setShadowBias(float v)
 {
-    PROP_SETTER(m_shadowBias, v, "shdwbias");
-    return result;
+    return createPropSetter(m_shadowBias, v, "shdwbias");
 }
 
 Q3DSPropertyChange Q3DSLightNode::setShadowMapFar(float v)
 {
-    PROP_SETTER(m_shadowMapFar, v, "shdwmapfar");
-    return result;
+    return createPropSetter(m_shadowMapFar, v, "shdwmapfar");
 }
 
 Q3DSPropertyChange Q3DSLightNode::setShadowMapFov(float v)
 {
-    PROP_SETTER(m_shadowMapFov, v, "shdwmapfov");
-    return result;
+    return createPropSetter(m_shadowMapFov, v, "shdwmapfov");
 }
 
 Q3DSModelNode::Q3DSModelNode()
@@ -3330,33 +3221,29 @@ QVariantList Q3DSModelNode::propertyValues() const
 
 Q3DSPropertyChange Q3DSModelNode::setMesh(const QString &v, Q3DSUipPresentation &pres)
 {
-    PROP_SETTER(m_mesh_unresolved, v, "sourcepath");
+    const auto result = createPropSetter(m_mesh_unresolved, v, "sourcepath");
     updateMesh(pres);
     return result;
 }
 
 Q3DSPropertyChange Q3DSModelNode::setSkeletonRoot(int v)
 {
-    PROP_SETTER(m_skeletonRoot, v, "poseroot");
-    return result;
+    return createPropSetter(m_skeletonRoot, v, "poseroot");
 }
 
 Q3DSPropertyChange Q3DSModelNode::setTessellation(Tessellation v)
 {
-    PROP_SETTER(m_tessellation, v, "tessellation");
-    return result;
+    return createPropSetter(m_tessellation, v, "tessellation");
 }
 
 Q3DSPropertyChange Q3DSModelNode::setEdgeTess(float v)
 {
-    PROP_SETTER(m_edgeTess, v, "edgetess");
-    return result;
+    return createPropSetter(m_edgeTess, v, "edgetess");
 }
 
 Q3DSPropertyChange Q3DSModelNode::setInnerTess(float v)
 {
-    PROP_SETTER(m_innerTess, v, "innertess");
-    return result;
+    return createPropSetter(m_innerTess, v, "innertess");
 }
 
 Q3DSGroupNode::Q3DSGroupNode()
@@ -3523,50 +3410,42 @@ QVariantList Q3DSTextNode::propertyValues() const
 
 Q3DSPropertyChange Q3DSTextNode::setText(const QString &v)
 {
-    PROP_SETTER(m_text, v, "textstring");
-    return result;
+    return createPropSetter(m_text, v, "textstring");
 }
 
 Q3DSPropertyChange Q3DSTextNode::setColor(const QColor &v)
 {
-    PROP_SETTER(m_color, v, "textcolor");
-    return result;
+    return createPropSetter(m_color, v, "textcolor");
 }
 
 Q3DSPropertyChange Q3DSTextNode::setFont(const QString &v)
 {
-    PROP_SETTER(m_font, v, "font");
-    return result;
+    return createPropSetter(m_font, v, "font");
 }
 
 Q3DSPropertyChange Q3DSTextNode::setSize(float v)
 {
-    PROP_SETTER(m_size, v, "size");
-    return result;
+    return createPropSetter(m_size, v, "size");
 }
 
 Q3DSPropertyChange Q3DSTextNode::setHorizontalAlignment(HorizontalAlignment v)
 {
-    PROP_SETTER(m_horizAlign, v, "horzalign");
-    return result;
+    return createPropSetter(m_horizAlign, v, "horzalign");
 }
 
 Q3DSPropertyChange Q3DSTextNode::setVerticalAlignment(VerticalAlignment v)
 {
-    PROP_SETTER(m_vertAlign, v, "vertalign");
-    return result;
+    return createPropSetter(m_vertAlign, v, "vertalign");
 }
 
 Q3DSPropertyChange Q3DSTextNode::setLeading(float v)
 {
-    PROP_SETTER(m_leading, v, "leading");
-    return result;
+    return createPropSetter(m_leading, v, "leading");
 }
 
 Q3DSPropertyChange Q3DSTextNode::setTracking(float v)
 {
-    PROP_SETTER(m_tracking, v, "tracking");
-    return result;
+    return createPropSetter(m_tracking, v, "tracking");
 }
 
 Q3DSUipPresentation::Q3DSUipPresentation()
