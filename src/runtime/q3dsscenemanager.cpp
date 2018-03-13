@@ -1978,7 +1978,7 @@ void Q3DSSceneManager::setSsaoTextureEnabled(Q3DSLayerNode *layer3DS, bool enabl
             data->ssaoTextureData.depthSampler->setName(QLatin1String("depth_sampler"));
             data->ssaoTextureData.depthSampler->setValue(QVariant::fromValue(data->depthTextureData.depthTexture));
 
-            data->ssaoTextureData.aoDataBuf = new Qt3DRender::QBuffer;
+            data->ssaoTextureData.aoDataBuf = new Qt3DRender::QBuffer(data->entity);
             data->ssaoTextureData.aoDataBuf->setObjectName(QLatin1String("ambient occlusion pass constant buffer"));
             updateAoParameters(layer3DS);
 
@@ -3954,7 +3954,7 @@ void Q3DSSceneManager::buildModelMaterial(Q3DSModelNode *model3DS)
 
                 // Setup lights, use combined buffer for the default material.
                 if (!layerData->allLightsConstantBuffer) {
-                    layerData->allLightsConstantBuffer = new Qt3DRender::QBuffer;
+                    layerData->allLightsConstantBuffer = new Qt3DRender::QBuffer(layerData->entity);
                     layerData->allLightsConstantBuffer->setObjectName(QLatin1String("all lights constant buffer"));
                     updateLightsBuffer(layerData->allLights, layerData->allLightsConstantBuffer);
                 }
@@ -4005,7 +4005,7 @@ void Q3DSSceneManager::buildModelMaterial(Q3DSModelNode *model3DS)
 
                 // Here lights are provided in two separate buffers.
                 if (!layerData->nonAreaLightsConstantBuffer) {
-                    layerData->nonAreaLightsConstantBuffer = new Qt3DRender::QBuffer;
+                    layerData->nonAreaLightsConstantBuffer = new Qt3DRender::QBuffer(layerData->entity);
                     layerData->nonAreaLightsConstantBuffer->setObjectName(QLatin1String("non-area lights constant buffer"));
                     updateLightsBuffer(layerData->nonAreaLights, layerData->nonAreaLightsConstantBuffer);
                 }
@@ -4016,7 +4016,7 @@ void Q3DSSceneManager::buildModelMaterial(Q3DSModelNode *model3DS)
                 params.append(layerData->nonAreaLightsParam);
 
                 if (!layerData->areaLightsConstantBuffer) {
-                    layerData->areaLightsConstantBuffer = new Qt3DRender::QBuffer;
+                    layerData->areaLightsConstantBuffer = new Qt3DRender::QBuffer(layerData->entity);
                     layerData->areaLightsConstantBuffer->setObjectName(QLatin1String("area lights constant buffer"));
                     updateLightsBuffer(layerData->areaLights, layerData->areaLightsConstantBuffer);
                 }
