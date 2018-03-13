@@ -257,6 +257,8 @@ void Q3DSAnimationManager::updateAnimationHelper(const AnimationTrackListMap<T *
         T *target = it.key();
         Q3DSGraphObjectAttached *data = target->attached();
         Q_ASSERT(data);
+        m_activeTargets.insert(target);
+
         static const auto initAnimator = [](Q3DSGraphObjectAttached *data, Q3DSSlide *slide) {
             static const bool animDebug = qEnvironmentVariableIntValue("Q3DS_DEBUG") >= 2;
             if (animDebug)
@@ -528,6 +530,9 @@ void Q3DSAnimationManager::clearAnimations(Q3DSSlide *slide)
     const auto clearAndRollback = [this](const QVector<Q3DSAnimationTrack> &anims, Q3DSSlide *slide) {
         // Rollback properties
         for (const Q3DSAnimationTrack &track : anims) {
+            if (!m_activeTargets.contains(track.target()))
+                continue;
+
             Q3DSGraphObjectAttached *data = track.target()->attached();
             Q3DSGraphObjectAttached::AnimationData *animationData = data->animationDataMap.value(slide);
             if (animationData) {
@@ -554,6 +559,8 @@ void Q3DSAnimationManager::clearAnimations(Q3DSSlide *slide)
                 data->animationDataMap.remove(slide);
                 delete animationData;
             }
+
+            m_activeTargets.remove(track.target());
         }
 
         // Remove all other animatiors that was associated with this slide
@@ -842,6 +849,9 @@ void Q3DSAnimationManager::applyChanges()
     static const bool animDebug = qEnvironmentVariableIntValue("Q3DS_DEBUG") >= 3;
     const QList<Q3DSGraphObject *> keys = m_changes.uniqueKeys();
     for (Q3DSGraphObject *target : keys) {
+        if (!m_activeTargets.contains(target))
+            continue;
+
         auto it = m_changes.find(target);
         Q3DSPropertyChangeList changeList;
         while (it != m_changes.cend() && it.key() == target) {
@@ -862,9 +872,15 @@ void Q3DSAnimationManager::clearPendingChanges()
     m_changes.clear();
 }
 
+void Q3DSAnimationManager::objectAboutToBeRemovedFromScene(Q3DSGraphObject *obj)
+{
+    m_activeTargets.remove(obj);
+}
+
 void Q3DSAnimationManager::queueChange(Q3DSGraphObject *target, const AnimationValueChange &change)
 {
-    m_changes.insert(target, change);
+    if (m_activeTargets.contains(target))
+        m_changes.insert(target, change);
 }
 
 QT_END_NAMESPACE

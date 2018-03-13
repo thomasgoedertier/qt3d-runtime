@@ -6433,6 +6433,9 @@ void Q3DSSceneManager::handleSceneChange(Q3DSScene *, Q3DSGraphObject::DirtyFlag
         if (obj->isNode()) {
             if (obj->type() != Q3DSGraphObject::Layer) {
                 qCDebug(lcScene) << "Dyn.removing" << obj->attached()->entity;
+                Q3DSUipPresentation::forAllObjectsInSubTree(obj, [this](Q3DSGraphObject *objOrChild) {
+                    m_slidePlayer->objectAboutToBeRemovedFromScene(objOrChild);
+                });
                 delete obj->attached()->entity;
             }
         }

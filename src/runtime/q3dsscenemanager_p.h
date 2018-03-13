@@ -53,7 +53,6 @@
 QT_BEGIN_NAMESPACE
 
 class Q3DSSceneManager;
-class Q3DSAnimationManager;
 class Q3DSFrameUpdater;
 class Q3DSTextRenderer;
 class Q3DSDefaultMaterialGenerator;

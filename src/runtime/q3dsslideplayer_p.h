@@ -103,6 +103,8 @@ public:
     void setMode(PlayerMode mode);
     PlayerMode mode() const { return m_mode; }
 
+    void objectAboutToBeRemovedFromScene(Q3DSGraphObject *obj);
+
 public Q_SLOTS:
     void play();
     void stop();

@@ -784,4 +784,9 @@ void Q3DSSlidePlayer::onSlideFinished(void *slide)
     setInternalState(state);
 }
 
+void Q3DSSlidePlayer::objectAboutToBeRemovedFromScene(Q3DSGraphObject *obj)
+{
+    m_animationManager->objectAboutToBeRemovedFromScene(obj);
+}
+
 QT_END_NAMESPACE

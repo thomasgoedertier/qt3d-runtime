@@ -56,6 +56,7 @@ public:
     void clearAnimations(Q3DSSlide *slide);
     void applyChanges();
     void clearPendingChanges();
+    void objectAboutToBeRemovedFromScene(Q3DSGraphObject *obj);
 
     typedef std::function<void (Q3DSGraphObject *, const QVariant &, const QString &)> SetterFunc;
     typedef std::function<QVariant (Q3DSGraphObject *, const QString &)> GetterFunc;
@@ -107,6 +108,7 @@ private:
     QMultiHash<Q3DSGraphObject *, AnimationValueChange> m_changes;
 
     Q3DSSlidePlayer *m_slidePlayer;
+    QSet<Q3DSGraphObject *> m_activeTargets;
 
     friend class Q3DSAnimationCallback;
 };
