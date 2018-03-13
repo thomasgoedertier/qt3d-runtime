@@ -106,6 +106,7 @@ private:
 
     // Component Objects
     Q3DSModelNode *m_componentMasterCube = nullptr;
+    Q3DSModelNode *m_componentMasterCubeSlide5 = nullptr;
     Q3DSModelNode *m_componentSlide1Cone = nullptr;
     Q3DSTextNode *m_componentSlide2Text = nullptr;
     Q3DSComponentNode *m_componentSlide3Component = nullptr;
@@ -198,6 +199,8 @@ void tst_Q3DSSlides::initTestCase()
     // Component Objects
     m_componentMasterCube = getModelWithName(QStringLiteral("ComponentMasterCube"), m_slide3Component);
     QVERIFY(m_componentMasterCube);
+    m_componentMasterCubeSlide5 = getModelWithName(QStringLiteral("ComponentMasterCube"), m_slide5Component);
+    QVERIFY(m_componentMasterCubeSlide5);
     m_componentSlide1Cone = getModelWithName(QStringLiteral("ComponentSlide1Cone"), m_componentMasterCube);
     QVERIFY(m_componentSlide1Cone);
     m_componentSlide2Text = getTextNodeWithName(QStringLiteral("ComponentSlide2Text"), m_slide3Component);
@@ -583,6 +586,7 @@ void tst_Q3DSSlides::testTimeLineVisibility()
     QVERIFY(!isNodeVisible(m_slide5Rect));
     QVERIFY(isNodeVisible(m_slide5Sphere));
     QVERIFY(!isNodeVisible(m_slide5Component));
+    QVERIFY(!isNodeVisible(m_componentMasterCubeSlide5));
 
     seekAndWait(1000);
 
@@ -592,6 +596,7 @@ void tst_Q3DSSlides::testTimeLineVisibility()
     QVERIFY(isNodeVisible(m_slide5Rect));
     QVERIFY(isNodeVisible(m_slide5Sphere));
     QVERIFY(isNodeVisible(m_slide5Component));
+    QVERIFY(isNodeVisible(m_componentMasterCubeSlide5));
 
     seekAndWait(2000);
 
@@ -601,6 +606,7 @@ void tst_Q3DSSlides::testTimeLineVisibility()
     QVERIFY(isNodeVisible(m_slide5Rect));
     QVERIFY(isNodeVisible(m_slide5Sphere));
     QVERIFY(isNodeVisible(m_slide5Component));
+    QVERIFY(isNodeVisible(m_componentMasterCubeSlide5));
 
     seekAndWait(2001);
 
@@ -610,6 +616,17 @@ void tst_Q3DSSlides::testTimeLineVisibility()
     QVERIFY(!isNodeVisible(m_slide5Rect));
     QVERIFY(!isNodeVisible(m_slide5Sphere));
     QVERIFY(isNodeVisible(m_slide5Component));
+    QVERIFY(isNodeVisible(m_componentMasterCubeSlide5));
+
+    seekAndWait(2885);
+
+    // Neither rect nor sphere are visible
+    QVERIFY(isNodeVisible(m_masterCylinder));
+    QVERIFY(isNodeVisible(m_dynamicSphere));
+    QVERIFY(!isNodeVisible(m_slide5Rect));
+    QVERIFY(!isNodeVisible(m_slide5Sphere));
+    QVERIFY(!isNodeVisible(m_slide5Component));
+    QVERIFY(!isNodeVisible(m_componentMasterCubeSlide5));
 
     seekAndWait(0);
 
@@ -619,6 +636,7 @@ void tst_Q3DSSlides::testTimeLineVisibility()
     QVERIFY(!isNodeVisible(m_slide5Rect));
     QVERIFY(isNodeVisible(m_slide5Sphere));
     QVERIFY(!isNodeVisible(m_slide5Component));
+    QVERIFY(!isNodeVisible(m_componentMasterCubeSlide5));
 }
 
 Q3DSModelNode *tst_Q3DSSlides::getModelWithName(const QString &name, Q3DSGraphObject *parent)

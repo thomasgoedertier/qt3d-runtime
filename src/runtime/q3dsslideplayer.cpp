@@ -597,12 +597,13 @@ static bool nodeHasVisibilityTag(Q3DSNode *node)
     return false;
 }
 
-void Q3DSSlidePlayer::setSlideTime(Q3DSSlide *slide, float time)
+void Q3DSSlidePlayer::setSlideTime(Q3DSSlide *slide, float time, bool parentVisible)
 {
     // We force an update if we are at the beginning (0.0f) or the end (-1.0f)
     // to ensure the scenemanager has correct global values for visibility during
     // slide changes
-    const bool forceUpdate = qFuzzyCompare(time, 0.0f) || qFuzzyCompare(time, -1.0f);
+    const bool forceUpdate = parentVisible &&
+        (qFuzzyCompare(time, 0.0f) || qFuzzyCompare(time, -1.0f));
     for (Q3DSGraphObject *obj : slide->objects()) {
         if (!obj->isNode() || obj->type() == Q3DSGraphObject::Camera)
             continue;
@@ -611,7 +612,8 @@ void Q3DSSlidePlayer::setSlideTime(Q3DSSlide *slide, float time)
         if (!node->attached())
             continue;
 
-        const bool shouldBeVisible = time >= obj->startTime() && time <= obj->endTime()
+        const bool shouldBeVisible = parentVisible
+            && time >= obj->startTime() && time <= obj->endTime()
             && node->flags().testFlag(Q3DSNode::Active)
             && static_cast<Q3DSNodeAttached *>(node->attached())->globalVisibility;
 
@@ -621,12 +623,12 @@ void Q3DSSlidePlayer::setSlideTime(Q3DSSlide *slide, float time)
             Q_ASSERT(compMasterSlide);
 
             const float slideTime = time - obj->startTime();
-            setSlideTime(compMasterSlide, slideTime);
+            setSlideTime(compMasterSlide, slideTime, shouldBeVisible);
 
             if (!shouldBeVisible) {
                 Q3DSGraphObject *n = compMasterSlide->firstChild();
                 while (n) {
-                    setSlideTime(static_cast<Q3DSSlide *>(n), slideTime);
+                    setSlideTime(static_cast<Q3DSSlide *>(n), slideTime, shouldBeVisible);
                     n = n->nextSibling();
                 }
             } else {

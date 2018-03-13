@@ -140,7 +140,7 @@ private:
                                    bool forceUpdate = false);
 
     // TODO: Move out to a "slide manager"?
-    void setSlideTime(Q3DSSlide *slide, float time);
+    void setSlideTime(Q3DSSlide *slide, float time, bool parentVisible = true);
     void sendPositionChanged(Q3DSSlide *slide, float pos);
     void updateNodeVisibility(Q3DSNode *node, bool visible);
     bool isSlideVisible(Q3DSSlide *slide);
