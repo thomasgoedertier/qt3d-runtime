@@ -3785,15 +3785,24 @@ void Q3DSUipPresentation::applySlidePropertyChanges(Q3DSSlide *slide) const
         it.key()->notifyPropertyChanges(*it.value());
 }
 
-void Q3DSUipPresentation::forAllObjects(Q3DSGraphObject *root,
-                                        std::function<void(Q3DSGraphObject *)> f)
+static void forAllObjectsInSubTree_helper(Q3DSGraphObject *obj,
+                                          std::function<void(Q3DSGraphObject *)> f,
+                                          bool isSubTreeRoot)
 {
-    Q3DSGraphObject *obj = root;
     while (obj) {
         f(obj);
-        forAllObjects(obj->firstChild(), f);
-        obj = obj->nextSibling();
+        forAllObjectsInSubTree_helper(obj->firstChild(), f, false);
+        if (isSubTreeRoot)
+            break;
+        else
+            obj = obj->nextSibling();
     }
+}
+
+void Q3DSUipPresentation::forAllObjectsInSubTree(Q3DSGraphObject *root,
+                                                 std::function<void(Q3DSGraphObject *)> f)
+{
+    forAllObjectsInSubTree_helper(root, f, true);
 }
 
 void Q3DSUipPresentation::forAllObjectsOfType(Q3DSGraphObject *root,

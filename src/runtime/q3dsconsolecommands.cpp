@@ -128,7 +128,7 @@ void Q3DSConsoleCommands::setupConsole(Q3DSConsole *console)
                                "info(obj) - Prints additional properties for the given object (node or slide).\n"
                                "get(obj, property) - Prints the property value.\n"
                                "set(obj, property, value) - Applies and notifies a change to the given property.\n"
-                               "kill(obj) - Removes a node from the scene graph.\n"
+                               "kill(obj) - Removes a node from the scene graph (and from the slides' object list).\n"
                                "primitive(id, name, source, parentObj, slide) - Adds a model node with one default material. (source == #Cube, #Cone, etc.)\n"
                                );
         m_console->addMessageFmt(responseColor, "\nObject references (obj) are either by id ('#id') or by name ('name')\n");
@@ -262,7 +262,7 @@ void Q3DSConsoleCommands::setupConsole(Q3DSConsole *console)
             Q3DSSlide *slide = m_currentPresentation->masterSlide();
             if (obj->attached()->component)
                 slide = obj->attached()->component->masterSlide();
-            Q3DSUipPresentation::forAllObjects(obj, [slide](Q3DSGraphObject *objOrChild) {
+            Q3DSUipPresentation::forAllObjectsInSubTree(obj, [slide](Q3DSGraphObject *objOrChild) {
                 removeFromSlide_helper(objOrChild, slide);
             });
             // Unregister from presentation and unlink from parent. This
