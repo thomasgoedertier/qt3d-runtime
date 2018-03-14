@@ -344,7 +344,7 @@ void Q3DSAnimationManager::updateAnimationHelper(const AnimationTrackListMap<T *
 
                     // Adjustment to the easing values, to limit the range of the control points,
                     // so we get the same "smooth" easing curves as in Studio 1.0
-                    static const float adjustment = 0.3333334f;
+                    static const float adjustment = 1.0f / 3.0f;
 
                     // p0
                     const QVector2D coordinates(it->time, it->value);
