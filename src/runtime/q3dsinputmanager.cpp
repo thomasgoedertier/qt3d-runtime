@@ -32,13 +32,10 @@
 #include <Qt3DRender/QCamera>
 #include <Qt3DRender/QLayer>
 #include <QtGui/QMouseEvent>
-#include <QtCore/QLoggingCategory>
 
 #include "q3dsscenemanager_p.h"
 
 QT_BEGIN_NAMESPACE
-
-Q_DECLARE_LOGGING_CATEGORY(lcScene)
 
 Q3DSInputManager::Q3DSInputManager(Q3DSSceneManager *sceneManager, QObject *parent)
     : QObject(parent)
@@ -76,24 +73,10 @@ void Q3DSInputManager::sendMouseEvent(Q3DSGraphObject *target, const Qt3DRender:
     const bool isPress = isMousePressed && !m_state.mousePressed;
     const bool isRelease = !isMousePressed && m_state.mousePressed;
 
-    if (isPress || isRelease) {
-        Q3DSSlide *slide = m_sceneManager->currentSlide();
-        Q3DSComponentNode *component = target->attached()->component;
-        if (component)
-            slide = component->currentSlide();
-        if (slide) {
-            if (isPress)
-                qCDebug(lcScene, "Button press on %s", target->id().constData());
-            for (const Q3DSAction &action : slide->actions()) {
-                if (!action.eyeball || action.triggerObject != target)
-                    continue;
-                const bool match = (isPress && action.event == Q3DSGraphObjectEvents::pressureDownEvent())
-                        || (isRelease && action.event == Q3DSGraphObjectEvents::pressureUpEvent());
-                if (match)
-                    m_sceneManager->runAction(action);
-            }
-        }
-    }
+    if (isPress)
+        target->processEvent(Q3DSGraphObjectEvents::pressureDownEvent());
+    if (isRelease)
+        target->processEvent(Q3DSGraphObjectEvents::pressureUpEvent());
 
     m_state.mousePressed = isMousePressed;
 }

@@ -43,6 +43,7 @@ private slots:
     void slideGraphChangeNotification();
     void slideConstruct();
     void events();
+    void eventsCatchAll();
 
 private:
     void makePresentation(Q3DSUipPresentation &presentation);
@@ -534,6 +535,33 @@ void tst_Q3DSUipPresentation::events()
     QCOMPARE(triggerCount[2], 1);
     QCOMPARE(triggerCount[3], 2);
     QCOMPARE(triggerCount[4], 2);
+}
+
+void tst_Q3DSUipPresentation::eventsCatchAll()
+{
+    Q3DSUipPresentation presentation;
+    makePresentation(presentation);
+
+    Q3DSModelNode *model1 = presentation.object<Q3DSModelNode>("model1");
+    QVERIFY(model1);
+    const QString event1Key = QLatin1String("some event");
+    const QString event2Key = QLatin1String("another event");
+    int triggerCount[] = { 0, 0 };
+    model1->addEventHandler(QString(), [model1, &triggerCount, event1Key, event2Key](Q3DSGraphObject *obj, const QString &event) {
+        if (obj == model1) {
+            if (event == event1Key)
+                ++triggerCount[0];
+            if (event == event2Key)
+                ++triggerCount[1];
+        }
+    });
+
+    model1->processEvent(event1Key);
+    QCOMPARE(triggerCount[0], 1);
+    QCOMPARE(triggerCount[1], 0);
+    model1->processEvent(event2Key);
+    QCOMPARE(triggerCount[0], 1);
+    QCOMPARE(triggerCount[1], 1);
 }
 
 #include <tst_q3dsuippresentation.moc>

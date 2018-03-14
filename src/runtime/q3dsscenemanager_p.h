@@ -716,6 +716,8 @@ private:
 
     void handleSceneChange(Q3DSScene *scene, Q3DSGraphObject::DirtyFlag change, Q3DSGraphObject *obj);
 
+    void handleEvent(Q3DSGraphObject *obj, const QString &event);
+
     Qt3DRender::QAbstractTexture *dummyTexture();
 
     Q3DSGraphicsLimits m_gfxLimits;

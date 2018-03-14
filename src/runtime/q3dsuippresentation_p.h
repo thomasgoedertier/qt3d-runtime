@@ -504,6 +504,7 @@ public:
 
     struct HandlerArgument {
         enum Type {
+            Unknown = 0,
             Property,
             Dependent,
             Slide,
@@ -513,9 +514,11 @@ public:
         };
 
         QString name;
-        Q3DS::PropertyType type;
-        Type argType;
+        Q3DS::PropertyType type = Q3DS::Unknown;
+        Type argType = Unknown;
         QString value;
+
+        bool isValid() const { return type != Q3DS::Unknown && argType != Unknown; }
     };
 
     Q3DSGraphObject *owner = nullptr;
@@ -534,6 +537,12 @@ public:
     HandlerType handler;
     QVector<HandlerArgument> handlerArgs; // when handler != BehaviorHandler
     QString behaviorHandler; // when handler == BehaviorHandler
+
+    HandlerArgument handlerWithArgType(HandlerArgument::Type t) const {
+        auto it = std::find_if(handlerArgs.cbegin(), handlerArgs.cend(),
+                               [t](const HandlerArgument &a) { return a.argType == t; });
+        return it != handlerArgs.cend() ? *it : HandlerArgument();
+    }
 };
 
 Q_DECLARE_TYPEINFO(Q3DSAction::HandlerArgument, Q_MOVABLE_TYPE);
