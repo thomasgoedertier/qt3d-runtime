@@ -43,10 +43,12 @@
 
 #include "q3dsuippresentation_p.h"
 #include "q3dsgraphicslimits_p.h"
+#include "q3dsinputmanager_p.h"
 
 #include <QDebug>
 #include <QWindow>
 #include <QStack>
+#include <QQueue>
 #include <QElapsedTimer>
 #include <QMutex>
 
@@ -63,7 +65,6 @@ class Q3DSProfileUi;
 class Q3DSEngine;
 class Q3DSMesh;
 class Q3DSSlidePlayer;
-class Q3DSInputManager;
 class Q3DSConsoleCommands;
 
 namespace Qt3DCore {
@@ -228,6 +229,16 @@ public:
     Qt3DRender::QBuffer *areaLightsConstantBuffer = nullptr;
     Qt3DRender::QParameter *lightAmbientTotalParamenter = nullptr;
     Qt3DRender::QRayCaster *layerRayCaster = nullptr;
+    bool rayCasterBusy = false;
+
+    struct RayCastQueueEntry {
+        QVector3D direction;
+        QVector3D origin;
+        float length;
+        Q3DSInputManager::InputState inputState;
+        int eventId;
+    };
+    QQueue<RayCastQueueEntry> rayCastQueue;
 
     struct DepthTextureData {
         bool enabled = false;
@@ -320,6 +331,7 @@ Q_DECLARE_OPERATORS_FOR_FLAGS(Q3DSLayerAttached::SizeManagedTexture::Flags)
 // NB! Q3DSLayerAttached::SizeManagedTexture cannot be Q_MOVABLE_TYPE due to std::function in it
 Q_DECLARE_TYPEINFO(Q3DSLayerAttached::PerLightShadowMapData, Q_MOVABLE_TYPE);
 Q_DECLARE_TYPEINFO(Q3DSLayerAttached::ProgAAData, Q_MOVABLE_TYPE);
+Q_DECLARE_TYPEINFO(Q3DSLayerAttached::RayCastQueueEntry, Q_MOVABLE_TYPE);
 
 class Q3DSCameraAttached : public Q3DSNodeAttached
 {

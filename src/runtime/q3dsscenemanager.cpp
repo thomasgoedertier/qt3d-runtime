@@ -42,7 +42,6 @@
 #include "profileui/q3dsprofileui_p.h"
 #include "q3dsconsolecommands_p.h"
 #endif
-#include "q3dsinputmanager_p.h"
 
 #include <QDir>
 #include <QLoggingCategory>
@@ -6270,6 +6269,8 @@ void Q3DSFrameUpdater::frameAction(float dt)
     // Recursively check dirty flags and update inherited values, execute
     // pending visibility changes, update light cbuffers, etc.
     m_sceneManager->prepareNextFrame();
+    // Process input.
+    m_sceneManager->m_inputManager->runPicks();
     // Update profiling statistics for this frame.
     m_sceneManager->profiler()->updateFrameStats(m_frameCounter);
     ++m_frameCounter;

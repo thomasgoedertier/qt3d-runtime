@@ -41,44 +41,57 @@ Q3DSInputManager::Q3DSInputManager(Q3DSSceneManager *sceneManager, QObject *pare
     : QObject(parent)
     , m_sceneManager(sceneManager)
 {
-
+    qRegisterMetaType<Q3DSLayerNode *>("Q3DSLayerNode*");
 }
 
 void Q3DSInputManager::handleMousePressEvent(QMouseEvent *e)
 {
-    m_isMousePressed = true;
-    pick(e->pos());
+    m_currentState.mousePressed = true;
+    PickRequest req(e->pos(), m_currentState);
+    m_pickRequests.append(req);
 }
 
 void Q3DSInputManager::handleMouseReleaseEvent(QMouseEvent *e)
 {
-    m_isMousePressed = false;
-    pick(e->pos());
-
+    m_currentState.mousePressed = false;
+    PickRequest req(e->pos(), m_currentState);
+    m_pickRequests.append(req);
 }
 
 void Q3DSInputManager::handleMouseMoveEvent(QMouseEvent *e)
 {
-    if (!m_isHoverEnabled && !m_isMousePressed)
+    if (!m_isHoverEnabled && !m_currentState.mousePressed)
         return;
-    pick(e->pos());
+
+    PickRequest req(e->pos(), m_currentState);
+    m_pickRequests.append(req);
 }
 
-void Q3DSInputManager::sendMouseEvent(Q3DSGraphObject *target, const Qt3DRender::QRayCasterHit &hit, bool isMousePressed)
+void Q3DSInputManager::runPicks()
+{
+    for (const auto &p : m_pickRequests)
+        pick(p.pos, p.inputState);
+
+    m_pickRequests.clear();
+}
+
+void Q3DSInputManager::sendMouseEvent(Q3DSGraphObject *target,
+                                      const Qt3DRender::QRayCasterHit &hit,
+                                      const InputState &inputState)
 {
     Q_UNUSED(hit);
     if (!target->attached())
         return;
 
-    const bool isPress = isMousePressed && !m_state.mousePressed;
-    const bool isRelease = !isMousePressed && m_state.mousePressed;
+    const bool isPress = inputState.mousePressed && !m_lastSentState.mousePressed;
+    const bool isRelease = !inputState.mousePressed && m_lastSentState.mousePressed;
 
     if (isPress)
         target->processEvent(Q3DSGraphObjectEvents::pressureDownEvent());
     if (isRelease)
         target->processEvent(Q3DSGraphObjectEvents::pressureUpEvent());
 
-    m_state.mousePressed = isMousePressed;
+    m_lastSentState.mousePressed = m_currentState.mousePressed;
 }
 
 namespace {
@@ -96,10 +109,15 @@ QMatrix4x4 calculateCameraViewMatrix(const QMatrix4x4 &cameraWorldTransform)
 }
 }
 
-void Q3DSInputManager::castRayIntoLayer(Q3DSLayerNode *layer, const QPointF &pos, int eventId)
+void Q3DSInputManager::castRayIntoLayer(Q3DSLayerNode *layer, const QPointF &pos, const InputState &inputState, int eventId)
 {
     // Create the ray to cast into the layer's scene
     auto camera = m_sceneManager->findFirstCamera(layer);
+    if (!camera) {
+        qWarning("Raycast: No camera, this cannot happen, can it?");
+        return;
+    }
+
     auto cameraNodeAttached = static_cast<Q3DSNodeAttached*>(camera->attached());
     auto cameraData = static_cast<Q3DSCameraAttached*>(camera->attached());
     // Get Camera ViewMatrix
@@ -116,25 +134,52 @@ void Q3DSInputManager::castRayIntoLayer(Q3DSLayerNode *layer, const QPointF &pos
     QVector3D direction((farPos - nearPos).normalized());
     float length = (farPos - nearPos).length();
 
-    // Cast ray into Layer
+    // Queue a ray cast request. The QRayCaster can only handle one request at a time.
     auto layerData = static_cast<Q3DSLayerAttached *>(layer->attached());
-    auto rayCaster = layerData->layerRayCaster;
-    rayCaster->setDirection(direction);
-    rayCaster->setOrigin(origin);
-    rayCaster->setLength(length);
+    Q3DSLayerAttached::RayCastQueueEntry e;
+    e.direction = direction;
+    e.origin = origin;
+    e.length = length;
+    e.inputState = inputState;
+    e.eventId = eventId;
+    layerData->rayCastQueue.enqueue(e);
 
-    if (!m_connectionMap.value(eventId)) {
-        QMetaObject::Connection connection = connect(rayCaster, &Qt3DRender::QAbstractRayCaster::hitsChanged, [=](const Qt3DRender::QAbstractRayCaster::Hits &hits){
+    castNextRay(layer);
+}
+
+void Q3DSInputManager::castNextRay(Q3DSLayerNode *layer)
+{
+    auto layerData = static_cast<Q3DSLayerAttached *>(layer->attached());
+    if (layerData->rayCasterBusy || layerData->rayCastQueue.isEmpty())
+        return;
+
+    Q3DSLayerAttached::RayCastQueueEntry e = layerData->rayCastQueue.dequeue();
+    auto rayCaster = layerData->layerRayCaster;
+    rayCaster->setDirection(e.direction);
+    rayCaster->setOrigin(e.origin);
+    rayCaster->setLength(e.length);
+
+    if (!m_connectionMap.value(e.eventId)) {
+        QMetaObject::Connection connection = connect(rayCaster, &Qt3DRender::QAbstractRayCaster::hitsChanged, rayCaster,
+                                                     [=](const Qt3DRender::QAbstractRayCaster::Hits &hits)
+        {
             for (auto hit : hits) {
                 auto node = getNodeForEntity(layer, hit.entity());
-                sendMouseEvent(node, hit, m_isMousePressed);
+                sendMouseEvent(node, hit, e.inputState);
             }
-            disconnect(m_connectionMap.value(eventId));
-            m_connectionMap.remove(eventId);
+            disconnect(m_connectionMap.value(e.eventId));
+            m_connectionMap.remove(e.eventId);
+            layerData->rayCasterBusy = false;
+            if (!layerData->rayCastQueue.isEmpty()) {
+                // the stupid thing is blocking property notifications so issue the
+                // next raycast after the emit returns
+                QMetaObject::invokeMethod(this, "castNextRay", Qt::QueuedConnection, Q_ARG(Q3DSLayerNode*, layer));
+            }
         });
-        m_connectionMap.insert(eventId, connection);
+        m_connectionMap.insert(e.eventId, connection);
     }
 
+    layerData->rayCasterBusy = true;
     rayCaster->trigger();
 }
 
@@ -165,7 +210,7 @@ Q3DSGraphObject *Q3DSInputManager::getNodeForEntity(Q3DSLayerNode *layer, Qt3DCo
     return nullptr;
 }
 
-void Q3DSInputManager::pick(const QPoint &point)
+void Q3DSInputManager::pick(const QPoint &point, const InputState &inputState)
 {
     // Get a list of layers in this scene (in order)
     QVarLengthArray<Q3DSLayerNode *, 16> layers;
@@ -190,7 +235,7 @@ void Q3DSInputManager::pick(const QPoint &point)
             y = -y;
 
             // Cast a ray into the layer and get hits
-            castRayIntoLayer(layer, QPointF(x, y), m_eventId);
+            castRayIntoLayer(layer, QPointF(x, y), inputState, m_eventId);
             m_eventId++;
         }
     }

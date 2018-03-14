@@ -71,26 +71,38 @@ public:
     void handleMouseReleaseEvent(QMouseEvent *e);
     void handleMouseMoveEvent(QMouseEvent *e);
 
-    void sendMouseEvent(Q3DSGraphObject *target, const Qt3DRender::QRayCasterHit &hit, bool isMousePressed);
-
-private:
-    void pick(const QPoint &point);
-    void castRayIntoLayer(Q3DSLayerNode *layer, const QPointF &pos, int eventId);
-    Q3DSGraphObject *getNodeForEntity(Q3DSLayerNode *layer, Qt3DCore::QEntity *entity);
-
-    Q3DSSceneManager *m_sceneManager = nullptr;
-
-    bool m_isHoverEnabled = false;
-    bool m_isMousePressed = false;
-
-    QHash <int, QMetaObject::Connection> m_connectionMap;
-
-    int m_eventId = 0;
+    void runPicks();
 
     struct InputState {
         bool mousePressed = false;
     };
-    InputState m_state;
+
+private slots:
+    void castNextRay(Q3DSLayerNode *layer);
+
+private:
+    void pick(const QPoint &point, const InputState &inputState);
+    void castRayIntoLayer(Q3DSLayerNode *layer, const QPointF &pos, const InputState &inputState, int eventId);
+    void sendMouseEvent(Q3DSGraphObject *target, const Qt3DRender::QRayCasterHit &hit, const InputState &inputState);
+    Q3DSGraphObject *getNodeForEntity(Q3DSLayerNode *layer, Qt3DCore::QEntity *entity);
+
+    Q3DSSceneManager *m_sceneManager = nullptr;
+    bool m_isHoverEnabled = false;
+    QHash <int, QMetaObject::Connection> m_connectionMap;
+    int m_eventId = 0;
+
+    struct PickRequest {
+        PickRequest() = default;
+        PickRequest(const QPoint& pos_, const InputState &inputState_)
+            : pos(pos_), inputState(inputState_)
+        { }
+        QPoint pos;
+        InputState inputState;
+    };
+    QVector<PickRequest> m_pickRequests;
+
+    InputState m_currentState;
+    InputState m_lastSentState;
 };
 
 QT_END_NAMESPACE
