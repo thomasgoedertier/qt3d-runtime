@@ -615,6 +615,8 @@ public:
 
     void setDataInputValue(const QString &dataInputName, const QVariant &value);
 
+    void runAction(const Q3DSAction &action);
+
 private:
     Q_DISABLE_COPY(Q3DSSceneManager)
 

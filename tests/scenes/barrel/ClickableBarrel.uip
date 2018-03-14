@@ -32,6 +32,10 @@
 						<AnimationTrack property="rotation.x" type="EaseInOut" >0 90 100 100 5 64 100 100 10 90 100 100</AnimationTrack>
 						<AnimationTrack property="rotation.y" type="EaseInOut" >0 0 100 100 5 -302 100 100 10 0 100 100</AnimationTrack>
 						<AnimationTrack property="rotation.z" type="EaseInOut" >0 0 100 100 5 0 100 100 10 0 100 100</AnimationTrack>
+						<Action id="Barrel-Action" eyeball="True" triggerObject="#Barrel" event="onPressureDown" targetObject="#Material" handler="Set Property" >
+							<HandlerArgument name="Property Name" type="String" argtype="Property" value="diffuse" />
+							<HandlerArgument name="Property Value" type="Float3" argtype="Dependent" value="0.447059 0.611765 1" />
+						</Action>
 					</Add>
 					<Add ref="#Material" bumpamount="0" diffusemap="#Material_diffusemap" emissivemap="#Material_emissivemap" fresnelPower="25" normalmap="#Material_normalmap" specularamount="4" specularmap="#Material_specularmap" specularmodel="Default" specularroughness="0.001" >
 						<AnimationTrack property="bumpamount" type="EaseInOut" >0 0 100 100 5 1 100 100</AnimationTrack>

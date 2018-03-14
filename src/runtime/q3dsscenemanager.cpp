@@ -6409,6 +6409,37 @@ void Q3DSSceneManager::setDataInputValue(const QString &dataInputName, const QVa
     }
 }
 
+void Q3DSSceneManager::runAction(const Q3DSAction &action)
+{
+    switch (action.handler) {
+    case Q3DSAction::SetProperty:
+        break;
+    case Q3DSAction::FireEvent:
+        break;
+    case Q3DSAction::EmitSignal:
+        break;
+    case Q3DSAction::GoToSlide:
+        break;
+    case Q3DSAction::NextSlide:
+        break;
+    case Q3DSAction::PreviousSlide:
+        break;
+    case Q3DSAction::PrecedingSlide:
+        break;
+    case Q3DSAction::Play:
+        break;
+    case Q3DSAction::Pause:
+        break;
+    case Q3DSAction::GoToTime:
+        break;
+    case Q3DSAction::BehaviorHandler:
+        break;
+    default:
+        Q_UNREACHABLE();
+        break;
+    }
+}
+
 void Q3DSSceneManager::handleSceneChange(Q3DSScene *, Q3DSGraphObject::DirtyFlag change, Q3DSGraphObject *obj)
 {
     if (change == Q3DSGraphObject::DirtyNodeAdded) {

@@ -84,6 +84,13 @@ private:
     bool m_isMousePressed = false;
 
     QHash <int, QMetaObject::Connection> m_connectionMap;
+
+    int m_eventId = 0;
+
+    struct InputState {
+        bool mousePressed = false;
+    };
+    InputState m_state;
 };
 
 QT_END_NAMESPACE
