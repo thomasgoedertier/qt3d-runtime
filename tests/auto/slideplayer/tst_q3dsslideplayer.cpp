@@ -186,6 +186,7 @@ void tst_Q3DSSlidePlayer::tst_playModes()
     slideChangedSpy.clear();
 
     player->slideDeck()->setCurrentSlide(int(Slide::PlayToNext));
+    QCOMPARE(player->duration(), 1000);
     player->play();
     QTRY_COMPARE(player->state(), Q3DSSlidePlayer::PlayerState::Playing);
     QTRY_COMPARE(player->state(), Q3DSSlidePlayer::PlayerState::Stopped);
@@ -204,6 +205,7 @@ void tst_Q3DSSlidePlayer::tst_playModes()
     slideChangedSpy.clear();
 
     player->slideDeck()->setCurrentSlide(int(Slide::StopAtEnd));
+    QCOMPARE(player->duration(), 1000);
     player->play();
     QTRY_COMPARE(player->state(), Q3DSSlidePlayer::PlayerState::Playing);
     QTRY_COMPARE(player->state(), Q3DSSlidePlayer::PlayerState::Stopped);
@@ -220,6 +222,7 @@ void tst_Q3DSSlidePlayer::tst_playModes()
     slideChangedSpy.clear();
 
     player->slideDeck()->setCurrentSlide(int(Slide::PlayToPrevious));
+    QCOMPARE(player->duration(), 1000);
     player->stop();
     QTRY_COMPARE(player->state(), Q3DSSlidePlayer::PlayerState::Stopped);
 
@@ -239,6 +242,7 @@ void tst_Q3DSSlidePlayer::tst_playModes()
     slideChangedSpy.clear();
 
     player->slideDeck()->setCurrentSlide(int(Slide::Ping));
+    QCOMPARE(player->duration(), 1000);
     player->stop();
     QTRY_COMPARE(player->state(), Q3DSSlidePlayer::PlayerState::Stopped);
 
@@ -260,6 +264,7 @@ void tst_Q3DSSlidePlayer::tst_playModes()
     slideChangedSpy.clear();
 
     player->slideDeck()->setCurrentSlide(int(Slide::PingPong));
+    QCOMPARE(player->duration(), 1000);
     player->stop();
     QTRY_COMPARE(player->state(), Q3DSSlidePlayer::PlayerState::Stopped);
 
@@ -282,6 +287,7 @@ void tst_Q3DSSlidePlayer::tst_playModes()
     slideChangedSpy.clear();
 
     player->slideDeck()->setCurrentSlide(int(Slide::Looping));
+    QCOMPARE(player->duration(), 1000);
     player->stop();
     QTRY_COMPARE(player->state(), Q3DSSlidePlayer::PlayerState::Stopped);
 
@@ -307,6 +313,7 @@ void tst_Q3DSSlidePlayer::tst_playModes()
     slideChangedSpy.clear();
 
     player->slideDeck()->setCurrentSlide(int(Slide::PlayToSlide));
+    QCOMPARE(player->duration(), 1000);
     player->stop();
     QTRY_COMPARE(player->state(), Q3DSSlidePlayer::PlayerState::Stopped);
 

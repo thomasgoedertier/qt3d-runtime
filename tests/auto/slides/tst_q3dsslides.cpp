@@ -243,7 +243,12 @@ void tst_Q3DSSlides::setPresentationSlides()
     QSignalSpy m_updateSpy(m_engine, SIGNAL(nextFrameStarting()));
     m_updateSpy.wait(30);
 
+    Q3DSSlidePlayer *player = m_sceneManager->slidePlayer();
+    player->stop();
+    QVERIFY(player);
+
     // Check starting state
+    QCOMPARE(player->duration(), 10000);
     // MasterCylinder should be visible
     QVERIFY(isNodeVisible(m_masterCylinder));
     // "Slide 1 Rect" should be visible
@@ -253,6 +258,7 @@ void tst_Q3DSSlides::setPresentationSlides()
     // Set second slide
     m_sceneManager->setCurrentSlide(m_presentationSlide2);
     // Verify second slide state
+    QCOMPARE(player->duration(), 10000);
     // MasterCylinder should be visible
     QVERIFY(isNodeVisible(m_masterCylinder));
     // "Slide 2 Sphere" should be visible
@@ -263,6 +269,7 @@ void tst_Q3DSSlides::setPresentationSlides()
     // Go back to first slide
     m_sceneManager->setCurrentSlide(m_presentationSlide1);
     // Check first slide state
+    QCOMPARE(player->duration(), 10000);
     // MasterCylinder should be visible
     QVERIFY(isNodeVisible(m_masterCylinder));
     // "Slide 1 Rect" should be visible
@@ -273,6 +280,7 @@ void tst_Q3DSSlides::setPresentationSlides()
 
     // Set 3rd Slide (with Component)
     m_sceneManager->setCurrentSlide(m_presentationSlide3);
+    QCOMPARE(player->duration(), 10000);
     // MasterCylinder should be visible
     QVERIFY(isNodeVisible(m_masterCylinder));
     // Component Should be visible
@@ -284,6 +292,7 @@ void tst_Q3DSSlides::setPresentationSlides()
 
     // Set 4th Slide (from Component)
     m_sceneManager->setCurrentSlide(m_presentationSlide4);
+    QCOMPARE(player->duration(), 12028);
     // MasterCylinder should be visible
     QVERIFY(isNodeVisible(m_masterCylinder));
     // Component Should not be visible
@@ -297,6 +306,7 @@ void tst_Q3DSSlides::setPresentationSlides()
 
     // Set the same slide again
     m_sceneManager->setCurrentSlide(m_presentationSlide4);
+    QCOMPARE(player->duration(), 12028);
     // MasterCylinder should be visible
     QVERIFY(isNodeVisible(m_masterCylinder));
     // Component Should not be visible

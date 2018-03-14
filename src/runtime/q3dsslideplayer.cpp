@@ -52,50 +52,39 @@ void Q3DSSlideUtils::getStartAndEndTime(Q3DSSlide *slide, qint32 *startTime, qin
 {
     Q_ASSERT(startTime != nullptr || endTime != nullptr);
 
-    const auto updateOutArgs = [startTime, endTime](qint32 start, qint32 end) -> bool {
-        if (start != -1) {
-            Q_ASSERT(end != -1);
-            if (startTime)
-                *startTime = start;
-            if (endTime)
-                *endTime = end;
-
-            return true;
-        }
-
-        Q_ASSERT(end == -1);
-        return false;
-    };
-
-    qint32 sTime = -1;
     qint32 eTime = -1;
+
+    // First go through the slide's parent (master slide) and look for layers which have
+    // endtime explicitly set by this slide's property changes
     if (Q3DSSlide *p = static_cast<Q3DSSlide *>(slide->parent())) {
-        for (const auto *obj : p->objects()) {
-            if (obj->type() == Q3DSGraphObject::Layer) {
-                if (obj->startTime() > sTime)
-                    sTime = obj->startTime();
-                if (obj->endTime() > eTime)
-                    eTime = obj->endTime();
-            }
+        for (auto *obj : p->objects()) {
+            if (obj->type() != Q3DSGraphObject::Layer)
+                continue;
+
+            const QHash<Q3DSGraphObject *, Q3DSPropertyChangeList *> props =
+                slide->propertyChanges();
+            const QHash<Q3DSGraphObject *, Q3DSPropertyChangeList *>::const_iterator it =
+                props.find(obj);
+            if (it == props.constEnd())
+                continue;
+            if ((*it)->keys().contains(QStringLiteral("endtime")) && obj->endTime() > eTime)
+                eTime = obj->endTime();
         }
     }
 
-    if (updateOutArgs(sTime, eTime))
-        return;
-
-    // No layer, gather the time from the slides objects
+    // Now look for the endtime from the slides explicit layer objects
     for (const auto obj : slide->objects()) {
-        if (obj->startTime() > sTime)
-            sTime = obj->startTime();
+        if (obj->type() != Q3DSGraphObject::Layer)
+            continue;
+
         if (obj->endTime() > eTime)
             eTime = obj->endTime();
     }
 
-    if (updateOutArgs(sTime, eTime))
-        return;
-
-    // Fallback to slides start and end time.
-    updateOutArgs(slide->startTime(), slide->endTime());
+    if (startTime)
+        *startTime = slide->startTime();
+    if (endTime)
+        *endTime = eTime != -1 ? eTime : slide->endTime();
 }
 
 static QString getSlideName(Q3DSSlide *slide)
