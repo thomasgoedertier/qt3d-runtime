@@ -951,9 +951,12 @@ struct ShaderGenerator : public Q3DSDefaultMaterialShaderGenerator
             }
         }
 
+        fragmentShader
+                << "\tglobal_diffuse_light.rgb *= diffuse_color.rgb;" // because unlike 3DS1 this is not done up-front in the uni.buf.
+                << "\n";
+
         if (!m_CurrentMaterial->emissiveMap()) {
             fragmentShader
-                    << "\tglobal_diffuse_light.rgb *= diffuse_color.rgb;"
                     << "\tglobal_diffuse_light.rgb += diffuse_color.rgb * material_diffuse.rgb;"
                     << "\n";
         }
