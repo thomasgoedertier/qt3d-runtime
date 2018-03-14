@@ -789,6 +789,9 @@ QString Q3DSGraphObject::typeAsString() const
     case Text:
         s = QLatin1String("Text");
         break;
+    case Alias:
+        s = QLatin1String("Alias");
+        break;
     default:
         s = QLatin1String("UNKNOWN");
         break;
@@ -3455,6 +3458,58 @@ Q3DSPropertyChange Q3DSTextNode::setLeading(float v)
 Q3DSPropertyChange Q3DSTextNode::setTracking(float v)
 {
     return createPropSetter(m_tracking, v, "tracking");
+}
+
+Q3DSAliasNode::Q3DSAliasNode()
+    : Q3DSNode(Q3DSNode::Alias)
+{
+}
+
+void Q3DSAliasNode::setProperties(const QXmlStreamAttributes &attrs, PropSetFlags flags)
+{
+    Q3DSNode::setProperties(attrs, flags);
+    setProps(attrs, flags);
+}
+
+void Q3DSAliasNode::applyPropertyChanges(const Q3DSPropertyChangeList &changeList)
+{
+    Q3DSNode::applyPropertyChanges(changeList);
+    setProps(changeList, 0);
+}
+
+void Q3DSAliasNode::resolveReferences(Q3DSUipPresentation &pres)
+{
+    Q3DSNode::resolveReferences(pres);
+    resolveRef(m_referencedNode_unresolved, Q3DSGraphObject::AnyObject, &m_referencedNode, pres);
+}
+
+QStringList Q3DSAliasNode::propertyNames() const
+{
+    QStringList s = Q3DSNode::propertyNames();
+    s << QLatin1String("referencednode");
+    return s;
+}
+
+QVariantList Q3DSAliasNode::propertyValues() const
+{
+    QVariantList s = Q3DSNode::propertyValues();
+    s << m_referencedNode_unresolved;
+    return s;
+}
+
+Q3DSPropertyChange Q3DSAliasNode::setReferencedNode(Q3DSGraphObject *v)
+{
+    return createObjectRefSetter(MEMBER_PAIR(m_referencedNode), v, "referencednode");
+}
+
+template<typename V>
+void Q3DSAliasNode::setProps(const V &attrs, PropSetFlags flags)
+{
+    const QString typeName = QStringLiteral("Alias");
+    parseObjectRefProperty(attrs, flags, typeName, QStringLiteral("referencednode"), &m_referencedNode_unresolved);
+
+    // Different default value.
+    parseProperty(attrs, flags, typeName, QStringLiteral("name"), &m_name);
 }
 
 Q3DSUipPresentation::Q3DSUipPresentation()

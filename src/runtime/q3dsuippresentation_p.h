@@ -264,7 +264,8 @@ public:
         Model,
         Group,
         Text,
-        Component
+        Component,
+        Alias
     };
 
     enum PropSetFlag {
@@ -1879,6 +1880,31 @@ private:
     bool m_behaviorIsResolved = false;
     Q3DSPropertyChangeList m_pendingCustomProperties;
     QVariantMap m_behaviorPropertyVals;
+};
+
+class Q3DSV_PRIVATE_EXPORT Q3DSAliasNode : public Q3DSNode
+{
+public:
+    Q3DSAliasNode();
+
+    void setProperties(const QXmlStreamAttributes &attrs, PropSetFlags flags) override;
+    void applyPropertyChanges(const Q3DSPropertyChangeList &changeList) override;
+    void resolveReferences(Q3DSUipPresentation &pres) override;
+
+    QStringList propertyNames() const override;
+    QVariantList propertyValues() const override;
+
+    // Properties
+    Q3DSGraphObject *referencedNode() const { return m_referencedNode; }
+
+    Q3DSPropertyChange setReferencedNode(Q3DSGraphObject *v);
+
+private:
+    Q_DISABLE_COPY(Q3DSAliasNode)
+    template<typename V> void setProps(const V &attrs, PropSetFlags flags);
+
+    QString m_referencedNode_unresolved;
+    Q3DSGraphObject *m_referencedNode = nullptr;
 };
 
 class Q3DSV_PRIVATE_EXPORT Q3DSUipPresentation

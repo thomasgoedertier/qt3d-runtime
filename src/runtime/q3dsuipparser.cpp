@@ -347,6 +347,8 @@ void Q3DSUipParser::parseObjects(Q3DSGraphObject *parent)
         obj = new Q3DSBehaviorInstance;
     else if (r->name() == QStringLiteral("Image"))
         obj = new Q3DSImage;
+    else if (r->name() == QStringLiteral("Alias"))
+        obj = new Q3DSAliasNode;
 
     if (!obj) {
         r->skipCurrentElement();
