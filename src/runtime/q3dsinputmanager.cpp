@@ -191,9 +191,9 @@ void Q3DSInputManager::pick(const QPoint &point)
 
             // Cast a ray into the layer and get hits
             castRayIntoLayer(layer, QPointF(x, y), m_eventId);
+            m_eventId++;
         }
     }
-    m_eventId++;
 }
 
 QT_END_NAMESPACE
