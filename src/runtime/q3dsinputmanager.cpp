@@ -114,7 +114,8 @@ void Q3DSInputManager::castRayIntoLayer(Q3DSLayerNode *layer, const QPointF &pos
     // Create the ray to cast into the layer's scene
     auto camera = m_sceneManager->findFirstCamera(layer);
     if (!camera) {
-        qWarning("Raycast: No camera, this cannot happen, can it?");
+        // After a slide change the camera for a layer may be null if the
+        // camera object is not on the current (or master) slide.
         return;
     }
 
