@@ -491,6 +491,11 @@ public:
     void valueChanged(const QVariant &value) override {
         Q_ASSERT(m_slide);
         Q_ASSERT(m_slidePlayer);
+
+        // TODO: See QT3DS-1302
+        if (m_slidePlayer != m_slide->attached<Q3DSSlideAttached>()->slidePlayer)
+            return;
+
         m_slidePlayer->setSlideTime(m_slide, value.toFloat() * 1000.0f);
     }
 
