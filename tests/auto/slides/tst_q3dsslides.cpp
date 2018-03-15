@@ -588,6 +588,21 @@ void tst_Q3DSSlides::testTimeLineVisibility()
         QVERIFY(updateSpy.wait(5000));
     };
 
+    Q3DSSlide *compMasterSlide = m_slide5Component->masterSlide();
+    Q_ASSERT(compMasterSlide);
+    Q3DSSlidePlayer *compPlayer = compMasterSlide->attached<Q3DSSlideAttached>()->slidePlayer;
+    compPlayer->stop();
+    QVERIFY(compPlayer);
+
+    QSignalSpy compPositionChangedSpy(compPlayer, &Q3DSSlidePlayer::positionChanged);
+
+    const auto seekAndWaitForComp = [player, &updateSpy, &compPositionChangedSpy](int value) {
+        const float t = value;
+        player->seek(t);
+        QVERIFY(compPositionChangedSpy.wait(5000));
+        QVERIFY(updateSpy.wait(5000));
+    };
+
     seekAndWait(999);
 
     // Still invisible
@@ -600,6 +615,16 @@ void tst_Q3DSSlides::testTimeLineVisibility()
 
     seekAndWait(1000);
 
+    // Slide 5 component becomes visible, but not components objects
+    QVERIFY(isNodeVisible(m_masterCylinder));
+    QVERIFY(isNodeVisible(m_dynamicSphere));
+    QVERIFY(isNodeVisible(m_slide5Rect));
+    QVERIFY(isNodeVisible(m_slide5Sphere));
+    QVERIFY(isNodeVisible(m_slide5Component));
+    QVERIFY(!isNodeVisible(m_componentMasterCubeSlide5));
+
+    seekAndWait(1500);
+
     // Everything now visible
     QVERIFY(isNodeVisible(m_masterCylinder));
     QVERIFY(isNodeVisible(m_dynamicSphere));
@@ -607,6 +632,9 @@ void tst_Q3DSSlides::testTimeLineVisibility()
     QVERIFY(isNodeVisible(m_slide5Sphere));
     QVERIFY(isNodeVisible(m_slide5Component));
     QVERIFY(isNodeVisible(m_componentMasterCubeSlide5));
+
+    // Verify a positionChanged signal coming from component slide player
+    seekAndWaitForComp(1501);
 
     seekAndWait(2000);
 

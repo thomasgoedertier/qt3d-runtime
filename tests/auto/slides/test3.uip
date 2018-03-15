@@ -195,16 +195,17 @@
 			</State>
 			<State name="Master Slide" component="#Slide3Component2" >
 				<Add ref="#ComponentMasterCube" name="ComponentMasterCube" rotation="0 45 0" sourcepath="#Cube" >
-					<AnimationTrack property="position.x" type="EaseInOut" >0 0 100 100 4.923 0 100 100 10 0 100 100</AnimationTrack>
-					<AnimationTrack property="position.y" type="EaseInOut" >0 0 100 100 4.923 -50 100 100 10 0 100 100</AnimationTrack>
-					<AnimationTrack property="position.z" type="EaseInOut" >0 0 100 100 4.923 0 100 100 10 0 100 100</AnimationTrack>
+					<AnimationTrack property="position.x" type="EaseInOut" >0.5 0 100 100 4.923 0 100 100 10 0 100 100</AnimationTrack>
+					<AnimationTrack property="position.y" type="EaseInOut" >0.5 0 100 100 4.923 -50 100 100 10 0 100 100</AnimationTrack>
+					<AnimationTrack property="position.z" type="EaseInOut" >0.5 0 100 100 4.923 0 100 100 10 0 100 100</AnimationTrack>
 				</Add>
 				<Add ref="#Material_010" />
 				<State id="Slide5Component-Slide1" name="Slide1" >
-					<Add ref="#ComponentSlide1Cone" name="ComponentSlide1Cone" scale="1 2.79372 1" sourcepath="#Cone" >
-						<AnimationTrack property="position.x" type="EaseInOut" >0 0 100 100 10 0 100 100</AnimationTrack>
-						<AnimationTrack property="position.y" type="EaseInOut" >0 0 100 100 10 319.489 100 100</AnimationTrack>
-						<AnimationTrack property="position.z" type="EaseInOut" >0 0 100 100 10 0 100 100</AnimationTrack>
+					<Set ref="#ComponentMasterCube" starttime="500" />
+					<Add ref="#ComponentSlide1Cone" name="ComponentSlide1Cone" scale="1 2.79372 1" sourcepath="#Cone" starttime="500" >
+						<AnimationTrack property="position.x" type="EaseInOut" >0.5 0 100 100 10 0 100 100</AnimationTrack>
+						<AnimationTrack property="position.y" type="EaseInOut" >0.5 0 100 100 10 319.489 100 100</AnimationTrack>
+						<AnimationTrack property="position.z" type="EaseInOut" >0.5 0 100 100 10 0 100 100</AnimationTrack>
 					</Add>
 					<Add ref="#Material_011" />
 				</State>

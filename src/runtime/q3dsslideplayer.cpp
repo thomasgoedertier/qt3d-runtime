@@ -270,10 +270,10 @@ void Q3DSSlidePlayer::play()
 
 void Q3DSSlidePlayer::stop()
 {
-    if (m_data.state != PlayerState::Playing
-            && m_data.state != PlayerState::Paused
-            && m_data.state != PlayerState::Stopped)
+    if (m_data.state == PlayerState::Idle) {
+        qCWarning(lcSlidePlayer) << "Stop called in Idle state (no content)";
         return;
+    }
 
     Q3DSSlideDeck *slideDeck = m_data.slideDeck;
     Q_ASSERT(slideDeck);
@@ -395,9 +395,9 @@ void Q3DSSlidePlayer::setSlideDeck(Q3DSSlideDeck *slideDeck)
         Q3DSSlide *slide = static_cast<Q3DSSlide *>(masterSlide->firstChild());
         while (slide) {
             slide->attached<Q3DSSlideAttached>()->slidePlayer = this;
+            forAllComponentsOnSlide(slide);
             if (slide != currentSlide)
                 setSlideTime(slide, -1.0f);
-            forAllComponentsOnSlide(slide);
             slide = static_cast<Q3DSSlide *>(slide->nextSibling());
         }
     };
@@ -619,18 +619,20 @@ void Q3DSSlidePlayer::setSlideTime(Q3DSSlide *slide, float time, bool parentVisi
             Q3DSComponentNode *comp = static_cast<Q3DSComponentNode *>(obj);
             Q3DSSlide *compMasterSlide = comp->masterSlide();
             Q_ASSERT(compMasterSlide);
+            Q3DSSlidePlayer *compPlayer = compMasterSlide->attached<Q3DSSlideAttached>()->slidePlayer;
+            Q_ASSERT(compPlayer);
 
             const float slideTime = time - obj->startTime();
-            setSlideTime(compMasterSlide, slideTime, shouldBeVisible);
+            compPlayer->setSlideTime(compMasterSlide, slideTime, shouldBeVisible);
 
             if (!shouldBeVisible) {
                 Q3DSGraphObject *n = compMasterSlide->firstChild();
                 while (n) {
-                    setSlideTime(static_cast<Q3DSSlide *>(n), slideTime, shouldBeVisible);
+                    compPlayer->setSlideTime(static_cast<Q3DSSlide *>(n), slideTime, shouldBeVisible);
                     n = n->nextSibling();
                 }
             } else {
-                setSlideTime(comp->currentSlide(), slideTime);
+                compPlayer->setSlideTime(comp->currentSlide(), slideTime);
             }
         }
 
