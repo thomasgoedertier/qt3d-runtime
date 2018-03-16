@@ -6537,13 +6537,34 @@ void Q3DSSceneManager::runAction(const Q3DSAction &action)
     }
         break;
     case Q3DSAction::NextSlide:
-        m_slidePlayer->nextSlide();
+        if (action.targetObject) {
+            Q3DSSlidePlayer *slidePlayer = m_slidePlayer;
+            if (action.targetObject->type() == Q3DSGraphObject::Component) {
+                slidePlayer = static_cast<Q3DSComponentNode *>(action.targetObject)->masterSlide()
+                        ->attached<Q3DSSlideAttached>()->slidePlayer;
+            }
+            slidePlayer->nextSlide();
+        }
         break;
     case Q3DSAction::PreviousSlide:
-        m_slidePlayer->previousSlide();
+        if (action.targetObject) {
+            Q3DSSlidePlayer *slidePlayer = m_slidePlayer;
+            if (action.targetObject->type() == Q3DSGraphObject::Component) {
+                slidePlayer = static_cast<Q3DSComponentNode *>(action.targetObject)->masterSlide()
+                        ->attached<Q3DSSlideAttached>()->slidePlayer;
+            }
+            slidePlayer->previousSlide();
+        }
         break;
     case Q3DSAction::PrecedingSlide:
-        m_slidePlayer->precedingSlide();
+        if (action.targetObject) {
+            Q3DSSlidePlayer *slidePlayer = m_slidePlayer;
+            if (action.targetObject->type() == Q3DSGraphObject::Component) {
+                slidePlayer = static_cast<Q3DSComponentNode *>(action.targetObject)->masterSlide()
+                        ->attached<Q3DSSlideAttached>()->slidePlayer;
+            }
+            slidePlayer->precedingSlide();
+        }
         break;
     case Q3DSAction::Play:
         break;
