@@ -742,6 +742,8 @@ private:
     void handleEvent(Q3DSGraphObject *obj, const QString &event);
     void flushEventQueue();
 
+    void changeSlideByName(Q3DSGraphObject *sceneOrComponent, const QString &name);
+
     Qt3DRender::QAbstractTexture *dummyTexture();
 
     Q3DSGraphicsLimits m_gfxLimits;

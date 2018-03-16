@@ -6349,6 +6349,40 @@ void Q3DSSceneManager::addLog(const char *fmt, ...)
 #endif
 }
 
+void Q3DSSceneManager::changeSlideByName(Q3DSGraphObject *sceneOrComponent, const QString &name)
+{
+    if (!sceneOrComponent)
+        return;
+
+    if (sceneOrComponent->type() != Q3DSGraphObject::Scene && sceneOrComponent->type() != Q3DSGraphObject::Component) {
+        qWarning("changeSlideByName: Object %s is not Scene or Component", sceneOrComponent->id().constData());
+        return;
+    }
+
+    Q3DSComponentNode *component = sceneOrComponent->type() == Q3DSGraphObject::Component
+            ? static_cast<Q3DSComponentNode *>(sceneOrComponent) : nullptr;
+    Q3DSSlide *root = component ? component->masterSlide() : m_masterSlide;
+    if (!root)
+        return;
+
+    Q3DSSlide *targetSlide = nullptr;
+    Q3DSUipPresentation::forAllObjectsOfType(root, Q3DSGraphObject::Slide,
+                                             [this, name, &targetSlide](Q3DSGraphObject *obj) {
+        Q3DSSlide *slide = static_cast<Q3DSSlide *>(obj);
+        if (slide->name() == name)
+            targetSlide = slide;
+    });
+
+    if (targetSlide) {
+        if (component)
+            component->setCurrentSlide(targetSlide);
+        else
+            setCurrentSlide(targetSlide);
+    } else {
+        qWarning("changeSlideByName: Slide %s not found on %s", qPrintable(name), sceneOrComponent->id().constData());
+    }
+}
+
 void Q3DSSceneManager::setDataInputValue(const QString &dataInputName, const QVariant &value)
 {
     auto dataInputMap = m_presentation->dataInputMap();
@@ -6387,22 +6421,7 @@ void Q3DSSceneManager::setDataInputValue(const QString &dataInputName, const QVa
                     obj->id().constData(), qPrintable(propName), qPrintable(value.toString()));
             if (propName.startsWith(QLatin1Char('@'))) {
                 if (propName == QStringLiteral("@slide")) {
-                    if (obj->type() == Q3DSGraphObject::Scene) {
-                        const QByteArray slideName = value.toByteArray();
-                        bool slideFound = false;
-                        Q3DSUipPresentation::forAllObjectsOfType(m_masterSlide, Q3DSGraphObject::Slide,
-                                                                 [this, slideName, &slideFound](Q3DSGraphObject *obj) {
-                            Q3DSSlide *slide = static_cast<Q3DSSlide *>(obj);
-                            if (slide->id() == slideName) {
-                                setCurrentSlide(slide);
-                                slideFound = true;
-                            }
-                        });
-                        if (!slideFound)
-                            qWarning("Invalid target in slide data input: %s", slideName.constData());
-                    } else {
-                        qWarning("Object %s with slide data input is not Scene", obj->id().constData());
-                    }
+                    changeSlideByName(obj, value.toString());
                 } else if (propName == QStringLiteral("@timeline")) {
                     if (obj->type() == Q3DSGraphObject::Scene) {
                         // Normalize the value to dataInput range (just because 3DS1 does it)
@@ -6509,6 +6528,13 @@ void Q3DSSceneManager::runAction(const Q3DSAction &action)
         // ### - to be figured out what "signals" even are in this context
         break;
     case Q3DSAction::GoToSlide:
+    {
+        Q3DSAction::HandlerArgument slideName = action.handlerWithArgType(Q3DSAction::HandlerArgument::Slide);
+        if (slideName.isValid())
+            changeSlideByName(action.targetObject, slideName.value);
+        else
+            qWarning("GoToSlide action %s has no valid slide name argument", action.id.constData());
+    }
         break;
     case Q3DSAction::NextSlide:
         m_slidePlayer->nextSlide();
