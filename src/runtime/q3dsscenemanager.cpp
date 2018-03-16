@@ -6264,13 +6264,18 @@ void Q3DSFrameUpdater::frameAction(float dt)
 
     // Record new frame event.
     m_sceneManager->profiler()->reportNewFrame(dt * 1000.0f);
+    // Process input. In an ideal world this would be synchronous so that we
+    // get results, process events from those, and then process property
+    // changes from those events in one single frame action. Our world is not
+    // ideal (but we can always pretend...).
+    m_sceneManager->m_inputManager->runPicks();
+    // Process queued object events.
+    m_sceneManager->flushEventQueue();
     // Set and notify the value changes queued by animations.
     m_sceneManager->slidePlayer()->advanceFrame();
     // Recursively check dirty flags and update inherited values, execute
     // pending visibility changes, update light cbuffers, etc.
     m_sceneManager->prepareNextFrame();
-    // Process input.
-    m_sceneManager->m_inputManager->runPicks();
     // Update profiling statistics for this frame.
     m_sceneManager->profiler()->updateFrameStats(m_frameCounter);
     ++m_frameCounter;
@@ -6453,6 +6458,20 @@ void Q3DSSceneManager::handleEvent(Q3DSGraphObject *obj, const QString &event)
     }
 }
 
+void Q3DSSceneManager::queueEvent(const Event &e)
+{
+    m_eventQueue.append(e);
+}
+
+void Q3DSSceneManager::flushEventQueue()
+{
+    const QVector<Event> q = std::move(m_eventQueue);
+    for (const Event &e : q) {
+        if (e.target && !e.event.isEmpty())
+            e.target->processEvent(e.event);
+    }
+}
+
 void Q3DSSceneManager::runAction(const Q3DSAction &action)
 {
     switch (action.handler) {
@@ -6482,7 +6501,7 @@ void Q3DSSceneManager::runAction(const Q3DSAction &action)
         if (event.isValid()) {
             Q3DSGraphObject *target = action.targetObject;
             if (target && !event.value.isEmpty())
-                target->processEvent(event.value);
+                queueEvent(Event(target, event.value));
         }
     }
         break;

@@ -629,6 +629,17 @@ public:
 
     void runAction(const Q3DSAction &action);
 
+    struct Event {
+        Event() = default;
+        Event(Q3DSGraphObject *target_, const QString &event_)
+            : target(target_), event(event_)
+        { }
+        Q3DSGraphObject *target = nullptr;
+        QString event;
+    };
+
+    void queueEvent(const Event &e);
+
 private:
     Q_DISABLE_COPY(Q3DSSceneManager)
 
@@ -729,6 +740,7 @@ private:
     void handleSceneChange(Q3DSScene *scene, Q3DSGraphObject::DirtyFlag change, Q3DSGraphObject *obj);
 
     void handleEvent(Q3DSGraphObject *obj, const QString &event);
+    void flushEventQueue();
 
     Qt3DRender::QAbstractTexture *dummyTexture();
 
@@ -767,6 +779,7 @@ private:
     QMutex m_logMutex;
     Q3DSSlidePlayer *m_slidePlayer = nullptr;
     Q3DSInputManager *m_inputManager = nullptr;
+    QVector<Event> m_eventQueue;
 
     friend class Q3DSFrameUpdater;
     friend class Q3DSProfiler;
@@ -780,6 +793,8 @@ Q_DECLARE_OPERATORS_FOR_FLAGS(Q3DSSceneManager::SetNodePropFlags)
 Q_DECLARE_OPERATORS_FOR_FLAGS(Q3DSSceneManager::UpdateGlobalFlags)
 Q_DECLARE_OPERATORS_FOR_FLAGS(Q3DSSceneManager::BuildLayerQuadFlags)
 Q_DECLARE_OPERATORS_FOR_FLAGS(Q3DSSceneManager::FsQuadFlags)
+
+Q_DECLARE_TYPEINFO(Q3DSSceneManager::Event, Q_MOVABLE_TYPE);
 
 class Q3DSFrameUpdater : public QObject
 {
