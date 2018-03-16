@@ -1055,9 +1055,15 @@ void Q3DSEngine::setAutoStart(bool autoStart)
     m_autoStart = autoStart;
 }
 
+bool Q3DSEngine::isProfileUiVisible() const
+{
+    Q3DSSceneManager *sm = !m_uipPresentations.isEmpty() ? m_uipPresentations[0].sceneManager : nullptr;
+    return sm && sm->isProfileUiVisible();
+}
+
 void Q3DSEngine::handleKeyPressEvent(QKeyEvent *e)
 {
-    bool forwardEvent = true;
+    bool forwardEvent = isProfileUiVisible();
 
     if (m_profileUiEnabled) {
         Q3DSSceneManager *sm = !m_uipPresentations.isEmpty() ? m_uipPresentations[0].sceneManager : nullptr;
@@ -1094,13 +1100,18 @@ void Q3DSEngine::handleKeyPressEvent(QKeyEvent *e)
 
 void Q3DSEngine::handleKeyReleaseEvent(QKeyEvent *e)
 {
-    QCoreApplication::sendEvent(&m_profileUiEventSource, e);
+    if (isProfileUiVisible())
+        QCoreApplication::sendEvent(&m_profileUiEventSource, e);
 }
 
 void Q3DSEngine::handleMousePressEvent(QMouseEvent *e)
 {
     m_lastMousePressPos = e->pos();
-    QCoreApplication::sendEvent(&m_profileUiEventSource, e);
+
+    if (isProfileUiVisible()) {
+        QCoreApplication::sendEvent(&m_profileUiEventSource, e);
+        return;
+    }
 
     if (m_uipPresentations.isEmpty())
         return;
@@ -1111,7 +1122,10 @@ void Q3DSEngine::handleMousePressEvent(QMouseEvent *e)
 
 void Q3DSEngine::handleMouseMoveEvent(QMouseEvent *e)
 {
-    QCoreApplication::sendEvent(&m_profileUiEventSource, e);
+    if (isProfileUiVisible()) {
+        QCoreApplication::sendEvent(&m_profileUiEventSource, e);
+        return;
+    }
 
     if (m_uipPresentations.isEmpty())
         return;
@@ -1123,7 +1137,11 @@ void Q3DSEngine::handleMouseMoveEvent(QMouseEvent *e)
 void Q3DSEngine::handleMouseReleaseEvent(QMouseEvent *e)
 {
     m_lastMousePressPos = e->pos();
-    QCoreApplication::sendEvent(&m_profileUiEventSource, e);
+
+    if (isProfileUiVisible()) {
+        QCoreApplication::sendEvent(&m_profileUiEventSource, e);
+        return;
+    }
 
     if (m_uipPresentations.isEmpty())
         return;
@@ -1134,7 +1152,8 @@ void Q3DSEngine::handleMouseReleaseEvent(QMouseEvent *e)
 
 void Q3DSEngine::handleMouseDoubleClickEvent(QMouseEvent *e)
 {
-    QCoreApplication::sendEvent(&m_profileUiEventSource, e);
+    if (isProfileUiVisible())
+        QCoreApplication::sendEvent(&m_profileUiEventSource, e);
 
     if (!m_profileUiEnabled)
         return;
@@ -1160,7 +1179,8 @@ void Q3DSEngine::handleMouseDoubleClickEvent(QMouseEvent *e)
 #if QT_CONFIG(wheelevent)
 void Q3DSEngine::handleWheelEvent(QWheelEvent *e)
 {
-    QCoreApplication::sendEvent(&m_profileUiEventSource, e);
+    if (isProfileUiVisible())
+        QCoreApplication::sendEvent(&m_profileUiEventSource, e);
 }
 #endif
 

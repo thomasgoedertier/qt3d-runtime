@@ -211,6 +211,8 @@ private:
     void destroyBehaviorHandle(const Q3DSBehaviorHandle &h);
     void behaviorFrameUpdate(float dt);
 
+    bool isProfileUiVisible() const;
+
     QObject *m_surface = nullptr;
     QSize m_implicitSize;
     QSize m_size;
