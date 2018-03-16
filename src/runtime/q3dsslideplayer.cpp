@@ -440,6 +440,15 @@ void Q3DSSlidePlayer::previousSlide()
     reload();
 }
 
+void Q3DSSlidePlayer::precedingSlide()
+{
+    if (m_data.state == PlayerState::Idle)
+        return;
+
+    m_data.slideDeck->precedingSlide();
+    reload();
+}
+
 void Q3DSSlidePlayer::reload()
 {
     setInternalState(PlayerState::Stopped);

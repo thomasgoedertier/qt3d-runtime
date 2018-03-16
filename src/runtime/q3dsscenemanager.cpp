@@ -6543,6 +6543,7 @@ void Q3DSSceneManager::runAction(const Q3DSAction &action)
         m_slidePlayer->previousSlide();
         break;
     case Q3DSAction::PrecedingSlide:
+        m_slidePlayer->precedingSlide();
         break;
     case Q3DSAction::Play:
         break;

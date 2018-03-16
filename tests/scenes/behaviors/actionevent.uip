@@ -33,6 +33,10 @@
 						<Material id="Default" name="Default" />
 					</Model>
 					<Text id="Text4" />
+					<Model id="Cone2" >
+						<Material id="Default_001" name="Default" />
+					</Model>
+					<Text id="Text5" />
 				</Layer>
 				<Layer id="Layer2" >
 					<Camera id="Camera_001" />
@@ -49,6 +53,7 @@
 						<Material id="Material_006" />
 					</Model>
 					<Text id="Text_002" />
+					<Text id="Text2_001" />
 				</Layer>
 			</Scene>
 		</Graph>
@@ -85,7 +90,9 @@
 					<Add ref="#Group" name="Group" opacity="50" />
 					<Add ref="#Rectangle_001" name="Rectangle" scale="10 6 1" sourcepath="#Rectangle" />
 					<Add ref="#Material_004" diffuse="0.65098 0.619608 0.533333" />
-					<Add ref="#Cube" name="Cube" position="482.629 -108.253 10" rotation="-12.3559 8.88262 8.26342" sourcepath="#Cube" />
+					<Add ref="#Cube" name="Cube" position="482.629 -108.253 10" rotation="-12.3559 8.88262 8.26342" sourcepath="#Cube" >
+						<Action id="Cube-Action" eyeball="True" triggerObject="#Cube" event="onPressureDown" targetObject="#Scene" handler="Preceding Slide" />
+					</Add>
 					<Add ref="#Material_005" />
 					<Add ref="#Cone_001" name="Cone" position="501.573 148.848 10" sourcepath="#Cone" >
 						<Action id="Cone-Action_001" eyeball="True" triggerObject="#Cone_001" event="onPressureDown" targetObject="#Scene" handler="Go to Slide" >
@@ -94,6 +101,7 @@
 					</Add>
 					<Add ref="#Material_006" />
 					<Add ref="#Text_002" name="Text" font="TitilliumWeb-Regular" position="479.922 261.612 0" textcolor="0.219608 0.596078 1" textstring="Go to next slide by name" />
+					<Add ref="#Text2_001" name="Text2" font="TitilliumWeb-Regular" position="479.02 -9.02109 0" textcolor="0.854902 0.556863 1" textstring="Go to preceding slide&#10;(back)" />
 				</State>
 				<State id="Scene-Slide2" name="Slide2" initialplaystate="Play" playmode="Stop at end" playthroughto="Previous" >
 					<Add ref="#Text3" name="Text3" font="TitilliumWeb-Regular" position="-0.443962 367.803 0" textstring="Previous slide" />
@@ -101,6 +109,11 @@
 						<Action id="Sphere2-Action" eyeball="True" triggerObject="#Sphere2" event="onPressureDown" targetObject="#Scene" handler="Previous Slide" />
 					</Add>
 					<Add ref="#Default" />
+					<Add ref="#Cone2" name="Cone2" position="-445.525 123.827 0" scale="0.925 0.925 0.925" sourcepath="#Cone" >
+						<Action id="Cone2-Action" eyeball="True" triggerObject="#Cone2" event="onPressureDown" targetObject="#Scene" handler="Preceding Slide" />
+					</Add>
+					<Add ref="#Default_001" />
+					<Add ref="#Text5" name="Text5" font="TitilliumWeb-Regular" position="-455.097 253.279 0" textstring="Preceding slide&#10;(back)" />
 				</State>
 			</State>
 		</Logic>

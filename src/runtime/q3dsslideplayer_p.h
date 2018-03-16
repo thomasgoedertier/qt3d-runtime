@@ -114,6 +114,7 @@ public Q_SLOTS:
     void setPlaybackRate(float rate);
     void nextSlide();
     void previousSlide();
+    void precedingSlide();
     void reload();
 
 Q_SIGNALS:
@@ -220,6 +221,7 @@ public:
         if (count < 1)
             return;
 
+        m_previouslyActiveIndex = m_index;
         m_index = index;
 
         if (m_player)
@@ -235,8 +237,10 @@ public:
             return nullptr;
         }
 
-        if (index != m_index)
+        if (index != m_index) {
+            m_previouslyActiveIndex = m_index;
             m_index = index;
+        }
 
         return static_cast<Q3DSSlide *>(m_masterSlide->childAtIndex(m_index));
     }
@@ -250,6 +254,7 @@ public:
             return nullptr;
 
         if (m_index < slideCount() - 1) {
+            m_previouslyActiveIndex = m_index;
             return static_cast<Q3DSSlide *>(m_masterSlide->childAtIndex(++m_index));
         } else {
             return nullptr;
@@ -265,10 +270,23 @@ public:
             return nullptr;
 
         if ((m_index > 0) && (m_index < slideCount())) {
+            m_previouslyActiveIndex = m_index;
             return static_cast<Q3DSSlide *>(m_masterSlide->childAtIndex(--m_index));
         } else {
             return nullptr;
         }
+    }
+
+    Q3DSSlide *precedingSlide()
+    {
+        // This is effectively a go-back-in-history with a 1 level history,
+        // i.e. go to the slide that was current before the current one - but
+        // going "back" from there would bring us back to what is current now.
+
+        if (m_previouslyActiveIndex == -1)
+            return nullptr;
+
+        return setCurrentIndex(m_previouslyActiveIndex);
     }
 
     int indexOfSlide(Q3DSSlide *slide)
@@ -328,6 +346,7 @@ private:
     Q3DSSlide *m_masterSlide = nullptr;
     Q3DSSlide *m_parent = nullptr;
     int m_index = -1;
+    int m_previouslyActiveIndex = -1;
 };
 
 QT_END_NAMESPACE
