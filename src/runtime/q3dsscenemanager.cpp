@@ -6423,15 +6423,20 @@ void Q3DSSceneManager::setDataInputValue(const QString &dataInputName, const QVa
                 if (propName == QStringLiteral("@slide")) {
                     changeSlideByName(obj, value.toString());
                 } else if (propName == QStringLiteral("@timeline")) {
-                    if (obj->type() == Q3DSGraphObject::Scene) {
+                    if (obj->type() == Q3DSGraphObject::Scene || obj->type() == Q3DSGraphObject::Component) {
+                        Q3DSSlidePlayer *slidePlayer = m_slidePlayer;
+                        if (obj->type() == Q3DSGraphObject::Component) {
+                            slidePlayer = static_cast<Q3DSComponentNode *>(obj)->masterSlide()
+                                    ->attached<Q3DSSlideAttached>()->slidePlayer;
+                        }
                         // Normalize the value to dataInput range (just because 3DS1 does it)
                         // Input value is assumed to be in milliseconds.
                         float seekTimeMs = meta.hasMinMax()
                                 ? (value.toFloat() - meta.minValue) / (meta.maxValue - meta.minValue)
                                 : value.toFloat();
-                        m_slidePlayer->seek(seekTimeMs);
+                        slidePlayer->seek(seekTimeMs);
                     } else {
-                        qWarning("Object %s with timeline data input is not Scene", obj->id().constData());
+                        qWarning("Object %s with timeline data input is not Scene or Component", obj->id().constData());
                     }
                 }
             } else {
