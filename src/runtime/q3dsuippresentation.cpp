@@ -92,7 +92,7 @@ bool convertToPropertyType(const QStringRef &value, Q3DS::PropertyType *type, in
         *type = Q3DS::Color;
         if (componentCount)
             *componentCount = 3;
-    } else if (value == QStringLiteral("Boolean")) {
+    } else if (value == QStringLiteral("Boolean") || value == QStringLiteral("Bool")) {
         ok = true;
         *type = Q3DS::Boolean;
     } else if (value == QStringLiteral("Slide")) {

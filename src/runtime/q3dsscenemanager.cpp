@@ -6429,8 +6429,7 @@ void Q3DSSceneManager::setDataInputValue(const QString &dataInputName, const QVa
                         float seekTimeMs = meta.hasMinMax()
                                 ? (value.toFloat() - meta.minValue) / (meta.maxValue - meta.minValue)
                                 : value.toFloat();
-                        const float normalizedMs = seekTimeMs / m_slidePlayer->duration();
-                        m_slidePlayer->seek(normalizedMs);
+                        m_slidePlayer->seek(seekTimeMs);
                     } else {
                         qWarning("Object %s with timeline data input is not Scene", obj->id().constData());
                     }
@@ -6567,10 +6566,44 @@ void Q3DSSceneManager::runAction(const Q3DSAction &action)
         }
         break;
     case Q3DSAction::Play:
+        if (action.targetObject) {
+            Q3DSSlidePlayer *slidePlayer = m_slidePlayer;
+            if (action.targetObject->type() == Q3DSGraphObject::Component) {
+                slidePlayer = static_cast<Q3DSComponentNode *>(action.targetObject)->masterSlide()
+                        ->attached<Q3DSSlideAttached>()->slidePlayer;
+            }
+            slidePlayer->play();
+        }
         break;
     case Q3DSAction::Pause:
+        if (action.targetObject) {
+            Q3DSSlidePlayer *slidePlayer = m_slidePlayer;
+            if (action.targetObject->type() == Q3DSGraphObject::Component) {
+                slidePlayer = static_cast<Q3DSComponentNode *>(action.targetObject)->masterSlide()
+                        ->attached<Q3DSSlideAttached>()->slidePlayer;
+            }
+            slidePlayer->pause();
+        }
         break;
     case Q3DSAction::GoToTime:
+    {
+        Q3DSAction::HandlerArgument newTime = action.handlerWithName(QLatin1String("Time"));
+        Q3DSAction::HandlerArgument shouldPause = action.handlerWithName(QLatin1String("Pause"));
+        if (action.targetObject && newTime.isValid()) {
+            Q3DSSlidePlayer *slidePlayer = m_slidePlayer;
+            if (action.targetObject->type() == Q3DSGraphObject::Component) {
+                slidePlayer = static_cast<Q3DSComponentNode *>(action.targetObject)->masterSlide()
+                        ->attached<Q3DSSlideAttached>()->slidePlayer;
+            }
+            const float seekTimeMs = newTime.value.toFloat(); // input value is assumed to be in milliseconds
+            bool pause = false;
+            if (shouldPause.isValid())
+                Q3DS::convertToBool(&shouldPause.value, &pause);
+            if (pause)
+                slidePlayer->pause();
+            slidePlayer->seek(seekTimeMs);
+        }
+    }
         break;
     case Q3DSAction::BehaviorHandler:
     {

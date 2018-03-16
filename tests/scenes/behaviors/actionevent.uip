@@ -37,6 +37,18 @@
 						<Material id="Default_001" name="Default" />
 					</Model>
 					<Text id="Text5" />
+					<Model id="Cone3" >
+						<Material id="Default_002" name="Default" />
+					</Model>
+					<Text id="Text6" />
+					<Text id="Text7" />
+					<Model id="Cone4" >
+						<Material id="Default_003" name="Default" />
+					</Model>
+					<Text id="Text8" />
+					<Model id="Cone5" >
+						<Material id="Default_004" name="Default" />
+					</Model>
 				</Layer>
 				<Layer id="Layer2" >
 					<Camera id="Camera_001" />
@@ -62,7 +74,7 @@
 				<Add ref="#Layer" />
 				<Add ref="#Camera" position="0 -40 -600" rotation="-10 0 -10" />
 				<Add ref="#Light" />
-				<State id="Scene-Slide1" name="Slide1" >
+				<State id="Scene-Slide1" name="Slide1" playmode="Looping" >
 					<Add ref="#Rectangle" name="Rectangle" position="-407.032 -97.8609 0" sourcepath="#Rectangle" >
 						<Action id="Rectangle-Action" eyeball="True" triggerObject="#Rectangle" event="onPressureDown" targetObject="#Behavior_001" handler="doIt" />
 					</Add>
@@ -84,6 +96,24 @@
 					<Add ref="#Text_001" name="Text" font="TitilliumWeb-Regular" position="271.371 192.426 0" textstring="Press to fake a press on sphere" />
 					<Add ref="#Text2" name="Text2" font="TitilliumWeb-Regular" position="-22.6025 107.143 0" textstring="Press for next slide" />
 					<Add ref="#Text4" name="Text4" font="TitilliumWeb-Regular" position="-343.795 -12.6715 0" textstring="Press to invoke custom handler" />
+					<Add ref="#Cone3" name="Cone3" position="57.8465 -166.624 6.3277" rotation="0 0 180" scale="0.504148 0.530642 1" sourcepath="#Cone" >
+						<Action id="Cone3-Action" eyeball="True" triggerObject="#Cone3" event="onPressureDown" targetObject="#Scene" handler="Pause" />
+					</Add>
+					<Add ref="#Default_002" />
+					<Add ref="#Text6" name="Text6" font="TitilliumWeb-Regular" position="66.4036 -134.357 6.28809" textstring="Pause" />
+					<Add ref="#Text7" name="Text7" font="TitilliumWeb-Regular" position="149.683 -146.008 7.5805" textstring="Play" />
+					<Add ref="#Cone4" name="Cone4" position="146.694 -179.867 6.98505" rotation="0 0 180" scale="0.504148 0.530642 1" sourcepath="#Cone" >
+						<Action id="Cone4-Action" eyeball="True" triggerObject="#Cone4" event="onPressureDown" targetObject="#Scene" handler="Play" />
+					</Add>
+					<Add ref="#Default_003" />
+					<Add ref="#Text8" name="Text8" font="TitilliumWeb-Regular" position="229.375 -154.527 7.02502" textstring="Jump" />
+					<Add ref="#Cone5" name="Cone5" position="225.507 -191.414 10.6989" rotation="0 0 180" scale="0.504148 0.530642 1" sourcepath="#Cone" >
+						<Action id="Cone5-Action" eyeball="True" triggerObject="#Cone5" event="onPressureDown" targetObject="#Scene" handler="Go to Time" >
+                                                        <HandlerArgument name="Time" type="String" value="5000" />
+							<HandlerArgument name="Pause" type="Bool" />
+						</Action>
+					</Add>
+					<Add ref="#Default_004" />
 					<Add ref="#Layer2" name="Layer2" background="Transparent" blendtype="Normal" disabledepthtest="False" />
 					<Add ref="#Camera_001" />
 					<Add ref="#Light_001" />
@@ -91,6 +121,9 @@
 					<Add ref="#Rectangle_001" name="Rectangle" scale="10 6 1" sourcepath="#Rectangle" />
 					<Add ref="#Material_004" diffuse="0.65098 0.619608 0.533333" />
 					<Add ref="#Cube" name="Cube" position="482.629 -108.253 10" rotation="-12.3559 8.88262 8.26342" sourcepath="#Cube" >
+						<AnimationTrack property="rotation.x" type="EaseInOut" >0 -12.3559 100 100 10 -12.356 100 100</AnimationTrack>
+						<AnimationTrack property="rotation.y" type="EaseInOut" >0 8.88262 100 100 10 300 100 100</AnimationTrack>
+						<AnimationTrack property="rotation.z" type="EaseInOut" >0 8.26342 100 100 10 8.263 100 100</AnimationTrack>
 						<Action id="Cube-Action" eyeball="True" triggerObject="#Cube" event="onPressureDown" targetObject="#Scene" handler="Preceding Slide" />
 					</Add>
 					<Add ref="#Material_005" />

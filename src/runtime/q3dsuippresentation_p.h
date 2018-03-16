@@ -518,7 +518,7 @@ public:
         Type argType = Unknown;
         QString value;
 
-        bool isValid() const { return type != Q3DS::Unknown && argType != Unknown; }
+        bool isValid() const { return type != Q3DS::Unknown; }
     };
 
     Q3DSGraphObject *owner = nullptr;
@@ -538,6 +538,11 @@ public:
     QVector<HandlerArgument> handlerArgs; // when handler != BehaviorHandler
     QString behaviorHandler; // when handler == BehaviorHandler
 
+    HandlerArgument handlerWithName(const QString &name) const {
+        auto it = std::find_if(handlerArgs.cbegin(), handlerArgs.cend(),
+                               [name](const HandlerArgument &a) { return a.name == name; });
+        return it != handlerArgs.cend() ? *it : HandlerArgument();
+    }
     HandlerArgument handlerWithArgType(HandlerArgument::Type t) const {
         auto it = std::find_if(handlerArgs.cbegin(), handlerArgs.cend(),
                                [t](const HandlerArgument &a) { return a.argType == t; });
