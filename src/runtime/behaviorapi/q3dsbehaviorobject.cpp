@@ -29,6 +29,7 @@
 
 #include "q3dsbehaviorobject_p.h"
 #include "q3dsengine_p.h"
+#include <QMetaMethod>
 #include <QQuaternion>
 #include <qmath.h>
 #include <functional>
@@ -52,6 +53,14 @@ void Q3DSBehaviorObject::init(Q3DSEngine *engine,
 void Q3DSBehaviorObject::prepareUpdate(float dt)
 {
     m_deltaTime = dt;
+}
+
+void Q3DSBehaviorObject::call(const QString &function)
+{
+    const QString normalized = function + "()";
+    const int idx = metaObject()->indexOfMethod(normalized.toUtf8().constData());
+    if (idx >= 0)
+        metaObject()->method(idx).invoke(this);
 }
 
 float Q3DSBehaviorObject::getDeltaTime()

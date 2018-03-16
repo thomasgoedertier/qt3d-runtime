@@ -6506,6 +6506,21 @@ void Q3DSSceneManager::runAction(const Q3DSAction &action)
     case Q3DSAction::GoToTime:
         break;
     case Q3DSAction::BehaviorHandler:
+    {
+        if (action.targetObject && action.targetObject->type() == Q3DSGraphObject::Behavior) {
+            Q3DSBehaviorInstance *bi = static_cast<Q3DSBehaviorInstance *>(action.targetObject);
+            auto handles = m_engine->behaviorHandles();
+            Q3DSBehaviorObject *qmlObj = nullptr;
+            if (handles.contains(bi))
+                qmlObj = handles[bi].object;
+            if (qmlObj)
+                qmlObj->call(action.behaviorHandler);
+            else
+                qWarning("BehaviorHandler: BehaviorInstance not loaded");
+        } else {
+            qWarning("BehaviorHandler: Invalid target object");
+        }
+    }
         break;
     default:
         Q_UNREACHABLE();

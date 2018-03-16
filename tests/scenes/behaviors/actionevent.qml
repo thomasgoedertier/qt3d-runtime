@@ -49,6 +49,7 @@
 ****************************************************************************/
 
 /*[[
+    <Handler name="doIt" formalName="doIt" category="actionevent" description="Do something" />
 ]]*/
 
 import QtQuick 2.0
@@ -66,5 +67,9 @@ Behavior {
             console.log("behavior's owner got pressureUp event");
             setAttribute("SphereMaterial", "diffuse", origColor);
         });
+    }
+
+    function doIt() {
+        setAttribute("SphereMaterial", "diffuse", "0 1 0");
     }
 }
