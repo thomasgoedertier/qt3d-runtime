@@ -94,7 +94,6 @@ signals:
     void deactivate();
 
 private:
-    Q3DSGraphObject *findObject(const QString &attribute);
     void eventHandler(Q3DSGraphObject *obj, const QString &event);
 
     Q3DSEngine *m_engine = nullptr;

@@ -55,6 +55,7 @@ public:
 
     Q_INVOKABLE void reload();
     Q_INVOKABLE void setDataInputValue(const QString &name, const QVariant &value);
+    Q_INVOKABLE void fireEvent(const QString &elementPath, const QString &eventName);
 
     void keyPressEvent(QKeyEvent *e);
     void keyReleaseEvent(QKeyEvent *e);

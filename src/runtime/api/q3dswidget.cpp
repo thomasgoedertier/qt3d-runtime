@@ -225,6 +225,7 @@ void Q3DSWidgetPrivate::createEngine()
     engine->setSurface(q_ptr->window()->windowHandle());
     qCDebug(lc3DSWidget, "Created engine %p", engine);
 
+    setPresentationControllerEngine(engine);
     QObject::connect(engine, &Q3DSEngine::customSignalEmitted, presentation, &Q3DSPresentation::customSignalEmitted);
 
     const QString fn = QQmlFile::urlToLocalFileOrQrc(source);
@@ -298,56 +299,6 @@ void Q3DSWidgetPrivate::handlePresentationReload()
     needsInit = true;
     q_ptr->update();
 }
-
-void Q3DSWidgetPrivate::handleDataInputValue(const QString &name, const QVariant &value)
-{
-    if (engine)
-        engine->setDataInputValue(name, value);
-}
-
-void Q3DSWidgetPrivate::handlePresentationKeyPressEvent(QKeyEvent *e)
-{
-    if (engine)
-        engine->handleKeyPressEvent(e);
-}
-
-void Q3DSWidgetPrivate::handlePresentationKeyReleaseEvent(QKeyEvent *e)
-{
-    if (engine)
-        engine->handleKeyReleaseEvent(e);
-}
-
-void Q3DSWidgetPrivate::handlePresentationMousePressEvent(QMouseEvent *e)
-{
-    if (engine)
-        engine->handleMousePressEvent(e);
-}
-
-void Q3DSWidgetPrivate::handlePresentationMouseMoveEvent(QMouseEvent *e)
-{
-    if (engine)
-        engine->handleMouseMoveEvent(e);
-}
-
-void Q3DSWidgetPrivate::handlePresentationMouseReleaseEvent(QMouseEvent *e)
-{
-    if (engine)
-        engine->handleMouseReleaseEvent(e);
-}
-
-void Q3DSWidgetPrivate::handlePresentationMouseDoubleClickEvent(QMouseEvent *e)
-{
-    if (engine)
-        engine->handleMouseDoubleClickEvent(e);
-}
-
-#if QT_CONFIG(wheelevent)
-void Q3DSWidgetPrivate::handlePresentationWheelEvent(QWheelEvent *e)
-{
-    if (engine)
-        engine->handleWheelEvent(e);
-}
-#endif
 
 void Q3DSWidgetPrivate::sendResizeToQt3D(const QSize &size)
 {

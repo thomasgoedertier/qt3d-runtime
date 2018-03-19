@@ -48,24 +48,33 @@
 
 QT_BEGIN_NAMESPACE
 
+class Q3DSEngine;
+
 class Q3DSV_PRIVATE_EXPORT Q3DSPresentationController
 {
 public:
     virtual ~Q3DSPresentationController() { }
 
+    void setPresentationControllerEngine(Q3DSEngine *engine) { m_pcEngine = engine; }
+
     virtual void handlePresentationSource(const QUrl &source) = 0;
     virtual void handlePresentationReload() = 0;
-    virtual void handleDataInputValue(const QString &name, const QVariant &value) = 0;
 
-    virtual void handlePresentationKeyPressEvent(QKeyEvent *e) = 0;
-    virtual void handlePresentationKeyReleaseEvent(QKeyEvent *e) = 0;
-    virtual void handlePresentationMousePressEvent(QMouseEvent *e) = 0;
-    virtual void handlePresentationMouseMoveEvent(QMouseEvent *e) = 0;
-    virtual void handlePresentationMouseReleaseEvent(QMouseEvent *e) = 0;
-    virtual void handlePresentationMouseDoubleClickEvent(QMouseEvent *e) = 0;
+    virtual void handlePresentationKeyPressEvent(QKeyEvent *e);
+    virtual void handlePresentationKeyReleaseEvent(QKeyEvent *e);
+    virtual void handlePresentationMousePressEvent(QMouseEvent *e);
+    virtual void handlePresentationMouseMoveEvent(QMouseEvent *e);
+    virtual void handlePresentationMouseReleaseEvent(QMouseEvent *e);
+    virtual void handlePresentationMouseDoubleClickEvent(QMouseEvent *e);
 #if QT_CONFIG(wheelevent)
-    virtual void handlePresentationWheelEvent(QWheelEvent *e) = 0;
+    virtual void handlePresentationWheelEvent(QWheelEvent *e);
 #endif
+
+    virtual void handleDataInputValue(const QString &name, const QVariant &value);
+    virtual void handleFireEvent(const QString &elementPath, const QString &eventName);
+
+protected:
+    Q3DSEngine *m_pcEngine = nullptr; // don't want clashes with commonly used m_engine members
 };
 
 class Q3DSV_PRIVATE_EXPORT Q3DSPresentationPrivate : public QObjectPrivate

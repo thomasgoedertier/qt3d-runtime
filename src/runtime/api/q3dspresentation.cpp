@@ -28,17 +28,18 @@
 ****************************************************************************/
 
 #include "q3dspresentation_p.h"
+#include "q3dsengine_p.h"
 
 QT_BEGIN_NAMESPACE
 
-// Unlike in 3DS1, Q3DSPresentation here does not have or know anything about
-// the engine itself. This is due to the delicate lifetime management needs due
-// to Qt 3D under the hood: for instance the Studio3D element has to carefully
-// manage the underlying Q3DSEngine in ways that are different from what the
-// widget or surfaceviewer APIs need. Therefore the presentation here is just a
-// mere collection of data, any actual engine-related behavior is provided
-// rather by Studio3D, Q3DSWidget, or Q3DSSurfaceViewer. Communication is done
-// via the Q3DSPresentationController interface.
+// Unlike in 3DS1, Q3DSPresentation here does not own the engine. This is due
+// to the delicate lifetime management needs due to Qt 3D under the hood: for
+// instance the Studio3D element has to carefully manage the underlying
+// Q3DSEngine in ways that are different from what the widget or surfaceviewer
+// APIs need. Therefore the presentation here is just a mere collection of
+// data, any actual engine-related behavior is provided by the
+// Q3DSPresentationController (for common functionality), or individually by
+// Studio3D, Q3DSWidget, or Q3DSSurfaceViewer.
 
 Q3DSPresentation::Q3DSPresentation(QObject *parent)
     : QObject(*new Q3DSPresentationPrivate, parent)
@@ -85,6 +86,13 @@ void Q3DSPresentation::setDataInputValue(const QString &name, const QVariant &va
     Q_D(Q3DSPresentation);
     if (d->controller)
         d->controller->handleDataInputValue(name, value);
+}
+
+void Q3DSPresentation::fireEvent(const QString &elementPath, const QString &eventName)
+{
+    Q_D(Q3DSPresentation);
+    if (d->controller)
+        d->controller->handleFireEvent(elementPath, eventName);
 }
 
 // These event forwarders are not stricly needed, Studio3D et al are fine
@@ -149,6 +157,70 @@ void Q3DSPresentationPrivate::setController(Q3DSPresentationController *c)
 
     controller = c;
     controller->handlePresentationSource(source);
+}
+
+void Q3DSPresentationController::handlePresentationKeyPressEvent(QKeyEvent *e)
+{
+    if (m_pcEngine)
+        m_pcEngine->handleKeyPressEvent(e);
+}
+
+void Q3DSPresentationController::handlePresentationKeyReleaseEvent(QKeyEvent *e)
+{
+    if (m_pcEngine)
+        m_pcEngine->handleKeyReleaseEvent(e);
+}
+
+void Q3DSPresentationController::handlePresentationMousePressEvent(QMouseEvent *e)
+{
+    if (m_pcEngine)
+        m_pcEngine->handleMousePressEvent(e);
+}
+
+void Q3DSPresentationController::handlePresentationMouseMoveEvent(QMouseEvent *e)
+{
+    if (m_pcEngine)
+        m_pcEngine->handleMouseMoveEvent(e);
+}
+
+void Q3DSPresentationController::handlePresentationMouseReleaseEvent(QMouseEvent *e)
+{
+    if (m_pcEngine)
+        m_pcEngine->handleMouseReleaseEvent(e);
+}
+
+void Q3DSPresentationController::handlePresentationMouseDoubleClickEvent(QMouseEvent *e)
+{
+    if (m_pcEngine)
+        m_pcEngine->handleMouseDoubleClickEvent(e);
+}
+
+#if QT_CONFIG(wheelevent)
+void Q3DSPresentationController::handlePresentationWheelEvent(QWheelEvent *e)
+{
+    if (m_pcEngine)
+        m_pcEngine->handleWheelEvent(e);
+}
+#endif
+
+void Q3DSPresentationController::handleDataInputValue(const QString &name, const QVariant &value)
+{
+    if (m_pcEngine)
+        m_pcEngine->setDataInputValue(name, value);
+}
+
+void Q3DSPresentationController::handleFireEvent(const QString &elementPath, const QString &eventName)
+{
+    if (m_pcEngine) {
+        // Assume that the path is in the main presentation when no explicit
+        // presentation is specified in the path.
+        Q3DSUipPresentation *pres = m_pcEngine->presentation(0);
+        Q3DSGraphObject *target = m_pcEngine->findObjectByNameOrPath(nullptr, pres, elementPath, &pres);
+        // pres is now the actual presentation (which is important to know
+        // since the event queuing needs the scenemanager).
+        if (target)
+            m_pcEngine->fireEvent(target, pres, eventName);
+    }
 }
 
 QT_END_NAMESPACE

@@ -1205,6 +1205,17 @@ void Q3DSEngine::setDataInputValue(const QString &name, const QVariant &value)
     }
 }
 
+void Q3DSEngine::fireEvent(Q3DSGraphObject *target, Q3DSUipPresentation *presentation, const QString &event)
+{
+    for (const UipPresentation &pres : qAsConst(m_uipPresentations)) {
+        if (pres.presentation == presentation) {
+            if (pres.sceneManager)
+                pres.sceneManager->queueEvent(Q3DSSceneManager::Event(target, event));
+            break;
+        }
+    }
+}
+
 void Q3DSEngine::loadBehaviorInstance(Q3DSBehaviorInstance *behaviorInstance,
                                       Q3DSUipPresentation *pres,
                                       BehaviorLoadedCallback callback)
@@ -1365,6 +1376,87 @@ void Q3DSEngine::behaviorFrameUpdate(float dt)
             emit h.object->update();
         }
     }
+}
+
+// Object reference format used by behaviors and some public API:
+//
+// (presentationName:)?(parent|this|(Scene|Slide)(\..)*|(.)*)
+//
+// An empty string or "this" refers to the parent of the 'thisObject' (e.g. the
+// object to which the behavior was attached (parented) to in the editor). This
+// is the most common use case.
+//
+// presentationName is either "main" for the main presentation, or the id from
+// the .uia for sub-presentations.
+//
+// For non-unique names one would specify a full path like "Scene.Layer.Camera".
+// "Scene" refers to the scene object, "Slide" to the master slide.
+//
+// For accessing objects that were renamed to a unique name in the editor, we
+// also allow a simple flat reference like "MyCamera" since relying on absolute
+// paths is just silly and not necessary at all.
+
+Q3DSGraphObject *Q3DSEngine::findObjectByNameOrPath(Q3DSGraphObject *thisObject,
+                                                    Q3DSUipPresentation *defaultPresentation,
+                                                    const QString &nameOrPath,
+                                                    Q3DSUipPresentation **actualPresentation)
+{
+    Q3DSUipPresentation *pres = defaultPresentation;
+    QString attr = nameOrPath;
+    if (attr.contains(QLatin1Char(':'))) {
+        const QStringList presentationPathPair = attr.split(QLatin1Char(':'), QString::SkipEmptyParts);
+        if (presentationPathPair.count() < 2)
+            return nullptr;
+        pres = presentationByName(presentationPathPair[0]);
+        attr = presentationPathPair[1];
+    }
+
+    if (actualPresentation)
+        *actualPresentation = pres;
+
+    bool firstElem = true;
+    Q3DSGraphObject *obj = thisObject;
+    for (const QString &s : attr.split(QLatin1Char('.'), QString::SkipEmptyParts)) {
+        if (firstElem) {
+            firstElem = false;
+            if (s == QStringLiteral("parent"))
+                obj = thisObject ? thisObject->parent() : nullptr;
+            else if (s == QStringLiteral("this"))
+                obj = thisObject;
+            else if (s == QStringLiteral("Scene"))
+                obj = pres->scene();
+            else if (s == QStringLiteral("Slide"))
+                obj = pres->masterSlide();
+            else
+                obj = pres->objectByName(s);
+        } else {
+            if (!obj)
+                return nullptr;
+            if (s == QStringLiteral("parent")) {
+                obj = obj->parent();
+            } else {
+                for (Q3DSGraphObject *child = obj->firstChild(); child; child = child->nextSibling()) {
+                    if (child->name() == s) {
+                        obj = child;
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
+    return obj;
+}
+
+QString Q3DSEngine::makePath(Q3DSGraphObject *obj)
+{
+    QString path = obj->name();
+    obj = obj->parent();
+    while (obj) {
+        path.prepend(obj->name() + QLatin1Char('.'));
+        obj = obj->parent();
+    }
+    return path;
 }
 
 QT_END_NAMESPACE

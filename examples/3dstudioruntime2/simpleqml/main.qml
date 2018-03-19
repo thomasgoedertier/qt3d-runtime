@@ -144,6 +144,13 @@ Rectangle {
             text: "Let mouse events through"
             checked: true
         }
+        Button {
+            text: "Fire event"
+            // Here we could open a Dialog to specify a target object and event
+            // name but creating a working dialog with Quick Controls 2 is way
+            // beyond my modest skills, apparently.
+            onClicked: s3dpres.fireEvent("Scene.Layer.Camera", "customCameraEvent") // in actionevent.uip this will change the sphere's color
+        }
     }
 
     Text {

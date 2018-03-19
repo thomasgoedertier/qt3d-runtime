@@ -140,6 +140,7 @@ public:
     void setAutoStart(bool autoStart);
 
     void setDataInputValue(const QString &name, const QVariant &value);
+    void fireEvent(Q3DSGraphObject *target, Q3DSUipPresentation *presentation, const QString &event);
 
     void handleKeyPressEvent(QKeyEvent *e);
     void handleKeyReleaseEvent(QKeyEvent *e);
@@ -163,6 +164,12 @@ public:
     const BehaviorMap &behaviorHandles() const { return m_behaviorHandles; }
 
     QPoint lastMousePressPos() const { return m_lastMousePressPos; }
+
+    Q3DSGraphObject *findObjectByNameOrPath(Q3DSGraphObject *thisObject,
+                                            Q3DSUipPresentation *defaultPresentation,
+                                            const QString &nameOrPath,
+                                            Q3DSUipPresentation **actualPresentation = nullptr);
+    QString makePath(Q3DSGraphObject *obj);
 
 public Q_SLOTS:
     void requestGrab();

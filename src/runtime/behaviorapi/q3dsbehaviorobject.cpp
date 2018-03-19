@@ -68,72 +68,6 @@ float Q3DSBehaviorObject::getDeltaTime()
     return m_deltaTime;
 }
 
-// Object reference format:
-//
-// (presentationName:)?(parent|this|(Scene|Slide)(\..)*|(.)*)
-//
-// An empty string or "this" refers to the parent of the behavior instance
-// (i.e. the object to which the behavior was attached to in the editor). This
-// is the most common use case.
-//
-// presentationName is either "main" for the main presentation, or the id from
-// the .uia for sub-presentations.
-//
-// For non-unique names one would specify a full path like "Scene.Layer.Camera".
-// "Scene" refers to the scene object, "Slide" to the master slide.
-//
-// For accessing objects that were renamed to a unique name in the editor, we
-// also allow a simple flat reference like "MyCamera" since relying on absolute
-// paths is just silly and not necessary at all.
-
-Q3DSGraphObject *Q3DSBehaviorObject::findObject(const QString &attribute)
-{
-    Q_ASSERT(m_behaviorInstance);
-
-    QString attr = attribute;
-    Q3DSUipPresentation *pres = m_presentation;
-    if (attribute.contains(QLatin1Char(':'))) {
-        const QStringList presentationPathPair = attribute.split(QLatin1Char(':'), QString::SkipEmptyParts);
-        if (presentationPathPair.count() < 2)
-            return nullptr;
-        pres = m_engine->presentationByName(presentationPathPair[0]);
-        attr = presentationPathPair[1];
-    }
-
-    bool firstElem = true;
-    Q3DSGraphObject *obj = m_behaviorInstance->parent();
-    for (const QString &s : attr.split(QLatin1Char('.'), QString::SkipEmptyParts)) {
-        if (firstElem) {
-            firstElem = false;
-            if (s == QStringLiteral("parent"))
-                obj = m_behaviorInstance->parent() ? m_behaviorInstance->parent()->parent() : nullptr;
-            else if (s == QStringLiteral("this"))
-                obj = m_behaviorInstance->parent();
-            else if (s == QStringLiteral("Scene"))
-                obj = pres->scene();
-            else if (s == QStringLiteral("Slide"))
-                obj = pres->masterSlide();
-            else
-                obj = pres->objectByName(s);
-        } else {
-            if (!obj)
-                return nullptr;
-            if (s == QStringLiteral("parent")) {
-                obj = obj->parent();
-            } else {
-                for (Q3DSGraphObject *child = obj->firstChild(); child; child = child->nextSibling()) {
-                    if (child->name() == s) {
-                        obj = child;
-                        break;
-                    }
-                }
-            }
-        }
-    }
-
-    return obj;
-}
-
 QVariant Q3DSBehaviorObject::getAttribute(const QString &attribute)
 {
     return getAttribute(QString(), attribute);
@@ -146,7 +80,7 @@ QVariant Q3DSBehaviorObject::getAttribute(const QString &attribute)
 
 QVariant Q3DSBehaviorObject::getAttribute(const QString &handle, const QString &attribute)
 {
-    Q3DSGraphObject *obj = findObject(handle);
+    Q3DSGraphObject *obj = m_engine->findObjectByNameOrPath(m_behaviorInstance->parent(), m_presentation, handle);
     if (!obj) {
         qWarning("getAttribute: Invalid object reference %s", qPrintable(handle));
         return 0;
@@ -205,7 +139,7 @@ void Q3DSBehaviorObject::setAttribute(const QString &attribute, const QVariant &
 
 void Q3DSBehaviorObject::setAttribute(const QString &handle, const QString &attribute, const QVariant &value)
 {
-    Q3DSGraphObject *obj = findObject(handle);
+    Q3DSGraphObject *obj = m_engine->findObjectByNameOrPath(m_behaviorInstance->parent(), m_presentation, handle);
     if (!obj) {
         qWarning("setAttribute: Invalid object reference %s", qPrintable(handle));
         return;
@@ -288,7 +222,7 @@ void Q3DSBehaviorObject::eventHandler(Q3DSGraphObject *obj, const QString &event
 
 void Q3DSBehaviorObject::registerForEvent(const QString &handle, const QString &event, const QJSValue &function)
 {
-    Q3DSGraphObject *obj = findObject(handle);
+    Q3DSGraphObject *obj = m_engine->findObjectByNameOrPath(m_behaviorInstance->parent(), m_presentation, handle);
     if (!obj) {
         qWarning("registerForEvent: Invalid object reference %s", qPrintable(handle));
         return;
@@ -320,7 +254,7 @@ void Q3DSBehaviorObject::unregisterForEvent(const QString &event)
 
 void Q3DSBehaviorObject::unregisterForEvent(const QString &handle, const QString &event)
 {
-    Q3DSGraphObject *obj = findObject(handle);
+    Q3DSGraphObject *obj = m_engine->findObjectByNameOrPath(m_behaviorInstance->parent(), m_presentation, handle);
     if (!obj) {
         qWarning("unregisterForEvent: Invalid object reference %s", qPrintable(handle));
         return;
@@ -347,7 +281,7 @@ QMatrix4x4 Q3DSBehaviorObject::calculateGlobalTransform()
 
 QMatrix4x4 Q3DSBehaviorObject::calculateGlobalTransform(const QString &handle)
 {
-    Q3DSGraphObject *obj = findObject(handle);
+    Q3DSGraphObject *obj = m_engine->findObjectByNameOrPath(m_behaviorInstance->parent(), m_presentation, handle);
     if (!obj || !obj->isNode()) {
         qWarning("calculateGlobalTransform: Invalid node reference %s", qPrintable(handle));
         return QMatrix4x4();

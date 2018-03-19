@@ -74,6 +74,11 @@ Behavior {
             // ### too bad this crashes
             //setAttribute("SlideText", "textstring", "slide entered");
         });
+
+        // For the simpleqml example
+        registerForEvent("Scene.Layer.Camera", "customCameraEvent", function () {
+            setAttribute("SphereMaterial", "diffuse", "1 1 0");
+        });
     }
 
     function doIt() {

@@ -151,56 +151,6 @@ void Q3DSStudio3DItem::handlePresentationReload()
         createEngine();
 }
 
-void Q3DSStudio3DItem::handleDataInputValue(const QString &name, const QVariant &value)
-{
-    if (m_engine)
-        m_engine->setDataInputValue(name, value);
-}
-
-void Q3DSStudio3DItem::handlePresentationKeyPressEvent(QKeyEvent *e)
-{
-    if (m_engine)
-        m_engine->handleKeyPressEvent(e);
-}
-
-void Q3DSStudio3DItem::handlePresentationKeyReleaseEvent(QKeyEvent *e)
-{
-    if (m_engine)
-        m_engine->handleKeyReleaseEvent(e);
-}
-
-void Q3DSStudio3DItem::handlePresentationMousePressEvent(QMouseEvent *e)
-{
-    if (m_engine)
-        m_engine->handleMousePressEvent(e);
-}
-
-void Q3DSStudio3DItem::handlePresentationMouseMoveEvent(QMouseEvent *e)
-{
-    if (m_engine)
-        m_engine->handleMouseMoveEvent(e);
-}
-
-void Q3DSStudio3DItem::handlePresentationMouseReleaseEvent(QMouseEvent *e)
-{
-    if (m_engine)
-        m_engine->handleMouseReleaseEvent(e);
-}
-
-void Q3DSStudio3DItem::handlePresentationMouseDoubleClickEvent(QMouseEvent *e)
-{
-    if (m_engine)
-        m_engine->handleMouseDoubleClickEvent(e);
-}
-
-#if QT_CONFIG(wheelevent)
-void Q3DSStudio3DItem::handlePresentationWheelEvent(QWheelEvent *e)
-{
-    if (m_engine)
-        m_engine->handleWheelEvent(e);
-}
-#endif
-
 void Q3DSStudio3DItem::createEngine()
 {
     // note: cannot have an engine without the source set
@@ -223,6 +173,7 @@ void Q3DSStudio3DItem::createEngine()
         // We create the render aspect ourselves on the Quick render thread.
         m_engine->setFlags(Q3DSEngine::WithoutRenderAspect);
 
+        setPresentationControllerEngine(m_engine);
         QObject::connect(m_engine, &Q3DSEngine::customSignalEmitted, m_presentation, &Q3DSPresentation::customSignalEmitted);
 
         if (QWindow *rw = QQuickRenderControl::renderWindowFor(w)) {

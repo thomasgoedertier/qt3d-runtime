@@ -93,16 +93,6 @@ private slots:
 private:
     void handlePresentationSource(const QUrl &source) override;
     void handlePresentationReload() override;
-    void handleDataInputValue(const QString &name, const QVariant &value) override;
-    void handlePresentationKeyPressEvent(QKeyEvent *e) override;
-    void handlePresentationKeyReleaseEvent(QKeyEvent *e) override;
-    void handlePresentationMousePressEvent(QMouseEvent *e) override;
-    void handlePresentationMouseMoveEvent(QMouseEvent *e) override;
-    void handlePresentationMouseReleaseEvent(QMouseEvent *e) override;
-    void handlePresentationMouseDoubleClickEvent(QMouseEvent *e) override;
-#if QT_CONFIG(wheelevent)
-    void handlePresentationWheelEvent(QWheelEvent *e) override;
-#endif
 
     QSGNode *updatePaintNode(QSGNode *node, UpdatePaintNodeData *nodeData) override;
     void releaseResources() override;
