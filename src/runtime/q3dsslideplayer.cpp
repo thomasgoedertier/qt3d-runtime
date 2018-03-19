@@ -560,6 +560,16 @@ void Q3DSSlidePlayer::handleCurrentSlideChanged(Q3DSSlide *slide,
             setSlideTime(static_cast<Q3DSSlide *>(slide->parent()), 0.0f);
         setSlideTime(slide, 0.0f);
 
+        Q3DSGraphObject *eventTarget = m_sceneManager->m_scene;
+        if (m_type != PlayerType::Slide)
+            eventTarget = m_component;
+
+        if (previousSlide)
+            m_sceneManager->queueEvent(Q3DSSceneManager::Event(eventTarget, Q3DSGraphObjectEvents::slideExitEvent()));
+
+        if (slide)
+            m_sceneManager->queueEvent(Q3DSSceneManager::Event(eventTarget, Q3DSGraphObjectEvents::slideEnterEvent()));
+
         // A bit crude, but whatever
         if (m_type == PlayerType::Slide)
             m_sceneManager->setCurrentSlide(slide, true);

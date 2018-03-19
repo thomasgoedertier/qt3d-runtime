@@ -53,6 +53,7 @@
 						<Material id="Default_005" name="Default" />
 					</Model>
 					<Text id="Text9" />
+					<Text id="Text10" />
 				</Layer>
 				<Layer id="Layer2" >
 					<Camera id="Camera_001" />
@@ -125,6 +126,7 @@
 					</Add>
 					<Add ref="#Default_005" />
 					<Add ref="#Text9" name="Text9" font="TitilliumWeb-Regular" position="-419.637 445.422 0" textstring="Emit signal" />
+					<Add ref="#Text10" name="SlideText" font="TitilliumWeb-Regular" position="2.42518 350.079 0" textstring="..." />
 					<Add ref="#Layer2" name="Layer2" background="Transparent" blendtype="Normal" disabledepthtest="False" />
 					<Add ref="#Camera_001" />
 					<Add ref="#Light_001" />

@@ -762,6 +762,10 @@ Q3DSSceneManager::Scene Q3DSSceneManager::buildScene(Q3DSUipPresentation *presen
     m_scene->addSceneChangeObserver(std::bind(&Q3DSSceneManager::handleSceneChange,
                                               this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
 
+    // And for events too.
+    m_scene->addEventHandler(QString(), std::bind(&Q3DSSceneManager::handleEvent, this,
+                                                  std::placeholders::_1, std::placeholders::_2));
+
     // measure the time from the end of scene building to the invocation of the first frame action
     m_frameUpdater->startTimeFirstFrame();
 
@@ -6461,22 +6465,16 @@ void Q3DSSceneManager::setDataInputValue(const QString &dataInputName, const QVa
 
 void Q3DSSceneManager::handleEvent(Q3DSGraphObject *obj, const QString &event)
 {
-    const bool isPress = event == Q3DSGraphObjectEvents::pressureDownEvent();
-    const bool isRelease = event == Q3DSGraphObjectEvents::pressureUpEvent();
-    if (isPress || isRelease) {
-        Q3DSSlide *slide = currentSlide();
-        Q3DSComponentNode *component = obj->attached()->component;
-        if (component)
-            slide = component->currentSlide();
-        if (slide) {
-            if (isPress)
-                qCDebug(lcScene, "Button press on %s", obj->id().constData());
-            for (const Q3DSAction &action : slide->actions()) {
-                if (!action.eyeball || action.triggerObject != obj)
-                    continue;
-                if (action.event == event)
-                    runAction(action);
-            }
+    Q3DSSlide *slide = currentSlide();
+    Q3DSComponentNode *component = obj->attached() ? obj->attached()->component : nullptr;
+    if (component)
+        slide = component->currentSlide();
+    if (slide) {
+        for (const Q3DSAction &action : slide->actions()) {
+            if (!action.eyeball || action.triggerObject != obj)
+                continue;
+            if (action.event == event)
+                runAction(action);
         }
     }
 }

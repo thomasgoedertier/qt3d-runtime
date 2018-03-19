@@ -67,6 +67,13 @@ Behavior {
             console.log("behavior's owner got pressureUp event");
             setAttribute("SphereMaterial", "diffuse", origColor);
         });
+
+        registerForEvent("Scene", "onSlideEnter", function() {
+            // not sure what we can do with this event here
+            console.log("Some non-component slide has been entered");
+            // ### too bad this crashes
+            //setAttribute("SlideText", "textstring", "slide entered");
+        });
     }
 
     function doIt() {
