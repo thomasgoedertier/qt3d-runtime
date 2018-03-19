@@ -3399,6 +3399,13 @@ void Q3DSSceneManager::buildLayerScene(Q3DSGraphObject *obj, Q3DSLayerNode *laye
         newEntity = buildCamera(static_cast<Q3DSCameraNode *>(obj), layer3DS, parent);
         addChildren(obj, newEntity);
         break;
+    case Q3DSGraphObject::Alias:
+    {
+        auto alias = static_cast<Q3DSAliasNode *>(obj);
+        newEntity = buildAlias(alias, layer3DS, parent);
+        addChildren(obj, newEntity);
+    }
+        break;
     default:
         break;
     }
@@ -3596,6 +3603,21 @@ Qt3DCore::QEntity *Q3DSSceneManager::buildComponent(Q3DSComponentNode *comp3DS, 
     comp3DS->addEventHandler(QString(), std::bind(&Q3DSSceneManager::handleEvent, this, std::placeholders::_1));
 
     return comp;
+}
+
+Qt3DCore::QEntity *Q3DSSceneManager::buildAlias(Q3DSAliasNode *alias3DS, Q3DSLayerNode *layer3DS, Qt3DCore::QEntity *parent)
+{
+    Q3DSAliasAttached *data = new Q3DSAliasAttached;
+    alias3DS->setAttached(data);
+
+    auto aliasEntity = new Qt3DCore::QEntity(parent);
+    aliasEntity->setObjectName(QObject::tr("alias %1").arg(QString::fromUtf8(alias3DS->id())));
+    initEntityForNode(aliasEntity, alias3DS, layer3DS);
+
+    alias3DS->addPropertyChangeObserver(std::bind(&Q3DSSceneManager::handlePropertyChange, this,
+                                                  std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
+
+    return aliasEntity;
 }
 
 class Q3DSTextImage : public Qt3DRender::QPaintedTextureImage
@@ -5815,7 +5837,12 @@ void Q3DSSceneManager::handlePropertyChange(Q3DSGraphObject *obj, const QSet<QSt
         data->frameChangeFlags |= changeFlags;
     }
         break;
-
+    case Q3DSGraphObject::Alias:
+    {
+        data->frameDirty |= Q3DSGraphObjectAttached::AliasDirty;
+        data->frameChangeFlags |= changeFlags;
+    }
+        break;
     default:
         break;
     }
@@ -6017,9 +6044,11 @@ void Q3DSSceneManager::updateSubTreeRecursive(Q3DSGraphObject *obj)
     switch (obj->type()) {
     case Q3DSGraphObject::Group:
         Q_FALLTHROUGH();
+    case Q3DSGraphObject::Alias:
+        Q_FALLTHROUGH();
     case Q3DSGraphObject::Component:
     {
-        // Group and Component inherit all interesting properties from Node
+        // Group, Alias, and Component inherit all interesting properties from Node
         Q3DSNode *node = static_cast<Q3DSNode *>(obj);
         Q3DSNodeAttached *data = static_cast<Q3DSNodeAttached *>(obj->attached());
         if (data)

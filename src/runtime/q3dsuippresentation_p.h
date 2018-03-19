@@ -202,7 +202,8 @@ public:
         ImageDirty = 0x400,
         LayerDirty = 0x800,
         CustomMaterialDirty = 0x1000,
-        EffectDirty = 0x2000
+        EffectDirty = 0x2000,
+        AliasDirty = 0x4000
     };
     Q_DECLARE_FLAGS(FrameDirtyFlags, FrameDirtyFlag)
 
@@ -2010,6 +2011,7 @@ public:
         if (obj->parent())
             obj->parent()->removeChildNode(obj);
     }
+    void resolveAliases();
 
 private:
     Q_DISABLE_COPY(Q3DSUipPresentation)

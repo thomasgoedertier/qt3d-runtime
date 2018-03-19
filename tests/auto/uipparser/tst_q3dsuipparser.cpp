@@ -70,6 +70,7 @@ private slots:
     void iblProps();
     void action();
     void behavior();
+    void alias();
 
 private:
     QString presName = QLatin1String("pres");
@@ -1211,6 +1212,86 @@ void tst_Q3DSUipParser::behavior()
         QCOMPARE(h.category, QStringLiteral("CameraLookAt"));
         QCOMPARE(h.description, QStringLiteral("Stop looking the target"));
     }
+}
+
+void tst_Q3DSUipParser::alias()
+{
+    Q3DSUipParser parser;
+
+    QScopedPointer<Q3DSUipPresentation> pres(parser.parse(QLatin1String(":/data/aliasNodes.uip"), presName));
+    QVERIFY(!pres.isNull());
+
+    // Referenced Nodes
+    auto cubeNode = pres->object<Q3DSModelNode>("Cube");
+    QVERIFY(cubeNode);
+    auto coneNode = pres->object<Q3DSModelNode>("Cone");
+    QVERIFY(coneNode);
+    auto layer = pres->object<Q3DSLayerNode>("Layer");
+    QVERIFY(layer);
+    auto component1 = pres->object<Q3DSComponentNode>("Component");
+    QVERIFY(component1);
+    auto component2 = pres->object<Q3DSComponentNode>("Component2");
+    QVERIFY(component2);
+
+    // First Alias references Cone node
+    auto alias1 = pres->object<Q3DSAliasNode>("Alias");
+    QVERIFY(alias1);
+
+    // Check alias node itself
+    QCOMPARE(alias1->parent(), layer);
+    QCOMPARE(alias1->referencedNode(), coneNode);
+
+    // Check the cloned tree
+    {
+        auto aliasCone = pres->object<Q3DSModelNode>("Alias_Cone");
+        QVERIFY(aliasCone);
+        // Check that default properties are used for Transform and Opacity
+        QCOMPARE(aliasCone->position(), QVector3D());
+        QCOMPARE(aliasCone->scale(), QVector3D(1.0f, 1.0f, 1.0f));
+        QCOMPARE(aliasCone->rotation(), QVector3D());
+        QCOMPARE(aliasCone->pivot(), QVector3D());
+        QCOMPARE(aliasCone->localOpacity(), 100.0f);
+
+        auto aliasConeMaterial = pres->object<Q3DSDefaultMaterial>("Alias_Default");
+        QVERIFY(aliasConeMaterial);
+        auto aliasCylinder = pres->object<Q3DSModelNode>("Alias_Cylinder");
+        QVERIFY(aliasCylinder);
+        auto aliasCylinderMaterial = pres->object<Q3DSDefaultMaterial>("Alias_Default_001");
+        QVERIFY(aliasCylinderMaterial);
+    }
+
+    // Alias 2 References Cube
+    auto alias2 = pres->object<Q3DSAliasNode>("Alias2");
+    QVERIFY(alias2);
+
+    // Check alias node itself
+    QCOMPARE(alias2->parent(), layer);
+    QCOMPARE(alias2->referencedNode(), cubeNode);
+
+    // Alias 3 Also References Cube
+    auto alias3 = pres->object<Q3DSAliasNode>("Alias3");
+    QVERIFY(alias3);
+
+    // Check alias node itself
+    QCOMPARE(alias3->parent(), layer);
+    QCOMPARE(alias3->referencedNode(), cubeNode);
+
+    // Alias_001 referecnes cone from a component
+    auto componentAlias1 = pres->object<Q3DSAliasNode>("Alias_001");
+    QVERIFY(componentAlias1);
+
+    // Check alias node itself
+    QCOMPARE(componentAlias1->parent(), component1);
+    QCOMPARE(componentAlias1->referencedNode(), coneNode);
+
+    // Alias_002 references cube from a component
+    auto componentAlias2 = pres->object<Q3DSAliasNode>("Alias_002");
+    QVERIFY(componentAlias2);
+
+    // Check alias node itself
+    QCOMPARE(componentAlias2->parent(), component2);
+    QCOMPARE(componentAlias2->referencedNode(), cubeNode);
+
 }
 
 #include <tst_q3dsuipparser.moc>

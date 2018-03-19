@@ -104,6 +104,7 @@ private:
     AnimatableTab m_textAnimatables;
     AnimatableTab m_imageAnimatables;
     AnimatableTab m_layerAnimatables;
+    AnimatableTab m_aliasAnimatables;
 
     QMultiHash<Q3DSGraphObject *, AnimationValueChange> m_changes;
 

@@ -673,6 +673,7 @@ void Q3DSAnimationManager::updateAnimations(Q3DSSlide *slide)
     AnimationTrackListMap<Q3DSTextNode *> textAnims;
     AnimationTrackListMap<Q3DSImage *> imageAnims;
     AnimationTrackListMap<Q3DSLayerNode *> layerAnims;
+    AnimationTrackListMap<Q3DSAliasNode *> aliasAnims;
 
     const auto buildTrackListMap = [&](Q3DSSlide *slide, bool overwrite) {
         if (!slide)
@@ -748,6 +749,12 @@ void Q3DSAnimationManager::updateAnimations(Q3DSSlide *slide)
                 insertTrack(layerAnims[layer3DS], animTrack, overwrite);
             }
                 break;
+            case Q3DSGraphObject::Alias:
+            {
+                Q3DSAliasNode *alias3DS = static_cast<Q3DSAliasNode *>(animTrack.target());
+                insertTrack(aliasAnims[alias3DS], animTrack, overwrite);
+            }
+                break;
             default:
                 break;
             }
@@ -759,9 +766,9 @@ void Q3DSAnimationManager::updateAnimations(Q3DSSlide *slide)
     buildTrackListMap(masterSlide, false);
     buildTrackListMap(slide, true);
 
-    qCDebug(lcScene, "Slide %s has %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d animated objects", slide->id().constData(),
+    qCDebug(lcScene, "Slide %s has %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d animated objects", slide->id().constData(),
             defMatAnims.count(), customMatAnims.count(), effectAnims.count(), camAnims.count(), lightAnims.count(), modelAnims.count(), groupAnims.count(),
-            compAnims.count(), textAnims.count(), imageAnims.count(), layerAnims.count());
+            compAnims.count(), textAnims.count(), imageAnims.count(), layerAnims.count(), aliasAnims.count());
 
     if (m_defaultMaterialAnimatables.isEmpty())
         gatherAnimatableMeta(QLatin1String("Material"), &m_defaultMaterialAnimatables);
@@ -817,6 +824,13 @@ void Q3DSAnimationManager::updateAnimations(Q3DSSlide *slide)
         gatherAnimatableMeta(QLatin1String("Layer"), &m_layerAnimatables);
 
     updateAnimationHelper(layerAnims, &m_layerAnimatables, slide);
+
+    if (m_aliasAnimatables.isEmpty()) {
+        gatherAnimatableMeta(QLatin1String("Node"), &m_aliasAnimatables);
+        gatherAnimatableMeta(QLatin1String("Alias"), &m_aliasAnimatables);
+    }
+
+    updateAnimationHelper(aliasAnims, &m_aliasAnimatables, slide);
 
     // custom materials and effects need special handling due to their dynamic properties
     if (!customMatAnims.isEmpty()) {

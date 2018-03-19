@@ -3624,6 +3624,213 @@ Q3DSGraphObject *Q3DSUipPresentation::getObjectByName(const QString &name) const
     return nullptr;
 }
 
+namespace  {
+struct ClonedObject {
+    Q3DSGraphObject *original;
+    Q3DSGraphObject *clone;
+};
+
+bool isAliasDefinedProperty(const QString &propertyName) {
+    return (propertyName == QStringLiteral("rotation") ||
+            propertyName == QStringLiteral("position") ||
+            propertyName == QStringLiteral("scale") ||
+            propertyName == QStringLiteral("piviot") ||
+            propertyName == QStringLiteral("opacity"));
+}
+
+QVector<ClonedObject> cloneObjects(Q3DSGraphObject *target,
+                                   const QString &idPrefix,
+                                   Q3DSUipPresentation *presentation,
+                                   Q3DSGraphObject *parent,
+                                   bool isRoot = true)
+{
+    QVector<ClonedObject> clonedObjects;
+
+    if (!target || !presentation)
+        return clonedObjects;
+
+    Q3DSGraphObject *object = nullptr;
+    QString id = idPrefix + target->id();
+    if (target->type() == Q3DSGraphObject::Camera) {
+        object = new Q3DSCameraNode;
+    } else if (target->type() == Q3DSGraphObject::Light) {
+        object = new Q3DSLightNode;
+    } else if (target->type() == Q3DSGraphObject::Model) {
+        object = new Q3DSModelNode;
+    } else if (target->type() == Q3DSGraphObject::Group) {
+        object = new Q3DSGroupNode;
+    } else if (target->type() == Q3DSGraphObject::Component) {
+        object = new Q3DSComponentNode;
+    } else if (target->type() == Q3DSGraphObject::Text) {
+        object = new Q3DSTextNode;
+    } else if (target->type() == Q3DSGraphObject::DefaultMaterial) {
+        object = new Q3DSDefaultMaterial;
+    } else if (target->type() == Q3DSGraphObject::ReferencedMaterial) {
+        object = new Q3DSReferencedMaterial;
+    } else if (target->type() == Q3DSGraphObject::CustomMaterial) {
+        object = new Q3DSCustomMaterialInstance;
+    } else if (target->type() == Q3DSGraphObject::Behavior) {
+        object = new Q3DSBehaviorInstance;
+    } else if (target->type() == Q3DSGraphObject::Image) {
+        object = new Q3DSImage;
+    } else if (target->type() == Q3DSGraphObject::Alias) {
+        // The editor should prevent this situation, but still possible
+        qWarning("Q3DSUipPresentation: Alias nodes can not reference objects with Aliases '%s'", target->id().constData());
+    } else {
+        qWarning("Q3DSUipPresentation: Tried to clone an unhandled type in Alias '%s'", target->id().constData());
+    }
+    if (object) {
+        Q3DSPropertyChangeList props;
+        const auto propertyNames = target->propertyNames();
+        const auto propertyValues = target->propertyValues();
+        for (int i = 0; i < propertyNames.count() ; ++i) {
+            const auto propertyName = propertyNames.at(i);
+            const auto propertyValue = propertyValues.at(i);
+            // for the root item, don't apply Transform and opacity properties
+            // the properties from the Alias node is used for clones
+            if (isRoot && isAliasDefinedProperty(propertyName))
+                continue;
+            props.append(Q3DSPropertyChange::fromVariant(propertyName, propertyValue));
+        }
+        object->applyPropertyChanges(props);
+        object->setName(id);
+        presentation->registerObject(id.toLatin1(), object);
+        presentation->registerDataInputTarget(object);
+        if (parent)
+            parent->appendChildNode(object);
+    }
+
+    // Also create clones of children
+    auto child = target->firstChild();
+    while (child) {
+        clonedObjects.append(cloneObjects(child, idPrefix, presentation, object, false));
+        child = child->nextSibling();
+    }
+
+    ClonedObject clonedObject;
+    clonedObject.original = target;
+    clonedObject.clone = object;
+
+    clonedObjects.append(clonedObject);
+
+    // resolve any new references
+    object->resolveReferences(*presentation);
+
+    return clonedObjects;
+}
+
+void cloneStates(Q3DSAliasNode *alias,
+                 const QVector<Q3DSSlide*> &rootSlides,
+                 const QVector<ClonedObject> &clonedObjects,
+                 Q3DSUipPresentation *presentation)
+{
+    Q_UNUSED(presentation)
+    // The last object in the clonedObjects list is the root object for
+    // the alias. We need to make sure that don't add any property changes
+    // to the transfrom or opacity properties from the orginal item as these
+    // are defined by the alias node itself.
+    const auto rootObject = clonedObjects.last();
+
+    // Figure out which slides contain alias references
+    for (auto slide : rootSlides) {
+        auto currentSlide = slide;
+        while (currentSlide) {
+            if (currentSlide->objects().contains(alias)) {
+                // make sure the clonedOjbects get added to this slide as well
+                for (const auto clonedObject : clonedObjects) {
+                    currentSlide->addObject(clonedObject.clone);
+                    // Properties
+                    Q3DSPropertyChangeList *propertyChanges = currentSlide->propertyChanges().value(clonedObject.original, nullptr);
+                    if (propertyChanges) {
+                        // Create copy
+                        Q3DSPropertyChangeList *propertyChangeListCopy = nullptr;
+                        if (clonedObject.original == rootObject.original) {
+                            // Copy changes that dont effect transform or opacity
+                            propertyChangeListCopy = new Q3DSPropertyChangeList;
+                            for (auto propertyChange : *propertyChanges) {
+                                const QString propertyName = propertyChange.name().toString();
+                                if (isAliasDefinedProperty(propertyName))
+                                    continue;
+                                propertyChangeListCopy->append(Q3DSPropertyChange(propertyChange));
+                            }
+                        } else {
+                            // Regular copy
+                            propertyChangeListCopy = new Q3DSPropertyChangeList(*propertyChanges);
+                        }
+                        currentSlide->addPropertyChanges(clonedObject.clone, propertyChangeListCopy);
+                    }
+                    // Animations
+                    for (const auto &animation : currentSlide->animations()) {
+                        if (animation.target() == clonedObject.original) {
+                            // make a copy and set its target to the clone object
+                            if (clonedObject.original == rootObject.original) {
+                                // If this is the root node and the animation effects
+                                // a transform or opacity property, then we skip adding
+                                // it to the copy
+                                const auto property = animation.property();
+                                if (property.contains(QStringLiteral("rotation")) ||
+                                    property.contains(QStringLiteral("position")) ||
+                                    property.contains(QStringLiteral("scale")) ||
+                                    property.contains(QStringLiteral("piviot")) ||
+                                    property.contains(QStringLiteral("opacity")))
+                                    continue;
+                            }
+
+                            Q3DSAnimationTrack cloneAnimation(animation.type(), clonedObject.clone, animation.property());
+                            cloneAnimation.setDynamic(animation.isDynamic());
+                            cloneAnimation.setKeyFrames(animation.keyFrames());
+                            currentSlide->addAnimation(cloneAnimation);
+                        }
+                    }
+
+                    // Actions
+                    for (auto action : currentSlide->actions()) {
+                        if (action.owner == clonedObject.original) {
+                            // ### make a copy who's owner is the clone object
+                        }
+                    }
+                }
+            }
+            if (currentSlide == slide)
+                currentSlide = static_cast<Q3DSSlide*>(currentSlide->firstChild());
+            else
+                currentSlide = static_cast<Q3DSSlide*>(currentSlide->nextSibling());
+        }
+    }
+}
+}
+
+void Q3DSUipPresentation::resolveAliases()
+{
+    // For each Alias Node in the scene create a copy of the object subtree
+    QVector<Q3DSAliasNode*> aliases;
+    Q3DSUipPresentation::forAllObjectsOfType(scene(), Q3DSGraphObject::Alias, [&aliases](Q3DSGraphObject *node){
+        aliases.append(static_cast<Q3DSAliasNode*>(node));
+    });
+    for (auto alias : aliases) {
+        if (!alias->referencedNode())
+            continue;
+
+        QString aliasPrefix = alias->id() + QStringLiteral("_");
+        // Create referenceNode subtree clone
+        auto clonedObjects = cloneObjects(alias->referencedNode(), aliasPrefix, this, alias);
+
+        // Create state entities for clones
+
+        // Create a list of root slides (master + component masters)
+        QVector<Q3DSSlide *> rootSlides;
+        rootSlides << masterSlide();
+        Q3DSUipPresentation::forAllObjectsOfType(scene(), Q3DSGraphObject::Component, [&rootSlides](Q3DSGraphObject *object){
+           auto component = static_cast<Q3DSComponentNode*>(object);
+           if (component)
+               rootSlides << component->masterSlide();
+        });
+
+        cloneStates(alias, rootSlides, clonedObjects, this);
+    }
+
+}
+
 /*!
     Maps a raw XML filename ref like ".\Headphones\meshes\Headphones.mesh#1"
     onto a fully qualified filename that can be opened as-is (even if the uip

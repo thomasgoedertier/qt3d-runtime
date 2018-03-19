@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<UIP version="3" >
+	<Project >
+		<ProjectSettings author="" company="" presentationWidth="1920" presentationHeight="1080" maintainAspect="False" >
+			<CustomColors count="16" >#ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff</CustomColors>
+		</ProjectSettings>
+		<Graph >
+			<Scene id="Scene" >
+				<Layer id="Layer" >
+					<Camera id="Camera" />
+					<Light id="Light" />
+					<Alias id="Alias" referencednode="#Cone" />
+					<Model id="Cone" >
+						<Material id="Default" name="Default" />
+						<Model id="Cylinder" >
+							<Material id="Default_001" name="Default" />
+						</Model>
+					</Model>
+					<Model id="Cube" >
+						<Material id="Default_002" name="Default" />
+						<Model id="Sphere" >
+							<Material id="Default_003" name="Default" />
+						</Model>
+					</Model>
+					<Alias id="Alias2" referencednode="#Cube" />
+					<Alias id="Alias3" referencednode="#Cube" />
+					<Component id="Component" >
+						<Alias id="Alias_001" referencednode="#Cone" />
+					</Component>
+					<Component id="Component2" >
+						<Alias id="Alias_002" referencednode="#Cube" />
+					</Component>
+				</Layer>
+			</Scene>
+		</Graph>
+		<Logic >
+			<State name="Master Slide" component="#Scene" playmode="Looping" >
+				<Add ref="#Layer" endtime="2000" />
+				<Add ref="#Camera" endtime="2000" />
+				<Add ref="#Light" endtime="2000" />
+				<Add ref="#Cube" name="Cube" endtime="2000" position="-406.711 -191.167 0" rotation="-29.6396 -9.23137 4.84142" scale="1.13842 0.98 1.47" sourcepath="#Cube" />
+				<Add ref="#Default_002" />
+				<Add ref="#Sphere" name="Sphere" endtime="2000" position="0 50 0" sourcepath="#Sphere" >
+					<AnimationTrack property="position.x" type="EaseInOut" >0 0 100 100 0.98 0 100 100 2 0 100 100</AnimationTrack>
+					<AnimationTrack property="position.y" type="EaseInOut" >0 50 100 100 0.98 10 100 100 2 50 100 100</AnimationTrack>
+					<AnimationTrack property="position.z" type="EaseInOut" >0 0 100 100 0.98 0 100 100 2 0 100 100</AnimationTrack>
+				</Add>
+				<Add ref="#Default_003" />
+				<Add ref="#Alias2" name="Alias2" endtime="2000" position="314.27 143.707 0" />
+				<State id="Scene-Slide1" name="Slide1" >
+					<Set ref="#Sphere" position="0 50 0" >
+						<AnimationTrack property="position.x" type="EaseInOut" >0 0 100 100 0.98 0 100 100 2 0 100 100</AnimationTrack>
+						<AnimationTrack property="position.y" type="EaseInOut" >0 50 100 100 0.98 10 100 100 2 50 100 100</AnimationTrack>
+						<AnimationTrack property="position.z" type="EaseInOut" >0 0 100 100 0.98 0 100 100 2 0 100 100</AnimationTrack>
+					</Set>
+					<Add ref="#Alias" name="Alias" position="256.58 0 0" >
+						<Action id="Alias-Action" eyeball="True" triggerObject="#Alias" event="onPressureDown" targetObject="#Alias" handler="Set Property" >
+							<HandlerArgument name="Property Name" type="String" argtype="Property" value="position" />
+							<HandlerArgument name="Property Value" type="Float3" argtype="Dependent" />
+						</Action>
+					</Add>
+					<Add ref="#Cone" name="Cone" position="-304.023 0 0" sourcepath="#Cone" >
+						<AnimationTrack property="rotation.x" type="EaseInOut" >0 0 100 100</AnimationTrack>
+						<AnimationTrack property="rotation.y" type="EaseInOut" >0 0 100 100</AnimationTrack>
+						<AnimationTrack property="rotation.z" type="EaseInOut" >0 0 100 100</AnimationTrack>
+					</Add>
+					<Add ref="#Default" />
+					<Add ref="#Cylinder" name="Cylinder" position="0 -49.867 0" sourcepath="#Cylinder" />
+					<Add ref="#Default_001" />
+					<Add ref="#Alias3" name="Alias3" rotation="-90 0 0" >
+						<AnimationTrack property="position.x" type="EaseInOut" >0 0 100 100 1.368 -175.771 100 100 5.5 62.867 100 100 8.06 -123.168 100 100 10 0 100 100</AnimationTrack>
+						<AnimationTrack property="position.y" type="EaseInOut" >0 0 100 100 1.368 171.922 100 100 5.5 -210.412 100 100 8.06 -187.318 100 100 10 0 100 100</AnimationTrack>
+						<AnimationTrack property="position.z" type="EaseInOut" >0 0 100 100 1.368 0 100 100 5.5 0 100 100 8.06 0 100 100 10 0 100 100</AnimationTrack>
+						<Action id="Alias3-Action" eyeball="True" triggerObject="#Alias3" event="onPressureDown" targetObject="#Scene" handler="Go to Slide" >
+							<HandlerArgument name="Slide" type="String" argtype="Slide" value="Slide2" />
+						</Action>
+					</Add>
+					<Add ref="#Component" name="Component" position="0 -214.265 0" />
+				</State>
+				<State id="Scene-Slide2" name="Slide2" playmode="Looping" playthroughto="Previous" >
+					<Set ref="#Layer" endtime="2000" />
+					<Set ref="#Camera" endtime="2000" />
+					<Set ref="#Light" endtime="2000" />
+					<Set ref="#Cube" endtime="2000" />
+					<Set ref="#Sphere" endtime="2000" position="0 50 0" >
+						<AnimationTrack property="position.x" type="EaseInOut" >0 0 100 100 1.103 0 100 100 1.72 0 100 100</AnimationTrack>
+						<AnimationTrack property="position.y" type="EaseInOut" >0 50 100 100 1.103 50 100 100 1.72 10 100 100</AnimationTrack>
+						<AnimationTrack property="position.z" type="EaseInOut" >0 0 100 100 1.103 0 100 100 1.72 0 100 100</AnimationTrack>
+					</Set>
+					<Set ref="#Alias2" endtime="2000" />
+					<Add ref="#Component2" name="Component2" endtime="2000" >
+                                                <Action id="Component2-Action" eyeball="True" triggerObject="#Component2" event="onPressureDown" targetObject="#Scene" handler="Go to Slide" >
+							<HandlerArgument name="Slide" type="String" argtype="Slide" value="Slide1" />
+						</Action>
+					</Add>
+				</State>
+			</State>
+			<State name="Master Slide" component="#Component" >
+				<State id="Component-Slide1" name="Slide1" >
+					<Add ref="#Alias_001" name="Alias" rotation="-38 0 0" />
+				</State>
+			</State>
+			<State name="Master Slide" component="#Component2" >
+				<State id="Component2-Slide1" name="Slide1" >
+					<Add ref="#Alias_002" name="Alias" />
+				</State>
+			</State>
+		</Logic>
+	</Project>
+</UIP>

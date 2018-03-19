@@ -369,6 +369,12 @@ public:
     Q3DSLightSource lightSource;
 };
 
+class Q3DSAliasAttached : public Q3DSNodeAttached
+{
+public:
+};
+
+
 class Q3DSModelAttached : public Q3DSNodeAttached
 {
 public:
@@ -677,6 +683,7 @@ private:
 
     Qt3DCore::QEntity *buildGroup(Q3DSGroupNode *group3DS, Q3DSLayerNode *layer3DS, Qt3DCore::QEntity *parent);
     Qt3DCore::QEntity *buildComponent(Q3DSComponentNode *comp3DS, Q3DSLayerNode *layer3DS, Qt3DCore::QEntity *parent);
+    Qt3DCore::QEntity *buildAlias(Q3DSAliasNode *alias3DS, Q3DSLayerNode *layer3DS, Qt3DCore::QEntity *parent);
 
     Qt3DCore::QEntity *buildText(Q3DSTextNode *text3DS, Q3DSLayerNode *layer3DS, Qt3DCore::QEntity *parent);
     void updateText(Q3DSTextNode *text3DS, bool needsNewImage);
