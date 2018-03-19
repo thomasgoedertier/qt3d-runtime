@@ -71,6 +71,7 @@ Rectangle {
         Presentation {
             id: s3dpres
             source: "qrc:/presentation/barrel.uip"
+            onCustomSignalEmitted: customSignalName.text = Date.now() + ": " + name
         }
         ignoredEvents: mouseEvCb.checked ? Studio3D.EnableAllEvents : (Studio3D.IgnoreMouseEvents | Studio3D.IgnoreWheelEvents)
         onRunningChanged: console.log("running: " + s3d.running)
@@ -150,6 +151,12 @@ Rectangle {
         text: "0 FPS"
         anchors.bottom: parent.bottom
         anchors.left: parent.left
+    }
+    Text {
+        id: customSignalName
+        anchors.bottom: parent.bottom
+        anchors.left: fpsCount.right
+        anchors.leftMargin: 8
     }
 
     FileDialog {

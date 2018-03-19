@@ -68,6 +68,7 @@ public:
 
 Q_SIGNALS:
     void sourceChanged();
+    void customSignalEmitted(const QString &name);
 
 protected:
     Q3DSPresentation(Q3DSPresentationPrivate &dd, QObject *parent);

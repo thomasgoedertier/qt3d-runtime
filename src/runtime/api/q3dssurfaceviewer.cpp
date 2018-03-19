@@ -320,6 +320,8 @@ bool Q3DSSurfaceViewerPrivate::createEngine()
     engine->setSurface(windowOrOffscreenSurface);
     qCDebug(lc3DSSurface, "Created engine %p", engine);
 
+    QObject::connect(engine, &Q3DSEngine::customSignalEmitted, presentation, &Q3DSPresentation::customSignalEmitted);
+
     const QString fn = QQmlFile::urlToLocalFileOrQrc(source);
     qCDebug(lc3DSSurface, "source is now %s", qPrintable(fn));
 

@@ -100,6 +100,9 @@ int main(int argc, char *argv[])
     if (!engine->setSource(fn.first()))
         return 0;
 
+    QObject::connect(engine.data(), &Q3DSEngine::customSignalEmitted, engine.data(),
+                     [](const QString &s) { qDebug("Got custom signal %s", qPrintable(s)); });
+
     QScopedPointer<Q3DStudioMainWindow> mw;
     if (noWidgets) {
         if (fullscreen)

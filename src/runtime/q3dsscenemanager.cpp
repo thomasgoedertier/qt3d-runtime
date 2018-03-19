@@ -6529,7 +6529,21 @@ void Q3DSSceneManager::runAction(const Q3DSAction &action)
     }
         break;
     case Q3DSAction::EmitSignal:
-        // ### - to be figured out what "signals" even are in this context
+        // Here we have a target object and a string (a "signal" name). Just
+        // expose this in the public API somehow, no further actions are needed
+        // on the runtime's side.
+    {
+        Q3DSAction::HandlerArgument signalName = action.handlerWithArgType(Q3DSAction::HandlerArgument::Signal);
+        if (signalName.isValid()) {
+            Q3DSGraphObject *target = action.targetObject;
+            if (target && !signalName.value.isEmpty()) {
+                // Ignore target from this point on, it is not useful to expose a
+                // 3DS1-style absolute path nonsense. Just send the name string
+                // further.
+                emit m_engine->customSignalEmitted(signalName.value);
+            }
+        }
+    }
         break;
     case Q3DSAction::GoToSlide:
     {

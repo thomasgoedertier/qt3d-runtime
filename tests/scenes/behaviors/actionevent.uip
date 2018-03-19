@@ -49,6 +49,10 @@
 					<Model id="Cone5" >
 						<Material id="Default_004" name="Default" />
 					</Model>
+					<Model id="Cylinder2" >
+						<Material id="Default_005" name="Default" />
+					</Model>
+					<Text id="Text9" />
 				</Layer>
 				<Layer id="Layer2" >
 					<Camera id="Camera_001" />
@@ -109,11 +113,18 @@
 					<Add ref="#Text8" name="Text8" font="TitilliumWeb-Regular" position="229.375 -154.527 7.02502" textstring="Jump" />
 					<Add ref="#Cone5" name="Cone5" position="225.507 -191.414 10.6989" rotation="0 0 180" scale="0.504148 0.530642 1" sourcepath="#Cone" >
 						<Action id="Cone5-Action" eyeball="True" triggerObject="#Cone5" event="onPressureDown" targetObject="#Scene" handler="Go to Time" >
-                                                        <HandlerArgument name="Time" type="String" value="5000" />
+							<HandlerArgument name="Time" type="String" value="5000" />
 							<HandlerArgument name="Pause" type="Bool" />
 						</Action>
 					</Add>
 					<Add ref="#Default_004" />
+					<Add ref="#Cylinder2" name="Cylinder2" position="-378.689 346.001 -40.6418" rotation="-48.0485 -40.9596 33.5769" scale="0.749133 0.305814 1" sourcepath="#Cylinder" >
+						<Action id="Cylinder2-Action" eyeball="True" triggerObject="#Cylinder2" event="onPressureDown" targetObject="#Cylinder2" handler="Emit Signal" >
+							<HandlerArgument name="Signal Name" type="String" argtype="Signal" value="MyCustomSignal" />
+						</Action>
+					</Add>
+					<Add ref="#Default_005" />
+					<Add ref="#Text9" name="Text9" font="TitilliumWeb-Regular" position="-419.637 445.422 0" textstring="Emit signal" />
 					<Add ref="#Layer2" name="Layer2" background="Transparent" blendtype="Normal" disabledepthtest="False" />
 					<Add ref="#Camera_001" />
 					<Add ref="#Light_001" />
