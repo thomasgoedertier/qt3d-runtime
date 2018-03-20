@@ -124,27 +124,33 @@ Rectangle {
         Button {
             text: "Move to other window"
             onClicked: if (s3d.parent === wroot) s3d.parent = root; else s3d.parent = wroot
+            focusPolicy: Qt.NoFocus
         }
         Button {
             text: "Open barrel without background"
             onClicked: s3dpres.source = "qrc:/presentation/barrel_no_background.uip"
+            focusPolicy: Qt.NoFocus
         }
         Button {
             text: "Animate opacity"
             onClicked: opacityAnimation.running = true
+            focusPolicy: Qt.NoFocus
         }
         Button {
             text: "Reload"
             onClicked: s3dpres.reload()
+            focusPolicy: Qt.NoFocus
         }
         Button {
             text: "Open"
             onClicked: openDialog.open()
+            focusPolicy: Qt.NoFocus
         }
         CheckBox {
             id: mouseEvCb
             text: "Let mouse events through"
             checked: true
+            focusPolicy: Qt.NoFocus
         }
         Button {
             text: "Fire event"
@@ -152,6 +158,7 @@ Rectangle {
             // name but creating a working dialog with Quick Controls 2 is way
             // beyond my modest skills, apparently.
             onClicked: s3dpres.fireEvent("Scene.Layer.Camera", "customCameraEvent") // in actionevent.uip this will change the sphere's color
+            focusPolicy: Qt.NoFocus
         }
         Button {
             text: "Toggle camera"
@@ -159,6 +166,7 @@ Rectangle {
                 var v = s3dpres.getAttribute("Scene.Layer.Camera", "eyeball")
                 s3dpres.setAttribute("Scene.Layer.Camera", "eyeball", !v)
             }
+            focusPolicy: Qt.NoFocus
         }
     }
 
@@ -192,12 +200,14 @@ Rectangle {
         anchors.left: parent.left
         anchors.bottom: fpsCount.top
         onClicked: s3dpres.goToSlide("Scene", true, true)
+        focusPolicy: Qt.NoFocus
     }
     Button {
         text: "Seek to 5 seconds"
         anchors.left: nextSlideByIndex.right
         anchors.bottom: fpsCount.top
         onClicked: s3dpres.goToTime("Scene", 5)
+        focusPolicy: Qt.NoFocus
     }
 
     FileDialog {
