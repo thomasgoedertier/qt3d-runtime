@@ -91,10 +91,7 @@ QVariant Q3DSBehaviorObject::getAttribute(const QString &handle, const QString &
         const QStringList vecCompRef = attribute.split(QLatin1Char('.'), QString::SkipEmptyParts);
         if (vecCompRef.count() != 2)
             return 0;
-        const int idx = obj->propertyNames().indexOf(vecCompRef[0]);
-        if (idx < 0)
-            return 0;
-        const QVariant value = obj->propertyValues().at(idx);
+        const QVariant value = obj->propertyValue(vecCompRef[0]);
         switch (value.type()) {
         case QVariant::Vector2D:
             if (vecCompRef[1] == QStringLiteral("x"))
@@ -123,10 +120,7 @@ QVariant Q3DSBehaviorObject::getAttribute(const QString &handle, const QString &
         }
     }
 
-    const int idx = obj->propertyNames().indexOf(attribute);
-    if (idx < 0)
-        return 0;
-    const QVariant value = obj->propertyValues().at(idx);
+    const QVariant value = obj->propertyValue(attribute);
     if (value.type() == QVariant::Vector2D || value.type() == QVariant::Vector3D || value.type() == QVariant::Color)
         return Q3DS::convertFromVariant(value);
     return value;
@@ -150,9 +144,8 @@ void Q3DSBehaviorObject::setAttribute(const QString &handle, const QString &attr
         // for example, setAttribute("rotation.y", 45)
         const QStringList vecCompRef = attribute.split(QLatin1Char('.'), QString::SkipEmptyParts);
         if (vecCompRef.count() == 2) {
-            const int idx = obj->propertyNames().indexOf(vecCompRef[0]);
-            if (idx >= 0) {
-                QVariant newValue = obj->propertyValues().at(idx);
+            QVariant newValue = obj->propertyValue(vecCompRef[0]);
+            if (!newValue.isNull()) {
                 switch (newValue.type()) {
                 case QVariant::Vector2D:
                 {

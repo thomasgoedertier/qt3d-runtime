@@ -72,6 +72,10 @@ public:
 
     virtual void handleDataInputValue(const QString &name, const QVariant &value);
     virtual void handleFireEvent(const QString &elementPath, const QString &eventName);
+    virtual void handleGoToTime(const QString &elementPath, float timeSeconds);
+    virtual void handleGoToSlideByName(const QString &elementPath, const QString &name);
+    virtual QVariant handleGetAttribute(const QString &elementPath, const QString &attribute);
+    virtual void handleSetAttribute(const QString &elementPath, const QString &attributeName, const QVariant &value);
 
 protected:
     Q3DSEngine *m_pcEngine = nullptr; // don't want clashes with commonly used m_engine members

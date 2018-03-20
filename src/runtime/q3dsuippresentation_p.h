@@ -343,6 +343,7 @@ public:
     QString typeAsString() const;
     virtual QStringList propertyNames() const;
     virtual QVariantList propertyValues() const;
+    QVariant propertyValue(const QString &name) const;
 
     // Properties
     QByteArray id() const { return m_id; } // always unique

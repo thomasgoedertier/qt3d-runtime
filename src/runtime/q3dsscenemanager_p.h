@@ -626,6 +626,8 @@ public:
     Qt3DCore::QEntity *getRootEntity() const { return m_rootEntity; }
 
     void setDataInputValue(const QString &dataInputName, const QVariant &value);
+    void changeSlideByName(Q3DSGraphObject *sceneOrComponent, const QString &name);
+    void goToTime(Q3DSGraphObject *sceneOrComponent, float milliseconds, bool pause = false);
 
     void queueEvent(const Q3DSGraphObject::Event &e);
 
@@ -731,8 +733,6 @@ private:
     void handleEvent(const Q3DSGraphObject::Event &e);
     void flushEventQueue();
     void runAction(const Q3DSAction &action);
-
-    void changeSlideByName(Q3DSGraphObject *sceneOrComponent, const QString &name);
 
     Qt3DRender::QAbstractTexture *dummyTexture();
 

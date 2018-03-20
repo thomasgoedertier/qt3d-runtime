@@ -1,5 +1,6 @@
 SOURCES += \
     $$PWD/q3dspresentation.cpp \
+    $$PWD/q3dspresentationcontroller.cpp \
     $$PWD/q3dssurfaceviewer.cpp
 
 HEADERS += \

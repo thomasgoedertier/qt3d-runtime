@@ -141,6 +141,8 @@ public:
 
     void setDataInputValue(const QString &name, const QVariant &value);
     void fireEvent(Q3DSGraphObject *target, Q3DSUipPresentation *presentation, const QString &event);
+    void goToTime(Q3DSGraphObject *context, Q3DSUipPresentation *presentation, float milliseconds);
+    void goToSlideByName(Q3DSGraphObject *context, Q3DSUipPresentation *presentation, const QString &name);
 
     void handleKeyPressEvent(QKeyEvent *e);
     void handleKeyReleaseEvent(QKeyEvent *e);
@@ -179,8 +181,8 @@ Q_SIGNALS:
     void nextFrameStarting();
     void grabReady(const QImage &image);
     void customSignalEmitted(const QString &elementPath, const QString &name);
-    void slideEntered(const QString &elementPath, int index, const QString &name);
-    void slideExited(const QString &elementPath, int index, const QString &name);
+    void slideEntered(const QString &sceneOrComponentPath, int index, const QString &name);
+    void slideExited(const QString &sceneOrComponentPath, int index, const QString &name);
 
 private:
     Q_DISABLE_COPY(Q3DSEngine)

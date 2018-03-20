@@ -153,6 +153,13 @@ Rectangle {
             // beyond my modest skills, apparently.
             onClicked: s3dpres.fireEvent("Scene.Layer.Camera", "customCameraEvent") // in actionevent.uip this will change the sphere's color
         }
+        Button {
+            text: "Toggle camera"
+            onClicked: {
+                var v = s3dpres.getAttribute("Scene.Layer.Camera", "eyeball")
+                s3dpres.setAttribute("Scene.Layer.Camera", "eyeball", !v)
+            }
+        }
     }
 
     Text {

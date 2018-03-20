@@ -1216,6 +1216,28 @@ void Q3DSEngine::fireEvent(Q3DSGraphObject *target, Q3DSUipPresentation *present
     }
 }
 
+void Q3DSEngine::goToTime(Q3DSGraphObject *context, Q3DSUipPresentation *presentation, float milliseconds)
+{
+    for (const UipPresentation &pres : qAsConst(m_uipPresentations)) {
+        if (pres.presentation == presentation) {
+            if (pres.sceneManager)
+                pres.sceneManager->goToTime(context, milliseconds);
+            break;
+        }
+    }
+}
+
+void Q3DSEngine::goToSlideByName(Q3DSGraphObject *context, Q3DSUipPresentation *presentation, const QString &name)
+{
+    for (const UipPresentation &pres : qAsConst(m_uipPresentations)) {
+        if (pres.presentation == presentation) {
+            if (pres.sceneManager)
+                pres.sceneManager->changeSlideByName(context, name);
+            break;
+        }
+    }
+}
+
 void Q3DSEngine::loadBehaviorInstance(Q3DSBehaviorInstance *behaviorInstance,
                                       Q3DSUipPresentation *pres,
                                       BehaviorLoadedCallback callback)

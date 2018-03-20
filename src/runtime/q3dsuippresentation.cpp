@@ -807,6 +807,12 @@ QVariantList Q3DSGraphObject::propertyValues() const
     return QVariantList() << QString::fromUtf8(m_id) << m_name << m_startTime << m_endTime;
 }
 
+QVariant Q3DSGraphObject::propertyValue(const QString &name) const
+{
+    const int idx = propertyNames().indexOf(name);
+    return idx >= 0 ? propertyValues().at(idx) : QVariant();
+}
+
 // The property conversion functions all follow the same pattern:
 // 1. Check if a value is provided explicitly in the attribute list.
 // 2. Then, when PropSetDefaults is set, see if the metadata provided a default value.
