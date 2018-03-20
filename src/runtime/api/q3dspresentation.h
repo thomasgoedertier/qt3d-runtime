@@ -33,6 +33,7 @@
 #include <Qt3DStudioRuntime2/q3dsruntimeglobal.h>
 #include <QtCore/qobject.h>
 #include <QtCore/qurl.h>
+#include <QtCore/qvariant.h>
 
 QT_BEGIN_NAMESPACE
 
