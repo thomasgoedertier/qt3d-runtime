@@ -39,6 +39,8 @@
 #include <QQuickRenderControl>
 #include <QOffscreenSurface>
 #include <QQmlFile>
+#include <QQmlEngine>
+#include <QQmlContext>
 #include <QGuiApplication>
 #include <private/q3dsengine_p.h>
 #include <private/q3dsutils_p.h>
@@ -172,6 +174,11 @@ void Q3DSStudio3DItem::createEngine()
         // Rendering will be driven manually from the Quick render thread via the QRenderAspect.
         // We create the render aspect ourselves on the Quick render thread.
         m_engine->setFlags(Q3DSEngine::WithoutRenderAspect);
+
+        // Use our QQmlEngine for QML subpresentations and behavior scripts.
+        QQmlEngine *qmlEngine = QQmlEngine::contextForObject(this)->engine();
+        m_engine->setSharedSubPresentationQmlEngine(qmlEngine);
+        m_engine->setSharedBehaviorQmlEngine(qmlEngine);
 
         initializePresentationController(m_engine, m_presentation);
 

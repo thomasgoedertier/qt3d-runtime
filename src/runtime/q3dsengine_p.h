@@ -100,6 +100,9 @@ public:
     void setFlags(Flags flags);
     void setFlag(Flag flag, bool enabled);
 
+    void setSharedSubPresentationQmlEngine(QQmlEngine *qmlEngine);
+    void setSharedBehaviorQmlEngine(QQmlEngine *qmlEngine);
+
     // Load presentation from a uip/uia file.
     bool setSource(const QString &uipOrUiaFileName, QString *error = nullptr);
     QString source() const;
@@ -240,7 +243,8 @@ private:
     QVector<QmlPresentation> m_qmlPresentations;
     Q3DSDataInputEntry::Map m_dataInputEntries;
 
-    QScopedPointer<QQmlEngine> m_qmlEngine;
+    QQmlEngine *m_qmlSubPresentationEngine = nullptr;
+    bool m_ownsQmlSubPresentationEngine = false;
     QScopedPointer<Qt3DCore::QAspectEngine> m_aspectEngine;
 
     qint64 m_loadTime = 0;
@@ -258,6 +262,7 @@ private:
     bool m_profileUiEnabled = true;
 
     QQmlEngine *m_behaviorQmlEngine = nullptr;
+    bool m_ownsBehaviorQmlEngine = false;
     BehaviorMap m_behaviorHandles;
 
     QPoint m_lastMousePressPos;

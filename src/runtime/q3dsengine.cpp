@@ -321,6 +321,18 @@ void Q3DSEngine::setFlag(Flag flag, bool enabled)
     m_flags.setFlag(flag, enabled);
 }
 
+void Q3DSEngine::setSharedSubPresentationQmlEngine(QQmlEngine *qmlEngine)
+{
+    m_qmlSubPresentationEngine = qmlEngine;
+    m_ownsQmlSubPresentationEngine = false;
+}
+
+void Q3DSEngine::setSharedBehaviorQmlEngine(QQmlEngine *qmlEngine)
+{
+    m_behaviorQmlEngine = qmlEngine;
+    m_ownsBehaviorQmlEngine = false;
+}
+
 bool Q3DSEngine::setSource(const QString &uipOrUiaFileName, QString *error)
 {
     if (!m_surface) {
@@ -728,8 +740,10 @@ bool Q3DSEngine::loadSubQmlPresentation(QmlPresentation *pres)
 {
     Q_ASSERT(pres);
     Q_ASSERT(pres->qmlDocument);
-    if (m_qmlEngine.isNull())
-        m_qmlEngine.reset(new QQmlEngine);
+    if (!m_qmlSubPresentationEngine) {
+        m_qmlSubPresentationEngine = new QQmlEngine;
+        m_ownsQmlSubPresentationEngine = true;
+    }
 
     Qt3DCore::QNode *entityParent = m_uipPresentations[0].q3dscene.rootEntity;
     QQmlComponent *component;
@@ -743,12 +757,10 @@ bool Q3DSEngine::loadSubQmlPresentation(QmlPresentation *pres)
         } else {
             sourceUrl = qmlSource;
         }
-        component = new QQmlComponent(m_qmlEngine.data(),
-                                      sourceUrl);
+        component = new QQmlComponent(m_qmlSubPresentationEngine, sourceUrl);
     } else {
-        component = new QQmlComponent(m_qmlEngine.data());
-        component->setData(pres->qmlDocument->sourceData(),
-                           QUrl());
+        component = new QQmlComponent(m_qmlSubPresentationEngine);
+        component->setData(pres->qmlDocument->sourceData(), QUrl());
     }
 
     if (component->isReady()) {
@@ -907,7 +919,11 @@ void Q3DSEngine::destroy()
     for (const auto &h : m_behaviorHandles)
         destroyBehaviorHandle(h);
     m_behaviorHandles.clear();
-    delete m_behaviorQmlEngine;
+
+    if (m_ownsBehaviorQmlEngine) {
+        m_ownsBehaviorQmlEngine = false;
+        delete m_behaviorQmlEngine;
+    }
     m_behaviorQmlEngine = nullptr;
 
     for (UipPresentation &pres : m_uipPresentations) {
@@ -928,6 +944,12 @@ void Q3DSEngine::destroy()
         delete pres.qmlDocument;
 
     m_qmlPresentations.clear();
+
+    if (m_ownsQmlSubPresentationEngine) {
+        m_ownsQmlSubPresentationEngine = false;
+        delete m_qmlSubPresentationEngine;
+    }
+    m_qmlSubPresentationEngine = nullptr;
 
     // wish I knew why this is needed. Qt 3D tends not to shut down its threads correctly on exit otherwise.
     if (m_aspectEngine)
@@ -1355,10 +1377,11 @@ void Q3DSEngine::loadBehaviors()
 
     if (!m_behaviorQmlEngine) {
         m_behaviorQmlEngine = new QQmlEngine;
-        qmlRegisterType<Q3DSBehaviorObject>("QtStudio3D.Behavior", 1, 0, "Behavior");
-        qmlRegisterType<Q3DSBehaviorObject, 1>("QtStudio3D.Behavior", 1, 1, "Behavior");
-        qmlRegisterType<Q3DSBehaviorObject, 2>("QtStudio3D.Behavior", 2, 0, "Behavior");
+        m_ownsBehaviorQmlEngine = true;
     }
+    qmlRegisterType<Q3DSBehaviorObject>("QtStudio3D.Behavior", 1, 0, "Behavior");
+    qmlRegisterType<Q3DSBehaviorObject, 1>("QtStudio3D.Behavior", 1, 1, "Behavior");
+    qmlRegisterType<Q3DSBehaviorObject, 2>("QtStudio3D.Behavior", 2, 0, "Behavior");
 
     for (auto biPresPair : behaviorInstances) {
         Q3DSBehaviorInstance *behaviorInstance = biPresPair.first;
