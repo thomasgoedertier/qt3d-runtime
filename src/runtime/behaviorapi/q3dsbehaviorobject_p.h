@@ -48,7 +48,7 @@
 #include <QVector2D>
 #include <QVector3D>
 #include <QMatrix4x4>
-#include "q3dsuippresentation_p.h"
+#include <private/q3dsuippresentation_p.h>
 
 QT_BEGIN_NAMESPACE
 
