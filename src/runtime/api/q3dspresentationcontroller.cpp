@@ -36,9 +36,21 @@ void Q3DSPresentationController::initializePresentationController(Q3DSEngine *en
 {
     m_pcEngine = engine;
 
-    QObject::connect(engine, &Q3DSEngine::customSignalEmitted, presentation, &Q3DSPresentation::customSignalEmitted);
-    QObject::connect(engine, &Q3DSEngine::slideEntered, presentation, &Q3DSPresentation::slideEntered);
-    QObject::connect(engine, &Q3DSEngine::slideExited, presentation, &Q3DSPresentation::slideExited);
+    QObject::connect(engine, &Q3DSEngine::customSignalEmitted, engine,
+                     [engine, presentation](Q3DSGraphObject *obj, const QString &name)
+    {
+        emit presentation->customSignalEmitted(engine->makePath(obj), name);
+    });
+    QObject::connect(engine, &Q3DSEngine::slideEntered, engine,
+                     [engine, presentation](Q3DSGraphObject *context, int index, const QString &name)
+    {
+        emit presentation->slideEntered(engine->makePath(context), index, name);
+    });
+    QObject::connect(engine, &Q3DSEngine::slideExited, engine,
+                     [engine, presentation](Q3DSGraphObject *context, int index, const QString &name)
+    {
+        emit presentation->slideExited(engine->makePath(context), index, name);
+    });
 }
 
 void Q3DSPresentationController::handlePresentationKeyPressEvent(QKeyEvent *e)

@@ -6483,17 +6483,16 @@ void Q3DSSceneManager::handleEvent(const Q3DSGraphObject::Event &e)
         slide = e.args.at(0).value<Q3DSSlide *>();
         const int index = e.args.at(1).toInt();
         if (slide) {
-            // elementPath is the either the scene or the component
-            const QString elementPath = m_engine->makePath(e.target);
+            Q3DSGraphObject *sceneOrComponent = e.target;
             // the slide name is provided as-is since the editor does unique
             // names for them by default
             QString name = slide->name();
             if (name.isEmpty())
                 name = QString::fromUtf8(slide->id());
             if (isSlideEnter)
-                emit m_engine->slideEntered(elementPath, index, name);
+                emit m_engine->slideEntered(sceneOrComponent, index, name);
             else
-                emit m_engine->slideExited(elementPath, index, name);
+                emit m_engine->slideExited(sceneOrComponent, index, name);
         }
     }
 }
@@ -6554,7 +6553,7 @@ void Q3DSSceneManager::runAction(const Q3DSAction &action)
         if (signalName.isValid()) {
             Q3DSGraphObject *target = action.targetObject;
             if (target && !signalName.value.isEmpty())
-                emit m_engine->customSignalEmitted(m_engine->makePath(target), signalName.value);
+                emit m_engine->customSignalEmitted(target, signalName.value);
         }
     }
         break;

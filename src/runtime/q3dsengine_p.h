@@ -167,6 +167,9 @@ public:
 
     QPoint lastMousePressPos() const { return m_lastMousePressPos; }
 
+    // These two functions are the only place where the elementPath concept is
+    // present in the engine (so that mappings can be made for the 3DS1-style
+    // APIs). Proper objects must be used everywhere else.
     Q3DSGraphObject *findObjectByNameOrPath(Q3DSGraphObject *thisObject,
                                             Q3DSUipPresentation *defaultPresentation,
                                             const QString &nameOrPath,
@@ -180,9 +183,9 @@ Q_SIGNALS:
     void presentationLoaded();
     void nextFrameStarting();
     void grabReady(const QImage &image);
-    void customSignalEmitted(const QString &elementPath, const QString &name);
-    void slideEntered(const QString &sceneOrComponentPath, int index, const QString &name);
-    void slideExited(const QString &sceneOrComponentPath, int index, const QString &name);
+    void customSignalEmitted(Q3DSGraphObject *obj, const QString &name);
+    void slideEntered(Q3DSGraphObject *context, int index, const QString &name);
+    void slideExited(Q3DSGraphObject *context, int index, const QString &name);
 
 private:
     Q_DISABLE_COPY(Q3DSEngine)
