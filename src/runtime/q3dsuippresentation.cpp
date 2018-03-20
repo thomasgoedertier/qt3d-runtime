@@ -3616,10 +3616,16 @@ QString Q3DSUipPresentation::assetFileName(const QString &xmlFileNameRef, int *p
     if (QFileInfo(rawName).isAbsolute())
         return rawName;
 
-    QString fn = QFileInfo(d->sourceFile).canonicalPath();
-    fn += QLatin1Char('/');
-    fn += rawName;
-    return QFileInfo(fn).absoluteFilePath();
+    QString path;
+    if (d->sourceFile.isEmpty()) {
+        path = QFileInfo(rawName).canonicalFilePath();
+    } else {
+        QString fn = QFileInfo(d->sourceFile).canonicalPath();
+        fn += QLatin1Char('/');
+        fn += rawName;
+        path = QFileInfo(fn).absoluteFilePath();
+    }
+    return path;
 }
 
 void Q3DSUipPresentation::setSourceFile(const QString &s)
