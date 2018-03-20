@@ -58,6 +58,8 @@ public:
     Q_INVOKABLE void fireEvent(const QString &elementPath, const QString &eventName);
     Q_INVOKABLE void goToTime(const QString &elementPath, float timeSeconds);
     Q_INVOKABLE void goToSlide(const QString &elementPath, const QString &name);
+    Q_INVOKABLE void goToSlide(const QString &elementPath, int index);
+    Q_INVOKABLE void goToSlide(const QString &elementPath, bool next, bool wrap);
     Q_INVOKABLE QVariant getAttribute(const QString &elementPath, const QString &attributeName);
     Q_INVOKABLE void setAttribute(const QString &elementPath, const QString &attributeName, const QVariant &value);
 

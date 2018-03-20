@@ -108,6 +108,20 @@ void Q3DSPresentation::goToSlide(const QString &elementPath, const QString &name
         d->controller->handleGoToSlideByName(elementPath, name);
 }
 
+void Q3DSPresentation::goToSlide(const QString &elementPath, int index)
+{
+    Q_D(Q3DSPresentation);
+    if (d->controller)
+        d->controller->handleGoToSlideByIndex(elementPath, index);
+}
+
+void Q3DSPresentation::goToSlide(const QString &elementPath, bool next, bool wrap)
+{
+    Q_D(Q3DSPresentation);
+    if (d->controller)
+        d->controller->handleGoToSlideByDirection(elementPath, next, wrap);
+}
+
 QVariant Q3DSPresentation::getAttribute(const QString &elementPath, const QString &attributeName)
 {
     Q_D(Q3DSPresentation);

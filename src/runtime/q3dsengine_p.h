@@ -143,6 +143,8 @@ public:
     void fireEvent(Q3DSGraphObject *target, Q3DSUipPresentation *presentation, const QString &event);
     void goToTime(Q3DSGraphObject *context, Q3DSUipPresentation *presentation, float milliseconds);
     void goToSlideByName(Q3DSGraphObject *context, Q3DSUipPresentation *presentation, const QString &name);
+    void goToSlideByIndex(Q3DSGraphObject *context, Q3DSUipPresentation *presentation, int index);
+    void goToSlideByDirection(Q3DSGraphObject *context, Q3DSUipPresentation *presentation, bool next, bool wrap);
 
     void handleKeyPressEvent(QKeyEvent *e);
     void handleKeyReleaseEvent(QKeyEvent *e);

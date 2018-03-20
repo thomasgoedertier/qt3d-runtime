@@ -6377,6 +6377,33 @@ void Q3DSSceneManager::changeSlideByName(Q3DSGraphObject *sceneOrComponent, cons
     }
 }
 
+void Q3DSSceneManager::changeSlideByIndex(Q3DSGraphObject *sceneOrComponent, int index)
+{
+    Q3DSSlidePlayer *slidePlayer = m_slidePlayer;
+    if (sceneOrComponent->type() == Q3DSGraphObject::Component) {
+        slidePlayer = static_cast<Q3DSComponentNode *>(sceneOrComponent)->masterSlide()
+                ->attached<Q3DSSlideAttached>()->slidePlayer;
+    }
+
+    slidePlayer->slideDeck()->setCurrentSlide(index);
+}
+
+void Q3DSSceneManager::changeSlideByDirection(Q3DSGraphObject *sceneOrComponent, bool next, bool wrap)
+{
+    Q3DSSlidePlayer *slidePlayer = m_slidePlayer;
+    if (sceneOrComponent->type() == Q3DSGraphObject::Component) {
+        slidePlayer = static_cast<Q3DSComponentNode *>(sceneOrComponent)->masterSlide()
+                ->attached<Q3DSSlideAttached>()->slidePlayer;
+    }
+
+    if (next)
+        slidePlayer->slideDeck()->nextSlide(wrap);
+    else
+        slidePlayer->slideDeck()->previousSlide(wrap);
+
+    slidePlayer->reload();
+}
+
 void Q3DSSceneManager::goToTime(Q3DSGraphObject *sceneOrComponent, float milliseconds, bool pause)
 {
     Q3DSSlidePlayer *slidePlayer = m_slidePlayer;

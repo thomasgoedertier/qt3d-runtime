@@ -140,6 +140,28 @@ void Q3DSPresentationController::handleGoToSlideByName(const QString &elementPat
         m_pcEngine->goToSlideByName(context, pres, name);
 }
 
+void Q3DSPresentationController::handleGoToSlideByIndex(const QString &elementPath, int index)
+{
+    if (!m_pcEngine)
+        return;
+
+    Q3DSUipPresentation *pres = m_pcEngine->presentation(0);
+    Q3DSGraphObject *context = m_pcEngine->findObjectByNameOrPath(nullptr, pres, elementPath, &pres);
+    if (context)
+        m_pcEngine->goToSlideByIndex(context, pres, index);
+}
+
+void Q3DSPresentationController::handleGoToSlideByDirection(const QString &elementPath, bool next, bool wrap)
+{
+    if (!m_pcEngine)
+        return;
+
+    Q3DSUipPresentation *pres = m_pcEngine->presentation(0);
+    Q3DSGraphObject *context = m_pcEngine->findObjectByNameOrPath(nullptr, pres, elementPath, &pres);
+    if (context)
+        m_pcEngine->goToSlideByDirection(context, pres, next, wrap);
+}
+
 QVariant Q3DSPresentationController::handleGetAttribute(const QString &elementPath, const QString &attribute)
 {
     if (!m_pcEngine)

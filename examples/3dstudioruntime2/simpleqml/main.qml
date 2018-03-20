@@ -186,6 +186,19 @@ Rectangle {
         anchors.left: slideEnter.right
         anchors.leftMargin: 8
     }
+    Button {
+        id: nextSlideByIndex
+        text: "Next slide"
+        anchors.left: parent.left
+        anchors.bottom: fpsCount.top
+        onClicked: s3dpres.goToSlide("Scene", true, true)
+    }
+    Button {
+        text: "Seek to 5 seconds"
+        anchors.left: nextSlideByIndex.right
+        anchors.bottom: fpsCount.top
+        onClicked: s3dpres.goToTime("Scene", 5)
+    }
 
     FileDialog {
         id: openDialog

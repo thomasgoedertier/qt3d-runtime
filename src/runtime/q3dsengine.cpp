@@ -1238,6 +1238,28 @@ void Q3DSEngine::goToSlideByName(Q3DSGraphObject *context, Q3DSUipPresentation *
     }
 }
 
+void Q3DSEngine::goToSlideByIndex(Q3DSGraphObject *context, Q3DSUipPresentation *presentation, int index)
+{
+    for (const UipPresentation &pres : qAsConst(m_uipPresentations)) {
+        if (pres.presentation == presentation) {
+            if (pres.sceneManager)
+                pres.sceneManager->changeSlideByIndex(context, index);
+            break;
+        }
+    }
+}
+
+void Q3DSEngine::goToSlideByDirection(Q3DSGraphObject *context, Q3DSUipPresentation *presentation, bool next, bool wrap)
+{
+    for (const UipPresentation &pres : qAsConst(m_uipPresentations)) {
+        if (pres.presentation == presentation) {
+            if (pres.sceneManager)
+                pres.sceneManager->changeSlideByDirection(context, next, wrap);
+            break;
+        }
+    }
+}
+
 void Q3DSEngine::loadBehaviorInstance(Q3DSBehaviorInstance *behaviorInstance,
                                       Q3DSUipPresentation *pres,
                                       BehaviorLoadedCallback callback)

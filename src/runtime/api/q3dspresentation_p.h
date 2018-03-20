@@ -74,6 +74,8 @@ public:
     virtual void handleFireEvent(const QString &elementPath, const QString &eventName);
     virtual void handleGoToTime(const QString &elementPath, float timeSeconds);
     virtual void handleGoToSlideByName(const QString &elementPath, const QString &name);
+    virtual void handleGoToSlideByIndex(const QString &elementPath, int index);
+    virtual void handleGoToSlideByDirection(const QString &elementPath, bool next, bool wrap);
     virtual QVariant handleGetAttribute(const QString &elementPath, const QString &attribute);
     virtual void handleSetAttribute(const QString &elementPath, const QString &attributeName, const QVariant &value);
 

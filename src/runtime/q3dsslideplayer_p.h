@@ -245,7 +245,7 @@ public:
         return static_cast<Q3DSSlide *>(m_masterSlide->childAtIndex(m_index));
     }
 
-    Q3DSSlide *nextSlide()
+    Q3DSSlide *nextSlide(bool wrap = false)
     {
         if (!m_masterSlide)
             return nullptr;
@@ -256,12 +256,16 @@ public:
         if (m_index < slideCount() - 1) {
             m_previouslyActiveIndex = m_index;
             return static_cast<Q3DSSlide *>(m_masterSlide->childAtIndex(++m_index));
+        } else if (wrap && m_index == slideCount() - 1) {
+            m_previouslyActiveIndex = m_index;
+            m_index = 0;
+            return static_cast<Q3DSSlide *>(m_masterSlide->childAtIndex(m_index));
         } else {
             return nullptr;
         }
     }
 
-    Q3DSSlide *previousSlide()
+    Q3DSSlide *previousSlide(bool wrap = false)
     {
         if (!m_masterSlide)
             return nullptr;
@@ -272,6 +276,10 @@ public:
         if ((m_index > 0) && (m_index < slideCount())) {
             m_previouslyActiveIndex = m_index;
             return static_cast<Q3DSSlide *>(m_masterSlide->childAtIndex(--m_index));
+        } else if (wrap && m_index == 0) {
+            m_previouslyActiveIndex = m_index;
+            m_index = slideCount() - 1;
+            return static_cast<Q3DSSlide *>(m_masterSlide->childAtIndex(m_index));
         } else {
             return nullptr;
         }

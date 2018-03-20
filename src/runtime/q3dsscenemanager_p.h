@@ -627,6 +627,8 @@ public:
 
     void setDataInputValue(const QString &dataInputName, const QVariant &value);
     void changeSlideByName(Q3DSGraphObject *sceneOrComponent, const QString &name);
+    void changeSlideByIndex(Q3DSGraphObject *sceneOrComponent, int index);
+    void changeSlideByDirection(Q3DSGraphObject *sceneOrComponent, bool next, bool wrap);
     void goToTime(Q3DSGraphObject *sceneOrComponent, float milliseconds, bool pause = false);
 
     void queueEvent(const Q3DSGraphObject::Event &e);
