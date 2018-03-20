@@ -225,8 +225,7 @@ void Q3DSWidgetPrivate::createEngine()
     engine->setSurface(q_ptr->window()->windowHandle());
     qCDebug(lc3DSWidget, "Created engine %p", engine);
 
-    setPresentationControllerEngine(engine);
-    QObject::connect(engine, &Q3DSEngine::customSignalEmitted, presentation, &Q3DSPresentation::customSignalEmitted);
+    initializePresentationController(engine, presentation);
 
     const QString fn = QQmlFile::urlToLocalFileOrQrc(source);
     qCDebug(lc3DSWidget, "source is now %s", qPrintable(fn));

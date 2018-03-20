@@ -87,9 +87,9 @@ void Q3DSInputManager::sendMouseEvent(Q3DSGraphObject *target,
     const bool isRelease = !inputState.mousePressed && m_lastSentState.mousePressed;
 
     if (isPress)
-        m_sceneManager->queueEvent(Q3DSSceneManager::Event(target, Q3DSGraphObjectEvents::pressureDownEvent()));
+        m_sceneManager->queueEvent(Q3DSGraphObject::Event(target, Q3DSGraphObjectEvents::pressureDownEvent()));
     if (isRelease)
-        m_sceneManager->queueEvent(Q3DSSceneManager::Event(target, Q3DSGraphObjectEvents::pressureUpEvent()));
+        m_sceneManager->queueEvent(Q3DSGraphObject::Event(target, Q3DSGraphObjectEvents::pressureUpEvent()));
 
     m_lastSentState.mousePressed = m_currentState.mousePressed;
 }

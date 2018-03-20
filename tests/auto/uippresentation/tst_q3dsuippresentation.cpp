@@ -473,37 +473,37 @@ void tst_Q3DSUipPresentation::events()
     const QString event1Key = QLatin1String("some event");
     const QString event2Key = QLatin1String("another event");
     int triggerCount[] = { 0, 0, 0, 0, 0 };
-    int id0 = model1->addEventHandler(event1Key, [model1, &triggerCount, event1Key](Q3DSGraphObject *obj, const QString &event) {
-        if (obj == model1 && event == event1Key)
+    int id0 = model1->addEventHandler(event1Key, [model1, &triggerCount, event1Key](const Q3DSGraphObject::Event &e) {
+        if (e.target == model1 && e.event == event1Key)
             ++triggerCount[0];
     });
-    int id1 = model1->addEventHandler(event1Key, [model1, &triggerCount, event1Key](Q3DSGraphObject *obj, const QString &event) {
-        if (obj == model1 && event == event1Key)
+    int id1 = model1->addEventHandler(event1Key, [model1, &triggerCount, event1Key](const Q3DSGraphObject::Event &e) {
+        if (e.target == model1 && e.event == event1Key)
             ++triggerCount[1];
     });
-    int id2 = model1->addEventHandler(event2Key, [model1, &triggerCount, event2Key](Q3DSGraphObject *obj, const QString &event) {
-        if (obj == model1 && event == event2Key)
+    int id2 = model1->addEventHandler(event2Key, [model1, &triggerCount, event2Key](const Q3DSGraphObject::Event &e) {
+        if (e.target == model1 && e.event == event2Key)
             ++triggerCount[2];
     });
 
-    model1->processEvent(event1Key);
+    model1->processEvent(Q3DSGraphObject::Event(model1, event1Key));
     QCOMPARE(triggerCount[0], 1);
     QCOMPARE(triggerCount[1], 1);
     QCOMPARE(triggerCount[2], 0);
 
-    model1->processEvent(event2Key);
+    model1->processEvent(Q3DSGraphObject::Event(model1, event2Key));
     QCOMPARE(triggerCount[0], 1);
     QCOMPARE(triggerCount[1], 1);
     QCOMPARE(triggerCount[2], 1);
 
     model1->removeEventHandler(event2Key, id2);
-    model1->processEvent(event2Key);
+    model1->processEvent(Q3DSGraphObject::Event(model1, event2Key));
     QCOMPARE(triggerCount[0], 1);
     QCOMPARE(triggerCount[1], 1);
     QCOMPARE(triggerCount[2], 1);
 
     model1->removeEventHandler(event1Key, id1);
-    model1->processEvent(event1Key);
+    model1->processEvent(Q3DSGraphObject::Event(model1, event1Key));
     QCOMPARE(triggerCount[0], 2);
     QCOMPARE(triggerCount[1], 1);
     QCOMPARE(triggerCount[2], 1);
@@ -511,17 +511,17 @@ void tst_Q3DSUipPresentation::events()
     // test bubbling up
     Q3DSGraphObject *model1Parent = model1->parent(); // layer1
     QVERIFY(model1Parent);
-    model1Parent->addEventHandler(event1Key, [model1Parent, &triggerCount, event1Key](Q3DSGraphObject *obj, const QString &event) {
-        if (obj == model1Parent && event == event1Key)
+    model1Parent->addEventHandler(event1Key, [model1Parent, &triggerCount, event1Key](const Q3DSGraphObject::Event &e) {
+        if (e.target == model1Parent && e.event == event1Key)
             ++triggerCount[3];
     });
     Q3DSGraphObject *model1GrandParent = model1Parent->parent(); // scene
     QVERIFY(model1GrandParent);
-    model1GrandParent->addEventHandler(event1Key, [model1GrandParent, &triggerCount, event1Key](Q3DSGraphObject *obj, const QString &event) {
-        if (obj == model1GrandParent && event == event1Key)
+    model1GrandParent->addEventHandler(event1Key, [model1GrandParent, &triggerCount, event1Key](const Q3DSGraphObject::Event &e) {
+        if (e.target == model1GrandParent && e.event == event1Key)
             ++triggerCount[4];
     });
-    model1->processEvent(event1Key);
+    model1->processEvent(Q3DSGraphObject::Event(model1, event1Key));
     QCOMPARE(triggerCount[0], 3);
     QCOMPARE(triggerCount[1], 1);
     QCOMPARE(triggerCount[2], 1);
@@ -529,7 +529,7 @@ void tst_Q3DSUipPresentation::events()
     QCOMPARE(triggerCount[4], 1);
 
     model1->removeEventHandler(event1Key, id0);
-    model1->processEvent(event1Key);
+    model1->processEvent(Q3DSGraphObject::Event(model1, event1Key));
     QCOMPARE(triggerCount[0], 3);
     QCOMPARE(triggerCount[1], 1);
     QCOMPARE(triggerCount[2], 1);
@@ -547,19 +547,19 @@ void tst_Q3DSUipPresentation::eventsCatchAll()
     const QString event1Key = QLatin1String("some event");
     const QString event2Key = QLatin1String("another event");
     int triggerCount[] = { 0, 0 };
-    model1->addEventHandler(QString(), [model1, &triggerCount, event1Key, event2Key](Q3DSGraphObject *obj, const QString &event) {
-        if (obj == model1) {
-            if (event == event1Key)
+    model1->addEventHandler(QString(), [model1, &triggerCount, event1Key, event2Key](const Q3DSGraphObject::Event &e) {
+        if (e.target == model1) {
+            if (e.event == event1Key)
                 ++triggerCount[0];
-            if (event == event2Key)
+            if (e.event == event2Key)
                 ++triggerCount[1];
         }
     });
 
-    model1->processEvent(event1Key);
+    model1->processEvent(Q3DSGraphObject::Event(model1, event1Key));
     QCOMPARE(triggerCount[0], 1);
     QCOMPARE(triggerCount[1], 0);
-    model1->processEvent(event2Key);
+    model1->processEvent(Q3DSGraphObject::Event(model1, event2Key));
     QCOMPARE(triggerCount[0], 1);
     QCOMPARE(triggerCount[1], 1);
 }

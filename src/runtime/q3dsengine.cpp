@@ -1210,7 +1210,7 @@ void Q3DSEngine::fireEvent(Q3DSGraphObject *target, Q3DSUipPresentation *present
     for (const UipPresentation &pres : qAsConst(m_uipPresentations)) {
         if (pres.presentation == presentation) {
             if (pres.sceneManager)
-                pres.sceneManager->queueEvent(Q3DSSceneManager::Event(target, event));
+                pres.sceneManager->queueEvent(Q3DSGraphObject::Event(target, event));
             break;
         }
     }

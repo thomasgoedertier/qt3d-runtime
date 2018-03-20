@@ -72,6 +72,8 @@ Rectangle {
             id: s3dpres
             source: "qrc:/presentation/barrel.uip"
             onCustomSignalEmitted: customSignalName.text = Date.now() + ": " + name
+            onSlideEntered: slideEnter.text = "Entered slide " + name + "(index " + index + ") on " + elementPath
+            onSlideExited: slideExit.text = "Exited slide " + name + "(index " + index + ") on " + elementPath
         }
         ignoredEvents: mouseEvCb.checked ? Studio3D.EnableAllEvents : (Studio3D.IgnoreMouseEvents | Studio3D.IgnoreWheelEvents)
         onRunningChanged: console.log("running: " + s3d.running)
@@ -163,6 +165,18 @@ Rectangle {
         id: customSignalName
         anchors.bottom: parent.bottom
         anchors.left: fpsCount.right
+        anchors.leftMargin: 8
+    }
+    Text {
+        id: slideEnter
+        anchors.bottom: parent.bottom
+        anchors.left: customSignalName.right
+        anchors.leftMargin: 8
+    }
+    Text {
+        id: slideExit
+        anchors.bottom: parent.bottom
+        anchors.left: slideEnter.right
         anchors.leftMargin: 8
     }
 

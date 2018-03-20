@@ -159,6 +159,15 @@ void Q3DSPresentationPrivate::setController(Q3DSPresentationController *c)
     controller->handlePresentationSource(source);
 }
 
+void Q3DSPresentationController::initializePresentationController(Q3DSEngine *engine, Q3DSPresentation *presentation)
+{
+    m_pcEngine = engine;
+
+    QObject::connect(engine, &Q3DSEngine::customSignalEmitted, presentation, &Q3DSPresentation::customSignalEmitted);
+    QObject::connect(engine, &Q3DSEngine::slideEntered, presentation, &Q3DSPresentation::slideEntered);
+    QObject::connect(engine, &Q3DSEngine::slideExited, presentation, &Q3DSPresentation::slideExited);
+}
+
 void Q3DSPresentationController::handlePresentationKeyPressEvent(QKeyEvent *e)
 {
     if (m_pcEngine)

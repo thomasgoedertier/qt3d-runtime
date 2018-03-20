@@ -48,6 +48,7 @@
 #include <QVector2D>
 #include <QVector3D>
 #include <QMatrix4x4>
+#include "q3dsuippresentation_p.h"
 
 QT_BEGIN_NAMESPACE
 
@@ -94,7 +95,7 @@ signals:
     void deactivate();
 
 private:
-    void eventHandler(Q3DSGraphObject *obj, const QString &event);
+    void eventHandler(const Q3DSGraphObject::Event &ev);
 
     Q3DSEngine *m_engine = nullptr;
     Q3DSUipPresentation *m_presentation = nullptr;

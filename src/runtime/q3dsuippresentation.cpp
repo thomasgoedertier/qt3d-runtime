@@ -705,12 +705,15 @@ void Q3DSGraphObject::removeEventHandler(const QString &event, int callbackId)
         (*it)[callbackId] = nullptr;
 }
 
-void Q3DSGraphObject::processEvent(const QString &event)
+void Q3DSGraphObject::processEvent(const Event &e)
 {
-    auto invokeCallbacks = [this, event](const QVector<EventCallback> &v) {
+    Event ev = e;
+    ev.target = this;
+
+    auto invokeCallbacks = [this, ev](const QVector<EventCallback> &v) {
         for (EventCallback callback : v) {
             if (callback)
-                callback(this, event);
+                callback(ev);
         }
     };
 
@@ -720,18 +723,18 @@ void Q3DSGraphObject::processEvent(const QString &event)
         invokeCallbacks(*it);
 
     // then the event-specific ones
-    it = m_eventHandlers.constFind(event);
+    it = m_eventHandlers.constFind(ev.event);
     if (it != m_eventHandlers.constEnd())
         invokeCallbacks(*it);
 
     bool bubbleUp = true;
     // onSlideEnter/Exit for a component slide must not bubble to outside the component
     if (m_type == Component) {
-        if (event == Q3DSGraphObjectEvents::slideEnterEvent() || event == Q3DSGraphObjectEvents::slideExitEvent())
+        if (ev.event == Q3DSGraphObjectEvents::slideEnterEvent() || ev.event == Q3DSGraphObjectEvents::slideExitEvent())
             bubbleUp = false;
     }
     if (bubbleUp && m_parent)
-        m_parent->processEvent(event);
+        m_parent->processEvent(ev);
 }
 
 QString Q3DSGraphObject::typeAsString() const

@@ -178,7 +178,9 @@ Q_SIGNALS:
     void presentationLoaded();
     void nextFrameStarting();
     void grabReady(const QImage &image);
-    void customSignalEmitted(const QString &name);
+    void customSignalEmitted(const QString &elementPath, const QString &name);
+    void slideEntered(const QString &elementPath, int index, const QString &name);
+    void slideExited(const QString &elementPath, int index, const QString &name);
 
 private:
     Q_DISABLE_COPY(Q3DSEngine)

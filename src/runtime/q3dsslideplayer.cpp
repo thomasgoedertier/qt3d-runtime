@@ -564,11 +564,25 @@ void Q3DSSlidePlayer::handleCurrentSlideChanged(Q3DSSlide *slide,
         if (m_type != PlayerType::Slide)
             eventTarget = m_component;
 
-        if (previousSlide)
-            m_sceneManager->queueEvent(Q3DSSceneManager::Event(eventTarget, Q3DSGraphObjectEvents::slideExitEvent()));
+        if (previousSlide) {
+            const QVariantList args {
+                QVariant::fromValue(previousSlide),
+                m_data.slideDeck->indexOfSlide(previousSlide->id())
+            };
+            m_sceneManager->queueEvent(Q3DSGraphObject::Event(eventTarget,
+                                                              Q3DSGraphObjectEvents::slideExitEvent(),
+                                                              args));
+        }
 
-        if (slide)
-            m_sceneManager->queueEvent(Q3DSSceneManager::Event(eventTarget, Q3DSGraphObjectEvents::slideEnterEvent()));
+        if (slide) {
+            const QVariantList args {
+                QVariant::fromValue(slide),
+                m_data.slideDeck->indexOfSlide(slide->id())
+            };
+            m_sceneManager->queueEvent(Q3DSGraphObject::Event(eventTarget,
+                                                              Q3DSGraphObjectEvents::slideEnterEvent(),
+                                                              args));
+        }
 
         // A bit crude, but whatever
         if (m_type == PlayerType::Slide)

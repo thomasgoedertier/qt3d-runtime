@@ -212,9 +212,9 @@ void Q3DSBehaviorObject::registerForEvent(const QString &event, const QJSValue &
     registerForEvent(QString(), event, function);
 }
 
-void Q3DSBehaviorObject::eventHandler(Q3DSGraphObject *obj, const QString &event)
+void Q3DSBehaviorObject::eventHandler(const Q3DSGraphObject::Event &ev)
 {
-    EventDef e(obj, event);
+    EventDef e(ev.target, ev.event);
     auto it = m_eventHandlers.find(e);
     if (it != m_eventHandlers.end())
         it->function.call();
@@ -242,8 +242,7 @@ void Q3DSBehaviorObject::registerForEvent(const QString &handle, const QString &
 
     EventHandlerData d;
     d.function = function;
-    d.callbackId = obj->addEventHandler(event, std::bind(&Q3DSBehaviorObject::eventHandler,
-                                                         this, std::placeholders::_1, std::placeholders::_2));
+    d.callbackId = obj->addEventHandler(event, std::bind(&Q3DSBehaviorObject::eventHandler, this, std::placeholders::_1));
     m_eventHandlers.insert(e, d);
 }
 

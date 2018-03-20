@@ -173,8 +173,7 @@ void Q3DSStudio3DItem::createEngine()
         // We create the render aspect ourselves on the Quick render thread.
         m_engine->setFlags(Q3DSEngine::WithoutRenderAspect);
 
-        setPresentationControllerEngine(m_engine);
-        QObject::connect(m_engine, &Q3DSEngine::customSignalEmitted, m_presentation, &Q3DSPresentation::customSignalEmitted);
+        initializePresentationController(m_engine, m_presentation);
 
         if (QWindow *rw = QQuickRenderControl::renderWindowFor(w)) {
             // rw is the top-level window that is backed by a native window. Do

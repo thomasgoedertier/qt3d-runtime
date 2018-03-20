@@ -55,7 +55,7 @@ class Q3DSV_PRIVATE_EXPORT Q3DSPresentationController
 public:
     virtual ~Q3DSPresentationController() { }
 
-    void setPresentationControllerEngine(Q3DSEngine *engine) { m_pcEngine = engine; }
+    void initializePresentationController(Q3DSEngine *engine, Q3DSPresentation *presentation);
 
     virtual void handlePresentationSource(const QUrl &source) = 0;
     virtual void handlePresentationReload() = 0;

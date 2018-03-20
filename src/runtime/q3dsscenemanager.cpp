@@ -697,8 +697,7 @@ Q3DSSceneManager::Scene Q3DSSceneManager::buildScene(Q3DSUipPresentation *presen
         image->setAttached(data);
         image->addPropertyChangeObserver(std::bind(&Q3DSSceneManager::handlePropertyChange, this,
                                                    std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
-        image->addEventHandler(QString(), std::bind(&Q3DSSceneManager::handleEvent, this,
-                                                    std::placeholders::_1, std::placeholders::_2));
+        image->addEventHandler(QString(), std::bind(&Q3DSSceneManager::handleEvent, this, std::placeholders::_1));
     });
 
     // Build the (offscreen) Qt3D scene
@@ -763,8 +762,7 @@ Q3DSSceneManager::Scene Q3DSSceneManager::buildScene(Q3DSUipPresentation *presen
                                               this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
 
     // And for events too.
-    m_scene->addEventHandler(QString(), std::bind(&Q3DSSceneManager::handleEvent, this,
-                                                  std::placeholders::_1, std::placeholders::_2));
+    m_scene->addEventHandler(QString(), std::bind(&Q3DSSceneManager::handleEvent, this, std::placeholders::_1));
 
     // measure the time from the end of scene building to the invocation of the first frame action
     m_frameUpdater->startTimeFirstFrame();
@@ -1101,8 +1099,7 @@ void Q3DSSceneManager::buildLayer(Q3DSLayerNode *layer3DS,
 
     layer3DS->addPropertyChangeObserver(std::bind(&Q3DSSceneManager::handlePropertyChange, this,
                                                   std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
-    layer3DS->addEventHandler(QString(), std::bind(&Q3DSSceneManager::handleEvent, this,
-                                                   std::placeholders::_1, std::placeholders::_2));
+    layer3DS->addEventHandler(QString(), std::bind(&Q3DSSceneManager::handleEvent, this, std::placeholders::_1));
 
     // Phase 2: deferred stuff
 
@@ -1710,8 +1707,7 @@ Qt3DRender::QCamera *Q3DSSceneManager::buildCamera(Q3DSCameraNode *cam3DS, Q3DSL
     setCameraProperties(cam3DS, Q3DSNode::TransformChanges);
     cam3DS->addPropertyChangeObserver(std::bind(&Q3DSSceneManager::handlePropertyChange, this,
                                                  std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
-    cam3DS->addEventHandler(QString(), std::bind(&Q3DSSceneManager::handleEvent, this,
-                                                 std::placeholders::_1, std::placeholders::_2));
+    cam3DS->addEventHandler(QString(), std::bind(&Q3DSSceneManager::handleEvent, this, std::placeholders::_1));
     return camera;
 }
 
@@ -3335,8 +3331,7 @@ void Q3DSSceneManager::buildLayerScene(Q3DSGraphObject *obj, Q3DSLayerNode *laye
     if (!obj->isNode()) {
         obj->addPropertyChangeObserver(std::bind(&Q3DSSceneManager::handlePropertyChange, this,
                                                  std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
-        obj->addEventHandler(QString(), std::bind(&Q3DSSceneManager::handleEvent, this,
-                                                  std::placeholders::_1, std::placeholders::_2));
+        obj->addEventHandler(QString(), std::bind(&Q3DSSceneManager::handleEvent, this, std::placeholders::_1));
 
         if (obj->type() == Q3DSGraphObject::Effect)
             buildEffect(static_cast<Q3DSEffectInstance *>(obj), layer3DS);
@@ -3574,8 +3569,7 @@ Qt3DCore::QEntity *Q3DSSceneManager::buildGroup(Q3DSGroupNode *group3DS, Q3DSLay
 
     group3DS->addPropertyChangeObserver(std::bind(&Q3DSSceneManager::handlePropertyChange, this,
                                                   std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
-    group3DS->addEventHandler(QString(), std::bind(&Q3DSSceneManager::handleEvent, this,
-                                                   std::placeholders::_1, std::placeholders::_2));
+    group3DS->addEventHandler(QString(), std::bind(&Q3DSSceneManager::handleEvent, this, std::placeholders::_1));
 
     return group;
 }
@@ -3591,8 +3585,7 @@ Qt3DCore::QEntity *Q3DSSceneManager::buildComponent(Q3DSComponentNode *comp3DS, 
 
     comp3DS->addPropertyChangeObserver(std::bind(&Q3DSSceneManager::handlePropertyChange, this,
                                                  std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
-    comp3DS->addEventHandler(QString(), std::bind(&Q3DSSceneManager::handleEvent, this,
-                                                  std::placeholders::_1, std::placeholders::_2));
+    comp3DS->addEventHandler(QString(), std::bind(&Q3DSSceneManager::handleEvent, this, std::placeholders::_1));
 
     return comp;
 }
@@ -3627,8 +3620,7 @@ Qt3DCore::QEntity *Q3DSSceneManager::buildText(Q3DSTextNode *text3DS, Q3DSLayerN
 
     text3DS->addPropertyChangeObserver(std::bind(&Q3DSSceneManager::handlePropertyChange, this,
                                                  std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
-    text3DS->addEventHandler(QString(), std::bind(&Q3DSSceneManager::handleEvent, this,
-                                                  std::placeholders::_1, std::placeholders::_2));
+    text3DS->addEventHandler(QString(), std::bind(&Q3DSSceneManager::handleEvent, this, std::placeholders::_1));
 
     QSize sz = m_textRenderer->textImageSize(text3DS);
     if (sz.isEmpty())
@@ -3700,8 +3692,7 @@ Qt3DCore::QEntity *Q3DSSceneManager::buildLight(Q3DSLightNode *light3DS, Q3DSLay
 
     light3DS->addPropertyChangeObserver(std::bind(&Q3DSSceneManager::handlePropertyChange, this,
                                                   std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
-    light3DS->addEventHandler(QString(), std::bind(&Q3DSSceneManager::handleEvent, this,
-                                                   std::placeholders::_1, std::placeholders::_2));
+    light3DS->addEventHandler(QString(), std::bind(&Q3DSSceneManager::handleEvent, this, std::placeholders::_1));
 
     return entity;
 }
@@ -3915,8 +3906,7 @@ Qt3DCore::QEntity *Q3DSSceneManager::buildModel(Q3DSModelNode *model3DS, Q3DSLay
 
     model3DS->addPropertyChangeObserver(std::bind(&Q3DSSceneManager::handlePropertyChange, this,
                                                   std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
-    model3DS->addEventHandler(QString(), std::bind(&Q3DSSceneManager::handleEvent, this,
-                                                   std::placeholders::_1, std::placeholders::_2));
+    model3DS->addEventHandler(QString(), std::bind(&Q3DSSceneManager::handleEvent, this, std::placeholders::_1));
 
     return entity;
 }
@@ -6463,33 +6453,53 @@ void Q3DSSceneManager::setDataInputValue(const QString &dataInputName, const QVa
     }
 }
 
-void Q3DSSceneManager::handleEvent(Q3DSGraphObject *obj, const QString &event)
+void Q3DSSceneManager::handleEvent(const Q3DSGraphObject::Event &e)
 {
     Q3DSSlide *slide = currentSlide();
-    Q3DSComponentNode *component = obj->attached() ? obj->attached()->component : nullptr;
+    Q3DSComponentNode *component = e.target->attached() ? e.target->attached()->component : nullptr;
     if (component)
         slide = component->currentSlide();
     if (slide) {
         for (const Q3DSAction &action : slide->actions()) {
-            if (!action.eyeball || action.triggerObject != obj)
+            if (!action.eyeball || action.triggerObject != e.target)
                 continue;
-            if (action.event == event)
+            if (action.event == e.event)
                 runAction(action);
+        }
+    }
+
+    const bool isSlideEnter = e.event == Q3DSGraphObjectEvents::slideEnterEvent();
+    const bool isSlideExit = e.event == Q3DSGraphObjectEvents::slideExitEvent();
+    if (isSlideEnter || isSlideExit) {
+        slide = e.args.at(0).value<Q3DSSlide *>();
+        const int index = e.args.at(1).toInt();
+        if (slide) {
+            // elementPath is the either the scene or the component
+            const QString elementPath = m_engine->makePath(e.target);
+            // the slide name is provided as-is since the editor does unique
+            // names for them by default
+            QString name = slide->name();
+            if (name.isEmpty())
+                name = QString::fromUtf8(slide->id());
+            if (isSlideEnter)
+                emit m_engine->slideEntered(elementPath, index, name);
+            else
+                emit m_engine->slideExited(elementPath, index, name);
         }
     }
 }
 
-void Q3DSSceneManager::queueEvent(const Event &e)
+void Q3DSSceneManager::queueEvent(const Q3DSGraphObject::Event &e)
 {
     m_eventQueue.append(e);
 }
 
 void Q3DSSceneManager::flushEventQueue()
 {
-    const QVector<Event> q = std::move(m_eventQueue);
-    for (const Event &e : q) {
+    const QVector<Q3DSGraphObject::Event> q = std::move(m_eventQueue);
+    for (const Q3DSGraphObject::Event &e : q) {
         if (e.target && !e.event.isEmpty())
-            e.target->processEvent(e.event);
+            e.target->processEvent(e);
     }
 }
 
@@ -6522,7 +6532,7 @@ void Q3DSSceneManager::runAction(const Q3DSAction &action)
         if (event.isValid()) {
             Q3DSGraphObject *target = action.targetObject;
             if (target && !event.value.isEmpty())
-                queueEvent(Event(target, event.value));
+                queueEvent(Q3DSGraphObject::Event(target, event.value));
         }
     }
         break;
@@ -6534,12 +6544,8 @@ void Q3DSSceneManager::runAction(const Q3DSAction &action)
         Q3DSAction::HandlerArgument signalName = action.handlerWithArgType(Q3DSAction::HandlerArgument::Signal);
         if (signalName.isValid()) {
             Q3DSGraphObject *target = action.targetObject;
-            if (target && !signalName.value.isEmpty()) {
-                // Ignore target from this point on, it is not useful to expose a
-                // 3DS1-style absolute path nonsense. Just send the name string
-                // further.
-                emit m_engine->customSignalEmitted(signalName.value);
-            }
+            if (target && !signalName.value.isEmpty())
+                emit m_engine->customSignalEmitted(m_engine->makePath(target), signalName.value);
         }
     }
         break;

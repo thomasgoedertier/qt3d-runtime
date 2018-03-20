@@ -325,10 +325,20 @@ public:
     void setDataInputControlledProperties(const DataInputControlledProperties &props)
     { m_dataInputControlledProperties = props; }
 
-    typedef std::function<void(Q3DSGraphObject *, const QString &)> EventCallback;
+    struct Event {
+        Event() = default;
+        Event(Q3DSGraphObject *target_, const QString &event_, const QVariantList &args_ = QVariantList())
+            : target(target_), event(event_), args(args_)
+        { }
+        Q3DSGraphObject *target = nullptr;
+        QString event;
+        QVariantList args;
+    };
+
+    typedef std::function<void(const Event &)> EventCallback;
     int addEventHandler(const QString &event, EventCallback callback);
     void removeEventHandler(const QString &event, int callbackId);
-    void processEvent(const QString &event);
+    void processEvent(const Event &e);
 
     QString typeAsString() const;
     virtual QStringList propertyNames() const;
@@ -373,6 +383,7 @@ private:
 
 Q_DECLARE_OPERATORS_FOR_FLAGS(Q3DSGraphObject::PropSetFlags)
 Q_DECLARE_OPERATORS_FOR_FLAGS(Q3DSGraphObject::DirtyFlags)
+Q_DECLARE_TYPEINFO(Q3DSGraphObject::Event, Q_MOVABLE_TYPE);
 
 class Q3DSV_PRIVATE_EXPORT Q3DSScene : public Q3DSGraphObject
 {
@@ -2041,5 +2052,7 @@ inline uint qHash(const Q3DSUipPresentationData::MeshId &key, uint seed = 0) Q_D
 }
 
 QT_END_NAMESPACE
+
+Q_DECLARE_METATYPE(Q3DSSlide *)
 
 #endif // Q3DSUIPPRESENTATION_P_H

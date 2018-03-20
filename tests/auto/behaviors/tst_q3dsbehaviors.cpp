@@ -178,17 +178,17 @@ void tst_Q3DSBehaviors::events()
     QCOMPARE(h.object->property("eventCount").toInt(), 0);
     const QString eventKey = QLatin1String("meltdown");
 
-    behaviorOwner->processEvent(eventKey);
+    behaviorOwner->processEvent(Q3DSGraphObject::Event(behaviorOwner, eventKey));
     QTRY_VERIFY(h.object->property("updateCount").toInt() > u);
     u = h.object->property("updateCount").toInt();
     QCOMPARE(h.object->property("eventCount").toInt(), 1);
 
-    behaviorOwner->processEvent(eventKey);
+    behaviorOwner->processEvent(Q3DSGraphObject::Event(behaviorOwner, eventKey));
     QTRY_VERIFY(h.object->property("updateCount").toInt() > u);
     u = h.object->property("updateCount").toInt();
     QCOMPARE(h.object->property("eventCount").toInt(), 2);
 
-    behaviorOwner->processEvent(QLatin1String("not interested"));
+    behaviorOwner->processEvent(Q3DSGraphObject::Event(behaviorOwner, QLatin1String("not interested")));
     QTRY_VERIFY(h.object->property("updateCount").toInt() > u);
     u = h.object->property("updateCount").toInt();
     QCOMPARE(h.object->property("eventCount").toInt(), 2); // must not have changed
@@ -197,7 +197,7 @@ void tst_Q3DSBehaviors::events()
     QTRY_VERIFY(h.object->property("updateCount").toInt() > 50);
     u = h.object->property("updateCount").toInt();
 
-    behaviorOwner->processEvent(eventKey);
+    behaviorOwner->processEvent(Q3DSGraphObject::Event(behaviorOwner, eventKey));
     QTRY_VERIFY(h.object->property("updateCount").toInt() > u);
     u = h.object->property("updateCount").toInt();
     QCOMPARE(h.object->property("eventCount").toInt(), 2); // must not have changed
