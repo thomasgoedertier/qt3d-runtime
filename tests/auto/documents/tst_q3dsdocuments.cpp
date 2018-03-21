@@ -35,6 +35,9 @@
 #include <private/q3dsuiadocument_p.h>
 #include <private/q3dsqmldocument_p.h>
 
+#include <QtGui/private/qguiapplication_p.h>
+#include <qpa/qplatformintegration.h>
+
 class tst_Q3DSDocuments : public QObject
 {
     Q_OBJECT
@@ -66,8 +69,6 @@ private:
 
 tst_Q3DSDocuments::tst_Q3DSDocuments()
 {
-    QSurfaceFormat::setDefaultFormat(Q3DSEngine::surfaceFormat());
-
     m_validUipDoc = "<?xml version=\"1.0\" encoding=\"UTF-8\" ?> \
         <UIP version=\"3\" > \
             <Project > \
@@ -110,6 +111,11 @@ tst_Q3DSDocuments::tst_Q3DSDocuments()
 
 void tst_Q3DSDocuments::initTestCase()
 {
+    if (!QGuiApplicationPrivate::instance()->platformIntegration()->hasCapability(QPlatformIntegration::OpenGL))
+        QSKIP("This platform does not support OpenGL");
+
+    QSurfaceFormat::setDefaultFormat(Q3DSEngine::surfaceFormat());
+
     Q3DSUtils::setDialogsEnabled(false);
 }
 
