@@ -335,8 +335,8 @@ public:
         }
 
         for (const Q3DSShaderPreprocessorFeature &ppFeature : inFeatureSet)
-            output.append(QLatin1String("#define ") + ppFeature.m_name + QLatin1String(" ")
-                          + (ppFeature.m_enabled ? QLatin1String("1\n") : QLatin1String("0\n")));
+            output.append(QLatin1String("#define ") + ppFeature.name + QLatin1String(" ")
+                          + (ppFeature.enabled ? QLatin1String("1\n") : QLatin1String("0\n")));
     }
 
     QString getVersionString(const QSurfaceFormat &format) {
@@ -720,13 +720,13 @@ private:
 bool Q3DSShaderPreprocessorFeature::operator<(const Q3DSShaderPreprocessorFeature &other) const
 {
     //return strcmp(m_name.c_str(), other.m_name.c_str()) < 0;
-    return m_name < other.m_name;
+    return name < other.name;
 }
 
 bool Q3DSShaderPreprocessorFeature::operator==(const Q3DSShaderPreprocessorFeature &other) const
 {
 
-    return m_name == other.m_name && m_enabled == other.m_enabled;
+    return name == other.name && enabled == other.enabled;
 }
 
 Q3DSAbstractShaderProgramGenerator::~Q3DSAbstractShaderProgramGenerator()

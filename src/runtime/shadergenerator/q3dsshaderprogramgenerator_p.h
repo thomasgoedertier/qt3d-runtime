@@ -88,15 +88,15 @@ public:
 
 struct Q3DSShaderPreprocessorFeature
 {
-    QString m_name;
-    bool m_enabled;
+    QString name;
+    bool enabled;
     Q3DSShaderPreprocessorFeature()
-        : m_enabled(false)
+        : enabled(false)
     {
     }
-    Q3DSShaderPreprocessorFeature(const QString &name, bool val)
-        : m_name(name)
-        , m_enabled(val)
+    Q3DSShaderPreprocessorFeature(const QString &name_, bool val)
+        : name(name_)
+        , enabled(val)
     {
     }
     bool operator<(const Q3DSShaderPreprocessorFeature &other) const;

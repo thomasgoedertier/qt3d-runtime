@@ -520,7 +520,6 @@ struct ShaderGenerator : public Q3DSDefaultMaterialShaderGenerator
         bool specularEnabled = m_CurrentMaterial->specularAmount() > 0.01f;
         bool fresnelEnabled = m_CurrentMaterial->fresnelPower() > 0.0f;
         bool hasLighting = m_CurrentMaterial->shaderLighting() != Q3DSDefaultMaterial::NoShaderLighting;
-        bool hasIblProbe = false; // XXX Figure out if a IBL probe has been set
         bool hasLightmaps = false;
 
         Q3DSImage *bumpImage = m_CurrentMaterial->bumpMap();
@@ -576,17 +575,20 @@ struct ShaderGenerator : public Q3DSDefaultMaterialShaderGenerator
         bool enableSSAO = false;
         bool enableSSDO = false;
         bool enableShadowMaps = false;
+        bool hasIblProbe = false;
 
-        for (qint32 idx = 0; idx < featureSet().size(); ++idx) {
-            const QString name(featureSet()[idx].m_name);
-            if (name == QStringLiteral("QT3DS_ENABLE_SSAO"))
-                enableSSAO = featureSet()[idx].m_enabled;
-            else if (name == QStringLiteral("QT3DS_ENABLE_SSDO"))
-                enableSSDO = featureSet()[idx].m_enabled;
-            else if (name == QStringLiteral("QT3DS_ENABLE_SSM"))
-                enableShadowMaps = featureSet()[idx].m_enabled;
-            else if (name == QStringLiteral("QT3DS_ENABLE_LIGHT_PROBE") ||
-                     name == QStringLiteral("QT3DS_ENABLE_LIGHT_PROBE_2"))
+        auto features = featureSet();
+        for (const auto &feature : features) {
+            if (!feature.enabled)
+                continue;
+            if (feature.name == QStringLiteral("QT3DS_ENABLE_SSAO"))
+                enableSSAO = true;
+            else if (feature.name == QStringLiteral("QT3DS_ENABLE_SSDO"))
+                enableSSDO = true;
+            else if (feature.name == QStringLiteral("QT3DS_ENABLE_SSM"))
+                enableShadowMaps = true;
+            else if (feature.name == QStringLiteral("QT3DS_ENABLE_LIGHT_PROBE")
+                     || feature.name == QStringLiteral("QT3DS_ENABLE_LIGHT_PROBE_2"))
                 hasIblProbe = true;
         }
 
