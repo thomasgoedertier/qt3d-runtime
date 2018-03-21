@@ -193,8 +193,8 @@ void tst_Q3DSSlidePlayer::tst_playModes()
 
     // Stopped -> playing -> stopped
     QCOMPARE(stateChangeSpy.count(), 2);
-    // StopAtEnd -> PlayToNext -> StopAtEnd
-    QCOMPARE(slideChangedSpy.count(), 2);
+    // PlayToNext -> StopAtEnd
+    QCOMPARE(slideChangedSpy.count(), 1);
     QCOMPARE(player->slideDeck()->currentSlide(), m_stopAtEnd);
 
     // STOP AT END

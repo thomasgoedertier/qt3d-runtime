@@ -679,7 +679,11 @@ void Q3DSSlidePlayer::sendPositionChanged(Q3DSSlide *slide, float pos)
     if (!qFuzzyCompare(oldPosition, pos))
         Q_EMIT positionChanged(pos);
 
-    if ((m_data.position == 0.0f && m_data.playbackRate < 0.0f) || (m_data.position == duration() && m_data.playbackRate > 0.0f))
+    const bool onEOS = (m_data.state == PlayerState::Playing)
+            && ((m_data.position == 0.0f && m_data.playbackRate < 0.0f)
+                || (m_data.position == duration() && m_data.playbackRate > 0.0f));
+
+    if (onEOS)
         QMetaObject::invokeMethod(this, "onSlideFinished", Qt::QueuedConnection, Q_ARG(void *, slide));
 }
 
