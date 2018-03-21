@@ -328,6 +328,29 @@ void tst_Q3DSSlidePlayer::tst_playModes()
     // Looping -> PlayToSlide -> FinalSlide
     QCOMPARE(slideChangedSpy.count(), 2);
     QCOMPARE(player->slideDeck()->currentSlide(), m_finalSlide);
+
+    // DUMMY - Check that a slide with no animation tracks still starts and finishes.
+    player->stop();
+    QTRY_COMPARE(player->state(), Q3DSSlidePlayer::PlayerState::Stopped);
+
+    slideChangedSpy.clear();
+
+    player->slideDeck()->setCurrentSlide(int(Slide::Dummy));
+    QCOMPARE(player->duration(), 1000);
+    player->stop();
+    QTRY_COMPARE(player->state(), Q3DSSlidePlayer::PlayerState::Stopped);
+
+    stateChangeSpy.clear();
+
+    player->play();
+    QTRY_COMPARE(player->state(), Q3DSSlidePlayer::PlayerState::Playing);
+    QTRY_COMPARE(player->state(), Q3DSSlidePlayer::PlayerState::Stopped);
+
+    // Stopped -> playing -> stopped
+    QCOMPARE(stateChangeSpy.count(), 2);
+    // FinalSlide -> Dummy
+    QCOMPARE(slideChangedSpy.count(), 1);
+    QCOMPARE(player->slideDeck()->currentSlide(), m_dummy);
 }
 
 QTEST_MAIN(tst_Q3DSSlidePlayer);

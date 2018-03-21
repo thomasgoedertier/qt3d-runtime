@@ -119,8 +119,11 @@
 					</Add>
 					<Add ref="#Default_006" />
 				</State>
-				<State id="Scene-Dummy" name="Dummy" initialplaystate="Pause" >
-					<Add ref="#Text" name="Text" font="TitilliumWeb-Regular" scale="1 1 1" size="48" textstring="Dummy" />
+				<State id="Scene-Dummy" name="Dummy" initialplaystate="Play" >
+					<Set ref="#Layer" endtime="1000" />
+					<Set ref="#Camera" endtime="1000" />
+					<Set ref="#Light" endtime="1000" />
+					<Add ref="#Text" name="Text" endtime="1000" font="TitilliumWeb-Regular" scale="1 1 1" size="48" textstring="Dummy" />
 				</State>
 				<State id="Scene-FinalSlide" name="FinalSlide" playthroughto="Previous" >
 					<Set ref="#Layer" endtime="1000" />

@@ -652,6 +652,8 @@ void Q3DSAnimationManager::updateAnimations(Q3DSSlide *slide)
 
     qCDebug(lcScene, "Updating animations for slide (%s)", qPrintable(slide->name()));
 
+    buildClipAnimator(slide);
+
     Q3DSSlide *masterSlide = static_cast<Q3DSSlide *>(slide->parent());
 
     const bool hasAnimationData = !slide->animations().isEmpty()
@@ -659,8 +661,6 @@ void Q3DSAnimationManager::updateAnimations(Q3DSSlide *slide)
 
     if (!hasAnimationData)
         return;
-
-    buildClipAnimator(slide);
 
     AnimationTrackListMap<Q3DSDefaultMaterial *> defMatAnims;
     AnimationTrackListMap<Q3DSCustomMaterialInstance *> customMatAnims;
