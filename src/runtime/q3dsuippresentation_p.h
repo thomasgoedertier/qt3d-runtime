@@ -875,7 +875,7 @@ protected:
     QVector3D m_position;
     QVector3D m_scale = QVector3D(1, 1, 1);
     QVector3D m_pivot;
-    float m_localOpacity = 1;
+    float m_localOpacity = 100.0f;
     qint32 m_skeletonId = -1;
     RotationOrder m_rotationOrder = YXZ;
     Orientation m_orientation = LeftHanded;
@@ -896,13 +896,13 @@ public:
     static void setPosition(Q3DSGraphObject *obj, const QVariant &v, const QString &) { static_cast<Q3DSNode *>(obj)->m_position = v.value<QVector3D>(); }
     static void setScale(Q3DSGraphObject *obj, const QVariant &v, const QString &) { static_cast<Q3DSNode *>(obj)->m_scale = v.value<QVector3D>(); }
     static void setPivot(Q3DSGraphObject *obj, const QVariant &v, const QString &) { static_cast<Q3DSNode *>(obj)->m_pivot = v.value<QVector3D>(); }
-    static void setLocalOpacity(Q3DSGraphObject *obj, const QVariant &v, const QString &) { static_cast<Q3DSNode *>(obj)->m_localOpacity = v.toFloat() / 100.0f; }
+    static void setLocalOpacity(Q3DSGraphObject *obj, const QVariant &v, const QString &) { static_cast<Q3DSNode *>(obj)->m_localOpacity = v.toFloat(); }
 
     static QVariant getRotation(Q3DSGraphObject *obj, const QString &) { return static_cast<Q3DSNode *>(obj)->m_rotation; }
     static QVariant getPosition(Q3DSGraphObject *obj, const QString &) { return static_cast<Q3DSNode *>(obj)->m_position; }
     static QVariant getScale(Q3DSGraphObject *obj, const QString &) { return static_cast<Q3DSNode *>(obj)->m_scale; }
     static QVariant getPivot(Q3DSGraphObject *obj, const QString &) { return static_cast<Q3DSNode *>(obj)->m_pivot; }
-    static QVariant getLocalOpacity(Q3DSGraphObject *obj, const QString &) { return static_cast<Q3DSNode *>(obj)->m_localOpacity * 100.0f; }
+    static QVariant getLocalOpacity(Q3DSGraphObject *obj, const QString &) { return static_cast<Q3DSNode *>(obj)->m_localOpacity; }
 };
 
 class Q3DSV_PRIVATE_EXPORT Q3DSLayerNode : public Q3DSNode
@@ -1663,7 +1663,7 @@ private:
     QString m_displacementMap_unresolved;
     Q3DSImage *m_displacementMap = nullptr;
     float m_displaceAmount = 20;
-    float m_opacity = 1;
+    float m_opacity = 100;
     QString m_opacityMap_unresolved;
     Q3DSImage *m_opacityMap = nullptr;
     QColor m_emissiveColor = Qt::white;
@@ -1697,7 +1697,7 @@ public:
     static void setSpecularRoughness(Q3DSGraphObject *obj, const QVariant &v, const QString &) { static_cast<Q3DSDefaultMaterial *>(obj)->m_specularRoughness = v.toFloat(); }
     static void setFresnelPower(Q3DSGraphObject *obj, const QVariant &v, const QString &) { static_cast<Q3DSDefaultMaterial *>(obj)->m_fresnelPower = v.toFloat(); }
     static void setDisplaceAmount(Q3DSGraphObject *obj, const QVariant &v, const QString &) { static_cast<Q3DSDefaultMaterial *>(obj)->m_displaceAmount = v.toFloat(); }
-    static void setOpacity(Q3DSGraphObject *obj, const QVariant &v, const QString &) { static_cast<Q3DSDefaultMaterial *>(obj)->m_opacity = v.toFloat() / 100.0f; }
+    static void setOpacity(Q3DSGraphObject *obj, const QVariant &v, const QString &) { static_cast<Q3DSDefaultMaterial *>(obj)->m_opacity = v.toFloat(); }
     static void setEmissiveColor(Q3DSGraphObject *obj, const QVariant &v, const QString &) { static_cast<Q3DSDefaultMaterial *>(obj)->m_emissiveColor = v.value<QColor>(); }
     static void setEmissivePower(Q3DSGraphObject *obj, const QVariant &v, const QString &) { static_cast<Q3DSDefaultMaterial *>(obj)->m_emissivePower = v.toFloat(); }
     static void setBumpAmount(Q3DSGraphObject *obj, const QVariant &v, const QString &) { static_cast<Q3DSDefaultMaterial *>(obj)->m_bumpAmount = v.toFloat(); }
@@ -1710,7 +1710,7 @@ public:
     static QVariant getSpecularRoughness(Q3DSGraphObject *obj, const QString &) { return static_cast<Q3DSDefaultMaterial *>(obj)->m_specularRoughness; }
     static QVariant getFresnelPower(Q3DSGraphObject *obj, const QString &) { return static_cast<Q3DSDefaultMaterial *>(obj)->m_fresnelPower; }
     static QVariant getDisplaceAmount(Q3DSGraphObject *obj, const QString &) { return static_cast<Q3DSDefaultMaterial *>(obj)->m_displaceAmount; }
-    static QVariant getOpacity(Q3DSGraphObject *obj, const QString &) { return static_cast<Q3DSDefaultMaterial *>(obj)->m_opacity * 100.0f; }
+    static QVariant getOpacity(Q3DSGraphObject *obj, const QString &) { return static_cast<Q3DSDefaultMaterial *>(obj)->m_opacity; }
     static QVariant getEmissiveColor(Q3DSGraphObject *obj, const QString &) { return static_cast<Q3DSDefaultMaterial *>(obj)->m_emissiveColor; }
     static QVariant getEmissivePower(Q3DSGraphObject *obj, const QString &) { return static_cast<Q3DSDefaultMaterial *>(obj)->m_emissivePower; }
     static QVariant getBumpAmount(Q3DSGraphObject *obj, const QString &) { return static_cast<Q3DSDefaultMaterial *>(obj)->m_bumpAmount; }

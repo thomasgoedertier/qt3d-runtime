@@ -887,15 +887,6 @@ bool parseProperty(const V &attrs, Q3DSGraphObject::PropSetFlags flags, const QS
 }
 
 template<typename V>
-bool parseOpacityProperty(const V &attrs, Q3DSGraphObject::PropSetFlags flags, const QString &typeName, const QString &propName, float *dst)
-{
-    bool r = ::parseProperty<float>(attrs, flags, typeName, propName, Q3DS::Float, dst, [](const QStringRef &s, float *v) { return Q3DS::convertToFloat(s, v); });
-    if (r)
-        *dst /= 100.0f;
-    return r;
-}
-
-template<typename V>
 bool parseRotationProperty(const V &attrs, Q3DSGraphObject::PropSetFlags flags, const QString &typeName, const QString &propName, QVector3D *dst)
 {
     return ::parseProperty<QVector3D>(attrs, flags, typeName, propName, Q3DS::Rotation, dst, [](const QStringRef &s, QVector3D *v) { return Q3DS::convertToVector3D(s, v); });
@@ -1782,7 +1773,7 @@ void Q3DSDefaultMaterial::setProps(const V &attrs, PropSetFlags flags)
     parseImageProperty(attrs, flags, typeName, QStringLiteral("displacementmap"), &m_displacementMap_unresolved);
 
     parseProperty(attrs, flags, typeName, QStringLiteral("displaceamount"), &m_displaceAmount);
-    parseOpacityProperty(attrs, flags, typeName, QStringLiteral("opacity"), &m_opacity);
+    parseProperty(attrs, flags, typeName, QStringLiteral("opacity"), &m_opacity);
 
     parseImageProperty(attrs, flags, typeName, QStringLiteral("opacitymap"), &m_opacityMap_unresolved);
 
@@ -2484,7 +2475,7 @@ void Q3DSNode::setProps(const V &attrs, PropSetFlags flags)
     parseProperty(attrs, flags, typeName, QStringLiteral("position"), &m_position);
     parseProperty(attrs, flags, typeName, QStringLiteral("scale"), &m_scale);
     parseProperty(attrs, flags, typeName, QStringLiteral("pivot"), &m_pivot);
-    parseOpacityProperty(attrs, flags, typeName, QStringLiteral("opacity"), &m_localOpacity);
+    parseProperty(attrs, flags, typeName, QStringLiteral("opacity"), &m_localOpacity);
     parseProperty(attrs, flags, typeName, QStringLiteral("boneid"), &m_skeletonId);
     parseProperty(attrs, flags, typeName, QStringLiteral("rotationorder"), &m_rotationOrder);
     parseProperty(attrs, flags, typeName, QStringLiteral("orientation"), &m_orientation);

@@ -3533,13 +3533,13 @@ void Q3DSSceneManager::updateGlobals(Q3DSNode *node, UpdateGlobalFlags flags)
             globalTransform = parentData->globalTransform * data->transform->matrix();
         }
         // update the global, inherited opacity
-        globalOpacity = parentData->globalOpacity * node->localOpacity();
+        globalOpacity = parentData->globalOpacity * (node->localOpacity() / 100.0f);
         // update inherited visibility
         globalVisibility = node->flags().testFlag(Q3DSNode::Active) && parentData->globalVisibility;
     } else {
         if (!flags.testFlag(UpdateGlobalsSkipTransform))
             globalTransform = data->transform->matrix();
-        globalOpacity = node->localOpacity();
+        globalOpacity = node->localOpacity() / 100.0f;
         globalVisibility = node->flags().testFlag(Q3DSNode::Active);
     }
 
@@ -3954,7 +3954,7 @@ void Q3DSSceneManager::buildModelMaterial(Q3DSModelNode *model3DS)
                 QVector<Qt3DRender::QParameter *> params = prepareDefaultMaterial(defaultMaterial, sm.referencedMaterial, model3DS);
                 // Update parameter values.
                 Q3DSDefaultMaterialAttached *defMatData = static_cast<Q3DSDefaultMaterialAttached *>(defaultMaterial->attached());
-                defMatData->opacity = modelData->globalOpacity * defaultMaterial->opacity();
+                defMatData->opacity = modelData->globalOpacity * (defaultMaterial->opacity() / 100.0f);
                 updateDefaultMaterial(defaultMaterial, sm.referencedMaterial);
 
                 // Setup camera properties
@@ -4117,7 +4117,7 @@ void Q3DSSceneManager::retagSubMeshes(Q3DSModelNode *model3DS)
         // not yet be created. This is not a problem in practice.
         if (sm.resolvedMaterial->type() == Q3DSGraphObject::DefaultMaterial) {
             auto defaultMaterial = static_cast<Q3DSDefaultMaterial *>(sm.resolvedMaterial);
-            opacity *= defaultMaterial->opacity();
+            opacity *= defaultMaterial->opacity() / 100.0f;
             // Check maps for transparency as well
             hasTransparency = ((defaultMaterial->diffuseMap() && defaultMaterial->diffuseMap()->hasTransparency()) ||
                                (defaultMaterial->diffuseMap2() && defaultMaterial->diffuseMap2()->hasTransparency()) ||
@@ -5723,7 +5723,7 @@ void Q3DSSceneManager::updateModel(Q3DSModelNode *model3DS)
                 auto m = static_cast<Q3DSDefaultMaterial *>(sm.resolvedMaterial);
                 auto d = static_cast<Q3DSDefaultMaterialAttached *>(m->attached());
                 if (d && d->materialDiffuseParam) {
-                    const float opacity = data->globalOpacity * m->opacity();
+                    const float opacity = data->globalOpacity * (m->opacity() / 100.0f);
                     QVector4D c = d->materialDiffuseParam->value().value<QVector4D>();
                     c.setW(opacity);
                     d->materialDiffuseParam->setValue(c);
@@ -6117,7 +6117,7 @@ void Q3DSSceneManager::updateSubTreeRecursive(Q3DSGraphObject *obj)
         Q3DSDefaultMaterialAttached *data = static_cast<Q3DSDefaultMaterialAttached *>(mat3DS->attached());
         if (data && (data->frameDirty & Q3DSGraphObjectAttached::DefaultMaterialDirty)) {
             Q3DSModelAttached *modelData = static_cast<Q3DSModelAttached *>(data->model3DS->attached());
-            data->opacity = modelData->globalOpacity * mat3DS->opacity();
+            data->opacity = modelData->globalOpacity * (mat3DS->opacity() / 100.0f);
             updateDefaultMaterial(mat3DS);
             m_wasDirty = true;
             markLayerForObjectDirty(mat3DS);
