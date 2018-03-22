@@ -443,6 +443,10 @@ Q3DSSceneManager::Q3DSSceneManager(const Q3DSGraphicsLimits &limits)
 
 Q3DSSceneManager::~Q3DSSceneManager()
 {
+    m_logMutex.lock();
+    m_inDestructor = true;
+    m_logMutex.unlock();
+
 #if QT_CONFIG(q3ds_profileui)
     delete m_consoleCommands;
     delete m_profileUi;
@@ -6322,6 +6326,8 @@ void Q3DSSceneManager::addLog(const QString &msg)
 {
 #if QT_CONFIG(q3ds_profileui)
     QMutexLocker locker(&m_logMutex);
+    if (m_inDestructor)
+        return;
     // the log is maintained by the main presentation's profiler; route to that
     // even if this is a subpresentation
     m_profiler->mainPresentationProfiler()->addLog(msg);

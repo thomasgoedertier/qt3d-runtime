@@ -774,6 +774,7 @@ private:
     Q3DSSlidePlayer *m_slidePlayer = nullptr;
     Q3DSInputManager *m_inputManager = nullptr;
     QVector<Q3DSGraphObject::Event> m_eventQueue;
+    bool m_inDestructor = false;
 
     friend class Q3DSFrameUpdater;
     friend class Q3DSProfiler;
