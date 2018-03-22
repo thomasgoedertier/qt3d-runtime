@@ -104,6 +104,8 @@ Q_LOGGING_CATEGORY(lcScene, "q3ds.scene")
 Q_LOGGING_CATEGORY(lcPerf, "q3ds.perf")
 Q_DECLARE_LOGGING_CATEGORY(lcUipProp)
 
+static const int LAYER_CACHING_THRESHOLD = 4;
+
 /*
     Approx. scene structure:
 
@@ -1050,6 +1052,8 @@ void Q3DSSceneManager::buildLayer(Q3DSLayerNode *layer3DS,
     layerData->entity = m_rootEntity; // must set an entity to to make Q3DSLayerNode properties animatable, just use the root
     layerData->layer3DS = layer3DS;
     layerData->layerFgRoot = layerFgRoot;
+    layerData->layerFgRootParent = layerFgRoot->parentNode();
+    layerData->layerFgDummyParent = new Qt3DCore::QNode(layerData->entity);
     layerData->cameraSelector = cameraSelector;
     layerData->clearBuffers = clearBuffers;
     layerData->rtSelector = rtSelector;
@@ -5932,6 +5936,29 @@ void Q3DSSceneManager::prepareNextFrame()
         if (layerData) {
             for (Q3DSEffectInstance *eff3DS : qAsConst(layerData->effectData.effects))
                 updateEffectForNextFrame(eff3DS, nextFrameNo);
+        }
+    });
+
+    static const bool layerCacheDebug = qEnvironmentVariableIntValue("Q3DS_DEBUG") >= 2;
+    Q3DSUipPresentation::forAllLayers(m_scene, [this](Q3DSLayerNode *layer3DS) {
+        Q3DSLayerAttached *layerData = layer3DS->attached<Q3DSLayerAttached>();
+        if (!layerData->wasDirty) {
+            ++layerData->nonDirtyRenderCount;
+            if (layerData->nonDirtyRenderCount > LAYER_CACHING_THRESHOLD) {
+                layerData->nonDirtyRenderCount = 0;
+                if (layerData->layerFgRoot->parentNode() != layerData->layerFgDummyParent) {
+                    if (layerCacheDebug)
+                        qCDebug(lcScene, "Switching %s to cached", layer3DS->id().constData());
+                    layerData->layerFgRoot->setParent(layerData->layerFgDummyParent);
+                }
+            }
+        } else {
+            layerData->nonDirtyRenderCount = 0;
+            if (layerData->layerFgRoot->parentNode() != layerData->layerFgRootParent) {
+                if (layerCacheDebug)
+                    qCDebug(lcScene, "Switching %s to non-cached", layer3DS->id().constData());
+                layerData->layerFgRoot->setParent(layerData->layerFgRootParent);
+            }
         }
     });
 }

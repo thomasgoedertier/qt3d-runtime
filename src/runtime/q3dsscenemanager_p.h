@@ -180,6 +180,8 @@ class Q3DSLayerAttached : public Q3DSNodeAttached
 public:
     Qt3DCore::QEntity *compositorEntity = nullptr;
     Qt3DRender::QFrameGraphNode *layerFgRoot = nullptr;
+    Qt3DCore::QNode *layerFgRootParent = nullptr;
+    Qt3DCore::QNode *layerFgDummyParent = nullptr;
     Q3DSCameraNode *cam3DS = nullptr;
     Qt3DRender::QCameraSelector *cameraSelector = nullptr;
     Qt3DRender::QClearBuffers *clearBuffers = nullptr;
@@ -214,6 +216,7 @@ public:
     int ssaaScaleFactor = 1;
     bool effectActive = false;
     bool wasDirty = false;
+    int nonDirtyRenderCount = 0;
     QVector<Q3DSLightSource> allLights;
     QVector<Q3DSLightSource> nonAreaLights;
     QVector<Q3DSLightSource> areaLights;
