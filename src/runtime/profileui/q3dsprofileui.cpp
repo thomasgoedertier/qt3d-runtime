@@ -789,7 +789,10 @@ void Q3DSProfileView::addFrameGraphWindow()
     ImGui::Begin("Frame graph", &m_frameGraphWindowOpen, ImGuiWindowFlags_NoSavedSettings);
 
     addPresentationSelector();
-    ImGui::Text("Frame graph for the above presentation,\nexcluding nodes for this UI\nbut including the layer composition");
+    ImGui::Text("Frame graph for the above presentation,\n"
+                "excluding nodes for this UI\n"
+                "but including the layer composition\n"
+                "(cached layers are excluded since these do not re-render)");
     ImGui::Separator();
     addFrameGraphNode(selectedProfiler()->frameGraphRoot(), selectedProfiler()->frameGraphStopNodes());
 
