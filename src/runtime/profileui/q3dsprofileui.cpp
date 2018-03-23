@@ -752,7 +752,7 @@ void Q3DSProfileView::addFrameGraphNode(Qt3DRender::QFrameGraphNode *fg, const Q
     }
 
     QByteArray label = QString(QLatin1String("%1 (0x%2)%3"))
-            .arg(fg->metaObject()->className())
+            .arg(QString::fromUtf8(fg->metaObject()->className()))
             .arg((quintptr) fg, 0, 16)
             .arg(extraInfo)
             .toUtf8();
