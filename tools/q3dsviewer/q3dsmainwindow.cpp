@@ -90,27 +90,6 @@ Q3DStudioMainWindow::Q3DStudioMainWindow(Q3DSWindow *view, QWidget *parent)
         }
     });
 
-    QAction *renderOnDemand = viewMenu->addAction(tr("&Render on demand only"));
-    renderOnDemand->setCheckable(true);
-    renderOnDemand->setChecked(false);
-    connect(renderOnDemand, &QAction::toggled, [=]() {
-        view->engine()->setOnDemandRendering(renderOnDemand->isChecked());
-    });
-
-    QAction *pauseAnims = viewMenu->addAction(tr("&Pause animations"));
-    pauseAnims->setCheckable(true);
-    pauseAnims->setChecked(false);
-    connect(pauseAnims, &QAction::toggled, [=]() {
-        Q3DSSceneManager *sb = view->engine()->sceneManager();
-        Q3DSSlidePlayer *player = sb->slidePlayer();
-        if (player) {
-            if (pauseAnims->isChecked())
-                player->pause();
-            else
-                player->play();
-        }
-    });
-
     viewMenu->addAction(tr("Toggle fullscree&n"), this, [this] {
         Qt::WindowStates s = windowState();
         s.setFlag(Qt::WindowFullScreen, !s.testFlag(Qt::WindowFullScreen));
@@ -120,7 +99,7 @@ Q3DStudioMainWindow::Q3DStudioMainWindow(Q3DSWindow *view, QWidget *parent)
     viewMenu->addAction(tr("Toggle in-scene &debug view"), this, [view] {
         Q3DSSceneManager *sm = view->engine()->sceneManager();
         sm->setProfileUiVisible(!sm->isProfileUiVisible());
-    });
+    }, Qt::Key_F10);
 
     QMenu *debugMenu = menuBar()->addMenu(tr("&Debug"));
     debugMenu->addAction(tr("&Object graph..."), [=]() {
@@ -187,6 +166,25 @@ Q3DStudioMainWindow::Q3DStudioMainWindow(Q3DSWindow *view, QWidget *parent)
                 light3DS->notifyPropertyChanges(changeList);
             }
         });
+    });
+    QAction *pauseAnims = debugMenu->addAction(tr("&Pause animations"));
+    pauseAnims->setCheckable(true);
+    pauseAnims->setChecked(false);
+    connect(pauseAnims, &QAction::toggled, [=]() {
+        Q3DSSceneManager *sb = view->engine()->sceneManager();
+        Q3DSSlidePlayer *player = sb->slidePlayer();
+        if (player) {
+            if (pauseAnims->isChecked())
+                player->pause();
+            else
+                player->play();
+        }
+    });
+    QAction *renderOnDemand = debugMenu->addAction(tr("Render on &demand only"));
+    renderOnDemand->setCheckable(true);
+    renderOnDemand->setChecked(false);
+    connect(renderOnDemand, &QAction::toggled, [=]() {
+        view->engine()->setOnDemandRendering(renderOnDemand->isChecked());
     });
 
     QMenu *helpMenu = menuBar()->addMenu(tr("&Help"));
