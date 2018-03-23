@@ -27,18 +27,31 @@
 **
 ****************************************************************************/
 
+#ifdef Q3DSVIEWER_WIDGETS
 #include <QApplication>
-#include <QCommandLineParser>
 #include <QFileDialog>
+#include "q3dsmainwindow.h"
+#else
+#include <QGuiApplication>
+#endif
+
+#include <QCommandLineParser>
 #include <QStandardPaths>
 #include <private/q3dsengine_p.h>
 #include <private/q3dswindow_p.h>
 #include <private/q3dsutils_p.h>
-#include "q3dsmainwindow.h"
+
+QT_BEGIN_NAMESPACE
+class Q3DStudioMainWindow;
+QT_END_NAMESPACE
 
 int main(int argc, char *argv[])
 {
+#ifdef Q3DSVIEWER_WIDGETS
     QApplication app(argc, argv);
+#else
+    QGuiApplication app(argc, argv);
+#endif
     QSurfaceFormat::setDefaultFormat(Q3DSEngine::surfaceFormat());
 
     QCommandLineParser cmdLineParser;
@@ -55,21 +68,27 @@ int main(int argc, char *argv[])
     cmdLineParser.process(app);
 
 #if !defined(Q_OS_ANDROID) && !defined(Q_OS_IOS)
-    const bool noWidgets = cmdLineParser.isSet(noMainWindowOption);
+    bool noWidgets = cmdLineParser.isSet(noMainWindowOption);
     const bool fullscreen = cmdLineParser.isSet(fullScreenOption);
 #else
-    const bool noWidgets = true;
+    bool noWidgets = true;
     const bool fullscreen = true;
+#endif
+
+#if !defined(Q3DSVIEWER_WIDGETS)
+    noWidgets = true;
 #endif
 
     QStringList fn = cmdLineParser.positionalArguments();
     if (noWidgets) {
         Q3DSUtils::setDialogsEnabled(false);
     } else if (fn.isEmpty()) {
+#ifdef Q3DSVIEWER_WIDGETS
         QString fileName = QFileDialog::getOpenFileName(nullptr, QObject::tr("Open"), QString(),
                                                         Q3DStudioMainWindow::fileFilter());
         if (!fileName.isEmpty())
             fn.append(fileName);
+#endif
     }
 
     // Try a default file on mobile,
@@ -100,23 +119,30 @@ int main(int argc, char *argv[])
     if (!engine->setSource(fn.first()))
         return 0;
 
-    QScopedPointer<Q3DStudioMainWindow> mw;
+#ifdef Q3DSVIEWER_WIDGETS
+    Q3DStudioMainWindow *mw = nullptr;
+#endif
     if (noWidgets) {
         if (fullscreen)
             view->showFullScreen();
         else
             view->show();
     } else {
-        mw.reset(new Q3DStudioMainWindow(view.take()));
+#ifdef Q3DSVIEWER_WIDGETS
+        mw = new Q3DStudioMainWindow(view.take());
         if (fullscreen)
             mw->showFullScreen();
         else
             mw->show();
+#endif
     }
 
     int r = app.exec();
 
     // make sure the engine is destroyed before the view (which is owned by mw by now)
     engine.reset();
+#ifdef Q3DSVIEWER_WIDGETS
+    delete mw;
+#endif
     return r;
 }

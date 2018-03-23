@@ -29,8 +29,10 @@
 
 #include "q3dsutils_p.h"
 #include "q3dsgraphexplorer_p.h"
+#if QT_CONFIG(widgets)
 #include <QMessageBox>
 #include <QInputDialog>
+#endif
 
 QT_BEGIN_NAMESPACE
 
@@ -71,15 +73,22 @@ void Q3DSUtils::showMessage(const QString &msg)
                 *s += QLatin1Char('\n');
             *s += msg;
         }
-    } else if (q3ds_dialogsEnabled) {
+    }
+#if QT_CONFIG(widgets)
+    else if (q3ds_dialogsEnabled) {
         QMessageBox::information(nullptr, QObject::tr("Viewer"), msg);
     }
+#endif
 }
 
 QString Q3DSUtils::getInput(const QString &msg)
 {
+#if QT_CONFIG(widgets)
     if (q3ds_dialogsEnabled)
         return QInputDialog::getText(nullptr, QObject::tr("Input"), msg);
+#else
+    Q_UNUSED(msg);
+#endif
 
     return QString();
 }
@@ -98,8 +107,12 @@ QString Q3DSUtils::resourcePrefix()
 
 void Q3DSUtils::showObjectGraph(Q3DSGraphObject *obj)
 {
+#if QT_CONFIG(widgets)
     Q3DSGraphExplorer *w = new Q3DSGraphExplorer(obj);
     w->show();
+#else
+    Q_UNUSED(obj);
+#endif
 }
 
 QT_END_NAMESPACE

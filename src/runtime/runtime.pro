@@ -1,7 +1,7 @@
 TARGET = Qt3DStudioRuntime2
 MODULE = 3dstudioruntime2
 
-QT += core-private widgets 3dcore-private 3drender-private 3dinput 3dlogic 3danimation 3dextras qml 3dquick 3dquickscene2d
+QT += core-private 3dcore-private 3drender-private 3dinput 3dlogic 3danimation 3dextras qml 3dquick 3dquickscene2d
 
 SOURCES += \
     q3dsuipparser.cpp \
@@ -15,7 +15,6 @@ SOURCES += \
     q3dsmaterial.cpp \
     q3dseffect.cpp \
     q3dsdatamodelparser.cpp \
-    q3dsgraphexplorer.cpp \
     q3dsdefaultmaterialgenerator.cpp \
     q3dstextrenderer.cpp \
     q3dstextmaterialgenerator.cpp \
@@ -50,7 +49,6 @@ HEADERS += \
     q3dsmaterial_p.h \
     q3dseffect_p.h \
     q3dsdatamodelparser_p.h \
-    q3dsgraphexplorer_p.h \
     q3dspresentationcommon_p.h \
     q3dsdefaultmaterialgenerator_p.h \
     q3dstextrenderer_p.h \
@@ -74,6 +72,14 @@ HEADERS += \
     q3dsbehavior_p.h \
     q3dsinputmanager_p.h \
     q3dsconsolecommands_p.h
+
+qtHaveModule(widgets) {
+    QT += widgets
+    SOURCES += \
+        q3dsgraphexplorer.cpp
+    HEADERS += \
+        q3dsgraphexplorer_p.h
+}
 
 RESOURCES += \
     q3dsres.qrc

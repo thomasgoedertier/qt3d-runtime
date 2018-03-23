@@ -1,10 +1,12 @@
-QT += widgets 3dstudioruntime2-private
+QT += 3dstudioruntime2-private
 
-SOURCES += \
-    main.cpp \
-    q3dsmainwindow.cpp
+qtHaveModule(widgets) {
+    QT += widgets
+    DEFINES += Q3DSVIEWER_WIDGETS
+    SOURCES += q3dsmainwindow.cpp
+    HEADERS += q3dsmainwindow.h
+}
 
-HEADERS += \
-    q3dsmainwindow.h
+SOURCES += main.cpp
 
 load(qt_tool)

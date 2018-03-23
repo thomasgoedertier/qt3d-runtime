@@ -41,6 +41,10 @@
 // We mean it.
 //
 
+#include <qglobal.h>
+#include <private/qconfig_p.h>
+#if QT_CONFIG(widgets)
+
 #include <QWidget>
 #include <QVariant>
 
@@ -58,5 +62,7 @@ private:
 };
 
 QT_END_NAMESPACE
+
+#endif // widgets
 
 #endif // Q3DSGRAPHEXPLORER_P_H
