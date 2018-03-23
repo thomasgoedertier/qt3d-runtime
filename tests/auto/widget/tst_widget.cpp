@@ -93,7 +93,7 @@ void tst_Widget::testSimple()
     QCOMPARE(errorSpy.count(), 0);
 
     w.setUpdateInterval(0);
-    QTRY_VERIFY(frameSpy.count() >= 10);
+    QTRY_VERIFY(frameSpy.count() >= 60);
 }
 
 QTEST_MAIN(tst_Widget)

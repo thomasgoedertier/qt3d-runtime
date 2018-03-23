@@ -123,8 +123,8 @@ void tst_SurfaceViewer::testWindow()
     QCOMPARE(errorSpy.count(), 0);
     QCOMPARE(runningSpy.count(), 1);
 
-    // wait for 10 frames at least
-    QTRY_VERIFY(frameSpy.count() >= 10);
+    // wait for 60 frames at least
+    QTRY_VERIFY(frameSpy.count() >= 60);
 
     QCOMPARE(viewer.presentation()->source(), source);
 }
@@ -153,7 +153,7 @@ void tst_SurfaceViewer::testWindowWithReload()
     QCOMPARE(errorSpy.count(), 0);
     QCOMPARE(runningSpy.count(), 1);
 
-    QTRY_VERIFY(frameSpy.count() >= 10);
+    QTRY_VERIFY(frameSpy.count() >= 60);
 
     viewer.presentation()->reload();
 
@@ -161,7 +161,7 @@ void tst_SurfaceViewer::testWindowWithReload()
     QCOMPARE(errorSpy.count(), 0);
     QCOMPARE(viewer.presentation()->source(), source);
 
-    QTRY_VERIFY(frameSpy.count() >= 20);
+    QTRY_VERIFY(frameSpy.count() >= 120);
 }
 
 void tst_SurfaceViewer::testCreateDestroy()
@@ -180,15 +180,15 @@ void tst_SurfaceViewer::testCreateDestroy()
     w.resize(1024, 768);
     w.show();
     QVERIFY(QTest::qWaitForWindowExposed(&w));
-    QTRY_VERIFY(frameSpy.count() >= 10);
+    QTRY_VERIFY(frameSpy.count() >= 60);
 
     viewer.destroy();
     QVERIFY(viewer.create(&w, w.context()));
-    QTRY_VERIFY(frameSpy.count() >= 20);
+    QTRY_VERIFY(frameSpy.count() >= 120);
 
     // now without destroy(), create() in itself should recreate as well
     QVERIFY(viewer.create(&w, w.context()));
-    QTRY_VERIFY(frameSpy.count() >= 30);
+    QTRY_VERIFY(frameSpy.count() >= 180);
 }
 
 void tst_SurfaceViewer::testGrab()
@@ -209,7 +209,7 @@ void tst_SurfaceViewer::testGrab()
     w.show();
     QVERIFY(QTest::qWaitForWindowExposed(&w));
 
-    QTRY_VERIFY(frameSpy.count() >= 10);
+    QTRY_VERIFY(frameSpy.count() >= 60);
     QImage fullImage = viewer.grab();
     QCOMPARE(fullImage.size(), w.size() * w.devicePixelRatio());
     // verify at least that the background is there
