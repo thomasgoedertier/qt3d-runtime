@@ -94,7 +94,7 @@ Q3DStudioMainWindow::Q3DStudioMainWindow(Q3DSWindow *view, QWidget *parent)
         Qt::WindowStates s = windowState();
         s.setFlag(Qt::WindowFullScreen, !s.testFlag(Qt::WindowFullScreen));
         setWindowState(s);
-    });
+    }, QKeySequence::FullScreen);
 
     viewMenu->addAction(tr("Toggle in-scene &debug view"), this, [view] {
         Q3DSSceneManager *sm = view->engine()->sceneManager();
