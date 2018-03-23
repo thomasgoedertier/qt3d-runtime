@@ -101,91 +101,94 @@ Q3DStudioMainWindow::Q3DStudioMainWindow(Q3DSWindow *view, QWidget *parent)
         sm->setProfileUiVisible(!sm->isProfileUiVisible());
     }, Qt::Key_F10);
 
-    QMenu *debugMenu = menuBar()->addMenu(tr("&Debug"));
-    debugMenu->addAction(tr("&Object graph..."), [=]() {
-        Q3DSUtils::showObjectGraph(view->engine()->presentation()->scene());
-    });
-    debugMenu->addAction(tr("&Scene slide graph..."), [=]() {
-        Q3DSUtils::showObjectGraph(view->engine()->presentation()->masterSlide());
-    });
-    QAction *depthTexAction = debugMenu->addAction(tr("&Force depth texture"));
-    depthTexAction->setCheckable(true);
-    depthTexAction->setChecked(false);
-    connect(depthTexAction, &QAction::toggled, [=]() {
-        Q3DSUipPresentation::forAllLayers(view->engine()->presentation()->scene(),
-                                       [=](Q3DSLayerNode *layer3DS) {
-            view->engine()->sceneManager()->setDepthTextureEnabled(
-                        layer3DS, depthTexAction->isChecked());
+    static const bool enableDebugMenu = qEnvironmentVariableIntValue("Q3DS_DEBUG") >= 1;
+    if (enableDebugMenu) {
+        QMenu *debugMenu = menuBar()->addMenu(tr("&Debug"));
+        debugMenu->addAction(tr("&Object graph..."), [=]() {
+            Q3DSUtils::showObjectGraph(view->engine()->presentation()->scene());
         });
-    });
-    QAction *ssaoAction = debugMenu->addAction(tr("Force SS&AO"));
-    ssaoAction->setCheckable(true);
-    ssaoAction->setChecked(false);
-    connect(ssaoAction, &QAction::toggled, [=]() {
-        Q3DSUipPresentation::forAllLayers(view->engine()->presentation()->scene(),
-                                       [=](Q3DSLayerNode *layer3DS) {
-            Q3DSPropertyChangeList changeList;
-            const QString value = ssaoAction->isChecked() ? QLatin1String("50") : QLatin1String("0");
-            changeList.append(Q3DSPropertyChange(QLatin1String("aostrength"), value));
-            layer3DS->applyPropertyChanges(changeList);
-            layer3DS->notifyPropertyChanges(changeList);
+        debugMenu->addAction(tr("&Scene slide graph..."), [=]() {
+            Q3DSUtils::showObjectGraph(view->engine()->presentation()->masterSlide());
         });
-    });
-    QAction *rebuildMatAction = debugMenu->addAction(tr("&Rebuild model materials"));
-    connect(rebuildMatAction, &QAction::triggered, [=]() {
-        Q3DSUipPresentation::forAllModels(view->engine()->presentation()->scene(),
-                                       [=](Q3DSModelNode *model3DS) {
-            view->engine()->sceneManager()->rebuildModelMaterial(model3DS);
+        QAction *depthTexAction = debugMenu->addAction(tr("&Force depth texture"));
+        depthTexAction->setCheckable(true);
+        depthTexAction->setChecked(false);
+        connect(depthTexAction, &QAction::toggled, [=]() {
+            Q3DSUipPresentation::forAllLayers(view->engine()->presentation()->scene(),
+                                              [=](Q3DSLayerNode *layer3DS) {
+                view->engine()->sceneManager()->setDepthTextureEnabled(
+                            layer3DS, depthTexAction->isChecked());
+            });
         });
-    });
-    QAction *toggleShadowAction = debugMenu->addAction(tr("&Toggle shadow casting for point lights"));
-    connect(toggleShadowAction, &QAction::triggered, [=]() {
-        Q3DSUipPresentation::forAllObjectsOfType(view->engine()->presentation()->scene(),
-                                              Q3DSGraphObject::Light, [=](Q3DSGraphObject *obj) {
-            Q3DSLightNode *light3DS = static_cast<Q3DSLightNode *>(obj);
-            if (light3DS->flags().testFlag(Q3DSNode::Active) &&
-                    light3DS->lightType() == Q3DSLightNode::Point) {
+        QAction *ssaoAction = debugMenu->addAction(tr("Force SS&AO"));
+        ssaoAction->setCheckable(true);
+        ssaoAction->setChecked(false);
+        connect(ssaoAction, &QAction::toggled, [=]() {
+            Q3DSUipPresentation::forAllLayers(view->engine()->presentation()->scene(),
+                                              [=](Q3DSLayerNode *layer3DS) {
                 Q3DSPropertyChangeList changeList;
-                const QString value = light3DS->castShadow() ? QLatin1String("false") : QLatin1String("true");
-                changeList.append(Q3DSPropertyChange(QLatin1String("castshadow"), value));
-                light3DS->applyPropertyChanges(changeList);
-                light3DS->notifyPropertyChanges(changeList);
+                const QString value = ssaoAction->isChecked() ? QLatin1String("50") : QLatin1String("0");
+                changeList.append(Q3DSPropertyChange(QLatin1String("aostrength"), value));
+                layer3DS->applyPropertyChanges(changeList);
+                layer3DS->notifyPropertyChanges(changeList);
+            });
+        });
+        QAction *rebuildMatAction = debugMenu->addAction(tr("&Rebuild model materials"));
+        connect(rebuildMatAction, &QAction::triggered, [=]() {
+            Q3DSUipPresentation::forAllModels(view->engine()->presentation()->scene(),
+                                              [=](Q3DSModelNode *model3DS) {
+                view->engine()->sceneManager()->rebuildModelMaterial(model3DS);
+            });
+        });
+        QAction *toggleShadowAction = debugMenu->addAction(tr("&Toggle shadow casting for point lights"));
+        connect(toggleShadowAction, &QAction::triggered, [=]() {
+            Q3DSUipPresentation::forAllObjectsOfType(view->engine()->presentation()->scene(),
+                                                     Q3DSGraphObject::Light, [=](Q3DSGraphObject *obj) {
+                Q3DSLightNode *light3DS = static_cast<Q3DSLightNode *>(obj);
+                if (light3DS->flags().testFlag(Q3DSNode::Active) &&
+                        light3DS->lightType() == Q3DSLightNode::Point) {
+                    Q3DSPropertyChangeList changeList;
+                    const QString value = light3DS->castShadow() ? QLatin1String("false") : QLatin1String("true");
+                    changeList.append(Q3DSPropertyChange(QLatin1String("castshadow"), value));
+                    light3DS->applyPropertyChanges(changeList);
+                    light3DS->notifyPropertyChanges(changeList);
+                }
+            });
+        });
+        QAction *shadowResChangeAction = debugMenu->addAction(tr("&Maximize shadow map resolution for lights"));
+        connect(shadowResChangeAction, &QAction::triggered, [=]() {
+            Q3DSUipPresentation::forAllObjectsOfType(view->engine()->presentation()->scene(),
+                                                     Q3DSGraphObject::Light, [=](Q3DSGraphObject *obj) {
+                Q3DSLightNode *light3DS = static_cast<Q3DSLightNode *>(obj);
+                if (light3DS->flags().testFlag(Q3DSNode::Active)) {
+                    Q3DSPropertyChangeList changeList;
+                    const QString value = QLatin1String("11"); // 8..11
+                    changeList.append(Q3DSPropertyChange(QLatin1String("shdwmapres"), value));
+                    light3DS->applyPropertyChanges(changeList);
+                    light3DS->notifyPropertyChanges(changeList);
+                }
+            });
+        });
+        QAction *pauseAnims = debugMenu->addAction(tr("&Pause animations"));
+        pauseAnims->setCheckable(true);
+        pauseAnims->setChecked(false);
+        connect(pauseAnims, &QAction::toggled, [=]() {
+            Q3DSSceneManager *sb = view->engine()->sceneManager();
+            Q3DSSlidePlayer *player = sb->slidePlayer();
+            if (player) {
+                if (pauseAnims->isChecked())
+                    player->pause();
+                else
+                    player->play();
             }
         });
-    });
-    QAction *shadowResChangeAction = debugMenu->addAction(tr("&Maximize shadow map resolution for lights"));
-    connect(shadowResChangeAction, &QAction::triggered, [=]() {
-        Q3DSUipPresentation::forAllObjectsOfType(view->engine()->presentation()->scene(),
-                                              Q3DSGraphObject::Light, [=](Q3DSGraphObject *obj) {
-            Q3DSLightNode *light3DS = static_cast<Q3DSLightNode *>(obj);
-            if (light3DS->flags().testFlag(Q3DSNode::Active)) {
-                Q3DSPropertyChangeList changeList;
-                const QString value = QLatin1String("11"); // 8..11
-                changeList.append(Q3DSPropertyChange(QLatin1String("shdwmapres"), value));
-                light3DS->applyPropertyChanges(changeList);
-                light3DS->notifyPropertyChanges(changeList);
-            }
+        QAction *renderOnDemand = debugMenu->addAction(tr("Render on &demand only"));
+        renderOnDemand->setCheckable(true);
+        renderOnDemand->setChecked(false);
+        connect(renderOnDemand, &QAction::toggled, [=]() {
+            view->engine()->setOnDemandRendering(renderOnDemand->isChecked());
         });
-    });
-    QAction *pauseAnims = debugMenu->addAction(tr("&Pause animations"));
-    pauseAnims->setCheckable(true);
-    pauseAnims->setChecked(false);
-    connect(pauseAnims, &QAction::toggled, [=]() {
-        Q3DSSceneManager *sb = view->engine()->sceneManager();
-        Q3DSSlidePlayer *player = sb->slidePlayer();
-        if (player) {
-            if (pauseAnims->isChecked())
-                player->pause();
-            else
-                player->play();
-        }
-    });
-    QAction *renderOnDemand = debugMenu->addAction(tr("Render on &demand only"));
-    renderOnDemand->setCheckable(true);
-    renderOnDemand->setChecked(false);
-    connect(renderOnDemand, &QAction::toggled, [=]() {
-        view->engine()->setOnDemandRendering(renderOnDemand->isChecked());
-    });
+    }
 
     QMenu *helpMenu = menuBar()->addMenu(tr("&Help"));
     helpMenu->addAction(tr("&About"), this, [this]() {
