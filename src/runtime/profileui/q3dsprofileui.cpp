@@ -583,7 +583,7 @@ void Q3DSProfileView::addLayerWindow()
     addPresentationSelector();
 
     ImGui::Text("Layers");
-    ImGui::Columns(6, "layercols");
+    ImGui::Columns(7, "layercols");
     ImGui::Separator();
     ImGui::Text("ID"); ImGui::NextColumn();
     ImGui::Text("Visible"); ImGui::NextColumn();
@@ -596,6 +596,11 @@ void Q3DSProfileView::addLayerWindow()
     addTip("Multisample / Supersample / Progressive / Temporal antialiasing");
     ImGui::NextColumn();
     ImGui::Text("Dirty"); ImGui::NextColumn();
+    ImGui::Text("Cached");
+    addTip("When in cached mode, a layer does not render its content into the "
+           "associated offscreen render target. Rather, the previous content is "
+           "used for composition. This can only happen while Dirty is false.");
+    ImGui::NextColumn();
     ImGui::Separator();
 
     Q3DSProfiler *p = selectedProfiler();
@@ -624,6 +629,9 @@ void Q3DSProfileView::addLayerWindow()
         ImGui::Text("%s", aa.constData());
         ImGui::NextColumn();
         ImGui::Text("%s", data->wasDirty ? "true" : "false");
+        ImGui::NextColumn();
+        const bool isCached = data->layerFgRoot->parentNode() == data->layerFgDummyParent;
+        ImGui::Text("%s", isCached ? "true" : "false");
         ImGui::NextColumn();
     });
     ImGui::Columns(1);
