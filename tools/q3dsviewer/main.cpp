@@ -50,8 +50,8 @@ int main(int argc, char *argv[])
     cmdLineParser.addOption(fullScreenOption);
     QCommandLineOption msaaOption({ "m", "multisample" }, QObject::tr("Forces 4x MSAA"));
     cmdLineParser.addOption(msaaOption);
-    QCommandLineOption profOption({ "p", "profile" }, QObject::tr("Opens presentation with profiling enabled"));
-    cmdLineParser.addOption(profOption);
+    QCommandLineOption noProfOption({ "p", "no-profile" }, QObject::tr("Opens presentation without profiling enabled"));
+    cmdLineParser.addOption(noProfOption);
     cmdLineParser.process(app);
 
 #if !defined(Q_OS_ANDROID) && !defined(Q_OS_IOS)
@@ -90,7 +90,7 @@ int main(int argc, char *argv[])
     Q3DSEngine::Flags flags = 0;
     if (cmdLineParser.isSet(msaaOption))
         flags |= Q3DSEngine::Force4xMSAA;
-    if (cmdLineParser.isSet(profOption))
+    if (!cmdLineParser.isSet(noProfOption))
         flags |= Q3DSEngine::EnableProfiling;
 
     QScopedPointer<Q3DSEngine> engine(new Q3DSEngine);

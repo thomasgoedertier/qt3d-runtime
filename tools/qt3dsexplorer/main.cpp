@@ -45,8 +45,8 @@ int main(int argc, char *argv[])
     cmdLineParser.addPositionalArgument(QLatin1String("filename"), QObject::tr("UIP or UIA file to open"));
     QCommandLineOption msaaOption({ "m", "multisample" }, QObject::tr("Force 4x MSAA"));
     cmdLineParser.addOption(msaaOption);
-    QCommandLineOption profOption({ "p", "profile" }, QObject::tr("Open scene with profiling enabled"));
-    cmdLineParser.addOption(profOption);
+    QCommandLineOption noProfOption({ "p", "no-profile" }, QObject::tr("Opens presentation without profiling enabled"));
+    cmdLineParser.addOption(noProfOption);
     cmdLineParser.process(app);
 
     QStringList fn = cmdLineParser.positionalArguments();
@@ -65,7 +65,7 @@ int main(int argc, char *argv[])
     Q3DSEngine::Flags flags = 0;
     if (cmdLineParser.isSet(msaaOption))
         flags |= Q3DSEngine::Force4xMSAA;
-    if (cmdLineParser.isSet(profOption))
+    if (!cmdLineParser.isSet(noProfOption))
         flags |= Q3DSEngine::EnableProfiling;
 
     QScopedPointer<Q3DSEngine> engine(new Q3DSEngine);

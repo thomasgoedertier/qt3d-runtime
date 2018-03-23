@@ -63,11 +63,11 @@ Q3DStudioMainWindow::Q3DStudioMainWindow(Q3DSWindow *view, QWidget *parent)
             view->engine()->setSource(fn);
     };
     fileMenu->addAction(tr("&Open..."), this, [=] {
-        view->engine()->setFlag(Q3DSEngine::EnableProfiling, false);
+        view->engine()->setFlag(Q3DSEngine::EnableProfiling, true);
         open();
     } , QKeySequence::Open);
-    fileMenu->addAction(tr("Open with &profiling..."), this, [=] {
-        view->engine()->setFlag(Q3DSEngine::EnableProfiling, true);
+    fileMenu->addAction(tr("Open without &profiling..."), this, [=] {
+        view->engine()->setFlag(Q3DSEngine::EnableProfiling, false);
         open();
     });
     fileMenu->addAction(tr("&Reload"), this, [=] {
