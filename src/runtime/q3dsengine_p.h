@@ -159,7 +159,9 @@ public:
     void handleWheelEvent(QWheelEvent *e);
 #endif
 
-    void setProfileUiEnabled(bool enabled) { m_profileUiEnabled = enabled; }
+    void setAutoToggleProfileUi(bool enabled) { m_autoToggleProfileUi = enabled; }
+    void setProfileUiVisible(bool visible);
+    void configureProfileUi(float scale);
 
     typedef QHash<Q3DSBehaviorInstance *, Q3DSBehaviorHandle> BehaviorMap;
 
@@ -259,7 +261,7 @@ private:
     QObject m_profileUiEventSource;
     bool m_autoStart = true;
     float m_profileUiScale = 1;
-    bool m_profileUiEnabled = true;
+    bool m_autoToggleProfileUi = true;
 
     QQmlEngine *m_behaviorQmlEngine = nullptr;
     bool m_ownsBehaviorQmlEngine = false;

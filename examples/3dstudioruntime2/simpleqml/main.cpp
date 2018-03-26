@@ -63,7 +63,7 @@ int main(int argc, char *argv[])
 
     viewer.setTitle(QStringLiteral("Qt 3D Studio Example"));
     viewer.setResizeMode(QQuickView::SizeRootObjectToView);
-    viewer.resize(1024, 768);
+    viewer.resize(1280, 720);
     viewer.show();
 
     return app.exec();

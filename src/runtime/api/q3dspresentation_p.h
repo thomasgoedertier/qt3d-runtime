@@ -83,6 +83,7 @@ public:
     virtual void handleGoToSlideByDirection(const QString &elementPath, bool next, bool wrap);
     virtual QVariant handleGetAttribute(const QString &elementPath, const QString &attribute);
     virtual void handleSetAttribute(const QString &elementPath, const QString &attributeName, const QVariant &value);
+    virtual void handleSetProfileUiVisible(bool visible, float scale = 1.0f);
 
 protected:
     Q3DSEngine *m_pcEngine = nullptr; // don't want clashes with commonly used m_engine members
@@ -103,6 +104,8 @@ public:
     QUrl source;
     Q3DSPresentationController *controller = nullptr;
     bool profiling = false; // unlike the viewer, the public API defaults to profile off
+    bool profileUiVisible = false;
+    float profileUiScale = 1.0f;
 };
 
 QT_END_NAMESPACE

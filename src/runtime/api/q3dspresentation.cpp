@@ -88,7 +88,44 @@ void Q3DSPresentation::setProfilingEnabled(bool enable)
     // must be set up front). Defaults to disabled.
 
     Q_D(Q3DSPresentation);
-    d->profiling = enable; // no effect until next setSource()
+    if (d->profiling != enable) {
+        d->profiling = enable; // no effect until next setSource()
+        emit profilingEnabledChanged();
+    }
+}
+
+bool Q3DSPresentation::isProfileUiVisible() const
+{
+    Q_D(const Q3DSPresentation);
+    return d->profiling ? d->profileUiVisible : false;
+}
+
+void Q3DSPresentation::setProfileUiVisible(bool visible)
+{
+    Q_D(Q3DSPresentation);
+    if (d->profiling && d->profileUiVisible != visible) {
+        d->profileUiVisible = visible;
+        if (d->controller)
+            d->controller->handleSetProfileUiVisible(d->profileUiVisible, d->profileUiScale);
+        emit profileUiVisibleChanged();
+    }
+}
+
+float Q3DSPresentation::profileUiScale() const
+{
+    Q_D(const Q3DSPresentation);
+    return d->profileUiScale;
+}
+
+void Q3DSPresentation::setProfileUiScale(float scale)
+{
+    Q_D(Q3DSPresentation);
+    if (d->profileUiScale != scale) {
+        d->profileUiScale = scale;
+        if (d->controller)
+            d->controller->handleSetProfileUiVisible(d->profileUiVisible, d->profileUiScale);
+        emit profileUiScaleChanged();
+    }
 }
 
 void Q3DSPresentation::reload()

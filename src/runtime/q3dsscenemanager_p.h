@@ -620,7 +620,7 @@ public:
 
     Q3DSProfiler *profiler() { return m_profiler; }
 
-    void setProfileUiVisible(bool visible, bool openLog = false);
+    void setProfileUiVisible(bool visible, bool openLogAndConsole = false);
     bool isProfileUiVisible() const;
     void setProfileUiInputEventSource(QObject *obj);
     void configureProfileUi(float scale);

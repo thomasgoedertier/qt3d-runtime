@@ -72,6 +72,7 @@ Rectangle {
             id: s3dpres
             source: "qrc:/presentation/barrel.uip"
             profilingEnabled: true
+            profileUiScale: profUiScale.value / 100
             onCustomSignalEmitted: customSignalName.text = Date.now() + ": " + name
             onSlideEntered: slideEnter.text = "Entered slide " + name + "(index " + index + ") on " + elementPath
             onSlideExited: slideExit.text = "Exited slide " + name + "(index " + index + ") on " + elementPath
@@ -155,9 +156,6 @@ Rectangle {
         }
         Button {
             text: "Fire event"
-            // Here we could open a Dialog to specify a target object and event
-            // name but creating a working dialog with Quick Controls 2 is way
-            // beyond my modest skills, apparently.
             onClicked: s3dpres.fireEvent("Scene.Layer.Camera", "customCameraEvent") // in actionevent.uip this will change the sphere's color
             focusPolicy: Qt.NoFocus
         }
@@ -208,6 +206,25 @@ Rectangle {
         anchors.left: nextSlideByIndex.right
         anchors.bottom: fpsCount.top
         onClicked: s3dpres.goToTime("Scene", 5)
+        focusPolicy: Qt.NoFocus
+    }
+
+    Button {
+        id: profTogBtn
+        text: "Toggle profile UI"
+        anchors.right: parent.right
+        anchors.bottom: parent.bottom
+        focusPolicy: Qt.NoFocus
+        onClicked: s3dpres.profileUiVisible = !s3dpres.profileUiVisible
+    }
+    Slider {
+        id: profUiScale
+        width: profTogBtn.width
+        anchors.right: profTogBtn.left
+        anchors.bottom: parent.bottom
+        from: 50
+        to: 400
+        value: 100
         focusPolicy: Qt.NoFocus
     }
 

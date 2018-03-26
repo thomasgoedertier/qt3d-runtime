@@ -67,7 +67,7 @@ public:
 
     void frame();
 
-    void openLog() { m_logWindowOpen = m_consoleWindowOpen = true; }
+    void openLogAndConsole() { m_logWindowOpen = m_consoleWindowOpen = true; }
 
 private:
     void addQt3DObjectsWindow();
@@ -1001,9 +1001,9 @@ void Q3DSProfileUi::setVisible(bool visible)
     m_guiMgr->setEnabled(m_visible);
 }
 
-void Q3DSProfileUi::openLog()
+void Q3DSProfileUi::openLogAndConsole()
 {
-    m_view->openLog();
+    m_view->openLogAndConsole();
 }
 
 QT_END_NAMESPACE

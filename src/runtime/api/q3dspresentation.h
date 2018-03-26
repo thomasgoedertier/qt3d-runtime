@@ -47,6 +47,8 @@ class Q3DSV_EXPORT Q3DSPresentation : public QObject
     Q_OBJECT
     Q_PROPERTY(QUrl source READ source WRITE setSource NOTIFY sourceChanged)
     Q_PROPERTY(bool profilingEnabled READ isProfilingEnabled WRITE setProfilingEnabled NOTIFY profilingEnabledChanged)
+    Q_PROPERTY(bool profileUiVisible READ isProfileUiVisible WRITE setProfileUiVisible NOTIFY profileUiVisibleChanged)
+    Q_PROPERTY(float profileUiScale READ profileUiScale WRITE setProfileUiScale NOTIFY profileUiScaleChanged)
 
 public:
     explicit Q3DSPresentation(QObject *parent = nullptr);
@@ -58,13 +60,23 @@ public:
     bool isProfilingEnabled() const;
     void setProfilingEnabled(bool enable);
 
+    bool isProfileUiVisible() const;
+    void setProfileUiVisible(bool visible);
+
+    float profileUiScale() const;
+    void setProfileUiScale(float scale);
+
     Q_INVOKABLE void reload();
+
     Q_INVOKABLE void setDataInputValue(const QString &name, const QVariant &value);
+
     Q_INVOKABLE void fireEvent(const QString &elementPath, const QString &eventName);
+
     Q_INVOKABLE void goToTime(const QString &elementPath, float timeSeconds);
     Q_INVOKABLE void goToSlide(const QString &elementPath, const QString &name);
     Q_INVOKABLE void goToSlide(const QString &elementPath, int index);
     Q_INVOKABLE void goToSlide(const QString &elementPath, bool next, bool wrap);
+
     Q_INVOKABLE QVariant getAttribute(const QString &elementPath, const QString &attributeName);
     Q_INVOKABLE void setAttribute(const QString &elementPath, const QString &attributeName, const QVariant &value);
 
@@ -81,6 +93,8 @@ public:
 Q_SIGNALS:
     void sourceChanged();
     void profilingEnabledChanged();
+    void profileUiVisibleChanged();
+    void profileUiScaleChanged();
     void customSignalEmitted(const QString &elementPath, const QString &name);
     void slideEntered(const QString &elementPath, int index, const QString &name);
     void slideExited(const QString &elementPath, int index, const QString &name);

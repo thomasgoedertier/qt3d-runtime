@@ -6347,17 +6347,17 @@ void Q3DSFrameUpdater::frameAction(float dt)
     ++m_frameCounter;
 }
 
-void Q3DSSceneManager::setProfileUiVisible(bool visible, bool openLog)
+void Q3DSSceneManager::setProfileUiVisible(bool visible, bool openLogAndConsole)
 {
 #if QT_CONFIG(q3ds_profileui)
     if (m_profileUi) {
         m_profileUi->setVisible(visible);
-        if (visible && openLog)
-            m_profileUi->openLog();
+        if (visible && openLogAndConsole)
+            m_profileUi->openLogAndConsole();
     }
 #else
     Q_UNUSED(visible);
-    Q_UNUSED(openLog);
+    Q_UNUSED(openLogAndConsole);
 #endif
 }
 

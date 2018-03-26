@@ -307,14 +307,11 @@ bool Q3DSSurfaceViewerPrivate::createEngine()
     engine = new Q3DSEngine;
 
     Q3DSEngine::Flags flags = Q3DSEngine::WithoutRenderAspect;
-    if (sourceFlags.testFlag(Q3DSPresentationController::Profiling)) {
+    if (sourceFlags.testFlag(Q3DSPresentationController::Profiling))
         flags |= Q3DSEngine::EnableProfiling;
-        engine->setProfileUiEnabled(true);
-    } else {
-        engine->setProfileUiEnabled(false);
-    }
 
     engine->setFlags(flags);
+    engine->setAutoToggleProfileUi(false); // up to the app to control this via the API instead
 
     switch (surface->surfaceClass()) {
     case QSurface::Window:

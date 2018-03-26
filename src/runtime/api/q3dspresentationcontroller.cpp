@@ -193,4 +193,12 @@ void Q3DSPresentationController::handleSetAttribute(const QString &elementPath, 
     obj->notifyPropertyChanges(cl);
 }
 
+void Q3DSPresentationController::handleSetProfileUiVisible(bool visible, float scale)
+{
+    if (m_pcEngine) {
+        m_pcEngine->setProfileUiVisible(visible);
+        m_pcEngine->configureProfileUi(scale);
+    }
+}
+
 QT_END_NAMESPACE

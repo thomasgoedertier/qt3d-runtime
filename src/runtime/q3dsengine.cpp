@@ -1087,7 +1087,7 @@ void Q3DSEngine::handleKeyPressEvent(QKeyEvent *e)
 {
     bool forwardEvent = isProfileUiVisible();
 
-    if (m_profileUiEnabled) {
+    if (m_autoToggleProfileUi) {
         Q3DSSceneManager *sm = !m_uipPresentations.isEmpty() ? m_uipPresentations[0].sceneManager : nullptr;
 
         // not ideal since the window needs focus which it often won't have. also no keyboard on embedded/mobile.
@@ -1177,7 +1177,7 @@ void Q3DSEngine::handleMouseDoubleClickEvent(QMouseEvent *e)
     if (isProfileUiVisible())
         QCoreApplication::sendEvent(&m_profileUiEventSource, e);
 
-    if (!m_profileUiEnabled)
+    if (!m_autoToggleProfileUi)
         return;
 
     // Toggle with short double-clicks. This should work both with
@@ -1217,6 +1217,18 @@ void Q3DSEngine::requestGrab()
             delete captureReply;
         }));
     }
+}
+
+void Q3DSEngine::setProfileUiVisible(bool visible)
+{
+    if (!m_uipPresentations.isEmpty() && m_uipPresentations[0].sceneManager)
+        m_uipPresentations[0].sceneManager->setProfileUiVisible(visible);
+}
+
+void Q3DSEngine::configureProfileUi(float scale)
+{
+    if (!m_uipPresentations.isEmpty() && m_uipPresentations[0].sceneManager)
+        m_uipPresentations[0].sceneManager->configureProfileUi(scale);
 }
 
 void Q3DSEngine::setDataInputValue(const QString &name, const QVariant &value)

@@ -65,7 +65,7 @@ public:
     bool visible() const { return m_visible; }
     void setVisible(bool visible);
 
-    void openLog();
+    void openLogAndConsole();
 
 private:
     Q3DSGuiData *m_data;

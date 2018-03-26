@@ -176,14 +176,11 @@ void Q3DSStudio3DItem::createEngine()
         // Rendering will be driven manually from the Quick render thread via the QRenderAspect.
         // We create the render aspect ourselves on the Quick render thread.
         Q3DSEngine::Flags flags = Q3DSEngine::WithoutRenderAspect;
-        if (m_sourceFlags.testFlag(Q3DSPresentationController::Profiling)) {
+        if (m_sourceFlags.testFlag(Q3DSPresentationController::Profiling))
             flags |= Q3DSEngine::EnableProfiling;
-            m_engine->setProfileUiEnabled(true);
-        } else {
-            m_engine->setProfileUiEnabled(false);
-        }
 
         m_engine->setFlags(flags);
+        m_engine->setAutoToggleProfileUi(false); // up to the app to control this via the API instead
 
         // Use our QQmlEngine for QML subpresentations and behavior scripts.
         QQmlEngine *qmlEngine = QQmlEngine::contextForObject(this)->engine();
