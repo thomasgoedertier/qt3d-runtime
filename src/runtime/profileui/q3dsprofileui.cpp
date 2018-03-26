@@ -106,6 +106,7 @@ private:
     QHash<QString, QVector2D> m_dataInputVec2Buf;
     QHash<QString, QVector3D> m_dataInputVec3Buf;
     Q3DSConsole *m_console = nullptr;
+    bool m_layerCaching = true;
 };
 
 Q3DSProfileView::Q3DSProfileView(Q3DSProfiler *profiler, Q3DSProfileUi::ConsoleInitFunc consoleInitFunc)
@@ -812,6 +813,9 @@ void Q3DSProfileView::addAlterSceneStuff()
     Q3DSUipPresentation *pres = m_profiler->presentation();
     if (!pres)
         return;
+
+    ImGui::Checkbox("Layer caching", &m_layerCaching);
+    m_profiler->setLayerCaching(m_layerCaching);
 
     if (ImGui::Button("Data input"))
         m_dataInputWindowOpen = !m_dataInputWindowOpen;

@@ -584,6 +584,8 @@ public:
     void setCurrentSlide(Q3DSSlide *slide, bool fromSlidePlayer = false);
     void setComponentCurrentSlide(Q3DSComponentNode *component, Q3DSSlide *newSlide);
 
+    void setLayerCaching(bool enabled);
+
     void prepareAnimators();
 
     enum SetNodePropFlag {
@@ -785,6 +787,8 @@ private:
     Q3DSInputManager *m_inputManager = nullptr;
     QVector<Q3DSGraphObject::Event> m_eventQueue;
     bool m_inDestructor = false;
+    bool m_layerCaching = true;
+    bool m_layerUncachePending = false;
 
     friend class Q3DSFrameUpdater;
     friend class Q3DSProfiler;

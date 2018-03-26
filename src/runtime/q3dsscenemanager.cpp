@@ -530,6 +530,17 @@ void Q3DSSceneManager::setComponentCurrentSlide(Q3DSComponentNode *component, Q3
     qCDebug(lcScene, "Setting new current slide %s for component %s", newSlide->id().constData(), component->id().constData());
 }
 
+void Q3DSSceneManager::setLayerCaching(bool enabled)
+{
+    if (m_layerCaching == enabled)
+        return;
+
+    qCDebug(lcScene, "Layer caching enabled = %d", enabled);
+    m_layerCaching = enabled;
+
+    m_layerUncachePending = !m_layerCaching;
+}
+
 void Q3DSSceneManager::prepareAnimators()
 {
     auto slideDeck = m_slidePlayer->slideDeck();
@@ -5969,11 +5980,11 @@ void Q3DSSceneManager::prepareNextFrame()
     static const bool layerCacheDebug = qEnvironmentVariableIntValue("Q3DS_DEBUG") >= 2;
     Q3DSUipPresentation::forAllLayers(m_scene, [this](Q3DSLayerNode *layer3DS) {
         Q3DSLayerAttached *layerData = layer3DS->attached<Q3DSLayerAttached>();
-        if (!layerData->wasDirty) {
+        if (!layerData->wasDirty && !m_layerUncachePending) {
             ++layerData->nonDirtyRenderCount;
             if (layerData->nonDirtyRenderCount > LAYER_CACHING_THRESHOLD) {
                 layerData->nonDirtyRenderCount = 0;
-                if (layerData->layerFgRoot->parentNode() != layerData->layerFgDummyParent) {
+                if (m_layerCaching && layerData->layerFgRoot->parentNode() != layerData->layerFgDummyParent) {
                     if (layerCacheDebug)
                         qCDebug(lcScene, "Switching %s to cached", layer3DS->id().constData());
                     layerData->layerFgRoot->setParent(layerData->layerFgDummyParent);
@@ -5988,6 +5999,7 @@ void Q3DSSceneManager::prepareNextFrame()
             }
         }
     });
+    m_layerUncachePending = false;
 }
 
 // Now to the nightmare of maintaining per-layer dirty flags. The scene-wide

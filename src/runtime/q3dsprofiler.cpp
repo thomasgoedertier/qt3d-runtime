@@ -197,6 +197,13 @@ void Q3DSProfiler::sendDataInputValueChange(const QString &dataInputName, const 
     m_sceneManager->setDataInputValue(dataInputName, value);
 }
 
+void Q3DSProfiler::setLayerCaching(bool enabled)
+{
+    m_sceneManager->setLayerCaching(enabled);
+    for (Q3DSProfiler *subPresProfiler : *subPresentationProfilers())
+        subPresProfiler->m_sceneManager->setLayerCaching(enabled);
+}
+
 float Q3DSProfiler::cpuLoadForCurrentProcess()
 {
     if (!m_cpuLoadTimer.isValid()) {
