@@ -305,7 +305,17 @@ bool Q3DSSurfaceViewerPrivate::createEngine()
     Q_ASSERT(!engine);
 
     engine = new Q3DSEngine;
-    engine->setFlags(Q3DSEngine::WithoutRenderAspect);
+
+    Q3DSEngine::Flags flags = Q3DSEngine::WithoutRenderAspect;
+    if (sourceFlags.testFlag(Q3DSPresentationController::Profiling)) {
+        flags |= Q3DSEngine::EnableProfiling;
+        engine->setProfileUiEnabled(true);
+    } else {
+        engine->setProfileUiEnabled(false);
+    }
+
+    engine->setFlags(flags);
+
     switch (surface->surfaceClass()) {
     case QSurface::Window:
         windowOrOffscreenSurface = static_cast<QWindow *>(surface);
@@ -318,6 +328,7 @@ bool Q3DSSurfaceViewerPrivate::createEngine()
         return false;
     }
     engine->setSurface(windowOrOffscreenSurface);
+
     qCDebug(lc3DSSurface, "Created engine %p", engine);
 
     initializePresentationController(engine, presentation);
@@ -388,7 +399,7 @@ void Q3DSSurfaceViewerPrivate::destroyEngine()
     }
 }
 
-void Q3DSSurfaceViewerPrivate::handlePresentationSource(const QUrl &newSource)
+void Q3DSSurfaceViewerPrivate::handlePresentationSource(const QUrl &newSource, SourceFlags flags)
 {
     if (newSource == source)
         return;
@@ -396,6 +407,7 @@ void Q3DSSurfaceViewerPrivate::handlePresentationSource(const QUrl &newSource)
     destroyEngine();
 
     source = newSource;
+    sourceFlags = flags;
 
     if (surface && context)
         createEngine();

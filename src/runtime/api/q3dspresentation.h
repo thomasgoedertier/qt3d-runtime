@@ -46,6 +46,7 @@ class Q3DSV_EXPORT Q3DSPresentation : public QObject
 {
     Q_OBJECT
     Q_PROPERTY(QUrl source READ source WRITE setSource NOTIFY sourceChanged)
+    Q_PROPERTY(bool profilingEnabled READ isProfilingEnabled WRITE setProfilingEnabled NOTIFY profilingEnabledChanged)
 
 public:
     explicit Q3DSPresentation(QObject *parent = nullptr);
@@ -53,6 +54,9 @@ public:
 
     QUrl source() const;
     void setSource(const QUrl &source);
+
+    bool isProfilingEnabled() const;
+    void setProfilingEnabled(bool enable);
 
     Q_INVOKABLE void reload();
     Q_INVOKABLE void setDataInputValue(const QString &name, const QVariant &value);
@@ -76,6 +80,7 @@ public:
 
 Q_SIGNALS:
     void sourceChanged();
+    void profilingEnabledChanged();
     void customSignalEmitted(const QString &elementPath, const QString &name);
     void slideEntered(const QString &elementPath, int index, const QString &name);
     void slideExited(const QString &elementPath, int index, const QString &name);

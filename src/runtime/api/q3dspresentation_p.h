@@ -57,7 +57,12 @@ public:
 
     void initializePresentationController(Q3DSEngine *engine, Q3DSPresentation *presentation);
 
-    virtual void handlePresentationSource(const QUrl &source) = 0;
+    enum SourceFlag {
+        Profiling = 0x01
+    };
+    Q_DECLARE_FLAGS(SourceFlags, SourceFlag)
+
+    virtual void handlePresentationSource(const QUrl &source, SourceFlags flags) = 0;
     virtual void handlePresentationReload() = 0;
 
     virtual void handlePresentationKeyPressEvent(QKeyEvent *e);
@@ -83,6 +88,8 @@ protected:
     Q3DSEngine *m_pcEngine = nullptr; // don't want clashes with commonly used m_engine members
 };
 
+Q_DECLARE_OPERATORS_FOR_FLAGS(Q3DSPresentationController::SourceFlags)
+
 class Q3DSV_PRIVATE_EXPORT Q3DSPresentationPrivate : public QObjectPrivate
 {
     Q_DECLARE_PUBLIC(Q3DSPresentation)
@@ -91,9 +98,11 @@ public:
     static Q3DSPresentationPrivate *get(Q3DSPresentation *p) { return p->d_func(); }
 
     void setController(Q3DSPresentationController *c);
+    Q3DSPresentationController::SourceFlags sourceFlags() const;
 
     QUrl source;
     Q3DSPresentationController *controller = nullptr;
+    bool profiling = false; // unlike the viewer, the public API defaults to profile off
 };
 
 QT_END_NAMESPACE

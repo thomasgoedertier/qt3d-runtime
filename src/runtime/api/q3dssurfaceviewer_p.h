@@ -83,7 +83,7 @@ public:
     bool createEngine();
     void destroyEngine();
 
-    void handlePresentationSource(const QUrl &source) override;
+    void handlePresentationSource(const QUrl &source, SourceFlags flags) override;
     void handlePresentationReload() override;
 
     void sendResizeToQt3D(const QSize &size);
@@ -95,6 +95,7 @@ public:
     QOpenGLContext *context = nullptr;
     Q3DSEngine *engine = nullptr;
     QUrl source;
+    SourceFlags sourceFlags;
     bool sourceLoaded = false;
     QString error;
     Qt3DRender::QRenderAspect *renderAspect = nullptr;

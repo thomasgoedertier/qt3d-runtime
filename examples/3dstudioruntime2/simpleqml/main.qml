@@ -71,6 +71,7 @@ Rectangle {
         Presentation {
             id: s3dpres
             source: "qrc:/presentation/barrel.uip"
+            profilingEnabled: true
             onCustomSignalEmitted: customSignalName.text = Date.now() + ": " + name
             onSlideEntered: slideEnter.text = "Entered slide " + name + "(index " + index + ") on " + elementPath
             onSlideExited: slideExit.text = "Exited slide " + name + "(index " + index + ") on " + elementPath

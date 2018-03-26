@@ -68,9 +68,27 @@ void Q3DSPresentation::setSource(const QUrl &source)
 
     d->source = source;
     if (d->controller)
-        d->controller->handlePresentationSource(source);
+        d->controller->handlePresentationSource(source, d->sourceFlags());
 
     emit sourceChanged();
+}
+
+bool Q3DSPresentation::isProfilingEnabled() const
+{
+    Q_D(const Q3DSPresentation);
+    return d->profiling;
+}
+
+void Q3DSPresentation::setProfilingEnabled(bool enable)
+{
+    // In this API "profiling" means both the scene manager's EnableProfiling
+    // (enables Qt3D QObject tracking; must be set before building the scene)
+    // and the ImGui-based profile UI (that can be toggled at any time in the
+    // private API - for simplicity there's a single flag for both here, which
+    // must be set up front). Defaults to disabled.
+
+    Q_D(Q3DSPresentation);
+    d->profiling = enable; // no effect until next setSource()
 }
 
 void Q3DSPresentation::reload()
@@ -199,7 +217,16 @@ void Q3DSPresentationPrivate::setController(Q3DSPresentationController *c)
         return;
 
     controller = c;
-    controller->handlePresentationSource(source);
+    controller->handlePresentationSource(source, sourceFlags());
+}
+
+Q3DSPresentationController::SourceFlags Q3DSPresentationPrivate::sourceFlags() const
+{
+    Q3DSPresentationController::SourceFlags flags = 0;
+    if (profiling)
+        flags |= Q3DSPresentationController::Profiling;
+
+    return flags;
 }
 
 QT_END_NAMESPACE

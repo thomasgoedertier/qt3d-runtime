@@ -221,7 +221,16 @@ Q3DSWidgetPrivate::~Q3DSWidgetPrivate()
 void Q3DSWidgetPrivate::createEngine()
 {
     engine = new Q3DSEngine;
-    engine->setFlags(Q3DSEngine::WithoutRenderAspect);
+
+    Q3DSEngine::Flags flags = Q3DSEngine::WithoutRenderAspect;
+    if (sourceFlags.testFlag(Q3DSPresentationController::Profiling)) {
+        flags |= Q3DSEngine::EnableProfiling;
+        engine->setProfileUiEnabled(true);
+    } else {
+        engine->setProfileUiEnabled(false);
+    }
+
+    engine->setFlags(flags);
     engine->setSurface(q_ptr->window()->windowHandle());
     qCDebug(lc3DSWidget, "Created engine %p", engine);
 
@@ -274,7 +283,7 @@ void Q3DSWidgetPrivate::destroyEngine()
     }
 }
 
-void Q3DSWidgetPrivate::handlePresentationSource(const QUrl &newSource)
+void Q3DSWidgetPrivate::handlePresentationSource(const QUrl &newSource, SourceFlags flags)
 {
     if (newSource == source)
         return;
@@ -283,6 +292,7 @@ void Q3DSWidgetPrivate::handlePresentationSource(const QUrl &newSource)
         destroyEngine();
 
     source = newSource;
+    sourceFlags = flags;
 
     needsInit = true;
     q_ptr->update();

@@ -128,7 +128,7 @@ void Q3DSStudio3DItem::componentComplete()
     QQuickItem::componentComplete();
 }
 
-void Q3DSStudio3DItem::handlePresentationSource(const QUrl &source)
+void Q3DSStudio3DItem::handlePresentationSource(const QUrl &source, SourceFlags flags)
 {
     if (source == m_source)
         return;
@@ -137,6 +137,7 @@ void Q3DSStudio3DItem::handlePresentationSource(const QUrl &source)
         releaseEngineAndRenderer();
 
     m_source = source;
+    m_sourceFlags = flags;
 
     if (window()) // else defer to itemChange()
         createEngine();
@@ -171,9 +172,18 @@ void Q3DSStudio3DItem::createEngine()
         }
 
         m_engine = new Q3DSEngine;
+
         // Rendering will be driven manually from the Quick render thread via the QRenderAspect.
         // We create the render aspect ourselves on the Quick render thread.
-        m_engine->setFlags(Q3DSEngine::WithoutRenderAspect);
+        Q3DSEngine::Flags flags = Q3DSEngine::WithoutRenderAspect;
+        if (m_sourceFlags.testFlag(Q3DSPresentationController::Profiling)) {
+            flags |= Q3DSEngine::EnableProfiling;
+            m_engine->setProfileUiEnabled(true);
+        } else {
+            m_engine->setProfileUiEnabled(false);
+        }
+
+        m_engine->setFlags(flags);
 
         // Use our QQmlEngine for QML subpresentations and behavior scripts.
         QQmlEngine *qmlEngine = QQmlEngine::contextForObject(this)->engine();

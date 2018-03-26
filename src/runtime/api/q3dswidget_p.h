@@ -68,13 +68,14 @@ public:
     void destroyEngine();
     void sendResizeToQt3D(const QSize &size);
 
-    void handlePresentationSource(const QUrl &source) override;
+    void handlePresentationSource(const QUrl &source, SourceFlags flags) override;
     void handlePresentationReload() override;
 
     Q3DSWidget *q_ptr;
     Q3DSPresentation *presentation;
     Q3DSEngine *engine = nullptr;
     QUrl source;
+    SourceFlags sourceFlags;
     bool sourceLoaded = false;
     QString error;
     Qt3DRender::QRenderAspect *renderAspect = nullptr;

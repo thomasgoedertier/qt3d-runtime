@@ -91,7 +91,7 @@ private slots:
     void destroyEngine();
 
 private:
-    void handlePresentationSource(const QUrl &source) override;
+    void handlePresentationSource(const QUrl &source, SourceFlags flags) override;
     void handlePresentationReload() override;
 
     QSGNode *updatePaintNode(QSGNode *node, UpdatePaintNodeData *nodeData) override;
@@ -120,6 +120,7 @@ private:
     Q3DSStudio3DRenderer *m_renderer = nullptr;
     Q3DSEngine *m_engine = nullptr;
     QUrl m_source;
+    SourceFlags m_sourceFlags;
     bool m_sourceLoaded = false;
     bool m_running = false;
     QString m_error;
