@@ -643,7 +643,7 @@ void Q3DSImguiManager::updateInput()
 
     Q3DSImguiInputEventFilter *w = m_inputEventFilter;
 
-    io.MousePos = ImVec2(w->mousePos.x() / m_scale, w->mousePos.y() / m_scale);
+    io.MousePos = ImVec2((w->mousePos.x() / m_scale) * m_outputInfo.dpr, (w->mousePos.y() / m_scale) * m_outputInfo.dpr);
 
     io.MouseDown[0] = w->mouseButtonsDown.testFlag(Qt::LeftButton);
     io.MouseDown[1] = w->mouseButtonsDown.testFlag(Qt::RightButton);
