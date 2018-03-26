@@ -6554,6 +6554,12 @@ void Q3DSSceneManager::handleEvent(const Q3DSGraphObject::Event &e)
             else
                 emit m_engine->slideExited(sceneOrComponent, index, name);
         }
+
+        // Slide changes that do not cause any property changes and start no
+        // animations would not change the involved layers' dirty flag and so
+        // could potentially lead to bad rendering. Uncache all layers to be
+        // safe. Caching will kick in again after a few frames anyway.
+        m_layerUncachePending = true;
     }
 }
 
