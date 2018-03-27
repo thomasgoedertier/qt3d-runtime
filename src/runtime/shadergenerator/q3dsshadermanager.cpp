@@ -383,7 +383,8 @@ Qt3DRender::QShaderProgram *Q3DSShaderManager::getCubeShadowBlurXShader(Qt3DCore
 
         fragmentShader->append("}");
 
-        m_cubeShadowBlurXShader = m_shaderProgramGenerator->compileGeneratedShader(QLatin1String("cubemap shadow blur X shader"), Q3DSShaderFeatureSet());
+        Q3DSShaderFeatureSet featureSet { Q3DSShaderPreprocessorFeature(QLatin1String("Q3DS_NO_FRAGOUTPUT"), true) };
+        m_cubeShadowBlurXShader = m_shaderProgramGenerator->compileGeneratedShader(QLatin1String("cubemap shadow blur X shader"), featureSet);
         m_cubeShadowBlurXShader->setParent(parent);
     }
 
@@ -511,7 +512,8 @@ Qt3DRender::QShaderProgram *Q3DSShaderManager::getCubeShadowBlurYShader(Qt3DCore
 
         fragmentShader->append("}");
 
-        m_cubeShadowBlurYShader = m_shaderProgramGenerator->compileGeneratedShader(QLatin1String("cubemap shadow blur Y shader"), Q3DSShaderFeatureSet());
+        Q3DSShaderFeatureSet featureSet { Q3DSShaderPreprocessorFeature(QLatin1String("Q3DS_NO_FRAGOUTPUT"), true) };
+        m_cubeShadowBlurYShader = m_shaderProgramGenerator->compileGeneratedShader(QLatin1String("cubemap shadow blur Y shader"), featureSet);
         m_cubeShadowBlurYShader->setParent(parent);
     }
 

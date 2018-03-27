@@ -290,7 +290,7 @@ public:
                 output.append(QLatin1String("precision highp int;\n"));
 
                 // Add backwards compatibility
-                output.append(addBackwardCompatibilityDefines(format, m_stage));
+                output.append(addBackwardCompatibilityDefines(format, m_stage, inFeatureSet));
 
             } else {
                 // ES2
@@ -318,7 +318,7 @@ public:
 
                 // Add backwards compatibility
                 output.append(QLatin1String("#if __VERSION__ >= 330\n"));
-                output.append(addBackwardCompatibilityDefines(format, m_stage));
+                output.append(addBackwardCompatibilityDefines(format, m_stage, inFeatureSet));
                 output.append(QLatin1String("#else\n"));
                 if (m_stage == Q3DSShaderGeneratorStages::Enum::Fragment)
                     output.append(QLatin1String("#define fragOutput gl_FragData[0]\n"));
@@ -384,7 +384,9 @@ public:
         return output;
     }
 
-    QString addBackwardCompatibilityDefines(const QSurfaceFormat &format, Q3DSShaderGeneratorStages::Enum stage)
+    QString addBackwardCompatibilityDefines(const QSurfaceFormat &format,
+                                            Q3DSShaderGeneratorStages::Enum stage,
+                                            const Q3DSShaderFeatureSet &inFeatureSet)
     {
         Q_UNUSED(format)
         QString output;
@@ -393,16 +395,25 @@ public:
             output += QLatin1String("#define attribute in\n");
             output += QLatin1String("#define varying out\n");
         } else if (stage == Q3DSShaderGeneratorStages::Enum::Fragment) {
+            bool needsFragOutput = true;
+            for (auto f : inFeatureSet) {
+                if (f.enabled && f.name == QLatin1String("Q3DS_NO_FRAGOUTPUT")) {
+                    needsFragOutput = false;
+                    break;
+                }
+            }
             output += QLatin1String("#define varying in\n");
             output += QLatin1String("#define texture2D texture\n");
-            output += QLatin1String("#define gl_FragColor fragOutput\n");
+            if (needsFragOutput)
+                output += QLatin1String("#define gl_FragColor fragOutput\n");
 
             // TODO: check if we have support for advanceBlendSupport
             //            if (m_RenderContext.IsAdvancedBlendSupportedKHR())
 #if 0
             output += QLatin1String("layout(blend_support_all_equations) out;\n ");
 #endif
-            output += QLatin1String("out vec4 fragOutput;\n");
+            if (needsFragOutput)
+                output += QLatin1String("out vec4 fragOutput;\n");
         }
         return output;
     }
