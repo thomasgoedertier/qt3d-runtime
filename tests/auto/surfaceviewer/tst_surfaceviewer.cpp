@@ -29,12 +29,11 @@
 #include <QtTest/qtest.h>
 #include <QtTest/qsignalspy.h>
 
-#include <QtGui/private/qguiapplication_p.h>
-#include <qpa/qplatformintegration.h>
-
 #include <Qt3DStudioRuntime2/q3dsruntimeglobal.h>
 #include <Qt3DStudioRuntime2/q3dssurfaceviewer.h>
 #include <Qt3DStudioRuntime2/q3dspresentation.h>
+
+#include "../shared/shared.h"
 
 class tst_SurfaceViewer : public QObject
 {
@@ -58,6 +57,9 @@ tst_SurfaceViewer::tst_SurfaceViewer()
 
 void tst_SurfaceViewer::initTestCase()
 {
+    if (!isOpenGLGoodEnough())
+        QSKIP("This platform does not support OpenGL proper");
+
     QSurfaceFormat::setDefaultFormat(Q3DS::surfaceFormat());
 }
 
@@ -98,9 +100,6 @@ bool Window::event(QEvent *e)
 
 void tst_SurfaceViewer::testWindow()
 {
-    if (!QGuiApplicationPrivate::instance()->platformIntegration()->hasCapability(QPlatformIntegration::OpenGL))
-        QSKIP("This platform does not support OpenGL");
-
     Window w;
     Q3DSSurfaceViewer viewer;
     QSignalSpy errorSpy(&viewer, SIGNAL(errorChanged()));
@@ -131,9 +130,6 @@ void tst_SurfaceViewer::testWindow()
 
 void tst_SurfaceViewer::testWindowWithReload()
 {
-    if (!QGuiApplicationPrivate::instance()->platformIntegration()->hasCapability(QPlatformIntegration::OpenGL))
-        QSKIP("This platform does not support OpenGL");
-
     Window w;
     Q3DSSurfaceViewer viewer;
     QSignalSpy errorSpy(&viewer, SIGNAL(errorChanged()));
@@ -166,9 +162,6 @@ void tst_SurfaceViewer::testWindowWithReload()
 
 void tst_SurfaceViewer::testCreateDestroy()
 {
-    if (!QGuiApplicationPrivate::instance()->platformIntegration()->hasCapability(QPlatformIntegration::OpenGL))
-        QSKIP("This platform does not support OpenGL");
-
     Window w;
     Q3DSSurfaceViewer viewer;
     QSignalSpy frameSpy(&viewer, SIGNAL(frameUpdate()));
@@ -193,9 +186,6 @@ void tst_SurfaceViewer::testCreateDestroy()
 
 void tst_SurfaceViewer::testGrab()
 {
-    if (!QGuiApplicationPrivate::instance()->platformIntegration()->hasCapability(QPlatformIntegration::OpenGL))
-        QSKIP("This platform does not support OpenGL");
-
     Window w;
     Q3DSSurfaceViewer viewer;
     QSignalSpy frameSpy(&viewer, SIGNAL(frameUpdate()));

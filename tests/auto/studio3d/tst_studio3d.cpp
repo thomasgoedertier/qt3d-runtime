@@ -35,6 +35,8 @@
 
 #include <q3dsruntimeglobal.h>
 
+#include "../shared/shared.h"
+
 class tst_Studio3D : public QObject
 {
     Q_OBJECT
@@ -54,6 +56,9 @@ tst_Studio3D::tst_Studio3D()
 
 void tst_Studio3D::initTestCase()
 {
+    if (!isOpenGLGoodEnough())
+        QSKIP("This platform does not support OpenGL proper");
+
     QSurfaceFormat::setDefaultFormat(Q3DS::surfaceFormat());
 
     // do not bother disabling dialogs, Studio3D is expected to avoid those implicitly

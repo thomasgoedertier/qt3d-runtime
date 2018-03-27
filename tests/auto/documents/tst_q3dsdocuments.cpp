@@ -35,8 +35,7 @@
 #include <private/q3dsuiadocument_p.h>
 #include <private/q3dsqmldocument_p.h>
 
-#include <QtGui/private/qguiapplication_p.h>
-#include <qpa/qplatformintegration.h>
+#include "../shared/shared.h"
 
 class tst_Q3DSDocuments : public QObject
 {
@@ -111,8 +110,8 @@ tst_Q3DSDocuments::tst_Q3DSDocuments()
 
 void tst_Q3DSDocuments::initTestCase()
 {
-    if (!QGuiApplicationPrivate::instance()->platformIntegration()->hasCapability(QPlatformIntegration::OpenGL))
-        QSKIP("This platform does not support OpenGL");
+    if (!isOpenGLGoodEnough())
+        QSKIP("This platform does not support OpenGL proper");
 
     QSurfaceFormat::setDefaultFormat(Q3DSEngine::surfaceFormat());
 

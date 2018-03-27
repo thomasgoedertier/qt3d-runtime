@@ -29,12 +29,11 @@
 #include <QtTest/qtest.h>
 #include <QtTest/qsignalspy.h>
 
-#include <QtGui/private/qguiapplication_p.h>
-#include <qpa/qplatformintegration.h>
-
 #include <Qt3DStudioRuntime2/q3dsruntimeglobal.h>
 #include <Qt3DStudioRuntime2/q3dswidget.h>
 #include <Qt3DStudioRuntime2/q3dspresentation.h>
+
+#include "../shared/shared.h"
 
 class tst_Widget : public QObject
 {
@@ -55,6 +54,9 @@ tst_Widget::tst_Widget()
 
 void tst_Widget::initTestCase()
 {
+    if (!isOpenGLGoodEnough())
+        QSKIP("This platform does not support OpenGL proper");
+
     QSurfaceFormat::setDefaultFormat(Q3DS::surfaceFormat());
 
     // do not bother disabling dialogs, Q3DSWidget is expected to avoid those implicitly
@@ -66,9 +68,6 @@ void tst_Widget::cleanupTestCase()
 
 void tst_Widget::testSimple()
 {
-    if (!QGuiApplicationPrivate::instance()->platformIntegration()->hasCapability(QPlatformIntegration::OpenGL))
-        QSKIP("This platform does not support OpenGL");
-
     Q3DSWidget w;
     QSignalSpy errorSpy(&w, SIGNAL(errorChanged()));
     QSignalSpy runningSpy(&w, SIGNAL(runningChanged()));

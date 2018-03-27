@@ -37,8 +37,7 @@
 #include <Qt3DCore/QEntity>
 #include <Qt3DRender/QLayer>
 
-#include <QtGui/private/qguiapplication_p.h>
-#include <qpa/qplatformintegration.h>
+#include "../shared/shared.h"
 
 class tst_Q3DSSlides : public QObject
 {
@@ -131,8 +130,8 @@ tst_Q3DSSlides::~tst_Q3DSSlides()
 
 void tst_Q3DSSlides::initTestCase()
 {
-    if (!QGuiApplicationPrivate::instance()->platformIntegration()->hasCapability(QPlatformIntegration::OpenGL))
-        QSKIP("This platform does not support OpenGL");
+    if (!isOpenGLGoodEnough())
+        QSKIP("This platform does not support OpenGL proper");
 
     QSurfaceFormat::setDefaultFormat(Q3DSEngine::surfaceFormat());
     m_engine = new Q3DSEngine;

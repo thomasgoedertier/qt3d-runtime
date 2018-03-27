@@ -6,17 +6,15 @@ SUBDIRS += \
     meshloader \
     materialparser \
     effectparser \
-    uippresentation
+    uippresentation \
+    slidedeck \
+    behaviors \
+    documents \
+    slides \
+    slideplayer \
+    surfaceviewer \
+    q3dslancelot
 
-#SUBDIRS += \
-#    documents \
-#    behaviors \
-#    slides \
-#    slideplayer \
-#    q3dslancelot \
-#    surfaceviewer \
-#    slidedeck
+qtHaveModule(quick): SUBDIRS += studio3d
 
-# qtHaveModule(quick): SUBDIRS += studio3d
-
-# qtHaveModule(widgets): SUBDIRS += widget
+qtHaveModule(widgets): SUBDIRS += widget
