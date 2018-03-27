@@ -793,16 +793,6 @@ public:
     static QVariant getPivotV(Q3DSGraphObject *obj, const QString &) { return static_cast<Q3DSImage *>(obj)->m_pivotV; }
 };
 
-class Q3DSV_PRIVATE_EXPORT Q3DSNodeAttached : public Q3DSGraphObjectAttached
-{
-public:
-    Qt3DCore::QTransform *transform = nullptr;
-    QMatrix4x4 globalTransform;
-    float globalOpacity = 1;
-    bool globalVisibility = true;
-    Q3DSLayerNode *layer3DS = nullptr;
-};
-
 class Q3DSV_PRIVATE_EXPORT Q3DSNode : public Q3DSGraphObject
 {
 public:

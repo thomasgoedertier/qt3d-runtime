@@ -175,9 +175,37 @@ struct Q3DSAmbientOcclusionData
 
 Q_DECLARE_TYPEINFO(Q3DSAmbientOcclusionData, Q_MOVABLE_TYPE);
 
+class Q3DSV_PRIVATE_EXPORT Q3DSNodeAttached : public Q3DSGraphObjectAttached
+{
+public:
+    struct LightsData {
+        QVector<Q3DSLightSource> allLights;
+        QVector<Q3DSLightSource> nonAreaLights;
+        QVector<Q3DSLightSource> areaLights;
+        QVector<Q3DSLightNode *> lightNodes;
+        Qt3DRender::QParameter *allLightsParam = nullptr; // for default material
+        Qt3DRender::QParameter *nonAreaLightsParam = nullptr; // split, for custom materials
+        Qt3DRender::QParameter *areaLightsParam = nullptr; // split, for custom materials
+        Qt3DRender::QBuffer *allLightsConstantBuffer = nullptr;
+        Qt3DRender::QBuffer *nonAreaLightsConstantBuffer = nullptr;
+        Qt3DRender::QBuffer *areaLightsConstantBuffer = nullptr;
+        Qt3DRender::QParameter *lightAmbientTotalParamenter = nullptr;
+    };
+    Qt3DCore::QTransform *transform = nullptr;
+    QMatrix4x4 globalTransform;
+    float globalOpacity = 1;
+    bool globalVisibility = true;
+    Q3DSLayerNode *layer3DS = nullptr;
+    QScopedPointer<LightsData> lightsData;
+};
+
 class Q3DSLayerAttached : public Q3DSNodeAttached
 {
 public:
+    Q3DSLayerAttached() {
+        // layers always have light data
+        lightsData.reset(new Q3DSNodeAttached::LightsData);
+    }
     Qt3DCore::QEntity *compositorEntity = nullptr;
     Qt3DRender::QFrameGraphNode *layerFgRoot = nullptr;
     Qt3DCore::QNode *layerFgRootParent = nullptr;
@@ -201,6 +229,7 @@ public:
         SizeChangeCallback sizeChangeCallback = nullptr;
         Flags flags;
     };
+
     QVector<SizeManagedTexture> sizeManagedTextures;
     QVector<SizeChangeCallback> layerSizeChangeCallbacks;
     Qt3DRender::QAbstractTexture *layerTexture = nullptr;
@@ -219,20 +248,9 @@ public:
     bool effectActive = false;
     bool wasDirty = false;
     int nonDirtyRenderCount = 0;
-    QVector<Q3DSLightSource> allLights;
-    QVector<Q3DSLightSource> nonAreaLights;
-    QVector<Q3DSLightSource> areaLights;
-    QVector<Q3DSLightNode *> lightNodes;
+    Qt3DRender::QParameter *cameraPropertiesParam = nullptr;
     Qt3DRender::QLayer *opaqueTag = nullptr;
     Qt3DRender::QLayer *transparentTag = nullptr;
-    Qt3DRender::QParameter *cameraPropertiesParam = nullptr;
-    Qt3DRender::QParameter *allLightsParam = nullptr; // for default material
-    Qt3DRender::QParameter *nonAreaLightsParam = nullptr; // split, for custom materials
-    Qt3DRender::QParameter *areaLightsParam = nullptr; // split, for custom materials
-    Qt3DRender::QBuffer *allLightsConstantBuffer = nullptr;
-    Qt3DRender::QBuffer *nonAreaLightsConstantBuffer = nullptr;
-    Qt3DRender::QBuffer *areaLightsConstantBuffer = nullptr;
-    Qt3DRender::QParameter *lightAmbientTotalParamenter = nullptr;
     Qt3DRender::QRayCaster *layerRayCaster = nullptr;
     bool rayCasterBusy = false;
 
@@ -746,10 +764,10 @@ private:
     void createEffectBuffers(Q3DSEffectInstance *eff3DS);
     void updateEffect(Q3DSEffectInstance *eff3DS);
     void updateEffectForNextFrame(Q3DSEffectInstance *eff3DS, qint64 nextFrameNo);
-    void gatherLights(Q3DSGraphObject *root, QVector<Q3DSLightSource> *allLights, QVector<Q3DSLightSource> *nonAreaLights,
-                      QVector<Q3DSLightSource> *areaLights, QVector<Q3DSLightNode *> *lightNodes);
+    void gatherLights(Q3DSLayerNode *layer);
     void updateLightsBuffer(const QVector<Q3DSLightSource> &lights, Qt3DRender::QBuffer *uniformBuffer);
     void updateModel(Q3DSModelNode *model3DS);
+    QVector<Q3DSNodeAttached::LightsData *> getLightsDataForNode(Q3DSGraphObject *object);
 
     void buildLayerQuadEntity(Q3DSLayerNode *layer3DS, Qt3DCore::QEntity *parentEntity, Qt3DRender::QLayer *tag,
                               BuildLayerQuadFlags flags, int layerDepth = 0);
@@ -801,7 +819,7 @@ private:
     Q3DSCustomMaterialGenerator *m_customMaterialGen;
     Q3DSTextMaterialGenerator *m_textMatGen;
     Q3DSTextRenderer *m_textRenderer;
-    QSet<Q3DSLayerNode *> m_layersWithDirtyLights;
+    QSet<Q3DSGraphObject *> m_subTreeWithDirtyLights;
     QSet<Q3DSDefaultMaterial *> m_pendingDefMatRebuild;
     QSet<Q3DSNode *> m_pendingNodeShow;
     QSet<Q3DSNode *> m_pendingNodeHide;

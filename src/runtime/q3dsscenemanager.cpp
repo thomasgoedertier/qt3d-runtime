@@ -1115,9 +1115,8 @@ void Q3DSSceneManager::buildLayer(Q3DSLayerNode *layer3DS,
     // Phase 2: deferred stuff
 
     // Gather lights for this layer.
-    gatherLights(layer3DS, &layerData->allLights, &layerData->nonAreaLights, &layerData->areaLights, &layerData->lightNodes);
-    qCDebug(lcPerf, "Layer %s has %d lights in total (%d non-area, %d area)", layer3DS->id().constData(),
-            layerData->allLights.count(), layerData->nonAreaLights.count(), layerData->areaLights.count());
+    gatherLights(layer3DS);
+
     updateShadowMapStatus(layer3DS); // must be done before generating materials below
 
     // Enable SSAO (and depth texture generation) when needed. Must be done
@@ -2380,7 +2379,7 @@ void Q3DSSceneManager::updateShadowMapStatus(Q3DSLayerNode *layer3DS, bool *smDi
         d.active = false;
 
     // Go through the list of visible (eyeball==true) lights and pick the ones with castshadow==true.
-    for (Q3DSLightNode *light3DS : qAsConst(layerData->lightNodes)) {
+    for (Q3DSLightNode *light3DS : qAsConst(layerData->lightsData->lightNodes)) {
         Q_ASSERT(light3DS->flags().testFlag(Q3DSNode::Active));
         const QString lightIndexStr = QString::number(lightIdx++);
 
@@ -3468,6 +3467,7 @@ void Q3DSSceneManager::buildLayerScene(Q3DSGraphObject *obj, Q3DSLayerNode *laye
     switch (obj->type()) {
     case Q3DSGraphObject::Light:
         newEntity = buildLight(static_cast<Q3DSLightNode *>(obj), layer3DS, parent);
+        addChildren(obj, newEntity);
         break;
 
     case Q3DSGraphObject::Group:
@@ -3984,8 +3984,6 @@ void Q3DSSceneManager::setLightProperties(Q3DSLightNode *light3DS, bool forceUpd
         ls->shadowIdxParam = new Qt3DRender::QParameter;
     ls->shadowIdxParam->setName(QLatin1String("shadowIdx"));
     ls->shadowIdxParam->setValue(0); // ### FIXME later
-
-    // ### scoped lights not supported yet
 }
 
 Qt3DCore::QEntity *Q3DSSceneManager::buildModel(Q3DSModelNode *model3DS, Q3DSLayerNode *layer3DS, Qt3DCore::QEntity *parent)
@@ -4081,6 +4079,18 @@ void Q3DSSceneManager::buildModelMaterial(Q3DSModelNode *model3DS)
     Q3DSLayerAttached *layerData = static_cast<Q3DSLayerAttached *>(modelData->layer3DS->attached());
     Q_ASSERT(layerData);
 
+    QVector<Q3DSNodeAttached::LightsData *> lights = getLightsDataForNode(model3DS);
+
+    // The first node in the list is current scope lightData
+    Q3DSNodeAttached::LightsData *lightsData = nullptr;
+    if (!lights.isEmpty())
+        lightsData = lights.first();
+
+    // Get a full list of light nodes covered by the current scope
+    QVector<Q3DSLightNode *> lightNodes;
+    for (auto light : lights)
+        lightNodes.append(light->lightNodes);
+
     for (Q3DSModelAttached::SubMesh &sm : modelData->subMeshes) {
         if (sm.resolvedMaterial && !sm.materialComponent) {
             if (sm.resolvedMaterial->type() == Q3DSGraphObject::DefaultMaterial) {
@@ -4099,28 +4109,37 @@ void Q3DSSceneManager::buildModelMaterial(Q3DSModelNode *model3DS)
 
                 // Setup ambient light total
                 QVector3D lightAmbientTotal;
-                for (auto light : layerData->lightNodes) {
-                    lightAmbientTotal += QVector3D(light->ambient().redF(),
-                                                   light->ambient().greenF(),
-                                                   light->ambient().blueF());
+                for (auto lightsDataSub : lights) {
+                    for (auto light : lightsDataSub->lightNodes) {
+                        lightAmbientTotal += QVector3D(light->ambient().redF(),
+                                                       light->ambient().greenF(),
+                                                       light->ambient().blueF());
+                    }
                 }
-                if (!layerData->lightAmbientTotalParamenter)
-                    layerData->lightAmbientTotalParamenter = new Qt3DRender::QParameter;
-                layerData->lightAmbientTotalParamenter->setName(QLatin1String("light_ambient_total"));
-                layerData->lightAmbientTotalParamenter->setValue(lightAmbientTotal);
-                params.append(layerData->lightAmbientTotalParamenter);
 
-                // Setup lights, use combined buffer for the default material.
-                if (!layerData->allLightsConstantBuffer) {
-                    layerData->allLightsConstantBuffer = new Qt3DRender::QBuffer(layerData->entity);
-                    layerData->allLightsConstantBuffer->setObjectName(QLatin1String("all lights constant buffer"));
-                    updateLightsBuffer(layerData->allLights, layerData->allLightsConstantBuffer);
+                if (lightsData) {
+                    if (!lightsData->lightAmbientTotalParamenter)
+                        lightsData->lightAmbientTotalParamenter = new Qt3DRender::QParameter;
+                    lightsData->lightAmbientTotalParamenter->setName(QLatin1String("light_ambient_total"));
+                    lightsData->lightAmbientTotalParamenter->setValue(lightAmbientTotal);
+                    params.append(lightsData->lightAmbientTotalParamenter);
+
+                    // Setup lights, use combined buffer for the default material.
+                    if (!lightsData->allLightsConstantBuffer) {
+                        lightsData->allLightsConstantBuffer = new Qt3DRender::QBuffer(layerData->entity);
+                        lightsData->allLightsConstantBuffer->setObjectName(QLatin1String("all lights constant buffer"));
+                        // make sure we pick up all inherited lights in scope
+                        QVector<Q3DSLightSource> allLights;
+                        for (auto light : lights)
+                            allLights.append(light->allLights);
+                        updateLightsBuffer(allLights, lightsData->allLightsConstantBuffer);
+                    }
+                    if (!lightsData->allLightsParam)
+                        lightsData->allLightsParam = new Qt3DRender::QParameter;
+                    lightsData->allLightsParam->setName(QLatin1String("cbBufferLights"));
+                    lightsData->allLightsParam->setValue(QVariant::fromValue(lightsData->allLightsConstantBuffer));
+                    params.append(lightsData->allLightsParam);
                 }
-                if (!layerData->allLightsParam)
-                    layerData->allLightsParam = new Qt3DRender::QParameter;
-                layerData->allLightsParam->setName(QLatin1String("cbBufferLights"));
-                layerData->allLightsParam->setValue(QVariant::fromValue(layerData->allLightsConstantBuffer));
-                params.append(layerData->allLightsParam);
 
                 addShadowSsaoParams(layerData, &params);
 
@@ -4152,7 +4171,7 @@ void Q3DSSceneManager::buildModelMaterial(Q3DSModelNode *model3DS)
                     param->setParent(layerData->entity);
                 }
 
-                sm.materialComponent = m_matGen->generateMaterial(defaultMaterial, sm.referencedMaterial, params, layerData->lightNodes, modelData->layer3DS);
+                sm.materialComponent = m_matGen->generateMaterial(defaultMaterial, sm.referencedMaterial, params, lightNodes, modelData->layer3DS);
                 sm.entity->addComponent(sm.materialComponent);
             } else if (sm.resolvedMaterial->type() == Q3DSGraphObject::CustomMaterial) {
                 Q3DSCustomMaterialInstance *customMaterial = static_cast<Q3DSCustomMaterialInstance *>(sm.resolvedMaterial);
@@ -4161,28 +4180,36 @@ void Q3DSSceneManager::buildModelMaterial(Q3DSModelNode *model3DS)
                 custMatData->opacity = modelData->globalOpacity;
                 updateCustomMaterial(customMaterial, sm.referencedMaterial);
 
-                // Here lights are provided in two separate buffers.
-                if (!layerData->nonAreaLightsConstantBuffer) {
-                    layerData->nonAreaLightsConstantBuffer = new Qt3DRender::QBuffer(layerData->entity);
-                    layerData->nonAreaLightsConstantBuffer->setObjectName(QLatin1String("non-area lights constant buffer"));
-                    updateLightsBuffer(layerData->nonAreaLights, layerData->nonAreaLightsConstantBuffer);
-                }
-                if (!layerData->nonAreaLightsParam)
-                    layerData->nonAreaLightsParam = new Qt3DRender::QParameter;
-                layerData->nonAreaLightsParam->setName(QLatin1String("cbBufferLights")); // i.e. this cannot be combined with allLightsParam
-                layerData->nonAreaLightsParam->setValue(QVariant::fromValue(layerData->nonAreaLightsConstantBuffer));
-                params.append(layerData->nonAreaLightsParam);
+                if (lightsData) {
+                    // Here lights are provided in two separate buffers.
+                    if (!lightsData->nonAreaLightsConstantBuffer) {
+                        lightsData->nonAreaLightsConstantBuffer = new Qt3DRender::QBuffer(layerData->entity);
+                        lightsData->nonAreaLightsConstantBuffer->setObjectName(QLatin1String("non-area lights constant buffer"));
+                        QVector<Q3DSLightSource> nonAreaLights;
+                        for (auto light : lights)
+                            nonAreaLights.append(light->nonAreaLights);
+                        updateLightsBuffer(nonAreaLights, lightsData->nonAreaLightsConstantBuffer);
+                    }
+                    if (!lightsData->nonAreaLightsParam)
+                        lightsData->nonAreaLightsParam = new Qt3DRender::QParameter;
+                    lightsData->nonAreaLightsParam->setName(QLatin1String("cbBufferLights")); // i.e. this cannot be combined with allLightsParam
+                    lightsData->nonAreaLightsParam->setValue(QVariant::fromValue(lightsData->nonAreaLightsConstantBuffer));
+                    params.append(lightsData->nonAreaLightsParam);
 
-                if (!layerData->areaLightsConstantBuffer) {
-                    layerData->areaLightsConstantBuffer = new Qt3DRender::QBuffer(layerData->entity);
-                    layerData->areaLightsConstantBuffer->setObjectName(QLatin1String("area lights constant buffer"));
-                    updateLightsBuffer(layerData->areaLights, layerData->areaLightsConstantBuffer);
+                    if (!lightsData->areaLightsConstantBuffer) {
+                        lightsData->areaLightsConstantBuffer = new Qt3DRender::QBuffer(layerData->entity);
+                        lightsData->areaLightsConstantBuffer->setObjectName(QLatin1String("area lights constant buffer"));
+                        QVector<Q3DSLightSource> areaLights;
+                        for (auto light : lights)
+                            areaLights.append(light->areaLights);
+                        updateLightsBuffer(areaLights, lightsData->areaLightsConstantBuffer);
+                    }
+                    if (!lightsData->areaLightsParam)
+                        lightsData->areaLightsParam = new Qt3DRender::QParameter;
+                    lightsData->areaLightsParam->setName(QLatin1String("cbBufferAreaLights"));
+                    lightsData->areaLightsParam->setValue(QVariant::fromValue(lightsData->areaLightsConstantBuffer));
+                    params.append(lightsData->areaLightsParam);
                 }
-                if (!layerData->areaLightsParam)
-                    layerData->areaLightsParam = new Qt3DRender::QParameter;
-                layerData->areaLightsParam->setName(QLatin1String("cbBufferAreaLights"));
-                layerData->areaLightsParam->setValue(QVariant::fromValue(layerData->areaLightsConstantBuffer));
-                params.append(layerData->areaLightsParam);
 
                 addShadowSsaoParams(layerData, &params);
 
@@ -4213,7 +4240,7 @@ void Q3DSSceneManager::buildModelMaterial(Q3DSModelNode *model3DS)
 
                 // ### TODO support more than one pass
                 auto pass = customMaterial->material()->passes().first();
-                sm.materialComponent = m_customMaterialGen->generateMaterial(customMaterial, sm.referencedMaterial, params, layerData->lightNodes, modelData->layer3DS, pass);
+                sm.materialComponent = m_customMaterialGen->generateMaterial(customMaterial, sm.referencedMaterial, params, lightNodes, modelData->layer3DS, pass);
                 sm.entity->addComponent(sm.materialComponent);
             }
         }
@@ -5931,33 +5958,69 @@ void Q3DSSceneManager::updateEffectForNextFrame(Q3DSEffectInstance *eff3DS, qint
         setTextureInfoUniform(p.first, p.second);
 }
 
-void Q3DSSceneManager::gatherLights(Q3DSGraphObject *root,
-                                    QVector<Q3DSLightSource> *allLights,
-                                    QVector<Q3DSLightSource> *nonAreaLights,
-                                    QVector<Q3DSLightSource> *areaLights,
-                                    QVector<Q3DSLightNode *> *lightNodes)
+namespace {
+Q3DSLayerNode *getLayerForObject(Q3DSGraphObject *object) {
+    Q3DSGraphObject *target = object;
+    while (target) {
+        if (target->type() == Q3DSGraphObject::Layer)
+            return static_cast<Q3DSLayerNode *>(target);
+        target = target->parent();
+    }
+    return nullptr;
+}
+
+bool isLightScopeValid(Q3DSGraphObject *target, Q3DSLayerNode *layer) {
+    if (target->type() == Q3DSGraphObject::Scene)
+        return false;
+    if (getLayerForObject(target) == layer)
+        return true;
+    return false;
+}
+}
+
+void Q3DSSceneManager::gatherLights(Q3DSLayerNode *layer)
 {
-    if (!root)
+    if (!layer)
         return;
 
-    Q3DSGraphObject *obj = root->firstChild();
-    while (obj) {
-        if (obj->type() == Q3DSGraphObject::Light) {
-            Q3DSLightNode *light3DS = static_cast<Q3DSLightNode *>(obj);
+    Q3DSLayerAttached *layerData = static_cast<Q3DSLayerAttached *>(layer->attached());
+    QSet<Q3DSNodeAttached::LightsData*> resetMap;
+
+    Q3DSUipPresentation::forAllObjectsInSubTree(layer, [layer,layerData,&resetMap](Q3DSGraphObject *object){
+        if (object->type() == Q3DSGraphObject::Light) {
+            Q3DSLightNode *light3DS = static_cast<Q3DSLightNode *>(object);
+            Q3DSNodeAttached::LightsData *lightData = layerData->lightsData.data();
+            // If this light is a scoped light, setup the scoped node with lightsData
+            if (light3DS->scope() && isLightScopeValid(light3DS->scope(), layer)) {
+                Q3DSNodeAttached *scopeData = static_cast<Q3DSNodeAttached *>(light3DS->scope()->attached());
+                if (!scopeData->lightsData) {
+                    scopeData->lightsData.reset(new Q3DSNodeAttached::LightsData);
+                    // new lightData doesn't need to be reset
+                    resetMap.insert(scopeData->lightsData.data());
+                }
+                lightData = scopeData->lightsData.data();
+            }
+            // reset lightData if necessary
+            if (!resetMap.contains(lightData)) {
+                lightData->lightNodes.clear();
+                lightData->allLights.clear();
+                lightData->nonAreaLights.clear();
+                lightData->areaLights.clear();
+                resetMap.insert(lightData);
+            }
+
             if (light3DS->flags().testFlag(Q3DSNode::Active)) {
                 Q3DSLightAttached *data = static_cast<Q3DSLightAttached *>(light3DS->attached());
                 Q_ASSERT(data);
-                lightNodes->append(light3DS);
-                allLights->append(data->lightSource);
+                lightData->lightNodes.append(light3DS);
+                lightData->allLights.append(data->lightSource);
                 if (light3DS->lightType() == Q3DSLightNode::Area)
-                    areaLights->append(data->lightSource);
+                    lightData->areaLights.append(data->lightSource);
                 else
-                    nonAreaLights->append(data->lightSource);
+                    lightData->nonAreaLights.append(data->lightSource);
             }
         }
-        gatherLights(obj, allLights, nonAreaLights, areaLights, lightNodes);
-        obj = obj->nextSibling();
-    }
+    });
 }
 
 void Q3DSSceneManager::updateLightsBuffer(const QVector<Q3DSLightSource> &lights, Qt3DRender::QBuffer *uniformBuffer)
@@ -6040,6 +6103,21 @@ void Q3DSSceneManager::updateModel(Q3DSModelNode *model3DS)
             }
         }
     }
+}
+
+// This method is used to get the lights based on the scope of current object
+QVector<Q3DSNodeAttached::LightsData *> Q3DSSceneManager::getLightsDataForNode(Q3DSGraphObject *object)
+{
+    QVector<Q3DSNodeAttached::LightsData *> lightsDatas;
+    Q3DSGraphObject *target = object;
+    while (target) {
+        auto targetData = static_cast<Q3DSNodeAttached*>(target->attached());
+        if (targetData)
+            if (targetData->lightsData)
+                lightsDatas.append(targetData->lightsData.data());
+        target = target->parent();
+    }
+    return lightsDatas;
 }
 
 // when entering a slide, or when animating a property
@@ -6139,18 +6217,32 @@ void Q3DSSceneManager::handlePropertyChange(Q3DSGraphObject *obj, const QSet<QSt
 
 void Q3DSSceneManager::updateSubTree(Q3DSGraphObject *obj)
 {
-    m_layersWithDirtyLights.clear();
+    m_subTreeWithDirtyLights.clear();
     m_pendingDefMatRebuild.clear();
 
     updateSubTreeRecursive(obj);
 
-    for (Q3DSLayerNode *layer3DS : m_layersWithDirtyLights) {
-        Q3DSLayerAttached *layerData = static_cast<Q3DSLayerAttached *>(layer3DS->attached());
+    for (Q3DSGraphObject *subtreeObject : m_subTreeWithDirtyLights) {
         // Attempt to update all buffers, if some do not exist (null) that's fine too.
-        updateLightsBuffer(layerData->allLights, layerData->allLightsConstantBuffer);
-        updateLightsBuffer(layerData->nonAreaLights, layerData->nonAreaLightsConstantBuffer);
-        updateLightsBuffer(layerData->areaLights, layerData->areaLightsConstantBuffer);
+        auto lights = getLightsDataForNode(subtreeObject);
+
+        QVector<Q3DSLightSource> allLights;
+        QVector<Q3DSLightSource> nonAreaLights;
+        QVector<Q3DSLightSource> areaLights;
+        if (!lights.isEmpty()) {
+            Q3DSNodeAttached::LightsData *lightsData = lights.first();
+            for (auto light : lights) {
+                allLights.append(light->allLights);
+                nonAreaLights.append(light->nonAreaLights);
+                areaLights.append(light->areaLights);
+            }
+            updateLightsBuffer(allLights, lightsData->allLightsConstantBuffer);
+            updateLightsBuffer(nonAreaLights, lightsData->nonAreaLightsConstantBuffer);
+            updateLightsBuffer(areaLights, lightsData->areaLightsConstantBuffer);
+        }
+
         bool smDidChange = false;
+        auto layer3DS = getLayerForObject(subtreeObject);
         updateShadowMapStatus(layer3DS, &smDidChange);
         if (smDidChange) {
             Q3DSUipPresentation::forAllModels(layer3DS->firstChild(),
@@ -6366,8 +6458,12 @@ void Q3DSSceneManager::updateSubTreeRecursive(Q3DSGraphObject *obj)
             updateNodeFromChangeFlags(light3DS, data->transform, data->frameChangeFlags);
             if (data->frameDirty & (Q3DSGraphObjectAttached::LightDirty | Q3DSGraphObjectAttached::GlobalTransformDirty)) {
                 setLightProperties(light3DS);
-                if (!(data->frameChangeFlags & Q3DSNode::EyeballChanges)) // already done if eyeball changed
-                    m_layersWithDirtyLights.insert(data->layer3DS);
+                if (!(data->frameChangeFlags & Q3DSNode::EyeballChanges)) {// already done if eyeball changed
+                    if (light3DS->scope() && isLightScopeValid(light3DS->scope(), data->layer3DS))
+                        m_subTreeWithDirtyLights.insert(light3DS->scope());
+                    else
+                        m_subTreeWithDirtyLights.insert(data->layer3DS);
+                }
                 m_wasDirty = true;
                 markLayerForObjectDirty(light3DS);
             }
@@ -6528,12 +6624,13 @@ void Q3DSSceneManager::updateNodeFromChangeFlags(Q3DSNode *node, Qt3DCore::QTran
 
         if (node->type() == Q3DSGraphObject::Light) {
             Q3DSLightAttached *lightData = static_cast<Q3DSLightAttached *>(node->attached());
-            Q3DSLayerAttached *layerData = static_cast<Q3DSLayerAttached *>(lightData->layer3DS->attached());
-            layerData->allLights.clear();
-            layerData->nonAreaLights.clear();
-            layerData->areaLights.clear();
-            gatherLights(lightData->layer3DS, &layerData->allLights, &layerData->nonAreaLights, &layerData->areaLights, &layerData->lightNodes);
-            m_layersWithDirtyLights.insert(lightData->layer3DS);
+            Q3DSGraphObject *rootObject = lightData->layer3DS;
+            // if this is a scoped light, use the scope node instead of layer
+            Q3DSLightNode *lightNode = static_cast<Q3DSLightNode*>(node);
+            if (lightNode->scope() && isLightScopeValid(lightNode->scope(), lightData->layer3DS))
+                rootObject = lightNode->scope();
+            gatherLights(lightData->layer3DS);
+            m_subTreeWithDirtyLights.insert(rootObject);
         } else if (node->type() != Q3DSGraphObject::Camera) {
             // Drop whatever is queued since that was based on now-invalid
             // input. (important when entering slides, where eyball property

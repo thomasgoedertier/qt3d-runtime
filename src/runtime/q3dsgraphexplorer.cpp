@@ -29,6 +29,7 @@
 
 #include "q3dsgraphexplorer_p.h"
 #include "q3dsuippresentation_p.h"
+#include "q3dsscenemanager_p.h"
 #include "q3dsutils_p.h"
 #include <QSplitter>
 #include <QVBoxLayout>
