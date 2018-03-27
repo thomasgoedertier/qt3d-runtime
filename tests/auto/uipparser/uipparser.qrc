@@ -1,6 +1,5 @@
 <RCC>
     <qresource prefix="/">
         <file>data</file>
-        <file>data/aliasNodes.uip</file>
     </qresource>
 </RCC>
