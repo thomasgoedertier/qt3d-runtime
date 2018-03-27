@@ -59,6 +59,8 @@ bool isOpenGLGoodEnough()
         const char *renderer = reinterpret_cast<const char *>(ctx.functions()->glGetString(GL_RENDERER));
         if (renderer && strstr(renderer, "Apple Software Renderer"))
             return false;
+        if (renderer && strstr(renderer, "ANGLE"))
+            return false;
 
         ctx.doneCurrent();
         return true;
