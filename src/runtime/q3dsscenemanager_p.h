@@ -289,9 +289,7 @@ public:
 
     struct ProgAAData {
         int pass = 0;
-        bool projMatAltered = false;
-        QMatrix4x4 origProjMat;
-        QMatrix4x4 alteredProjMat;
+        bool cameraViewCenterAltered = false;
         Qt3DRender::QFrameGraphNode *fg = nullptr;
         bool enabled = false;
         Qt3DRender::QRenderTargetSelector *rtSel = nullptr;
@@ -674,7 +672,7 @@ private:
     void updateProgressiveAA(Q3DSLayerNode *layer3DS);
 
     Qt3DRender::QCamera *buildCamera(Q3DSCameraNode *cam3DS, Q3DSLayerNode *layer3DS, Qt3DCore::QEntity *parent);
-    void setCameraProperties(Q3DSCameraNode *camNode, int changeFlags);
+    void setCameraProperties(Q3DSCameraNode *camNode, int changeFlags, const QVector2D &offset = QVector2D());
     bool setActiveLayerCamera(Q3DSCameraNode *cam3DS, Q3DSLayerNode *layer3DS);
     void updateLayerCamera(Q3DSLayerNode *layer3DS);
     Q3DSCameraNode *findFirstCamera(Q3DSLayerNode *layer3DS);
