@@ -1097,7 +1097,10 @@ void Q3DSEngine::handleKeyPressEvent(QKeyEvent *e)
     if (m_autoToggleProfileUi) {
         Q3DSSceneManager *sm = !m_uipPresentations.isEmpty() ? m_uipPresentations[0].sceneManager : nullptr;
 
-        // not ideal since the window needs focus which it often won't have. also no keyboard on embedded/mobile.
+        // Built-in shortcuts. These work even when there is only a plain
+        // QWindow and no external UI is provided to control this. The downside
+        // is that the window needs focus (so may need a click first).
+
         Qt::KeyboardModifiers mods = e->modifiers();
         if (sm && e->key() == Qt::Key_F10 && mods == Qt::NoModifier) {
             sm->setProfileUiVisible(!sm->isProfileUiVisible());
@@ -1234,8 +1237,10 @@ void Q3DSEngine::setProfileUiVisible(bool visible)
 
 void Q3DSEngine::configureProfileUi(float scale)
 {
-    if (!m_uipPresentations.isEmpty() && m_uipPresentations[0].sceneManager)
+    if (!m_uipPresentations.isEmpty() && m_uipPresentations[0].sceneManager) {
+        m_profileUiScale = scale;
         m_uipPresentations[0].sceneManager->configureProfileUi(scale);
+    }
 }
 
 void Q3DSEngine::setDataInputValue(const QString &name, const QVariant &value)

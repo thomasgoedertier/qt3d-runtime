@@ -161,7 +161,9 @@ public:
 
     void setAutoToggleProfileUi(bool enabled) { m_autoToggleProfileUi = enabled; }
     void setProfileUiVisible(bool visible);
+    bool isProfileUiVisible() const;
     void configureProfileUi(float scale);
+    float profileUiScaleFactor() const { return m_profileUiScale; }
 
     typedef QHash<Q3DSBehaviorInstance *, Q3DSBehaviorHandle> BehaviorMap;
 
@@ -232,8 +234,6 @@ private:
     void loadBehaviors();
     void destroyBehaviorHandle(const Q3DSBehaviorHandle &h);
     void behaviorFrameUpdate(float dt);
-
-    bool isProfileUiVisible() const;
 
     QObject *m_surface = nullptr;
     QSize m_implicitSize;

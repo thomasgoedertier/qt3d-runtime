@@ -96,10 +96,20 @@ Q3DStudioMainWindow::Q3DStudioMainWindow(Q3DSWindow *view, QWidget *parent)
         setWindowState(s);
     }, QKeySequence::FullScreen);
 
-    viewMenu->addAction(tr("Toggle in-scene &debug view"), this, [view] {
-        Q3DSSceneManager *sm = view->engine()->sceneManager();
-        sm->setProfileUiVisible(!sm->isProfileUiVisible());
+    QMenu *profileSubMenu = new QMenu(tr("&Profile and debug"));
+    profileSubMenu->addAction(tr("Toggle in-scene &debug view"), this, [view] {
+        Q3DSEngine *engine = view->engine();
+        engine->setProfileUiVisible(!engine->isProfileUiVisible());
     }, Qt::Key_F10);
+    profileSubMenu->addAction(tr("Scale in-scene debug view up"), this, [view] {
+        Q3DSEngine *engine = view->engine();
+        engine->configureProfileUi(engine->profileUiScaleFactor() + 0.2f);
+    }, QKeySequence(QLatin1String("Ctrl+F10")));
+    profileSubMenu->addAction(tr("Scale in-scene debug view down"), this, [view] {
+        Q3DSEngine *engine = view->engine();
+        engine->configureProfileUi(engine->profileUiScaleFactor() - 0.2f);
+    }, QKeySequence(QLatin1String("Alt+F10")));
+    viewMenu->addMenu(profileSubMenu);
 
     static const bool enableDebugMenu = qEnvironmentVariableIntValue("Q3DS_DEBUG") >= 1;
     if (enableDebugMenu) {
