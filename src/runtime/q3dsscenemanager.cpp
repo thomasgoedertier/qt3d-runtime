@@ -2657,10 +2657,10 @@ void Q3DSSceneManager::updateProgressiveAA(Q3DSLayerNode *layer3DS)
     if (!data || !data->cam3DS)
         return;
 
-    // No prog.aa for msaa layers - 3DS1 supports this (would need the usual
-    // resolve step with blitframebuffer) but we'll live with this limitation
-    // for now.
-    if (data->msaaSampleCount > 1)
+    // No prog.aa for msaa/ssaa layers - 3DS1 supports this (would need the
+    // usual resolve step with blitframebuffer) but we'll live with this
+    // limitation for now.
+    if (data->msaaSampleCount > 1 || data->ssaaScaleFactor > 1)
         return;
 
     // When a frame applies an offset to the camera's matrix, the next frame
