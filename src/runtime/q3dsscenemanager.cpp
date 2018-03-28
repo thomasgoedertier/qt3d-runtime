@@ -2904,6 +2904,10 @@ void Q3DSSceneManager::updateProgressiveAA(Q3DSLayerNode *layer3DS)
     data->progAA.curTarget = 1 - data->progAA.curTarget;
 
     ++data->progAA.pass;
+
+    // Make sure layer caching does not interfere and the layer's framegraph subtree
+    // is still active as long as PAA accumulation is active.
+    m_layerUncachePending = true;
 }
 
 static void setLayerBlending(Qt3DRender::QBlendEquation *blendFunc,
