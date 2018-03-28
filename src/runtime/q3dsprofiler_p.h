@@ -82,6 +82,7 @@ public:
     };
     void trackNewObject(QObject *obj, ObjectType type, const char *info, ...);
     void vtrackNewObject(QObject *obj, ObjectType type, const char *info, va_list args);
+    void updateObjectInfo(QObject *obj, ObjectType type, const char *info, ...);
 
     struct FrameData {
         float deltaMs = 0;

@@ -295,8 +295,11 @@ public:
         Qt3DRender::QRenderTargetSelector *rtSel = nullptr;
         Qt3DRender::QRenderTarget *rts[2];
         int curTarget = 0;
-        Qt3DRender::QAbstractTexture *accumTex = nullptr;
-        Qt3DRender::QAbstractTexture *outputTex = nullptr;
+        Qt3DRender::QAbstractTexture *currentAccumulatorTexture = nullptr;
+        Qt3DRender::QAbstractTexture *currentOutputTexture = nullptr;
+        Qt3DRender::QAbstractTexture *stolenColorBuf = nullptr;
+        Qt3DRender::QAbstractTexture *extraColorBuf = nullptr;
+        Qt3DRender::QAbstractTexture *stolenDS = nullptr;
         Qt3DRender::QParameter *accumTexParam = nullptr;
         Qt3DRender::QParameter *lastTexParam = nullptr;
         Qt3DRender::QParameter *blendFactorsParam = nullptr;

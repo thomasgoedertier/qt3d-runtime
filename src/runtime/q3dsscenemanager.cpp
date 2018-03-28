@@ -2781,28 +2781,35 @@ void Q3DSSceneManager::updateProgressiveAA(Q3DSLayerNode *layer3DS)
     // be used as output in the next frame). The layer compositor will be
     // switched over to use always the one that is the (blended) output.
 
-    if (!data->progAA.outputTex) {
-        data->progAA.outputTex = new Qt3DRender::QTexture2D(data->layerFgRoot);
-        m_profiler->trackNewObject(data->progAA.outputTex, Q3DSProfiler::Texture2DObject,
+    if (!data->progAA.extraColorBuf) {
+        data->progAA.extraColorBuf = new Qt3DRender::QTexture2D(data->layerFgRoot);
+        m_profiler->trackNewObject(data->progAA.extraColorBuf, Q3DSProfiler::Texture2DObject,
                                    "Progressive AA texture for layer %s", layer3DS->id().constData());
-        data->progAA.outputTex->setFormat(Qt3DRender::QAbstractTexture::RGBA8_UNorm);
-        data->progAA.outputTex->setMinificationFilter(Qt3DRender::QAbstractTexture::Linear);
-        data->progAA.outputTex->setMagnificationFilter(Qt3DRender::QAbstractTexture::Linear);
-        prepareSizeDependentTexture(data->progAA.outputTex, layer3DS);
+        data->progAA.extraColorBuf->setFormat(Qt3DRender::QAbstractTexture::RGBA8_UNorm);
+        data->progAA.extraColorBuf->setMinificationFilter(Qt3DRender::QAbstractTexture::Linear);
+        data->progAA.extraColorBuf->setMagnificationFilter(Qt3DRender::QAbstractTexture::Linear);
+        prepareSizeDependentTexture(data->progAA.extraColorBuf, layer3DS);
     }
 
     // ### depth, ssao, shadow passes in the main layer framegraph subtree should be disabled when pass > 0
 
-    // For data->progAA.accumTex there is no new texture needed - instead,
-    // steal data->(eff)layerTexture.
+    // For the other buffer there is no new texture needed - instead,
+    // steal data->(eff)layerTexture. (note: already in sizeManagedTextures)
     if (factorsIdx == 0) {
-        delete data->progAA.accumTex;
+        if (data->progAA.stolenColorBuf) {
+            // the previous stolen color buffer it not needed anymore
+            data->sizeManagedTextures.removeOne(data->progAA.stolenColorBuf);
+            delete data->progAA.stolenColorBuf;
+            data->sizeManagedTextures.removeOne(data->progAA.stolenDS);
+            delete data->progAA.stolenDS;
+        }
         const bool hasEffect = data->effLayerTexture != nullptr;
-        Qt3DRender::QAbstractTexture *colorBufToSteal = hasEffect ? data->effLayerTexture : data->layerTexture;
-        data->progAA.accumTex = colorBufToSteal;
+        data->progAA.stolenColorBuf = hasEffect ? data->effLayerTexture : data->layerTexture;
+        // ### ideally the depth-stencil could be kept (since PAA does not need one)
+        data->progAA.stolenDS = data->layerDS;
         // create a whole new render target for the layer
-        data->sizeManagedTextures.removeOne(colorBufToSteal);
-        data->sizeManagedTextures.removeOne(data->layerDS);
+        data->sizeManagedTextures.removeOne(data->progAA.stolenColorBuf);
+        data->sizeManagedTextures.removeOne(data->progAA.stolenDS);
         const int msaaSampleCount = 0;
         Qt3DRender::QAbstractTexture *colorTex;
         Qt3DRender::QAbstractTexture *dsTexOrRb;
@@ -2820,10 +2827,18 @@ void Q3DSSceneManager::updateProgressiveAA(Q3DSLayerNode *layer3DS)
         }
         data->sizeManagedTextures.insert(1, dsTexOrRb);
         data->layerDS = dsTexOrRb;
+        // update descriptions for profiler
+        m_profiler->updateObjectInfo(data->progAA.stolenColorBuf, Q3DSProfiler::Texture2DObject,
+                                     "Progressive AA texture 2 for layer %s", layer3DS->id().constData());
+        m_profiler->updateObjectInfo(data->progAA.stolenDS, Q3DSProfiler::Texture2DObject,
+                                     "PAA stolen depth-stencil for layer %s", layer3DS->id().constData());
+        // start with the existing color buffer as the accumulator
+        data->progAA.currentAccumulatorTexture = data->progAA.stolenColorBuf;
+        data->progAA.currentOutputTexture = data->progAA.extraColorBuf;
     }
 
     //if (!data->progAA.fg) {
-    // ### have to do this on every new PAA run since accumTex changes above.
+    // ### have to do this on every new PAA run since accumulatorTexture changes above.
     // It is an overkill though since the framegraph should be generated just once.
     if (factorsIdx == 0) {
         delete data->progAA.fg;
@@ -2835,9 +2850,8 @@ void Q3DSSceneManager::updateProgressiveAA(Q3DSLayerNode *layer3DS)
         // ones. This is probably more efficient anyways (since it results in
         // binding a different FBO, without altering attachments).
 
-        // will render to outputTex, accumTex, outputTex, accumTex, outputTex, ...
         data->progAA.curTarget = 0;
-        for (Qt3DRender::QAbstractTexture *t : { data->progAA.outputTex, data->progAA.accumTex }) {
+        for (Qt3DRender::QAbstractTexture *t : { data->progAA.currentOutputTexture, data->progAA.currentAccumulatorTexture }) {
             Qt3DRender::QRenderTargetOutput *rtOutput = new Qt3DRender::QRenderTargetOutput;
             rtOutput->setAttachmentPoint(Qt3DRender::QRenderTargetOutput::Color0);
             rtOutput->setTexture(t);
@@ -2880,7 +2894,7 @@ void Q3DSSceneManager::updateProgressiveAA(Q3DSLayerNode *layer3DS)
     }
 
     // Input
-    data->progAA.accumTexParam->setValue(QVariant::fromValue(data->progAA.accumTex));
+    data->progAA.accumTexParam->setValue(QVariant::fromValue(data->progAA.currentAccumulatorTexture));
     data->progAA.lastTexParam->setValue(QVariant::fromValue(data->effLayerTexture ? data->effLayerTexture : data->layerTexture));
     data->progAA.blendFactorsParam->setValue(blendFactor);
 
@@ -2888,11 +2902,11 @@ void Q3DSSceneManager::updateProgressiveAA(Q3DSLayerNode *layer3DS)
     data->progAA.rtSel->setTarget(data->progAA.rts[data->progAA.curTarget]);
 
     // have the compositor use the blended results instead of the layer texture
-    data->compositorSourceParam->setValue(QVariant::fromValue(data->progAA.outputTex));
+    data->compositorSourceParam->setValue(QVariant::fromValue(data->progAA.currentOutputTexture));
 
     // In the next PAA round (i.e. the frame after the next one) reuse accumTex
     // as the output and the current output as accumTex...
-    std::swap(data->progAA.accumTex, data->progAA.outputTex);
+    std::swap(data->progAA.currentAccumulatorTexture, data->progAA.currentOutputTexture);
     // ...whereas the output of the next frame will be used as input, so flip the
     // index to use the correct render target.
     data->progAA.curTarget = 1 - data->progAA.curTarget;

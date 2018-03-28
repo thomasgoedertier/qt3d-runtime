@@ -127,6 +127,21 @@ void Q3DSProfiler::vtrackNewObject(QObject *obj, ObjectType type, const char *in
     }));
 }
 
+void Q3DSProfiler::updateObjectInfo(QObject *obj, ObjectType type, const char *info, ...)
+{
+    auto it = m_objectData.find(type);
+    while (it != m_objectData.end() && it.key() == type) {
+        if (it->obj == obj) {
+            va_list ap;
+            va_start(ap, info);
+            it->info = QString::vasprintf(info, ap);
+            va_end(ap);
+            break;
+        }
+        ++it;
+    }
+}
+
 void Q3DSProfiler::reportTotalParseBuildTime(qint64 ms)
 {
     m_totalParseBuildTime = ms;
