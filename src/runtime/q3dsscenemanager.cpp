@@ -2804,15 +2804,15 @@ void Q3DSSceneManager::updateProgressiveAA(Q3DSLayerNode *layer3DS)
 
     // ### what if data->layerTexture is multisample?
 
-    // ### all the below stuff does not yet handle data->effLayerTexture
-
     // For data->progAA.accumTex there is no new texture needed - instead,
-    // steal data->layerTexture.
+    // steal data->(eff)layerTexture.
     if (factorsIdx == 0) {
         delete data->progAA.accumTex;
-        data->progAA.accumTex = data->layerTexture;
+        const bool hasEffect = data->effLayerTexture != nullptr;
+        Qt3DRender::QAbstractTexture *colorBufToSteal = hasEffect ? data->effLayerTexture : data->layerTexture;
+        data->progAA.accumTex = colorBufToSteal;
         // create a whole new render target for the layer
-        data->sizeManagedTextures.removeOne(data->layerTexture);
+        data->sizeManagedTextures.removeOne(colorBufToSteal);
         data->sizeManagedTextures.removeOne(data->layerDS);
         int msaaSampleCount = 0; // ###
         Qt3DRender::QAbstractTexture *colorTex;
@@ -2822,9 +2822,14 @@ void Q3DSSceneManager::updateProgressiveAA(Q3DSLayerNode *layer3DS)
         Qt3DRender::QRenderTarget *oldRt = data->rtSelector->target();
         data->rtSelector->setTarget(rt);
         delete oldRt;
-        data->sizeManagedTextures.insert(0, colorTex);
+        if (hasEffect) {
+            data->sizeManagedTextures.append(colorTex);
+            data->effLayerTexture = colorTex;
+        } else {
+            data->sizeManagedTextures.insert(0, colorTex);
+            data->layerTexture = colorTex;
+        }
         data->sizeManagedTextures.insert(1, dsTexOrRb);
-        data->layerTexture = colorTex;
         data->layerDS = dsTexOrRb;
     }
 
@@ -2887,7 +2892,7 @@ void Q3DSSceneManager::updateProgressiveAA(Q3DSLayerNode *layer3DS)
 
     // Input
     data->progAA.accumTexParam->setValue(QVariant::fromValue(data->progAA.accumTex));
-    data->progAA.lastTexParam->setValue(QVariant::fromValue(data->layerTexture));
+    data->progAA.lastTexParam->setValue(QVariant::fromValue(data->effLayerTexture ? data->effLayerTexture : data->layerTexture));
     data->progAA.blendFactorsParam->setValue(blendFactor);
 
     // Output
