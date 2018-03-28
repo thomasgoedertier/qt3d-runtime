@@ -1103,13 +1103,15 @@ void Q3DSSceneManager::buildLayer(Q3DSLayerNode *layer3DS,
     }
 
     // Setup picking for layer
-    auto rayCaster = new Qt3DRender::QRayCaster(layerSceneRootEntity);
-    rayCaster->setFilterMode(Qt3DRender::QAbstractRayCaster::AcceptAnyMatchingLayers);
-    rayCaster->addLayer(layerData->opaqueTag);
-    rayCaster->addLayer(layerData->transparentTag);
-    rayCaster->setRunMode(Qt3DRender::QAbstractRayCaster::SingleShot);
-    layerSceneRootEntity->addComponent(rayCaster);
-    layerData->layerRayCaster = rayCaster;
+    if (layerSceneRootEntity) {
+        auto rayCaster = new Qt3DRender::QRayCaster(layerSceneRootEntity);
+        rayCaster->setFilterMode(Qt3DRender::QAbstractRayCaster::AcceptAnyMatchingLayers);
+        rayCaster->addLayer(layerData->opaqueTag);
+        rayCaster->addLayer(layerData->transparentTag);
+        rayCaster->setRunMode(Qt3DRender::QAbstractRayCaster::SingleShot);
+        layerSceneRootEntity->addComponent(rayCaster);
+        layerData->layerRayCaster = rayCaster;
+    }
 
     // Find the active camera for this layer and set it up
     setActiveLayerCamera(findFirstCamera(layer3DS), layer3DS);

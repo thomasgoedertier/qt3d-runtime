@@ -151,6 +151,10 @@ void Q3DSInputManager::castRayIntoLayer(Q3DSLayerNode *layer, const QPointF &pos
 void Q3DSInputManager::castNextRay(Q3DSLayerNode *layer)
 {
     auto layerData = static_cast<Q3DSLayerAttached *>(layer->attached());
+    if (!layerData->layerRayCaster) {
+        layerData->rayCastQueue.clear();
+        return;
+    }
     if (layerData->rayCasterBusy || layerData->rayCastQueue.isEmpty())
         return;
 
