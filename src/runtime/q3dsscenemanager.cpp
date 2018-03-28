@@ -2665,6 +2665,12 @@ void Q3DSSceneManager::updateProgressiveAA(Q3DSLayerNode *layer3DS)
     if (!data)
         return;
 
+    // No prog.aa for msaa layers - 3DS1 supports this (would need the usual
+    // resolve step with blitframebuffer) but we'll live with this limitation
+    // for now.
+    if (data->msaaSampleCount > 1)
+        return;
+
     // When a frame applies an offset to the projection matrix, the next frame
     // must reset it. This must happen regardless of having PAA active in the next frame.
     // ### broken, to be replaced, see below
@@ -2802,8 +2808,6 @@ void Q3DSSceneManager::updateProgressiveAA(Q3DSLayerNode *layer3DS)
 
     // ### depth, ssao, shadow passes in the main layer framegraph subtree should be disabled when pass > 0
 
-    // ### what if data->layerTexture is multisample?
-
     // For data->progAA.accumTex there is no new texture needed - instead,
     // steal data->(eff)layerTexture.
     if (factorsIdx == 0) {
@@ -2814,7 +2818,7 @@ void Q3DSSceneManager::updateProgressiveAA(Q3DSLayerNode *layer3DS)
         // create a whole new render target for the layer
         data->sizeManagedTextures.removeOne(colorBufToSteal);
         data->sizeManagedTextures.removeOne(data->layerDS);
-        int msaaSampleCount = 0; // ###
+        const int msaaSampleCount = 0;
         Qt3DRender::QAbstractTexture *colorTex;
         Qt3DRender::QAbstractTexture *dsTexOrRb;
         Qt3DRender::QRenderTarget *rt = newLayerRenderTarget(layerPixelSize, msaaSampleCount,
