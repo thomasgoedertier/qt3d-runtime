@@ -696,6 +696,7 @@ bool Q3DSEngine::buildSubUipPresentationScene(UipPresentation *pres)
     Q3DSUipPresentation *pres3DS = pres->presentation;
     params.outputSize = QSize(pres3DS->presentationWidth(), pres3DS->presentationHeight());
     params.outputDpr = 1;
+    params.engine = this;
 
     Qt3DRender::QRenderTargetSelector *rtSel = new Qt3DRender::QRenderTargetSelector(fgParent);
     Qt3DRender::QRenderTarget *rt = new Qt3DRender::QRenderTarget;

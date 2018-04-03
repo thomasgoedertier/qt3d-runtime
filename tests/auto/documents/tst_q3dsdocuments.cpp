@@ -131,12 +131,13 @@ void tst_Q3DSDocuments::init()
 
 void tst_Q3DSDocuments::cleanup()
 {
-    /*
-    // Show briefly at end of each testcase
-    m_view->show();
-    QVERIFY(QTest::qWaitForWindowExposed(m_view));
-    m_view->close();
-    */
+    if (m_engine->presentation() && m_engine->sceneManager()) {
+        // Show briefly at end of each testcase
+        QSignalSpy frameSpy(m_engine, SIGNAL(nextFrameStarting()));
+        m_view->show();
+        QVERIFY(QTest::qWaitForWindowExposed(m_view));
+        QTRY_VERIFY(frameSpy.count() > 60);
+    }
 
     delete m_engine;
     delete m_view;
