@@ -1493,7 +1493,7 @@ static bool isVerticalAdjust(Q3DSCameraNode *cam3DS, float presentationAspect, f
             || cam3DS->scaleMode() == Q3DSCameraNode::FitVertical;
 }
 
-void Q3DSSceneManager::setLayerCameraSizeProperties(Q3DSLayerNode *layer3DS)
+void Q3DSSceneManager::setLayerCameraSizeProperties(Q3DSLayerNode *layer3DS, const QVector2D &offset)
 {
     Q3DSLayerAttached *data = static_cast<Q3DSLayerAttached *>(layer3DS->attached());
     if (!data->cam3DS)
@@ -1527,12 +1527,24 @@ void Q3DSSceneManager::setLayerCameraSizeProperties(Q3DSLayerNode *layer3DS)
         camera->setProjectionType(Qt3DRender::QCameraLens::PerspectiveProjection);
         if (isVerticalAdjust(data->cam3DS, presentationAspect, aspect)) {
             camera->setAspectRatio(aspect);
+            if (!offset.isNull()) {
+                QMatrix4x4 proj = camera->projectionMatrix();
+                float *projData = proj.data();
+                projData[12] += offset.x();
+                projData[13] += offset.y();
+                // Mode changes to Custom.
+                camera->setProjectionMatrix(proj);
+            }
         } else {
             camera->setAspectRatio(presentationAspect);
             QMatrix4x4 proj = camera->projectionMatrix();
             float *projData = proj.data();
             if (!qFuzzyIsNull(presentationAspect))
                 projData[5] *= aspect / presentationAspect;
+            if (!offset.isNull()) {
+                projData[12] += offset.x();
+                projData[13] += offset.y();
+            }
             // Mode changes to Custom.
             camera->setProjectionMatrix(proj);
         }
@@ -1763,7 +1775,7 @@ static void adjustRotationLeftToRight(QMatrix4x4 *m)
     p[8 + 1] *= -1;
 }
 
-void Q3DSSceneManager::setCameraProperties(Q3DSCameraNode *camNode, int changeFlags, const QVector2D &offset)
+void Q3DSSceneManager::setCameraProperties(Q3DSCameraNode *camNode, int changeFlags)
 {
     Q3DSCameraAttached *data = static_cast<Q3DSCameraAttached *>(camNode->attached());
     Q_ASSERT(data);
@@ -1796,7 +1808,7 @@ void Q3DSSceneManager::setCameraProperties(Q3DSCameraNode *camNode, int changeFl
     camera->setPosition(pos);
     // For the viewCenter make up some point in the correct direction.
     const QVector3D d = directionFromTransform(t, leftHanded);
-    const QVector3D center(pos + d + offset);
+    const QVector3D center(pos + d);
     camera->setViewCenter(center);
     // roll is handled in the up vector
     QVector3D upVec(0, 1, 0);
@@ -2670,7 +2682,7 @@ void Q3DSSceneManager::updateProgressiveAA(Q3DSLayerNode *layer3DS)
     // next frame.
     if (data->progAA.cameraViewCenterAltered) {
         data->progAA.cameraViewCenterAltered = false;
-        setCameraProperties(data->cam3DS, Q3DSNode::TransformChanges);
+        setLayerCameraSizeProperties(layer3DS);
     }
 
     if (data->layerSize.isEmpty())
@@ -2709,6 +2721,8 @@ void Q3DSSceneManager::updateProgressiveAA(Q3DSLayerNode *layer3DS)
     }
 
     if (data->progAA.pass > maxPass) {
+        // State is Idle. Keep displaying the output in currentOutputTexture until
+        // wasDirty becomes true and so pass gets reset.
         if (data->progAA.layerFilter->layers().contains(m_fsQuadTag))
             data->progAA.layerFilter->removeLayer(m_fsQuadTag);
 #ifdef PAA_ALWAYS_ON
@@ -2718,6 +2732,7 @@ void Q3DSSceneManager::updateProgressiveAA(Q3DSLayerNode *layer3DS)
     }
 
     if (data->progAA.pass < 1 + PROGAA_FRAME_DELAY) {
+        // State is Inactive. Must make sure no progAA output is shown.
         ++data->progAA.pass;
         if (data->progAA.enabled) {
             qCDebug(lcScene, "Stopping progressive AA for layer %s", layer3DS->id().constData());
@@ -2734,6 +2749,8 @@ void Q3DSSceneManager::updateProgressiveAA(Q3DSLayerNode *layer3DS)
         }
         return;
     }
+
+    // State is Active.
 
     static QVector2D vertexOffsets[MAX_AA_LEVELS] = {
         QVector2D(-0.170840f, -0.553840f), // 1x
@@ -2759,8 +2776,11 @@ void Q3DSSceneManager::updateProgressiveAA(Q3DSLayerNode *layer3DS)
 
     int factorsIdx = data->progAA.pass - (1 + PROGAA_FRAME_DELAY);
     QVector2D vertexOffset = vertexOffsets[factorsIdx];
-    vertexOffset.setX(vertexOffset.x() / (layerPixelSize.width() / 2.0f));
-    vertexOffset.setY(vertexOffset.y() / (layerPixelSize.height() / 2.0f));
+    const bool leftHanded = data->cam3DS->orientation() == Q3DSNode::LeftHanded;
+    const float lhFactor = leftHanded ? -1.0f : 1.0f;
+    const float camZ = data->cam3DS->position().z() * lhFactor;
+    vertexOffset.setX(vertexOffset.x() / (layerPixelSize.width() / 2.0f) * camZ);
+    vertexOffset.setY(vertexOffset.y() / (layerPixelSize.height() / 2.0f) * camZ);
     QVector2D blendFactor = blendFactors[factorsIdx];
 
     if (!data->progAA.enabled && data->progAA.fg && data->progAA.layerFilter)
@@ -2772,7 +2792,7 @@ void Q3DSSceneManager::updateProgressiveAA(Q3DSLayerNode *layer3DS)
 
     // Alter the camera's matrix by a little movement based on the current
     // vertexOffset. This applies to the camera used by the main layer passes.
-    setCameraProperties(data->cam3DS, Q3DSNode::TransformChanges, vertexOffset);
+    setLayerCameraSizeProperties(layer3DS, vertexOffset);
     data->progAA.cameraViewCenterAltered = true;
 
     // data->layerTexture is the original contents (albeit with jiggled

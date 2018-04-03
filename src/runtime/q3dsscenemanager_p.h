@@ -656,7 +656,7 @@ private:
     QSize calculateLayerSize(Q3DSLayerNode *layer3DS, const QSize &parentSize);
     QPointF calculateLayerPos(Q3DSLayerNode *layer3DS, const QSize &parentSize);
     void updateSizesForLayer(Q3DSLayerNode *layer3DS, const QSize &newParentSize);
-    void setLayerCameraSizeProperties(Q3DSLayerNode *layer3DS);
+    void setLayerCameraSizeProperties(Q3DSLayerNode *layer3DS, const QVector2D &offset = QVector2D());
     void setLayerSizeProperties(Q3DSLayerNode *layer3DS);
     void setLayerProperties(Q3DSLayerNode *layer3DS);
     void buildLayerScene(Q3DSGraphObject *obj, Q3DSLayerNode *layer3DS, Qt3DCore::QEntity *parent);
@@ -675,7 +675,7 @@ private:
     void updateProgressiveAA(Q3DSLayerNode *layer3DS);
 
     Qt3DRender::QCamera *buildCamera(Q3DSCameraNode *cam3DS, Q3DSLayerNode *layer3DS, Qt3DCore::QEntity *parent);
-    void setCameraProperties(Q3DSCameraNode *camNode, int changeFlags, const QVector2D &offset = QVector2D());
+    void setCameraProperties(Q3DSCameraNode *camNode, int changeFlags);
     bool setActiveLayerCamera(Q3DSCameraNode *cam3DS, Q3DSLayerNode *layer3DS);
     void updateLayerCamera(Q3DSLayerNode *layer3DS);
     Q3DSCameraNode *findFirstCamera(Q3DSLayerNode *layer3DS);
