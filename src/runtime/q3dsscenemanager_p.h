@@ -672,6 +672,10 @@ private:
     void updateOrthoShadowCam(Q3DSLayerAttached::PerLightShadowMapData *d, Q3DSLightNode *light3DS, Q3DSLayerAttached *layerData);
     void genOrthoBlurPassFg(Q3DSLayerAttached::PerLightShadowMapData *d, Qt3DRender::QAbstractTexture *inTex,
                             Qt3DRender::QAbstractTexture *outTex, const QString &passName, Q3DSLightNode *light3DS);
+    void stealLayerRenderTarget(Qt3DRender::QAbstractTexture **stolenColorBuf,
+                                Qt3DRender::QAbstractTexture **stolenDS,
+                                Q3DSLayerNode *layer3DS);
+    Qt3DRender::QAbstractTexture *createProgressiveTemporalAAExtraBuffer(Q3DSLayerNode *layer3DS);
     void updateProgressiveAA(Q3DSLayerNode *layer3DS);
 
     Qt3DRender::QCamera *buildCamera(Q3DSCameraNode *cam3DS, Q3DSLayerNode *layer3DS, Qt3DCore::QEntity *parent);

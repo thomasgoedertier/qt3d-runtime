@@ -2656,6 +2656,111 @@ void Q3DSSceneManager::updateShadowMapStatus(Q3DSLayerNode *layer3DS, bool *smDi
         qCDebug(lcPerf, "Layer %s has %d shadow casting lights", layer3DS->id().constData(), layerData->shadowMapData.shadowCasters.count());
 }
 
+static Qt3DRender::QRenderTargetSelector *createProgressiveTemporalAAFramegraph(Qt3DCore::QNode *parent,
+                                                                                Qt3DRender::QRenderTarget *rt,
+                                                                                Qt3DRender::QLayer *tag,
+                                                                                Qt3DRender::QLayerFilter **layerFilter,
+                                                                                Qt3DRender::QParameter **accumTexParam,
+                                                                                Qt3DRender::QParameter **lastTexParam,
+                                                                                Qt3DRender::QParameter **blendFactorsParam)
+{
+    Qt3DRender::QRenderTargetSelector *rtSel = new Qt3DRender::QRenderTargetSelector(parent);
+    rtSel->setTarget(rt);
+
+    Qt3DRender::QViewport *viewport = new Qt3DRender::QViewport(rtSel);
+    viewport->setNormalizedRect(QRectF(0, 0, 1, 1));
+
+    Qt3DRender::QFilterKey *filterKey = new Qt3DRender::QFilterKey;
+    filterKey->setName(QLatin1String("pass"));
+    filterKey->setValue(QLatin1String("progaa"));
+    Qt3DRender::QRenderPassFilter *filter = new Qt3DRender::QRenderPassFilter(viewport);
+    filter->addMatch(filterKey);
+
+    *layerFilter = new Qt3DRender::QLayerFilter(filter);
+    (*layerFilter)->addLayer(tag);
+
+    *accumTexParam = new Qt3DRender::QParameter;
+    (*accumTexParam)->setName(QLatin1String("accumulator"));
+    *lastTexParam = new Qt3DRender::QParameter;
+    (*lastTexParam)->setName(QLatin1String("last_frame"));
+    *blendFactorsParam = new Qt3DRender::QParameter;
+    (*blendFactorsParam)->setName(QLatin1String("blend_factors"));
+
+    filter->addParameter(*accumTexParam);
+    filter->addParameter(*lastTexParam);
+    filter->addParameter(*blendFactorsParam);
+
+    return rtSel;
+}
+
+static QVector2D adjustedProgressiveTemporalAAVertexOffset(const QVector2D &vertexOffset, Q3DSLayerAttached *data)
+{
+    const QSize layerPixelSize = safeLayerPixelSize(data);
+    const bool leftHanded = data->cam3DS->orientation() == Q3DSNode::LeftHanded;
+    const float lhFactor = leftHanded ? -1.0f : 1.0f;
+    const float camZ = data->cam3DS->position().z() * lhFactor;
+    return QVector2D(vertexOffset.x() / (layerPixelSize.width() / 2.0f) * camZ,
+                     vertexOffset.y() / (layerPixelSize.height() / 2.0f) * camZ);
+}
+
+void Q3DSSceneManager::stealLayerRenderTarget(Qt3DRender::QAbstractTexture **stolenColorBuf,
+                                              Qt3DRender::QAbstractTexture **stolenDS,
+                                              Q3DSLayerNode *layer3DS)
+{
+    Q3DSLayerAttached *data = static_cast<Q3DSLayerAttached *>(layer3DS->attached());
+    if (*stolenColorBuf) {
+        // the previous stolen color buffer it not needed anymore
+        data->sizeManagedTextures.removeOne(*stolenColorBuf);
+        delete *stolenColorBuf;
+        data->sizeManagedTextures.removeOne(*stolenDS);
+        delete *stolenDS;
+    }
+    const bool hasEffect = data->effLayerTexture != nullptr;
+    *stolenColorBuf = hasEffect ? data->effLayerTexture : data->layerTexture;
+    // ### ideally the depth-stencil could be kept (since PAA does not need one)
+    *stolenDS = data->layerDS;
+    // create a whole new render target for the layer
+    data->sizeManagedTextures.removeOne(*stolenColorBuf);
+    data->sizeManagedTextures.removeOne(*stolenDS);
+    const QSize layerPixelSize = safeLayerPixelSize(data);
+    const int msaaSampleCount = 0;
+    Qt3DRender::QAbstractTexture *colorTex;
+    Qt3DRender::QAbstractTexture *dsTexOrRb;
+    Qt3DRender::QRenderTarget *rt = newLayerRenderTarget(layerPixelSize, msaaSampleCount,
+                                                         &colorTex, &dsTexOrRb, data->layerFgRoot, layer3DS);
+    Qt3DRender::QRenderTarget *oldRt = data->rtSelector->target();
+    data->rtSelector->setTarget(rt);
+    delete oldRt;
+    if (hasEffect) {
+        data->sizeManagedTextures.append(colorTex);
+        data->effLayerTexture = colorTex;
+    } else {
+        data->sizeManagedTextures.insert(0, colorTex);
+        data->layerTexture = colorTex;
+    }
+    data->sizeManagedTextures.insert(1, dsTexOrRb);
+    data->layerDS = dsTexOrRb;
+
+    // update descriptions for profiler
+    m_profiler->updateObjectInfo(*stolenColorBuf, Q3DSProfiler::Texture2DObject,
+                                 "PAA/TAA color buffer for layer %s", layer3DS->id().constData());
+    m_profiler->updateObjectInfo(*stolenDS, Q3DSProfiler::Texture2DObject,
+                                 "PAA/TAA depth-stencil for layer %s", layer3DS->id().constData());
+}
+
+Qt3DRender::QAbstractTexture *Q3DSSceneManager::createProgressiveTemporalAAExtraBuffer(Q3DSLayerNode *layer3DS)
+{
+    Q3DSLayerAttached *data = static_cast<Q3DSLayerAttached *>(layer3DS->attached());
+    Qt3DRender::QAbstractTexture *tex = new Qt3DRender::QTexture2D(data->layerFgRoot);
+    m_profiler->trackNewObject(tex, Q3DSProfiler::Texture2DObject,
+                               "PAA/TAA work buffer for layer %s", layer3DS->id().constData());
+    tex->setFormat(Qt3DRender::QAbstractTexture::RGBA8_UNorm);
+    tex->setMinificationFilter(Qt3DRender::QAbstractTexture::Linear);
+    tex->setMagnificationFilter(Qt3DRender::QAbstractTexture::Linear);
+    prepareSizeDependentTexture(tex, layer3DS);
+    return tex;
+}
+
 //#define PAA_ALWAYS_ON
 
 static const int MAX_AA_LEVELS = 8;
@@ -2687,8 +2792,6 @@ void Q3DSSceneManager::updateProgressiveAA(Q3DSLayerNode *layer3DS)
 
     if (data->layerSize.isEmpty())
         return;
-
-    const QSize layerPixelSize = safeLayerPixelSize(data);
 
     // Progressive AA kicks in only when "movement has stopped", or rather,
     // when no properties have changed, meaning the frame was not dirty. Reset
@@ -2774,14 +2877,9 @@ void Q3DSSceneManager::updateProgressiveAA(Q3DSLayerNode *layer3DS)
         QVector2D(0.111111f, 0.888889f), // 8x
     };
 
-    int factorsIdx = data->progAA.pass - (1 + PROGAA_FRAME_DELAY);
-    QVector2D vertexOffset = vertexOffsets[factorsIdx];
-    const bool leftHanded = data->cam3DS->orientation() == Q3DSNode::LeftHanded;
-    const float lhFactor = leftHanded ? -1.0f : 1.0f;
-    const float camZ = data->cam3DS->position().z() * lhFactor;
-    vertexOffset.setX(vertexOffset.x() / (layerPixelSize.width() / 2.0f) * camZ);
-    vertexOffset.setY(vertexOffset.y() / (layerPixelSize.height() / 2.0f) * camZ);
-    QVector2D blendFactor = blendFactors[factorsIdx];
+    const int factorsIdx = data->progAA.pass - (1 + PROGAA_FRAME_DELAY);
+    const QVector2D vertexOffset = adjustedProgressiveTemporalAAVertexOffset(vertexOffsets[factorsIdx], data);
+    const QVector2D blendFactor = blendFactors[factorsIdx];
 
     if (!data->progAA.enabled && data->progAA.fg && data->progAA.layerFilter)
         data->progAA.layerFilter->addLayer(m_fsQuadTag);
@@ -2801,63 +2899,20 @@ void Q3DSSceneManager::updateProgressiveAA(Q3DSLayerNode *layer3DS)
     // be used as output in the next frame). The layer compositor will be
     // switched over to use always the one that is the (blended) output.
 
-    if (!data->progAA.extraColorBuf) {
-        data->progAA.extraColorBuf = new Qt3DRender::QTexture2D(data->layerFgRoot);
-        m_profiler->trackNewObject(data->progAA.extraColorBuf, Q3DSProfiler::Texture2DObject,
-                                   "Progressive AA texture for layer %s", layer3DS->id().constData());
-        data->progAA.extraColorBuf->setFormat(Qt3DRender::QAbstractTexture::RGBA8_UNorm);
-        data->progAA.extraColorBuf->setMinificationFilter(Qt3DRender::QAbstractTexture::Linear);
-        data->progAA.extraColorBuf->setMagnificationFilter(Qt3DRender::QAbstractTexture::Linear);
-        prepareSizeDependentTexture(data->progAA.extraColorBuf, layer3DS);
-    }
+    if (!data->progAA.extraColorBuf)
+        data->progAA.extraColorBuf = createProgressiveTemporalAAExtraBuffer(layer3DS);
 
     // ### depth, ssao, shadow passes in the main layer framegraph subtree should be disabled when pass > 0
 
     // For the other buffer there is no new texture needed - instead,
     // steal data->(eff)layerTexture. (note: already in sizeManagedTextures)
     if (factorsIdx == 0) {
-        if (data->progAA.stolenColorBuf) {
-            // the previous stolen color buffer it not needed anymore
-            data->sizeManagedTextures.removeOne(data->progAA.stolenColorBuf);
-            delete data->progAA.stolenColorBuf;
-            data->sizeManagedTextures.removeOne(data->progAA.stolenDS);
-            delete data->progAA.stolenDS;
-        }
-        const bool hasEffect = data->effLayerTexture != nullptr;
-        data->progAA.stolenColorBuf = hasEffect ? data->effLayerTexture : data->layerTexture;
-        // ### ideally the depth-stencil could be kept (since PAA does not need one)
-        data->progAA.stolenDS = data->layerDS;
-        // create a whole new render target for the layer
-        data->sizeManagedTextures.removeOne(data->progAA.stolenColorBuf);
-        data->sizeManagedTextures.removeOne(data->progAA.stolenDS);
-        const int msaaSampleCount = 0;
-        Qt3DRender::QAbstractTexture *colorTex;
-        Qt3DRender::QAbstractTexture *dsTexOrRb;
-        Qt3DRender::QRenderTarget *rt = newLayerRenderTarget(layerPixelSize, msaaSampleCount,
-                                                             &colorTex, &dsTexOrRb, data->layerFgRoot, layer3DS);
-        Qt3DRender::QRenderTarget *oldRt = data->rtSelector->target();
-        data->rtSelector->setTarget(rt);
-        delete oldRt;
-        if (hasEffect) {
-            data->sizeManagedTextures.append(colorTex);
-            data->effLayerTexture = colorTex;
-        } else {
-            data->sizeManagedTextures.insert(0, colorTex);
-            data->layerTexture = colorTex;
-        }
-        data->sizeManagedTextures.insert(1, dsTexOrRb);
-        data->layerDS = dsTexOrRb;
-        // update descriptions for profiler
-        m_profiler->updateObjectInfo(data->progAA.stolenColorBuf, Q3DSProfiler::Texture2DObject,
-                                     "Progressive AA texture 2 for layer %s", layer3DS->id().constData());
-        m_profiler->updateObjectInfo(data->progAA.stolenDS, Q3DSProfiler::Texture2DObject,
-                                     "PAA stolen depth-stencil for layer %s", layer3DS->id().constData());
+        stealLayerRenderTarget(&data->progAA.stolenColorBuf, &data->progAA.stolenDS, layer3DS);
         // start with the existing color buffer as the accumulator
         data->progAA.currentAccumulatorTexture = data->progAA.stolenColorBuf;
         data->progAA.currentOutputTexture = data->progAA.extraColorBuf;
     }
 
-    //if (!data->progAA.fg) {
     // ### have to do this on every new PAA run since accumulatorTexture changes above.
     // It is an overkill though since the framegraph should be generated just once.
     if (factorsIdx == 0) {
@@ -2882,35 +2937,15 @@ void Q3DSSceneManager::updateProgressiveAA(Q3DSLayerNode *layer3DS)
             data->progAA.rts[data->progAA.curTarget++] = rt;
         }
 
-        Qt3DRender::QRenderTargetSelector *rtSel = new Qt3DRender::QRenderTargetSelector(data->layerFgRoot);
-        data->progAA.fg = rtSel;
-        data->progAA.rtSel = rtSel;
         data->progAA.curTarget = 0;
-        rtSel->setTarget(data->progAA.rts[0]);
-
-        Qt3DRender::QViewport *viewport = new Qt3DRender::QViewport(rtSel);
-        viewport->setNormalizedRect(QRectF(0, 0, 1, 1));
-
-        Qt3DRender::QFilterKey *filterKey = new Qt3DRender::QFilterKey;
-        filterKey->setName(QLatin1String("pass"));
-        filterKey->setValue(QLatin1String("progaa"));
-        Qt3DRender::QRenderPassFilter *filter = new Qt3DRender::QRenderPassFilter(viewport);
-        filter->addMatch(filterKey);
-
-        Qt3DRender::QLayerFilter *layerFilter = new Qt3DRender::QLayerFilter(filter);
-        data->progAA.layerFilter = layerFilter;
-        layerFilter->addLayer(m_fsQuadTag);
-
-        data->progAA.accumTexParam = new Qt3DRender::QParameter;
-        data->progAA.accumTexParam->setName(QLatin1String("accumulator"));
-        data->progAA.lastTexParam = new Qt3DRender::QParameter;
-        data->progAA.lastTexParam->setName(QLatin1String("last_frame"));
-        data->progAA.blendFactorsParam = new Qt3DRender::QParameter;
-        data->progAA.blendFactorsParam->setName(QLatin1String("blend_factors"));
-
-        filter->addParameter(data->progAA.accumTexParam);
-        filter->addParameter(data->progAA.lastTexParam);
-        filter->addParameter(data->progAA.blendFactorsParam);
+        auto rtSel = createProgressiveTemporalAAFramegraph(data->layerFgRoot,
+                                                           data->progAA.rts[data->progAA.curTarget],
+                                                           m_fsQuadTag,
+                                                           &data->progAA.layerFilter,
+                                                           &data->progAA.accumTexParam,
+                                                           &data->progAA.lastTexParam,
+                                                           &data->progAA.blendFactorsParam);
+        data->progAA.fg = data->progAA.rtSel = rtSel;
     }
 
     // Input
