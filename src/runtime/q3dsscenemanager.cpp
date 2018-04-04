@@ -2259,12 +2259,18 @@ void Q3DSSceneManager::updateOrthoShadowCam(Q3DSLayerAttached::PerLightShadowMap
     QVector3D camY = sceneCamData->globalTransform.column(1).toVector3D();
     QVector3D camZ = sceneCamData->globalTransform.column(2).toVector3D();
     float tanFOV = qTan(qDegreesToRadians(sceneCamera->fieldOfView()) * 0.5f);
-    float asTanFOV = tanFOV; /* * viewport.height / viewport.width but this is always 1 */
+    float asTanFOV = tanFOV * sceneCamera->aspectRatio();
     QVector3D camEdges[4];
-    camEdges[0] = -tanFOV * camX + asTanFOV * camY + camZ;
-    camEdges[1] = tanFOV * camX + asTanFOV * camY + camZ;
-    camEdges[2] = tanFOV * camX - asTanFOV * camY + camZ;
-    camEdges[3] = -tanFOV * camX - asTanFOV * camY + camZ;
+    camEdges[0] = -asTanFOV * camX + tanFOV * camY + camZ;
+    camEdges[1] = asTanFOV * camX + tanFOV * camY + camZ;
+    camEdges[2] = asTanFOV * camX - tanFOV * camY + camZ;
+    camEdges[3] = -asTanFOV * camX - tanFOV * camY + camZ;
+
+    for (int i = 0; i < 4; ++i) {
+        camEdges[i].setX(-camEdges[i].x());
+        camEdges[i].setY(-camEdges[i].y());
+    }
+
     QVector3D camVerts[8];
     const QVector3D camLocalPos = layerData->cam3DS->position();
     camVerts[0] = camLocalPos + camEdges[0] * sceneCamera->nearPlane();
@@ -2281,32 +2287,49 @@ void Q3DSSceneManager::updateOrthoShadowCam(Q3DSLayerAttached::PerLightShadowMap
     lightPos *= 0.125f;
 
     const QVector3D lightDir = lightData->globalTransform.column(2).toVector3D().normalized();
-    float dd = 0.5f * (light3DS->shadowMapFar() + 1.0f);
-    lightPos += lightDir * dd;
+    const QVector3D right = QVector3D::crossProduct(lightDir, QVector3D(0, 1, 0)).normalized();
+    const QVector3D up = QVector3D::crossProduct(right, lightDir).normalized();
 
-    const QVector3D camDir = sceneCamData->globalTransform.column(3).toVector3D().normalized();
-    float o1 = dd * 2.0f * qTan(0.5f * qDegreesToRadians(light3DS->shadowMapFov()));
-    float o2 = light3DS->shadowMapFar() - 1.0f;
-    float o = qFabs(QVector3D::dotProduct(lightDir, camDir));
-    o = (1.0f - o) * o2 + o * o1;
+    // Calculate bounding box of the scene camera frustum
+    float minDistanceZ = std::numeric_limits<float>::max();
+    float maxDistanceZ = -std::numeric_limits<float>::max();
+    float minDistanceY = std::numeric_limits<float>::max();
+    float maxDistanceY = -std::numeric_limits<float>::max();
+    float minDistanceX = std::numeric_limits<float>::max();
+    float maxDistanceX = -std::numeric_limits<float>::max();
+    for (int i = 0; i < 8; ++i) {
+        float distanceZ = QVector3D::dotProduct(camVerts[i], lightDir);
+        if (distanceZ < minDistanceZ)
+            minDistanceZ = distanceZ;
+        if (distanceZ > maxDistanceZ)
+            maxDistanceZ = distanceZ;
+        float distanceY = QVector3D::dotProduct(camVerts[i], up);
+        if (distanceY < minDistanceY)
+            minDistanceY = distanceY;
+        if (distanceY > maxDistanceY)
+            maxDistanceY = distanceY;
+        float distanceX = QVector3D::dotProduct(camVerts[i], right);
+        if (distanceX < minDistanceX)
+            minDistanceX = distanceX;
+        if (distanceX > maxDistanceX)
+            maxDistanceX = distanceX;
+    }
 
-    float clipNear = 1.0f;
-    float clipFar = light3DS->shadowMapFar();
-
-    lightPos -= lightDir * dd;
-    clipFar += sceneCamera->nearPlane();
+    float clipNear = -qFabs(maxDistanceZ - minDistanceZ);
+    float clipFar = qFabs(maxDistanceZ - minDistanceZ);
 
     d->shadowCamOrtho->setNearPlane(clipNear);
     d->shadowCamOrtho->setFarPlane(clipFar);
 
     // The shadow camera's projection is (more or less?) an ordinary orthographic projection.
     float deltaZ = clipFar - clipNear;
-    float halfWidth = (M_PI / 2 * o) / 2;
+    float halfWidth = qFabs(maxDistanceX - minDistanceX) / 2;
+    float halfHeight = qFabs(maxDistanceY - minDistanceY) / 2;
     if (deltaZ != 0) {
         QMatrix4x4 proj;
         float *writePtr = proj.data();
         writePtr[0] = 1.0f / halfWidth;
-        writePtr[5] = 1.0f / (halfWidth / d->shadowCamOrtho->aspectRatio());
+        writePtr[5] = 1.0f / halfHeight;
         writePtr[10] = -2.0f / deltaZ;
         writePtr[11] = 0.0f;
         writePtr[14] = -(clipNear + clipFar) / deltaZ;
