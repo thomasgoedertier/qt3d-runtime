@@ -1822,18 +1822,24 @@ private:
 class Q3DSV_PRIVATE_EXPORT Q3DSEffectInstance : public Q3DSGraphObject
 {
 public:
+    enum EffectInstancePropertyChanges {
+        EyeBallChanges = 1 << 0
+    };
+
     Q3DSEffectInstance();
     Q3DSEffectInstance(const Q3DSEffect &effect);
 
     void setProperties(const QXmlStreamAttributes &attrs, PropSetFlags flags) override;
     void applyPropertyChanges(const Q3DSPropertyChangeList &changeList) override;
     void resolveReferences(Q3DSUipPresentation &pres) override;
+    int mapChangeFlags(const Q3DSPropertyChangeList &changeList) override;
 
     QStringList propertyNames() const override;
     QVariantList propertyValues() const override;
 
     // Properties
     const Q3DSEffect *effect() const { return &m_effect; }
+    bool active() const { return m_active; }
 
     // All custom properties, either with the default or the instance-specific value.
     // Filenames are already sanitized.
@@ -1848,6 +1854,7 @@ private:
     QString m_effect_unresolved;
     Q3DSEffect m_effect;
     bool m_effectIsResolved = false;
+    bool m_active = true;
     QVariantMap m_effectPropertyVals;
     Q3DSPropertyChangeList m_pendingCustomProperties;
 };

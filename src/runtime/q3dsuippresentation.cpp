@@ -2291,6 +2291,8 @@ void Q3DSEffectInstance::setProps(const V &attrs, PropSetFlags flags)
     const QString typeName = QStringLiteral("Effect");
     parseProperty(attrs, flags, typeName, QStringLiteral("class"), &m_effect_unresolved);
 
+    parseProperty(attrs, flags, typeName, QStringLiteral("eyeball"), &m_active);
+
     // Different default value.
     parseProperty(attrs, flags, typeName, QStringLiteral("name"), &m_name);
 }
@@ -2328,17 +2330,27 @@ void Q3DSEffectInstance::resolveReferences(Q3DSUipPresentation &pres)
     }
 }
 
+int Q3DSEffectInstance::mapChangeFlags(const Q3DSPropertyChangeList &changeList)
+{
+    int changeFlags = Q3DSGraphObject::mapChangeFlags(changeList);
+    for (auto it = changeList.cbegin(), itEnd = changeList.cend(); it != itEnd; ++it) {
+        if (it->nameStr() == QStringLiteral("eyeball"))
+            changeFlags |= EyeBallChanges;
+    }
+    return changeFlags;
+}
+
 QStringList Q3DSEffectInstance::propertyNames() const
 {
     QStringList s = Q3DSGraphObject::propertyNames();
-    s << QLatin1String("class");
+    s << QLatin1String("class") << QLatin1String("eyeball");
     return s;
 }
 
 QVariantList Q3DSEffectInstance::propertyValues() const
 {
     QVariantList s = Q3DSGraphObject::propertyValues();
-    s << m_effect_unresolved;
+    s << m_effect_unresolved << m_active;
     return s;
 }
 

@@ -462,16 +462,6 @@ Q3DSSceneManager::~Q3DSSceneManager()
     delete m_inputManager;
 }
 
-bool operator==(const Q3DSLayerAttached::SizeManagedTexture &a, const Q3DSLayerAttached::SizeManagedTexture &b)
-{
-    return a.texture == b.texture;
-}
-
-bool operator!=(const Q3DSLayerAttached::SizeManagedTexture &a, const Q3DSLayerAttached::SizeManagedTexture &b)
-{
-    return a.texture != b.texture;
-}
-
 void Q3DSSceneManager::updateSizes(const QSize &size, qreal dpr, bool forceSynchronous)
 {
     if (!m_scene)
@@ -1140,7 +1130,7 @@ void Q3DSSceneManager::buildLayer(Q3DSLayerNode *layer3DS,
                                       true); // include hidden ones too
 
     // Set up effects.
-    finalizeEffects(layer3DS);
+    updateEffectStatus(layer3DS);
 }
 
 Qt3DRender::QAbstractTexture *Q3DSSceneManager::dummyTexture()
@@ -2738,8 +2728,7 @@ void Q3DSSceneManager::stealLayerRenderTarget(Qt3DRender::QAbstractTexture **sto
         data->sizeManagedTextures.removeOne(*stolenDS);
         delete *stolenDS;
     }
-    const bool hasEffect = data->effLayerTexture != nullptr;
-    *stolenColorBuf = hasEffect ? data->effLayerTexture : data->layerTexture;
+    *stolenColorBuf = data->effectActive ? data->effLayerTexture : data->layerTexture;
     // ### ideally the depth-stencil could be kept (since PAA does not need one)
     *stolenDS = data->layerDS;
     // create a whole new render target for the layer
@@ -2754,7 +2743,7 @@ void Q3DSSceneManager::stealLayerRenderTarget(Qt3DRender::QAbstractTexture **sto
     Qt3DRender::QRenderTarget *oldRt = data->rtSelector->target();
     data->rtSelector->setTarget(rt);
     delete oldRt;
-    if (hasEffect) {
+    if (data->effectActive) {
         data->sizeManagedTextures.append(colorTex);
         data->effLayerTexture = colorTex;
     } else {
@@ -2863,7 +2852,7 @@ void Q3DSSceneManager::updateProgressiveAA(Q3DSLayerNode *layer3DS)
         if (data->progAA.enabled) {
             qCDebug(lcScene, "Stopping progressive AA for layer %s", layer3DS->id().constData());
             data->progAA.enabled = false;
-            data->compositorSourceParam->setValue(QVariant::fromValue(data->effLayerTexture ? data->effLayerTexture : data->layerTexture));
+            data->compositorSourceParam->setValue(QVariant::fromValue(data->effectActive ? data->effLayerTexture : data->layerTexture));
 
             // Do not delete and then recreate the framegraph subtree since
             // that is likely way too expensive. Keep it around instead and
@@ -2973,7 +2962,7 @@ void Q3DSSceneManager::updateProgressiveAA(Q3DSLayerNode *layer3DS)
 
     // Input
     data->progAA.accumTexParam->setValue(QVariant::fromValue(data->progAA.currentAccumulatorTexture));
-    data->progAA.lastTexParam->setValue(QVariant::fromValue(data->effLayerTexture ? data->effLayerTexture : data->layerTexture));
+    data->progAA.lastTexParam->setValue(QVariant::fromValue(data->effectActive ? data->effLayerTexture : data->layerTexture));
     data->progAA.blendFactorsParam->setValue(blendFactor);
 
     // Output
@@ -3046,8 +3035,7 @@ static void setLayerBlending(Qt3DRender::QBlendEquation *blendFunc,
 }
 
 void Q3DSSceneManager::buildLayerQuadEntity(Q3DSLayerNode *layer3DS, Qt3DCore::QEntity *parentEntity,
-                                            Qt3DRender::QLayer *tag, BuildLayerQuadFlags flags, int layerDepth,
-                                            Qt3DRender::QRenderPass **outRenderPass)
+                                            Qt3DRender::QLayer *tag, BuildLayerQuadFlags flags, int layerDepth)
 {
     Q3DSLayerAttached *data = static_cast<Q3DSLayerAttached *>(layer3DS->attached());
     Q_ASSERT(data);
@@ -3087,8 +3075,7 @@ void Q3DSSceneManager::buildLayerQuadEntity(Q3DSLayerNode *layer3DS, Qt3DCore::Q
     Qt3DRender::QMaterial *material = new Qt3DRender::QMaterial;
     Qt3DRender::QEffect *effect = new Qt3DRender::QEffect;
     Qt3DRender::QTechnique *technique = new Qt3DRender::QTechnique;
-    bool isGLES = false;
-    Q3DSDefaultMaterialGenerator::addDefaultApiFilter(technique, &isGLES);
+    Q3DSDefaultMaterialGenerator::addDefaultApiFilter(technique);
 
     Qt3DRender::QRenderPass *renderPass = new Qt3DRender::QRenderPass;
 
@@ -3104,26 +3091,10 @@ void Q3DSSceneManager::buildLayerQuadEntity(Q3DSLayerNode *layer3DS, Qt3DCore::Q
     depthTest->setDepthFunction(Qt3DRender::QDepthTest::Less);
     renderPass->addRenderState(depthTest);
 
-    if (outRenderPass)
-        *outRenderPass = renderPass;
+    data->compositorRenderPass = renderPass;
 
     if (!flags.testFlag(LayerQuadCustomShader)) {
-        Qt3DRender::QShaderProgram *shaderProgram = new Qt3DRender::QShaderProgram;
-        QString vertSuffix;
-        QString fragSuffix;
-        if (isGLES) {
-            vertSuffix = QLatin1String(".vert");
-            fragSuffix = QLatin1String(".frag");
-        } else {
-            vertSuffix = QLatin1String("_core.vert");
-            fragSuffix = QLatin1String("_core.frag");
-        }
-        shaderProgram->setVertexShaderCode(Qt3DRender::QShaderProgram::loadSource(QUrl(QLatin1String("qrc:/q3ds/shaders/compositor") + vertSuffix)));
-        QString fragSrc = QLatin1String("qrc:/q3ds/shaders/compositor") + fragSuffix;
-        if (data->msaaSampleCount > 1 && !data->effectActive)
-            fragSrc = QLatin1String("qrc:/q3ds/shaders/compositor_ms") + QString::number(data->msaaSampleCount) + fragSuffix;
-        shaderProgram->setFragmentShaderCode(Qt3DRender::QShaderProgram::loadSource(QUrl(fragSrc)));
-        renderPass->setShaderProgram(shaderProgram);
+        updateLayerCompositorProgram(layer3DS);
         renderPass->addParameter(data->compositorSourceParam);
     }
 
@@ -3135,6 +3106,40 @@ void Q3DSSceneManager::buildLayerQuadEntity(Q3DSLayerNode *layer3DS, Qt3DCore::Q
     layerQuadEntity->addComponent(mesh);
     layerQuadEntity->addComponent(transform);
     layerQuadEntity->addComponent(material);
+}
+
+// to support switching between msaa and non-msaa composition at runtime the
+// program is (re)set in this separate function
+void Q3DSSceneManager::updateLayerCompositorProgram(Q3DSLayerNode *layer3DS)
+{
+    Q3DSLayerAttached *data = static_cast<Q3DSLayerAttached *>(layer3DS->attached());
+    if (data && data->compositorRenderPass && data->usesDefaultCompositorProgram) {
+        Qt3DRender::QShaderProgram *shaderProgram = data->compositorRenderPass->shaderProgram();
+        const bool programIsNew = !shaderProgram;
+        if (programIsNew)
+            shaderProgram = new Qt3DRender::QShaderProgram;
+
+        QString vertSuffix;
+        QString fragSuffix;
+        if (QOpenGLContext::openGLModuleType() == QOpenGLContext::LibGLES) {
+            vertSuffix = QLatin1String(".vert");
+            fragSuffix = QLatin1String(".frag");
+        } else {
+            vertSuffix = QLatin1String("_core.vert");
+            fragSuffix = QLatin1String("_core.frag");
+        }
+
+        if (programIsNew) // the vs never changes
+            shaderProgram->setVertexShaderCode(Qt3DRender::QShaderProgram::loadSource(QUrl(QLatin1String("qrc:/q3ds/shaders/compositor") + vertSuffix)));
+
+        QString fragSrc = QLatin1String("qrc:/q3ds/shaders/compositor") + fragSuffix;
+        if (data->msaaSampleCount > 1 && !data->effectActive)
+            fragSrc = QLatin1String("qrc:/q3ds/shaders/compositor_ms") + QString::number(data->msaaSampleCount) + fragSuffix;
+        shaderProgram->setFragmentShaderCode(Qt3DRender::QShaderProgram::loadSource(QUrl(fragSrc)));
+
+        if (programIsNew)
+            data->compositorRenderPass->setShaderProgram(shaderProgram);
+    }
 }
 
 void Q3DSSceneManager::buildCompositor(Qt3DRender::QFrameGraphNode *parent, Qt3DCore::QEntity *parentEntity)
@@ -3234,9 +3239,12 @@ void Q3DSSceneManager::buildCompositor(Qt3DRender::QFrameGraphNode *parent, Qt3D
          */
         int layerDepth = 1;
         for (Q3DSLayerNode *layer3DS : layers) {
+            Q3DSLayerAttached *data = static_cast<Q3DSLayerAttached *>(layer3DS->attached());
+            Q_ASSERT(data);
+
             if (layerNeedsAdvancedBlending(layer3DS)) {
-                Q3DSLayerAttached *data = static_cast<Q3DSLayerAttached *>(layer3DS->attached());
-                Q_ASSERT(data);
+                data->usesDefaultCompositorProgram = false;
+
                 if (!data->advBlend.tempTexture) {
                     data->advBlend.tempTexture = new Qt3DRender::QTexture2D(data->entity);
                     m_profiler->trackNewObject(data->advBlend.tempTexture, Q3DSProfiler::Texture2DObject,
@@ -3287,9 +3295,9 @@ void Q3DSSceneManager::buildCompositor(Qt3DRender::QFrameGraphNode *parent, Qt3D
                 layerFilter->addLayer(tag);
 
                 // Now we do not need normal blending and will provide a custom shader program.
-                Qt3DRender::QRenderPass *renderPass;
                 BuildLayerQuadFlags flags = LayerQuadCustomShader;
-                buildLayerQuadEntity(layer3DS, parentEntity, tag, flags, layerDepth++, &renderPass);
+                buildLayerQuadEntity(layer3DS, parentEntity, tag, flags, layerDepth++);
+                Qt3DRender::QRenderPass *renderPass = data->compositorRenderPass;
 
                 switch (layer3DS->blendType()) {
                 case Q3DSLayerNode::Overlay:
@@ -3311,10 +3319,12 @@ void Q3DSSceneManager::buildCompositor(Qt3DRender::QFrameGraphNode *parent, Qt3D
                 baseLayerParam->setValue(QVariant::fromValue(data->advBlend.tempTexture));
                 Qt3DRender::QParameter *blendLayerParam = new Qt3DRender::QParameter;
                 blendLayerParam->setName(QLatin1String("blend_layer"));
-                blendLayerParam->setValue(QVariant::fromValue(data->effLayerTexture ? data->effLayerTexture : data->layerTexture));
+                blendLayerParam->setValue(QVariant::fromValue(data->effectActive ? data->effLayerTexture : data->layerTexture));
                 renderPass->addParameter(baseLayerParam);
                 renderPass->addParameter(blendLayerParam);
             } else {
+                data->usesDefaultCompositorProgram = true;
+
                 Qt3DRender::QLayerFilter *layerFilter = new Qt3DRender::QLayerFilter(cameraSelector);
                 Qt3DRender::QLayer *tag = new Qt3DRender::QLayer;
                 tag->setObjectName(QLatin1String("Compositor quad pass (adv.blend path)"));
@@ -3369,7 +3379,7 @@ void Q3DSSceneManager::buildGuiPass(Qt3DRender::QFrameGraphNode *parent, Qt3DCor
     lfilter->addLayer(m_guiData.activeTag);
 }
 
-void Q3DSSceneManager::buildFsQuad(const FsQuadParams &info)
+Qt3DCore::QEntity *Q3DSSceneManager::buildFsQuad(const FsQuadParams &info)
 {
     Q_ASSERT(info.tag);
     Q_ASSERT(info.passNames.count() == info.passProgs.count());
@@ -3422,6 +3432,8 @@ void Q3DSSceneManager::buildFsQuad(const FsQuadParams &info)
     fsQuadEntity->addComponent(mesh);
     fsQuadEntity->addComponent(transform);
     fsQuadEntity->addComponent(material);
+
+    return fsQuadEntity;
 }
 
 void Q3DSSceneManager::buildLayerScene(Q3DSGraphObject *obj, Q3DSLayerNode *layer3DS, Qt3DCore::QEntity *parent)
@@ -4990,6 +5002,7 @@ void Q3DSSceneManager::buildEffect(Q3DSEffectInstance *eff3DS, Q3DSLayerNode *la
         // everything behaves like non-MSAA.
         const QSize sz = safeLayerPixelSize(layerData);
         layerData->effLayerTexture = newColorBuffer(sz, 1);
+        layerData->effLayerTexture->setParent(layerData->entity);
         m_profiler->trackNewObject(layerData->effLayerTexture, Q3DSProfiler::Texture2DObject,
                                    "Effect buffer for layer %s", layer3DS->id().constData());
         layerData->sizeManagedTextures.append(layerData->effLayerTexture);
@@ -5121,458 +5134,524 @@ static inline void setupStencilTest(Qt3DRender::QStencilTest *stencilTest, const
     }
 }
 
-void Q3DSSceneManager::finalizeEffects(Q3DSLayerNode *layer3DS)
+void Q3DSSceneManager::updateEffectStatus(Q3DSLayerNode *layer3DS)
 {
+    int activeEffectCount = 0;
     Q3DSLayerAttached *layerData = static_cast<Q3DSLayerAttached *>(layer3DS->attached());
-    if (layerData->effectData.effects.isEmpty())
-        return;
-
     for (Q3DSEffectInstance *eff3DS : layerData->effectData.effects) {
         Q3DSEffectAttached *effData = static_cast<Q3DSEffectAttached *>(eff3DS->attached());
-        qCDebug(lcPerf, "Applying post-processing effect %s to layer %s",
-                eff3DS->id().constData(), layer3DS->id().constData());
-
-        // Set up textures for Buffers
-        createEffectBuffers(eff3DS);
-
-        QVector<Qt3DRender::QParameter *> commonParamList;
-
-        // Create QParameters for built-in uniforms (see effect.glsllib).
-        // Texture0 and friends depend on the input so those are per pass.
-        effData->appFrameParam = new Qt3DRender::QParameter;
-        effData->appFrameParam->setName(QLatin1String("AppFrame"));
-        commonParamList.append(effData->appFrameParam);
-
-        effData->fpsParam = new Qt3DRender::QParameter;
-        effData->fpsParam->setName(QLatin1String("FPS"));
-        commonParamList.append(effData->fpsParam);
-
-        effData->cameraClipRangeParam = new Qt3DRender::QParameter;
-        effData->cameraClipRangeParam->setName(QLatin1String("CameraClipRange"));
-        commonParamList.append(effData->cameraClipRangeParam);
-
-        // Create QParameters for custom properties.
-        forAllCustomProperties(eff3DS, [&commonParamList, effData](const QString &propKey, const QVariant &propValue, const Q3DSMaterial::PropertyElement &propMeta) {
-            // textures with no filename are effectively samplers (to be used in a BufferInput f.ex.)
-            if (propMeta.type == Q3DS::Texture && propValue.toString().isEmpty())
-                return;
-
-            Qt3DRender::QParameter *param = new Qt3DRender::QParameter;
-            param->setName(propKey);
-            commonParamList.append(param);
-            Qt3DRender::QParameter *infoParam = nullptr;
-            Qt3DRender::QParameter *flagParam = nullptr;
-            // textures do not just get a sampler uniform but also an additional vec4
-            if (propMeta.type == Q3DS::Texture) {
-                infoParam = new Qt3DRender::QParameter;
-                infoParam->setName(propKey + QLatin1String("Info"));
-                commonParamList.append(infoParam);
-                flagParam = new Qt3DRender::QParameter;
-                flagParam->setName(QLatin1String("flag") + propKey);
-                flagParam->setValue(0); // will change to 1 when loading something
-                commonParamList.append(flagParam);
-            }
-            Q3DSCustomPropertyParameter pp(param, QVariant(), propMeta);
-            pp.texInfoParam = infoParam;
-            pp.texFlagParam = flagParam;
-            effData->params.insert(propKey, pp);
-        });
-
-        // Set initial QParameter (uniform) values.
-        updateEffect(eff3DS);
-
-        const Q3DSEffect *effDesc = eff3DS->effect();
-        const QMap<QString, Q3DSMaterial::Shader> &shaderPrograms = effDesc->shaders();
-        const QMap<QString, Q3DSMaterial::PropertyElement> &propMeta = effDesc->properties();
-
-        // Each pass leads to creating a new framegraph subtree parented to effectRoot.
-        auto passes = effDesc->passes();
-        const bool implicitPass = passes.isEmpty();
-        const int passCount = implicitPass ? 1 : passes.count();
-        for (int passIdx = 0; passIdx < passCount; ++passIdx) {
-            Q3DSMaterial::Pass pass;
-            if (!implicitPass) {
-                pass = passes[passIdx];
-                if (!shaderPrograms.contains(pass.shaderName)) {
-                    qWarning("Effect %s: Unknown shader program %s; pass ignored",
-                             eff3DS->id().constData(), qPrintable(pass.shaderName));
-                    continue;
-                }
-                qCDebug(lcScene, "  Registered effect pass with shader program %s input %s output %s %d extra commands",
-                        qPrintable(pass.shaderName), qPrintable(pass.input), qPrintable(pass.output), pass.commands.count());
-            } else {
-                // Not having any passes is valid too. This should use the first vertex/fragment shader (no name matching).
-                if (shaderPrograms.isEmpty()) {
-                    qWarning("Effect %s: No shader program; pass ignored", eff3DS->id().constData());
-                    continue;
-                }
-                // Leave pass.input and output as the default [source] and [dest].
-                qCDebug(lcScene, "  Registered implicit effect pass with input %s output %s",
-                        qPrintable(pass.input), qPrintable(pass.output));
-            }
-
-            QVector<Qt3DRender::QParameter *> paramList;
-            paramList << commonParamList;
-
-            Qt3DRender::QBlendEquation *blendFunc = nullptr;
-            Qt3DRender::QBlendEquationArguments *blendArgs = nullptr;
-            Qt3DRender::QStencilTest *stencilTest = nullptr;
-            Qt3DRender::QStencilOperation *stencilOp = nullptr;
-            bool depthNeedsClear = false;
-            bool stencilNeedsClear = false;
-            QString depthStencilBufferName;
-
-            const bool needsResolve = layerData->msaaSampleCount > 1 || layerData->ssaaScaleFactor > 1;
-            if (needsResolve) {
-                effData->sourceTexture = new Qt3DRender::QTexture2D(m_rootEntity);
-                m_profiler->trackNewObject(effData->sourceTexture, Q3DSProfiler::Texture2DObject,
-                                           "Resolve buffer for effect %s", eff3DS->id().constData());
-                effData->sourceTexture->setFormat(Qt3DRender::QAbstractTexture::RGBA8_UNorm);
-                effData->sourceTexture->setMinificationFilter(Qt3DRender::QAbstractTexture::Linear);
-                effData->sourceTexture->setMagnificationFilter(Qt3DRender::QAbstractTexture::Linear);
-            } else {
-                effData->sourceTexture = layerData->layerTexture;
-            }
-
-            for (const Q3DSMaterial::PassCommand &cmd : pass.commands) {
-                switch (cmd.type()) {
-                case Q3DSMaterial::PassCommand::BufferInputType:
-                {
-                    bool valid = true;
-                    const QString bufferName = cmd.data()->value;
-                    if (bufferName == QStringLiteral("[source]")) {
-                        Qt3DRender::QParameter *texParam = new Qt3DRender::QParameter;
-                        texParam->setName(cmd.data()->param);
-                        texParam->setValue(QVariant::fromValue(effData->sourceTexture));
-                        paramList.append(texParam);
-                        Qt3DRender::QParameter *texInfoParam = new Qt3DRender::QParameter;
-                        texInfoParam->setName(cmd.data()->param + QLatin1String("Info"));
-                        setTextureInfoUniform(texInfoParam, effData->sourceTexture);
-                        effData->sourceDepTextureInfoParams.append(texInfoParam);
-                        paramList.append(texInfoParam);
-                    } else if (effData->textureBuffers.contains(bufferName)) {
-                        Q3DSEffectAttached::TextureBuffer &tb(effData->textureBuffers[bufferName]);
-                        Qt3DRender::QParameter *texParam = new Qt3DRender::QParameter;
-                        texParam->setName(cmd.data()->param);
-                        texParam->setValue(QVariant::fromValue(tb.texture));
-                        paramList.append(texParam);
-                        Qt3DRender::QParameter *texInfoParam = new Qt3DRender::QParameter;
-                        texInfoParam->setName(cmd.data()->param + QLatin1String("Info"));
-                        setTextureInfoUniform(texInfoParam, tb.texture);
-                        tb.textureInfoParams.append(texInfoParam);
-                        paramList.append(texInfoParam);
-                    } else {
-                        qWarning("Effect %s: Unknown buffer %s", eff3DS->id().constData(), qPrintable(bufferName));
-                        valid = false;
-                    }
-                    Qt3DRender::QParameter *texFlagParam = new Qt3DRender::QParameter;
-                    texFlagParam->setName(QLatin1String("flag") + cmd.data()->param);
-                    texFlagParam->setValue(valid ? 1 : 0);
-                    paramList.append(texFlagParam);
-                }
-                    break;
-
-                case Q3DSMaterial::PassCommand::DepthInputType:
-                {
-                    setDepthTextureEnabled(layer3DS, true);
-                    // param cannot be anything else but a buffer name (with no
-                    // source, hence being mapped to a plain sampler).
-                    const QString samplerName = cmd.data()->param;
-                    const bool valid = propMeta.contains(samplerName);
-                    if (valid) {
-                        Qt3DRender::QParameter *texParam = new Qt3DRender::QParameter;
-                        texParam->setName(samplerName);
-                        texParam->setValue(QVariant::fromValue(layerData->depthTextureData.depthTexture));
-                        paramList.append(texParam);
-                        // Have the usual Info and flag uniforms.
-                        Qt3DRender::QParameter *texInfoParam = new Qt3DRender::QParameter;
-                        texInfoParam->setName(samplerName + QLatin1String("Info"));
-                        // Can conveniently use the source texture since the
-                        // sizes must match. This is very handy esp. with
-                        // sourceDepTextureInfoParams since we get size updates
-                        // via the same code path.
-                        setTextureInfoUniform(texInfoParam, effData->sourceTexture);
-                        effData->sourceDepTextureInfoParams.append(texInfoParam);
-                        paramList.append(texInfoParam);
-                    } else {
-                        qWarning("Effect %s: Unknown depth texture sampler %s",
-                                 eff3DS->id().constData(), qPrintable(samplerName));
-                    }
-                    Qt3DRender::QParameter *texFlagParam = new Qt3DRender::QParameter;
-                    texFlagParam->setName(QLatin1String("flag") + samplerName);
-                    texFlagParam->setValue(valid ? 1 : 0);
-                    paramList.append(texFlagParam);
-                }
-                    break;
-
-                case Q3DSMaterial::PassCommand::SetParamType:
-                {
-                    auto cmdData = cmd.data();
-                    if (propMeta.contains(cmdData->name)) {
-                        const Q3DSMaterial::PropertyElement &propDesc(propMeta.value(cmdData->name));
-                        Qt3DRender::QParameter *param = makePropertyUniform(cmdData->name, cmdData->value, propDesc);
-                        if (param)
-                            paramList.append(param);
-                    } else {
-                        qWarning("Effect %s: SetParam for unknown property %s",
-                                 eff3DS->id().constData(), qPrintable(cmd.data()->name));
-                    }
-                }
-                    break;
-
-                case Q3DSMaterial::PassCommand::BlendingType:
-                {
-                    if (!blendFunc)
-                        blendFunc = new Qt3DRender::QBlendEquation;
-                    blendFunc->setBlendFunction(Qt3DRender::QBlendEquation::Add);
-                    if (!blendArgs)
-                        blendArgs = new Qt3DRender::QBlendEquationArguments;
-                    switch (cmd.data()->blendSource) {
-                    case Q3DSMaterial::SrcAlpha:
-                        blendArgs->setSourceRgba(Qt3DRender::QBlendEquationArguments::SourceAlpha);
-                        break;
-                    case Q3DSMaterial::OneMinusSrcAlpha:
-                        blendArgs->setSourceRgba(Qt3DRender::QBlendEquationArguments::OneMinusSourceAlpha);
-                        break;
-                    case Q3DSMaterial::One:
-                        blendArgs->setSourceRgba(Qt3DRender::QBlendEquationArguments::One);
-                        break;
-                    default:
-                        break;
-                    }
-                    switch (cmd.data()->blendDestination) {
-                    case Q3DSMaterial::SrcAlpha:
-                        blendArgs->setDestinationRgba(Qt3DRender::QBlendEquationArguments::SourceAlpha);
-                        break;
-                    case Q3DSMaterial::OneMinusSrcAlpha:
-                        blendArgs->setDestinationRgba(Qt3DRender::QBlendEquationArguments::OneMinusSourceAlpha);
-                        break;
-                    case Q3DSMaterial::One:
-                        blendArgs->setDestinationRgba(Qt3DRender::QBlendEquationArguments::One);
-                        break;
-                    default:
-                        break;
-                    }
-                }
-                    break;
-
-                case Q3DSMaterial::PassCommand::RenderStateType:
-                {
-                    if (cmd.data()->name == QStringLiteral("Stencil")) {
-                        bool enabled = false;
-                        if (Q3DS::convertToBool(&cmd.data()->value, &enabled)) {
-                            if (enabled) {
-                                if (!stencilTest)
-                                    stencilTest = new Qt3DRender::QStencilTest;
-                                Q3DSMaterial::PassCommand dummy; // with defaults
-                                setupStencilTest(stencilTest, dummy);
-                            } else {
-                                delete stencilTest;
-                                stencilTest = nullptr;
-                                delete stencilOp;
-                                stencilOp = nullptr;
-                            }
-                        }
-                    } else {
-                        qWarning("Effect %s: Unsupported render state %s", eff3DS->id().constData(), qPrintable(cmd.data()->name));
-                    }
-                }
-                    break;
-
-                case Q3DSMaterial::PassCommand::DepthStencilType:
-                {
-                    auto d = cmd.data();
-                    depthStencilBufferName = d->bufferName;
-                    depthNeedsClear = d->flags.testFlag(Q3DSMaterial::ClearDepth);
-                    stencilNeedsClear = d->flags.testFlag(Q3DSMaterial::ClearStencil);
-
-                    if (!stencilTest)
-                        stencilTest = new Qt3DRender::QStencilTest;
-
-                    setupStencilTest(stencilTest, cmd);
-
-                    if (!stencilOp)
-                        stencilOp = new Qt3DRender::QStencilOperation;
-
-                    for (auto s : { stencilOp->front(), stencilOp->back() }) {
-                        s->setStencilTestFailureOperation(convertToQt3DStencilOp(d->stencilFail));
-                        s->setDepthTestFailureOperation(convertToQt3DStencilOp(d->depthFail));
-                        s->setAllTestsPassOperation(convertToQt3DStencilOp(d->depthPass));
-                    }
-                }
-                    break;
-
-                default:
-                    qWarning("Effect %s: Unhandled command %d", eff3DS->id().constData(), cmd.type());
-                    break;
-                }
-            }
-
-            Qt3DRender::QAbstractTexture *passInput = nullptr;
-            if (pass.input == QStringLiteral("[source]")) {
-                passInput = effData->sourceTexture;
-            } else {
-                if (effData->textureBuffers.contains(pass.input)) {
-                    passInput = effData->textureBuffers.value(pass.input).texture;
-                } else {
-                    qWarning("Effect %s: Unknown input buffer %s; pass ignored",
-                             eff3DS->id().constData(), qPrintable(pass.input));
-                    continue;
-                }
-            }
-
-            bool outputNeedsClear = false;
-            Qt3DRender::QAbstractTexture *passOutput = nullptr;
-            if (pass.output == QStringLiteral("[dest]")) {
-                passOutput = layerData->effLayerTexture;
-                outputNeedsClear = true;
-            } else {
-                if (effData->textureBuffers.contains(pass.output)) {
-                    auto tb = effData->textureBuffers.value(pass.output);
-                    passOutput = tb.texture;
-                    outputNeedsClear = tb.hasSceneLifetime;
-                } else {
-                    qWarning("Effect %s: Unknown output buffer %s; pass ignored",
-                             eff3DS->id().constData(), qPrintable(pass.output));
-                    continue;
-                }
-            }
-
-            Qt3DRender::QParameter *texture0Param = new Qt3DRender::QParameter;
-            texture0Param->setName(QLatin1String("Texture0"));
-            texture0Param->setValue(QVariant::fromValue(passInput));
-            paramList.append(texture0Param);
-
-            Qt3DRender::QParameter *texture0InfoParam = new Qt3DRender::QParameter;
-            texture0InfoParam->setName(QLatin1String("Texture0Info"));
-            paramList.append(texture0InfoParam);
-
-            Qt3DRender::QParameter *texture0FlagParam = new Qt3DRender::QParameter;
-            texture0FlagParam->setName(QLatin1String("Texture0Flags")); // this is not a mistake, it's not flagTexture0 but Texture0Flags. go figure.
-            texture0FlagParam->setValue(1);
-            paramList.append(texture0FlagParam);
-
-            Qt3DRender::QParameter *fragColorAlphaParam = new Qt3DRender::QParameter;
-            fragColorAlphaParam->setName(QLatin1String("FragColorAlphaSettings"));
-            fragColorAlphaParam->setValue(QVector2D(1.0f, 0.0f));
-            paramList.append(fragColorAlphaParam);
-
-            Qt3DRender::QParameter *destSizeParam = new Qt3DRender::QParameter;
-            destSizeParam->setName(QLatin1String("DestSize"));
-            paramList.append(destSizeParam);
-
-            Q3DSEffectAttached::PassData pd;
-            pd.passInput = passInput;
-            pd.texture0InfoParam = texture0InfoParam;
-            pd.passOutput = passOutput;
-            pd.destSizeParam = destSizeParam;
-            effData->passData.append(pd);
-
-            const Q3DSMaterial::Shader &shaderProgram = !implicitPass ? shaderPrograms.value(pass.shaderName) : shaderPrograms.first();
-            const QString decoratedShaderName = QString::fromUtf8(eff3DS->id()) + QLatin1Char('_') + pass.shaderName;
-            const QString decoratedVertexShader = effDesc->addPropertyUniforms(shaderProgram.vertexShader);
-            const QString decoratedFragmentShader = effDesc->addPropertyUniforms(shaderProgram.fragmentShader);
-            Qt3DRender::QShaderProgram *prog = Q3DSShaderManager::instance().getEffectShader(m_rootEntity,
-                                                                                             decoratedShaderName,
-                                                                                             decoratedVertexShader,
-                                                                                             decoratedFragmentShader);
-
-            effData->quadEntityTag = new Qt3DRender::QLayer;
-            effData->quadEntityTag->setObjectName(QLatin1String("Effect quad pass"));
-
-            FsQuadParams quadInfo;
-            quadInfo.parentEntity = m_rootEntity;
-            quadInfo.passNames << QLatin1String("eff");
-            quadInfo.passProgs << prog;
-            quadInfo.tag = effData->quadEntityTag;
-            quadInfo.params = paramList;
-            if (blendFunc)
-                quadInfo.renderStates << blendFunc;
-            if (blendArgs)
-                quadInfo.renderStates << blendArgs;
-            if (stencilTest)
-                quadInfo.renderStates << stencilTest;
-            if (stencilOp)
-                quadInfo.renderStates << stencilOp;
-
-            buildFsQuad(quadInfo);
-
-            if (needsResolve) {
-                Qt3DRender::QRenderTarget *rtSrc = new Qt3DRender::QRenderTarget;
-                m_profiler->trackNewObject(rtSrc, Q3DSProfiler::RenderTargetObject, "Src resolve RT for effect %s",
-                                           eff3DS->id().constData());
-                Qt3DRender::QRenderTargetOutput *rtSrcOutput = new Qt3DRender::QRenderTargetOutput;
-                rtSrcOutput->setAttachmentPoint(Qt3DRender::QRenderTargetOutput::Color0);
-                rtSrcOutput->setTexture(layerData->layerTexture);
-                rtSrc->addOutput(rtSrcOutput);
-
-                Qt3DRender::QRenderTarget *rtDst = new Qt3DRender::QRenderTarget;
-                m_profiler->trackNewObject(rtDst, Q3DSProfiler::RenderTargetObject, "Dst resolve RT for effect %s",
-                                           eff3DS->id().constData());
-                Qt3DRender::QRenderTargetOutput *rtDstOutput = new Qt3DRender::QRenderTargetOutput;
-                rtDstOutput->setAttachmentPoint(Qt3DRender::QRenderTargetOutput::Color0);
-                rtDstOutput->setTexture(effData->sourceTexture);
-                rtDst->addOutput(rtDstOutput);
-
-                Qt3DRender::QBlitFramebuffer *resolve = new Qt3DRender::QBlitFramebuffer(layerData->effectData.effectRoot);
-                new Qt3DRender::QNoDraw(resolve);
-                resolve->setSource(rtSrc);
-                resolve->setDestination(rtDst);
-
-                auto blitResizer = [resolve, layerData](Q3DSLayerNode *) {
-                    resolve->setSourceRect(QRectF(QPointF(0, 0), layerData->layerSize * layerData->ssaaScaleFactor));
-                    resolve->setDestinationRect(QRectF(QPointF(0, 0), layerData->layerSize));
-                };
-
-                // must track layer size, but without the SSAA scale
-                prepareSizeDependentTexture(effData->sourceTexture, layer3DS, blitResizer, Q3DSLayerAttached::SizeManagedTexture::IgnoreSSAA);
-            }
-
-            Qt3DRender::QRenderTargetSelector *rtSel = new Qt3DRender::QRenderTargetSelector(layerData->effectData.effectRoot);
-            Qt3DRender::QRenderTarget *rt = new Qt3DRender::QRenderTarget;
-            m_profiler->trackNewObject(rt, Q3DSProfiler::RenderTargetObject, "RT for effect %s pass %d",
-                                       eff3DS->id().constData(), passIdx + 1);
-            Qt3DRender::QRenderTargetOutput *color = new Qt3DRender::QRenderTargetOutput;
-            color->setAttachmentPoint(Qt3DRender::QRenderTargetOutput::Color0);
-            color->setTexture(passOutput);
-            rt->addOutput(color);
-            if (!depthStencilBufferName.isEmpty()) {
-                if (effData->textureBuffers.contains(depthStencilBufferName)) {
-                    qCDebug(lcScene, "    Binding buffer %s for depth-stencil", qPrintable(depthStencilBufferName));
-                    Qt3DRender::QRenderTargetOutput *ds = new Qt3DRender::QRenderTargetOutput;
-                    ds->setAttachmentPoint(Qt3DRender::QRenderTargetOutput::DepthStencil);
-                    ds->setTexture(effData->textureBuffers[depthStencilBufferName].texture);
-                    rt->addOutput(ds);
-                } else {
-                    qWarning("Effect %s: Unknown depth-stencil buffer %s",
-                             eff3DS->id().constData(), qPrintable(depthStencilBufferName));
-                }
-            }
-            rtSel->setTarget(rt);
-
-            Qt3DRender::QClearBuffers *clearBuf = new Qt3DRender::QClearBuffers(rtSel);
-            clearBuf->setClearColor(Qt::transparent);
-            int buffersToClear = Qt3DRender::QClearBuffers::None;
-            if (outputNeedsClear)
-                buffersToClear |= Qt3DRender::QClearBuffers::ColorBuffer;
-            if (depthNeedsClear)
-                buffersToClear |= Qt3DRender::QClearBuffers::DepthBuffer;
-            if (stencilNeedsClear)
-                buffersToClear |= Qt3DRender::QClearBuffers::StencilBuffer;
-            clearBuf->setBuffers(Qt3DRender::QClearBuffers::BufferType(buffersToClear));
-
-            Qt3DRender::QLayerFilter *layerFilter = new Qt3DRender::QLayerFilter(clearBuf);
-            layerFilter->addLayer(effData->quadEntityTag);
+        if (eff3DS->active()) {
+            ++activeEffectCount;
+            if (!effData->active)
+                activateEffect(eff3DS, layer3DS);
+        } else {
+            if (effData->active)
+                deactivateEffect(eff3DS, layer3DS);
         }
+    }
+    const bool wasActive = layerData->effectActive;
+    if (activeEffectCount) {
+        // The layer compositor must use the output of the effect passes from now on.
+        layerData->compositorSourceParam->setValue(QVariant::fromValue(layerData->effLayerTexture));
+        layerData->effectActive = true;
+        if (!wasActive && layerData->msaaSampleCount > 1)
+            updateLayerCompositorProgram(layer3DS);
+    } else {
+        layerData->compositorSourceParam->setValue(QVariant::fromValue(layerData->layerTexture));
+        layerData->effectActive = false;
+        if (wasActive && layerData->msaaSampleCount > 1)
+            updateLayerCompositorProgram(layer3DS);
+    }
+}
 
-        // set initial values for per-frame uniforms
-        // (or the ones that depend on pass input/output size and are easier to handle this way)
-        updateEffectForNextFrame(eff3DS, 0);
+void Q3DSSceneManager::activateEffect(Q3DSEffectInstance *eff3DS, Q3DSLayerNode *layer3DS)
+{
+    Q3DSLayerAttached *layerData = static_cast<Q3DSLayerAttached *>(layer3DS->attached());
+
+    Q3DSEffectAttached *effData = static_cast<Q3DSEffectAttached *>(eff3DS->attached());
+    if (effData->active)
+        return;
+
+    qCDebug(lcPerf, "Applying post-processing effect %s to layer %s",
+            eff3DS->id().constData(), layer3DS->id().constData());
+
+    // Set up textures for Buffers
+    createEffectBuffers(eff3DS);
+
+    QVector<Qt3DRender::QParameter *> commonParamList;
+
+    // Create QParameters for built-in uniforms (see effect.glsllib).
+    // Texture0 and friends depend on the input so those are per pass.
+    effData->appFrameParam = new Qt3DRender::QParameter;
+    effData->appFrameParam->setName(QLatin1String("AppFrame"));
+    commonParamList.append(effData->appFrameParam);
+
+    effData->fpsParam = new Qt3DRender::QParameter;
+    effData->fpsParam->setName(QLatin1String("FPS"));
+    commonParamList.append(effData->fpsParam);
+
+    effData->cameraClipRangeParam = new Qt3DRender::QParameter;
+    effData->cameraClipRangeParam->setName(QLatin1String("CameraClipRange"));
+    commonParamList.append(effData->cameraClipRangeParam);
+
+    // Create QParameters for custom properties.
+    forAllCustomProperties(eff3DS, [&commonParamList, effData](const QString &propKey, const QVariant &propValue, const Q3DSMaterial::PropertyElement &propMeta) {
+        // textures with no filename are effectively samplers (to be used in a BufferInput f.ex.)
+        if (propMeta.type == Q3DS::Texture && propValue.toString().isEmpty())
+            return;
+
+        Qt3DRender::QParameter *param = new Qt3DRender::QParameter;
+        param->setName(propKey);
+        commonParamList.append(param);
+        Qt3DRender::QParameter *infoParam = nullptr;
+        Qt3DRender::QParameter *flagParam = nullptr;
+        // textures do not just get a sampler uniform but also an additional vec4
+        if (propMeta.type == Q3DS::Texture) {
+            infoParam = new Qt3DRender::QParameter;
+            infoParam->setName(propKey + QLatin1String("Info"));
+            commonParamList.append(infoParam);
+            flagParam = new Qt3DRender::QParameter;
+            flagParam->setName(QLatin1String("flag") + propKey);
+            flagParam->setValue(0); // will change to 1 when loading something
+            commonParamList.append(flagParam);
+        }
+        Q3DSCustomPropertyParameter pp(param, QVariant(), propMeta);
+        pp.texInfoParam = infoParam;
+        pp.texFlagParam = flagParam;
+        effData->params.insert(propKey, pp);
+    });
+
+    // Mark the effect as created (even though it's still in progress) since
+    // the updateEffect* functions need this flag.
+    effData->active = true;
+
+    // Set initial QParameter (uniform) values.
+    updateEffect(eff3DS);
+
+    // MSAA/SSAA layers need an additional resolve step since effects can only
+    // work with non-MSAA (and 1:1 sized) textures as input.
+    const bool needsResolve = layerData->msaaSampleCount > 1 || layerData->ssaaScaleFactor > 1;
+    if (needsResolve) {
+        effData->sourceTexture = new Qt3DRender::QTexture2D(m_rootEntity);
+        m_profiler->trackNewObject(effData->sourceTexture, Q3DSProfiler::Texture2DObject,
+                                   "Resolve buffer for effect %s", eff3DS->id().constData());
+        effData->sourceTexture->setFormat(Qt3DRender::QAbstractTexture::RGBA8_UNorm);
+        effData->sourceTexture->setMinificationFilter(Qt3DRender::QAbstractTexture::Linear);
+        effData->sourceTexture->setMagnificationFilter(Qt3DRender::QAbstractTexture::Linear);
+        effData->ownsSourceTexture = true;
+
+        Qt3DRender::QRenderTarget *rtSrc = new Qt3DRender::QRenderTarget;
+        m_profiler->trackNewObject(rtSrc, Q3DSProfiler::RenderTargetObject, "Src resolve RT for effect %s",
+                                   eff3DS->id().constData());
+        Qt3DRender::QRenderTargetOutput *rtSrcOutput = new Qt3DRender::QRenderTargetOutput;
+        rtSrcOutput->setAttachmentPoint(Qt3DRender::QRenderTargetOutput::Color0);
+        rtSrcOutput->setTexture(layerData->layerTexture);
+        rtSrc->addOutput(rtSrcOutput);
+
+        Qt3DRender::QRenderTarget *rtDst = new Qt3DRender::QRenderTarget;
+        m_profiler->trackNewObject(rtDst, Q3DSProfiler::RenderTargetObject, "Dst resolve RT for effect %s",
+                                   eff3DS->id().constData());
+        Qt3DRender::QRenderTargetOutput *rtDstOutput = new Qt3DRender::QRenderTargetOutput;
+        rtDstOutput->setAttachmentPoint(Qt3DRender::QRenderTargetOutput::Color0);
+        rtDstOutput->setTexture(effData->sourceTexture);
+        rtDst->addOutput(rtDstOutput);
+
+        Qt3DRender::QBlitFramebuffer *resolve = new Qt3DRender::QBlitFramebuffer(layerData->effectData.effectRoot);
+        effData->passFgRoots.append(resolve);
+        new Qt3DRender::QNoDraw(resolve);
+        resolve->setSource(rtSrc);
+        resolve->setDestination(rtDst);
+
+        auto blitResizer = [resolve, layerData](Q3DSLayerNode *) {
+            resolve->setSourceRect(QRectF(QPointF(0, 0), layerData->layerSize * layerData->ssaaScaleFactor));
+            resolve->setDestinationRect(QRectF(QPointF(0, 0), layerData->layerSize));
+        };
+
+        // must track layer size, but without the SSAA scale
+        prepareSizeDependentTexture(effData->sourceTexture, layer3DS, blitResizer, Q3DSLayerAttached::SizeManagedTexture::IgnoreSSAA);
+    } else {
+        effData->sourceTexture = layerData->layerTexture;
+        effData->ownsSourceTexture = false;
     }
 
-    // The layer compositor must use the output of the effect passes from now on.
-    layerData->compositorSourceParam->setValue(QVariant::fromValue(layerData->effLayerTexture));
-    layerData->effectActive = true;
+    const Q3DSEffect *effDesc = eff3DS->effect();
+    const QMap<QString, Q3DSMaterial::Shader> &shaderPrograms = effDesc->shaders();
+    const QMap<QString, Q3DSMaterial::PropertyElement> &propMeta = effDesc->properties();
+
+    // Each pass leads to creating a new framegraph subtree parented to effectRoot.
+    auto passes = effDesc->passes();
+    const bool implicitPass = passes.isEmpty();
+    const int passCount = implicitPass ? 1 : passes.count();
+    for (int passIdx = 0; passIdx < passCount; ++passIdx) {
+        Q3DSMaterial::Pass pass;
+        if (!implicitPass) {
+            pass = passes[passIdx];
+            if (!shaderPrograms.contains(pass.shaderName)) {
+                qWarning("Effect %s: Unknown shader program %s; pass ignored",
+                         eff3DS->id().constData(), qPrintable(pass.shaderName));
+                continue;
+            }
+            qCDebug(lcScene, "  Registered effect pass with shader program %s input %s output %s %d extra commands",
+                    qPrintable(pass.shaderName), qPrintable(pass.input), qPrintable(pass.output), pass.commands.count());
+        } else {
+            // Not having any passes is valid too. This should use the first vertex/fragment shader (no name matching).
+            if (shaderPrograms.isEmpty()) {
+                qWarning("Effect %s: No shader program; pass ignored", eff3DS->id().constData());
+                continue;
+            }
+            // Leave pass.input and output as the default [source] and [dest].
+            qCDebug(lcScene, "  Registered implicit effect pass with input %s output %s",
+                    qPrintable(pass.input), qPrintable(pass.output));
+        }
+
+        QVector<Qt3DRender::QParameter *> paramList;
+        paramList << commonParamList;
+
+        Qt3DRender::QBlendEquation *blendFunc = nullptr;
+        Qt3DRender::QBlendEquationArguments *blendArgs = nullptr;
+        Qt3DRender::QStencilTest *stencilTest = nullptr;
+        Qt3DRender::QStencilOperation *stencilOp = nullptr;
+        bool depthNeedsClear = false;
+        bool stencilNeedsClear = false;
+        QString depthStencilBufferName;
+
+        for (const Q3DSMaterial::PassCommand &cmd : pass.commands) {
+            switch (cmd.type()) {
+            case Q3DSMaterial::PassCommand::BufferInputType:
+            {
+                bool valid = true;
+                const QString bufferName = cmd.data()->value;
+                if (bufferName == QStringLiteral("[source]")) {
+                    Qt3DRender::QParameter *texParam = new Qt3DRender::QParameter;
+                    texParam->setName(cmd.data()->param);
+                    texParam->setValue(QVariant::fromValue(effData->sourceTexture));
+                    paramList.append(texParam);
+                    Qt3DRender::QParameter *texInfoParam = new Qt3DRender::QParameter;
+                    texInfoParam->setName(cmd.data()->param + QLatin1String("Info"));
+                    setTextureInfoUniform(texInfoParam, effData->sourceTexture);
+                    effData->sourceDepTextureInfoParams.append(texInfoParam);
+                    paramList.append(texInfoParam);
+                } else if (effData->textureBuffers.contains(bufferName)) {
+                    Q3DSEffectAttached::TextureBuffer &tb(effData->textureBuffers[bufferName]);
+                    Qt3DRender::QParameter *texParam = new Qt3DRender::QParameter;
+                    texParam->setName(cmd.data()->param);
+                    texParam->setValue(QVariant::fromValue(tb.texture));
+                    paramList.append(texParam);
+                    Qt3DRender::QParameter *texInfoParam = new Qt3DRender::QParameter;
+                    texInfoParam->setName(cmd.data()->param + QLatin1String("Info"));
+                    setTextureInfoUniform(texInfoParam, tb.texture);
+                    tb.textureInfoParams.append(texInfoParam);
+                    paramList.append(texInfoParam);
+                } else {
+                    qWarning("Effect %s: Unknown buffer %s", eff3DS->id().constData(), qPrintable(bufferName));
+                    valid = false;
+                }
+                Qt3DRender::QParameter *texFlagParam = new Qt3DRender::QParameter;
+                texFlagParam->setName(QLatin1String("flag") + cmd.data()->param);
+                texFlagParam->setValue(valid ? 1 : 0);
+                paramList.append(texFlagParam);
+            }
+                break;
+
+            case Q3DSMaterial::PassCommand::DepthInputType:
+            {
+                setDepthTextureEnabled(layer3DS, true);
+                // param cannot be anything else but a buffer name (with no
+                // source, hence being mapped to a plain sampler).
+                const QString samplerName = cmd.data()->param;
+                const bool valid = propMeta.contains(samplerName);
+                if (valid) {
+                    Qt3DRender::QParameter *texParam = new Qt3DRender::QParameter;
+                    texParam->setName(samplerName);
+                    texParam->setValue(QVariant::fromValue(layerData->depthTextureData.depthTexture));
+                    paramList.append(texParam);
+                    // Have the usual Info and flag uniforms.
+                    Qt3DRender::QParameter *texInfoParam = new Qt3DRender::QParameter;
+                    texInfoParam->setName(samplerName + QLatin1String("Info"));
+                    // Can conveniently use the source texture since the
+                    // sizes must match. This is very handy esp. with
+                    // sourceDepTextureInfoParams since we get size updates
+                    // via the same code path.
+                    setTextureInfoUniform(texInfoParam, effData->sourceTexture);
+                    effData->sourceDepTextureInfoParams.append(texInfoParam);
+                    paramList.append(texInfoParam);
+                } else {
+                    qWarning("Effect %s: Unknown depth texture sampler %s",
+                             eff3DS->id().constData(), qPrintable(samplerName));
+                }
+                Qt3DRender::QParameter *texFlagParam = new Qt3DRender::QParameter;
+                texFlagParam->setName(QLatin1String("flag") + samplerName);
+                texFlagParam->setValue(valid ? 1 : 0);
+                paramList.append(texFlagParam);
+            }
+                break;
+
+            case Q3DSMaterial::PassCommand::SetParamType:
+            {
+                auto cmdData = cmd.data();
+                if (propMeta.contains(cmdData->name)) {
+                    const Q3DSMaterial::PropertyElement &propDesc(propMeta.value(cmdData->name));
+                    Qt3DRender::QParameter *param = makePropertyUniform(cmdData->name, cmdData->value, propDesc);
+                    if (param)
+                        paramList.append(param);
+                } else {
+                    qWarning("Effect %s: SetParam for unknown property %s",
+                             eff3DS->id().constData(), qPrintable(cmd.data()->name));
+                }
+            }
+                break;
+
+            case Q3DSMaterial::PassCommand::BlendingType:
+            {
+                if (!blendFunc)
+                    blendFunc = new Qt3DRender::QBlendEquation;
+                blendFunc->setBlendFunction(Qt3DRender::QBlendEquation::Add);
+                if (!blendArgs)
+                    blendArgs = new Qt3DRender::QBlendEquationArguments;
+                switch (cmd.data()->blendSource) {
+                case Q3DSMaterial::SrcAlpha:
+                    blendArgs->setSourceRgba(Qt3DRender::QBlendEquationArguments::SourceAlpha);
+                    break;
+                case Q3DSMaterial::OneMinusSrcAlpha:
+                    blendArgs->setSourceRgba(Qt3DRender::QBlendEquationArguments::OneMinusSourceAlpha);
+                    break;
+                case Q3DSMaterial::One:
+                    blendArgs->setSourceRgba(Qt3DRender::QBlendEquationArguments::One);
+                    break;
+                default:
+                    break;
+                }
+                switch (cmd.data()->blendDestination) {
+                case Q3DSMaterial::SrcAlpha:
+                    blendArgs->setDestinationRgba(Qt3DRender::QBlendEquationArguments::SourceAlpha);
+                    break;
+                case Q3DSMaterial::OneMinusSrcAlpha:
+                    blendArgs->setDestinationRgba(Qt3DRender::QBlendEquationArguments::OneMinusSourceAlpha);
+                    break;
+                case Q3DSMaterial::One:
+                    blendArgs->setDestinationRgba(Qt3DRender::QBlendEquationArguments::One);
+                    break;
+                default:
+                    break;
+                }
+            }
+                break;
+
+            case Q3DSMaterial::PassCommand::RenderStateType:
+            {
+                if (cmd.data()->name == QStringLiteral("Stencil")) {
+                    bool enabled = false;
+                    if (Q3DS::convertToBool(&cmd.data()->value, &enabled)) {
+                        if (enabled) {
+                            if (!stencilTest)
+                                stencilTest = new Qt3DRender::QStencilTest;
+                            Q3DSMaterial::PassCommand dummy; // with defaults
+                            setupStencilTest(stencilTest, dummy);
+                        } else {
+                            delete stencilTest;
+                            stencilTest = nullptr;
+                            delete stencilOp;
+                            stencilOp = nullptr;
+                        }
+                    }
+                } else {
+                    qWarning("Effect %s: Unsupported render state %s", eff3DS->id().constData(), qPrintable(cmd.data()->name));
+                }
+            }
+                break;
+
+            case Q3DSMaterial::PassCommand::DepthStencilType:
+            {
+                auto d = cmd.data();
+                depthStencilBufferName = d->bufferName;
+                depthNeedsClear = d->flags.testFlag(Q3DSMaterial::ClearDepth);
+                stencilNeedsClear = d->flags.testFlag(Q3DSMaterial::ClearStencil);
+
+                if (!stencilTest)
+                    stencilTest = new Qt3DRender::QStencilTest;
+
+                setupStencilTest(stencilTest, cmd);
+
+                if (!stencilOp)
+                    stencilOp = new Qt3DRender::QStencilOperation;
+
+                for (auto s : { stencilOp->front(), stencilOp->back() }) {
+                    s->setStencilTestFailureOperation(convertToQt3DStencilOp(d->stencilFail));
+                    s->setDepthTestFailureOperation(convertToQt3DStencilOp(d->depthFail));
+                    s->setAllTestsPassOperation(convertToQt3DStencilOp(d->depthPass));
+                }
+            }
+                break;
+
+            default:
+                qWarning("Effect %s: Unhandled command %d", eff3DS->id().constData(), cmd.type());
+                break;
+            }
+        }
+
+        Qt3DRender::QAbstractTexture *passInput = nullptr;
+        if (pass.input == QStringLiteral("[source]")) {
+            passInput = effData->sourceTexture;
+        } else {
+            if (effData->textureBuffers.contains(pass.input)) {
+                passInput = effData->textureBuffers.value(pass.input).texture;
+            } else {
+                qWarning("Effect %s: Unknown input buffer %s; pass ignored",
+                         eff3DS->id().constData(), qPrintable(pass.input));
+                continue;
+            }
+        }
+
+        bool outputNeedsClear = false;
+        Qt3DRender::QAbstractTexture *passOutput = nullptr;
+        if (pass.output == QStringLiteral("[dest]")) {
+            passOutput = layerData->effLayerTexture;
+            outputNeedsClear = true;
+        } else {
+            if (effData->textureBuffers.contains(pass.output)) {
+                auto tb = effData->textureBuffers.value(pass.output);
+                passOutput = tb.texture;
+                outputNeedsClear = tb.hasSceneLifetime;
+            } else {
+                qWarning("Effect %s: Unknown output buffer %s; pass ignored",
+                         eff3DS->id().constData(), qPrintable(pass.output));
+                continue;
+            }
+        }
+
+        Qt3DRender::QParameter *texture0Param = new Qt3DRender::QParameter;
+        texture0Param->setName(QLatin1String("Texture0"));
+        texture0Param->setValue(QVariant::fromValue(passInput));
+        paramList.append(texture0Param);
+
+        Qt3DRender::QParameter *texture0InfoParam = new Qt3DRender::QParameter;
+        texture0InfoParam->setName(QLatin1String("Texture0Info"));
+        paramList.append(texture0InfoParam);
+
+        Qt3DRender::QParameter *texture0FlagParam = new Qt3DRender::QParameter;
+        texture0FlagParam->setName(QLatin1String("Texture0Flags")); // this is not a mistake, it's not flagTexture0 but Texture0Flags. go figure.
+        texture0FlagParam->setValue(1);
+        paramList.append(texture0FlagParam);
+
+        Qt3DRender::QParameter *fragColorAlphaParam = new Qt3DRender::QParameter;
+        fragColorAlphaParam->setName(QLatin1String("FragColorAlphaSettings"));
+        fragColorAlphaParam->setValue(QVector2D(1.0f, 0.0f));
+        paramList.append(fragColorAlphaParam);
+
+        Qt3DRender::QParameter *destSizeParam = new Qt3DRender::QParameter;
+        destSizeParam->setName(QLatin1String("DestSize"));
+        paramList.append(destSizeParam);
+
+        Q3DSEffectAttached::PassData pd;
+        pd.passInput = passInput;
+        pd.texture0InfoParam = texture0InfoParam;
+        pd.passOutput = passOutput;
+        pd.destSizeParam = destSizeParam;
+        effData->passData.append(pd);
+
+        const Q3DSMaterial::Shader &shaderProgram = !implicitPass ? shaderPrograms.value(pass.shaderName) : shaderPrograms.first();
+        const QString decoratedShaderName = QString::fromUtf8(eff3DS->id()) + QLatin1Char('_') + pass.shaderName;
+        const QString decoratedVertexShader = effDesc->addPropertyUniforms(shaderProgram.vertexShader);
+        const QString decoratedFragmentShader = effDesc->addPropertyUniforms(shaderProgram.fragmentShader);
+        Qt3DRender::QShaderProgram *prog = Q3DSShaderManager::instance().getEffectShader(m_rootEntity,
+                                                                                         decoratedShaderName,
+                                                                                         decoratedVertexShader,
+                                                                                         decoratedFragmentShader);
+
+        effData->quadEntityTag = new Qt3DRender::QLayer;
+        effData->quadEntityTag->setObjectName(QLatin1String("Effect quad pass"));
+
+        FsQuadParams quadInfo;
+        quadInfo.parentEntity = m_rootEntity;
+        quadInfo.passNames << QLatin1String("eff");
+        quadInfo.passProgs << prog;
+        quadInfo.tag = effData->quadEntityTag;
+        quadInfo.params = paramList;
+        if (blendFunc)
+            quadInfo.renderStates << blendFunc;
+        if (blendArgs)
+            quadInfo.renderStates << blendArgs;
+        if (stencilTest)
+            quadInfo.renderStates << stencilTest;
+        if (stencilOp)
+            quadInfo.renderStates << stencilOp;
+
+        effData->quadEntity = buildFsQuad(quadInfo);
+
+        Qt3DRender::QRenderTargetSelector *rtSel = new Qt3DRender::QRenderTargetSelector(layerData->effectData.effectRoot);
+        effData->passFgRoots.append(rtSel);
+        Qt3DRender::QRenderTarget *rt = new Qt3DRender::QRenderTarget;
+        m_profiler->trackNewObject(rt, Q3DSProfiler::RenderTargetObject, "RT for effect %s pass %d",
+                                   eff3DS->id().constData(), passIdx + 1);
+        Qt3DRender::QRenderTargetOutput *color = new Qt3DRender::QRenderTargetOutput;
+        color->setAttachmentPoint(Qt3DRender::QRenderTargetOutput::Color0);
+        color->setTexture(passOutput);
+        rt->addOutput(color);
+        if (!depthStencilBufferName.isEmpty()) {
+            if (effData->textureBuffers.contains(depthStencilBufferName)) {
+                qCDebug(lcScene, "    Binding buffer %s for depth-stencil", qPrintable(depthStencilBufferName));
+                Qt3DRender::QRenderTargetOutput *ds = new Qt3DRender::QRenderTargetOutput;
+                ds->setAttachmentPoint(Qt3DRender::QRenderTargetOutput::DepthStencil);
+                ds->setTexture(effData->textureBuffers[depthStencilBufferName].texture);
+                rt->addOutput(ds);
+            } else {
+                qWarning("Effect %s: Unknown depth-stencil buffer %s",
+                         eff3DS->id().constData(), qPrintable(depthStencilBufferName));
+            }
+        }
+        rtSel->setTarget(rt);
+
+        Qt3DRender::QClearBuffers *clearBuf = new Qt3DRender::QClearBuffers(rtSel);
+        clearBuf->setClearColor(Qt::transparent);
+        int buffersToClear = Qt3DRender::QClearBuffers::None;
+        if (outputNeedsClear)
+            buffersToClear |= Qt3DRender::QClearBuffers::ColorBuffer;
+        if (depthNeedsClear)
+            buffersToClear |= Qt3DRender::QClearBuffers::DepthBuffer;
+        if (stencilNeedsClear)
+            buffersToClear |= Qt3DRender::QClearBuffers::StencilBuffer;
+        clearBuf->setBuffers(Qt3DRender::QClearBuffers::BufferType(buffersToClear));
+
+        Qt3DRender::QLayerFilter *layerFilter = new Qt3DRender::QLayerFilter(clearBuf);
+        layerFilter->addLayer(effData->quadEntityTag);
+    }
+
+    // set initial values for per-frame uniforms
+    // (or the ones that depend on pass input/output size and are easier to handle this way)
+    updateEffectForNextFrame(eff3DS, 0);
+}
+
+void Q3DSSceneManager::deactivateEffect(Q3DSEffectInstance *eff3DS, Q3DSLayerNode *layer3DS)
+{
+    Q3DSEffectAttached *effData = static_cast<Q3DSEffectAttached *>(eff3DS->attached());
+    if (!effData->active)
+        return;
+
+    qCDebug(lcPerf, "Disabling post-processing effect %s on layer %s",
+            eff3DS->id().constData(), layer3DS->id().constData());
+
+    effData->active = false;
+
+    // Kill the quad entity, the framegraph additions that were made under
+    // effectRoot, and any textures that were created by activateEffect.
+
+    delete effData->quadEntity;
+
+    qDeleteAll(effData->passFgRoots);
+
+    Q3DSLayerAttached *layerData = static_cast<Q3DSLayerAttached *>(layer3DS->attached());
+    for (const Q3DSEffectAttached::TextureBuffer &tb : effData->textureBuffers) {
+        layerData->sizeManagedTextures.removeOne(tb.texture);
+        delete tb.texture;
+    }
+
+    if (effData->ownsSourceTexture) {
+        layerData->sizeManagedTextures.removeOne(effData->sourceTexture);
+        delete effData->sourceTexture;
+    }
+
+    *effData = Q3DSEffectAttached();
+    effData->layer3DS = layer3DS;
 }
 
 void Q3DSSceneManager::setupEffectTextureBuffer(Q3DSEffectAttached::TextureBuffer *tb,
@@ -5682,10 +5761,13 @@ void Q3DSSceneManager::createEffectBuffers(Q3DSEffectInstance *eff3DS)
     }
 }
 
-// called once on load from finalizeEffect, and then every time an effect property has changed
+// called once on load from applyEffect, and then every time an effect property has changed
 void Q3DSSceneManager::updateEffect(Q3DSEffectInstance *eff3DS)
 {
     Q3DSEffectAttached *effData = static_cast<Q3DSEffectAttached *>(eff3DS->attached());
+    if (!effData->active)
+        return;
+
     Q3DSLayerAttached *layerData = static_cast<Q3DSLayerAttached *>(effData->layer3DS->attached());
 
     QVector2D cameraClipRange(0, 5000);
@@ -5728,6 +5810,8 @@ void Q3DSSceneManager::updateEffect(Q3DSEffectInstance *eff3DS)
 void Q3DSSceneManager::updateEffectForNextFrame(Q3DSEffectInstance *eff3DS, qint64 nextFrameNo)
 {
     Q3DSEffectAttached *effData = static_cast<Q3DSEffectAttached *>(eff3DS->attached());
+    if (!effData->active)
+        return;
 
     effData->appFrameParam->setValue(float(nextFrameNo));
     effData->fpsParam->setValue(60.0f); // heh
@@ -6276,6 +6360,10 @@ void Q3DSSceneManager::updateSubTreeRecursive(Q3DSGraphObject *obj)
         Q3DSEffectInstance *eff3DS = static_cast<Q3DSEffectInstance *>(obj);
         Q3DSEffectAttached *data = static_cast<Q3DSEffectAttached *>(eff3DS->attached());
         if (data && (data->frameDirty & Q3DSGraphObjectAttached::EffectDirty)) {
+            const bool activeFlagChanges = data->frameChangeFlags & Q3DSEffectInstance::EyeBallChanges;
+            if (activeFlagChanges) // active/deactivate effects
+                updateEffectStatus(eff3DS->attached<Q3DSEffectAttached>()->layer3DS);
+            // send changed parameter values to the shader
             updateEffect(eff3DS);
             m_wasDirty = true;
             markLayerForObjectDirty(eff3DS);

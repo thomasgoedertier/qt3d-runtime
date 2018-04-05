@@ -5,6 +5,7 @@
 			<CustomColors count="16" >#ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff</CustomColors>
 		</ProjectSettings>
 		<Classes >
+			<Effect id="Bloom" name="Bloom" sourcepath="Bloom.effect" />
 			<Effect id="Corona" name="Corona" sourcepath="Corona.effect" />
 		</Classes>
 		<Graph >
@@ -19,6 +20,7 @@
 						<Material id="Default_001" name="Default" />
 					</Model>
 					<Effect id="Corona_001" class="#Corona" />
+					<Effect id="Bloom_001" class="#Bloom" />
 				</Layer>
 			</Scene>
 		</Graph>
@@ -41,6 +43,7 @@
 					</Add>
 					<Add ref="#Default_001" />
 					<Add ref="#Corona_001" name="Corona" />
+					<Add ref="#Bloom_001" name="Bloom" />
 				</State>
 			</State>
 		</Logic>

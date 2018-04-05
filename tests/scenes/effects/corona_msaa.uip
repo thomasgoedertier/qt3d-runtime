@@ -24,7 +24,7 @@
 		</Graph>
 		<Logic >
 			<State name="Master Slide" component="#Scene" >
-				<Add ref="#Layer" />
+				<Add ref="#Layer" multisampleaa="4x" />
 				<Add ref="#Camera" />
 				<Add ref="#Light" />
 				<State id="Scene-Slide1" name="Slide1" playmode="Looping" >

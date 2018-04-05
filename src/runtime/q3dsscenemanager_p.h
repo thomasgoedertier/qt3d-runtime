@@ -207,6 +207,8 @@ public:
     Qt3DRender::QAbstractTexture *effLayerTexture = nullptr;
     Qt3DRender::QAbstractTexture *layerDS = nullptr;
     Qt3DRender::QParameter *compositorSourceParam = nullptr;
+    Qt3DRender::QRenderPass *compositorRenderPass = nullptr;
+    bool usesDefaultCompositorProgram = true;
     std::function<void()> updateCompositorCalculations = nullptr;
     std::function<void()> updateSubPresentationSize = nullptr;
     QSize layerSize;
@@ -336,6 +338,17 @@ Q_DECLARE_OPERATORS_FOR_FLAGS(Q3DSLayerAttached::SizeManagedTexture::Flags)
 Q_DECLARE_TYPEINFO(Q3DSLayerAttached::PerLightShadowMapData, Q_MOVABLE_TYPE);
 Q_DECLARE_TYPEINFO(Q3DSLayerAttached::ProgAAData, Q_MOVABLE_TYPE);
 Q_DECLARE_TYPEINFO(Q3DSLayerAttached::RayCastQueueEntry, Q_MOVABLE_TYPE);
+
+// ensure a lookup based on a texture hits the entry regardless of the callback or flags
+inline bool operator==(const Q3DSLayerAttached::SizeManagedTexture &a, const Q3DSLayerAttached::SizeManagedTexture &b)
+{
+    return a.texture == b.texture;
+}
+
+inline bool operator!=(const Q3DSLayerAttached::SizeManagedTexture &a, const Q3DSLayerAttached::SizeManagedTexture &b)
+{
+    return a.texture != b.texture;
+}
 
 class Q3DSCameraAttached : public Q3DSNodeAttached
 {
@@ -486,7 +499,9 @@ public:
 class Q3DSEffectAttached : public Q3DSGraphObjectAttached
 {
 public:
+    bool active = false;
     Q3DSLayerNode *layer3DS = nullptr;
+    Qt3DCore::QEntity *quadEntity = nullptr;
     Qt3DRender::QLayer *quadEntityTag = nullptr;
     QHash<QString, Q3DSCustomPropertyParameter> params;
     Qt3DRender::QParameter *appFrameParam = nullptr;
@@ -507,6 +522,8 @@ public:
     QVector<PassData> passData;
     QVector<Qt3DRender::QParameter *> sourceDepTextureInfoParams;
     Qt3DRender::QAbstractTexture *sourceTexture = nullptr;
+    bool ownsSourceTexture = false;
+    QVector<Qt3DRender::QFrameGraphNode *> passFgRoots;
 };
 
 class Q3DSSlideAttached : public Q3DSGraphObjectAttached
@@ -710,7 +727,9 @@ private:
     void updateDefaultMaterial(Q3DSDefaultMaterial *m, Q3DSReferencedMaterial *rm = nullptr);
     void updateCustomMaterial(Q3DSCustomMaterialInstance *m, Q3DSReferencedMaterial *rm = nullptr);
     void buildEffect(Q3DSEffectInstance *eff3DS, Q3DSLayerNode *layer3DS);
-    void finalizeEffects(Q3DSLayerNode *layer3DS);
+    void updateEffectStatus(Q3DSLayerNode *layer3DS);
+    void activateEffect(Q3DSEffectInstance *eff3DS, Q3DSLayerNode *layer3DS);
+    void deactivateEffect(Q3DSEffectInstance *eff3DS, Q3DSLayerNode *layer3DS);
     void setupEffectTextureBuffer(Q3DSEffectAttached::TextureBuffer *tb, const Q3DSMaterial::PassBuffer &bufDesc, Q3DSLayerNode *layer3DS);
     void createEffectBuffers(Q3DSEffectInstance *eff3DS);
     void updateEffect(Q3DSEffectInstance *eff3DS);
@@ -721,7 +740,8 @@ private:
     void updateModel(Q3DSModelNode *model3DS);
 
     void buildLayerQuadEntity(Q3DSLayerNode *layer3DS, Qt3DCore::QEntity *parentEntity, Qt3DRender::QLayer *tag,
-                              BuildLayerQuadFlags flags, int layerDepth = 0, Qt3DRender::QRenderPass **renderPass = nullptr);
+                              BuildLayerQuadFlags flags, int layerDepth = 0);
+    void updateLayerCompositorProgram(Q3DSLayerNode *layer3DS);
     void buildCompositor(Qt3DRender::QFrameGraphNode *parent, Qt3DCore::QEntity *parentEntity);
     void buildGuiPass(Qt3DRender::QFrameGraphNode *parent, Qt3DCore::QEntity *parentEntity);
 
@@ -734,7 +754,7 @@ private:
         QVector<Qt3DRender::QParameter *> params;
         QVector<Qt3DRender::QRenderState *> renderStates;
     };
-    void buildFsQuad(const FsQuadParams &info);
+    Qt3DCore::QEntity *buildFsQuad(const FsQuadParams &info);
 
     void handlePropertyChange(Q3DSGraphObject *obj, const QSet<QString> &keys, int changeFlags);
     void updateNodeFromChangeFlags(Q3DSNode *node, Qt3DCore::QTransform *transform, int changeFlags);
