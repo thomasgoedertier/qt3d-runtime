@@ -255,6 +255,20 @@ void Q3DSImageManager::setSource(Qt3DRender::QAbstractTexture *tex, const QUrl &
 
         for (int i = 0; i < imageData.count(); ++i)
             tex->addTextureImage(new TextureImage(source, i, imageData[i]));
+    } else {
+        // Provide a dummy image when failing to load since we want to see
+        // something that makes it obvious a texture source file was missing.
+        info.size = QSize(64, 64);
+        info.format = Qt3DRender::QAbstractTexture::RGBA8_UNorm;
+        m_metadata.insert(tex, info);
+
+        QImage dummy(info.size, QImage::Format_ARGB32_Premultiplied);
+        dummy.fill(Qt::magenta);
+        auto dummyData = Qt3DRender::QTextureImageDataPtr::create();
+        dummyData->setImage(dummy);
+
+        tex->addTextureImage(new TextureImage(source, 0, dummyData));
+        qWarning("Using placeholder texture in place of %s", qPrintable(source.toLocalFile()));
     }
 }
 
