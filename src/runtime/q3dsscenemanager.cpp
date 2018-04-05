@@ -3717,6 +3717,7 @@ Qt3DCore::QEntity *Q3DSSceneManager::buildAlias(Q3DSAliasNode *alias3DS, Q3DSLay
 
     alias3DS->addPropertyChangeObserver(std::bind(&Q3DSSceneManager::handlePropertyChange, this,
                                                   std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
+    alias3DS->addEventHandler(QString(), std::bind(&Q3DSSceneManager::handleEvent, this, std::placeholders::_1));
 
     return aliasEntity;
 }
