@@ -179,10 +179,10 @@ public:
     // These two functions are the only place where the elementPath concept is
     // present in the engine (so that mappings can be made for the 3DS1-style
     // APIs). Proper objects must be used everywhere else.
-    Q3DSGraphObject *findObjectByNameOrPath(Q3DSGraphObject *thisObject,
-                                            Q3DSUipPresentation *defaultPresentation,
-                                            const QString &nameOrPath,
-                                            Q3DSUipPresentation **actualPresentation = nullptr);
+    Q3DSGraphObject *findObjectByHashIdOrNameOrPath(Q3DSGraphObject *thisObject,
+                                                    Q3DSUipPresentation *defaultPresentation,
+                                                    const QString &idOrNameOrPath,
+                                                    Q3DSUipPresentation **actualPresentation = nullptr);
     QString makePath(Q3DSGraphObject *obj);
 
 public Q_SLOTS:

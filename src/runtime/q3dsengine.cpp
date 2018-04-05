@@ -1487,14 +1487,16 @@ void Q3DSEngine::behaviorFrameUpdate(float dt)
 // For accessing objects that were renamed to a unique name in the editor, we
 // also allow a simple flat reference like "MyCamera" since relying on absolute
 // paths is just silly and not necessary at all.
+//
+// In addition to all the above, referencing by id via #id is also supported.
 
-Q3DSGraphObject *Q3DSEngine::findObjectByNameOrPath(Q3DSGraphObject *thisObject,
-                                                    Q3DSUipPresentation *defaultPresentation,
-                                                    const QString &nameOrPath,
-                                                    Q3DSUipPresentation **actualPresentation)
+Q3DSGraphObject *Q3DSEngine::findObjectByHashIdOrNameOrPath(Q3DSGraphObject *thisObject,
+                                                            Q3DSUipPresentation *defaultPresentation,
+                                                            const QString &idOrNameOrPath,
+                                                            Q3DSUipPresentation **actualPresentation)
 {
     Q3DSUipPresentation *pres = defaultPresentation;
-    QString attr = nameOrPath;
+    QString attr = idOrNameOrPath;
     if (attr.contains(QLatin1Char(':'))) {
         const QStringList presentationPathPair = attr.split(QLatin1Char(':'), QString::SkipEmptyParts);
         if (presentationPathPair.count() < 2)
@@ -1511,16 +1513,20 @@ Q3DSGraphObject *Q3DSEngine::findObjectByNameOrPath(Q3DSGraphObject *thisObject,
     for (const QString &s : attr.split(QLatin1Char('.'), QString::SkipEmptyParts)) {
         if (firstElem) {
             firstElem = false;
-            if (s == QStringLiteral("parent"))
+            if (s == QStringLiteral("parent")) {
                 obj = thisObject ? thisObject->parent() : nullptr;
-            else if (s == QStringLiteral("this"))
+            } else if (s == QStringLiteral("this")) {
                 obj = thisObject;
-            else if (s == QStringLiteral("Scene"))
+            } else if (s == QStringLiteral("Scene")) {
                 obj = pres->scene();
-            else if (s == QStringLiteral("Slide"))
+            } else if (s == QStringLiteral("Slide")) {
                 obj = pres->masterSlide();
-            else
-                obj = pres->objectByName(s);
+            } else {
+                if (s.startsWith(QLatin1Char('#')))
+                    obj = pres->object(s.mid(1).toUtf8());
+                else
+                    obj = pres->objectByName(s);
+            }
         } else {
             if (!obj)
                 return nullptr;
@@ -1528,7 +1534,8 @@ Q3DSGraphObject *Q3DSEngine::findObjectByNameOrPath(Q3DSGraphObject *thisObject,
                 obj = obj->parent();
             } else {
                 for (Q3DSGraphObject *child = obj->firstChild(); child; child = child->nextSibling()) {
-                    if (child->name() == s) {
+                    if ((s.startsWith(QLatin1Char('#')) && s.mid(1).toUtf8() == child->id())
+                            || child->name() == s) {
                         obj = child;
                         break;
                     }

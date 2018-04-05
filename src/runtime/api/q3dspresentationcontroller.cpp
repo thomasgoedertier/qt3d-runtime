@@ -111,7 +111,7 @@ void Q3DSPresentationController::handleFireEvent(const QString &elementPath, con
     // Assume that the path is in the main presentation when no explicit
     // presentation is specified in the path.
     Q3DSUipPresentation *pres = m_pcEngine->presentation(0);
-    Q3DSGraphObject *target = m_pcEngine->findObjectByNameOrPath(nullptr, pres, elementPath, &pres);
+    Q3DSGraphObject *target = m_pcEngine->findObjectByHashIdOrNameOrPath(nullptr, pres, elementPath, &pres);
     // pres is now the actual presentation (which is important to know
     // since the event queuing needs the scenemanager).
     if (target)
@@ -124,7 +124,7 @@ void Q3DSPresentationController::handleGoToTime(const QString &elementPath, floa
         return;
 
     Q3DSUipPresentation *pres = m_pcEngine->presentation(0);
-    Q3DSGraphObject *context = m_pcEngine->findObjectByNameOrPath(nullptr, pres, elementPath, &pres);
+    Q3DSGraphObject *context = m_pcEngine->findObjectByHashIdOrNameOrPath(nullptr, pres, elementPath, &pres);
     if (context)
         m_pcEngine->goToTime(context, pres, timeSeconds * 1000);
 }
@@ -135,7 +135,7 @@ void Q3DSPresentationController::handleGoToSlideByName(const QString &elementPat
         return;
 
     Q3DSUipPresentation *pres = m_pcEngine->presentation(0);
-    Q3DSGraphObject *context = m_pcEngine->findObjectByNameOrPath(nullptr, pres, elementPath, &pres);
+    Q3DSGraphObject *context = m_pcEngine->findObjectByHashIdOrNameOrPath(nullptr, pres, elementPath, &pres);
     if (context)
         m_pcEngine->goToSlideByName(context, pres, name);
 }
@@ -146,7 +146,7 @@ void Q3DSPresentationController::handleGoToSlideByIndex(const QString &elementPa
         return;
 
     Q3DSUipPresentation *pres = m_pcEngine->presentation(0);
-    Q3DSGraphObject *context = m_pcEngine->findObjectByNameOrPath(nullptr, pres, elementPath, &pres);
+    Q3DSGraphObject *context = m_pcEngine->findObjectByHashIdOrNameOrPath(nullptr, pres, elementPath, &pres);
     if (context)
         m_pcEngine->goToSlideByIndex(context, pres, index);
 }
@@ -157,7 +157,7 @@ void Q3DSPresentationController::handleGoToSlideByDirection(const QString &eleme
         return;
 
     Q3DSUipPresentation *pres = m_pcEngine->presentation(0);
-    Q3DSGraphObject *context = m_pcEngine->findObjectByNameOrPath(nullptr, pres, elementPath, &pres);
+    Q3DSGraphObject *context = m_pcEngine->findObjectByHashIdOrNameOrPath(nullptr, pres, elementPath, &pres);
     if (context)
         m_pcEngine->goToSlideByDirection(context, pres, next, wrap);
 }
@@ -167,7 +167,7 @@ QVariant Q3DSPresentationController::handleGetAttribute(const QString &elementPa
     if (!m_pcEngine)
         return QVariant();
 
-    Q3DSGraphObject *obj = m_pcEngine->findObjectByNameOrPath(nullptr, m_pcEngine->presentation(0), elementPath);
+    Q3DSGraphObject *obj = m_pcEngine->findObjectByHashIdOrNameOrPath(nullptr, m_pcEngine->presentation(0), elementPath);
     if (!obj) {
         qWarning("No such object %s", qPrintable(elementPath));
         return QVariant();
@@ -181,7 +181,7 @@ void Q3DSPresentationController::handleSetAttribute(const QString &elementPath, 
     if (!m_pcEngine)
         return;
 
-    Q3DSGraphObject *obj = m_pcEngine->findObjectByNameOrPath(nullptr, m_pcEngine->presentation(0), elementPath);
+    Q3DSGraphObject *obj = m_pcEngine->findObjectByHashIdOrNameOrPath(nullptr, m_pcEngine->presentation(0), elementPath);
     if (!obj) {
         qWarning("No such object %s", qPrintable(elementPath));
         return;

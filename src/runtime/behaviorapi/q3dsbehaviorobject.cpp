@@ -80,7 +80,7 @@ QVariant Q3DSBehaviorObject::getAttribute(const QString &attribute)
 
 QVariant Q3DSBehaviorObject::getAttribute(const QString &handle, const QString &attribute)
 {
-    Q3DSGraphObject *obj = m_engine->findObjectByNameOrPath(m_behaviorInstance->parent(), m_presentation, handle);
+    Q3DSGraphObject *obj = m_engine->findObjectByHashIdOrNameOrPath(m_behaviorInstance->parent(), m_presentation, handle);
     if (!obj) {
         qWarning("getAttribute: Invalid object reference %s", qPrintable(handle));
         return 0;
@@ -133,7 +133,7 @@ void Q3DSBehaviorObject::setAttribute(const QString &attribute, const QVariant &
 
 void Q3DSBehaviorObject::setAttribute(const QString &handle, const QString &attribute, const QVariant &value)
 {
-    Q3DSGraphObject *obj = m_engine->findObjectByNameOrPath(m_behaviorInstance->parent(), m_presentation, handle);
+    Q3DSGraphObject *obj = m_engine->findObjectByHashIdOrNameOrPath(m_behaviorInstance->parent(), m_presentation, handle);
     if (!obj) {
         qWarning("setAttribute: Invalid object reference %s", qPrintable(handle));
         return;
@@ -215,7 +215,7 @@ void Q3DSBehaviorObject::eventHandler(const Q3DSGraphObject::Event &ev)
 
 void Q3DSBehaviorObject::registerForEvent(const QString &handle, const QString &event, const QJSValue &function)
 {
-    Q3DSGraphObject *obj = m_engine->findObjectByNameOrPath(m_behaviorInstance->parent(), m_presentation, handle);
+    Q3DSGraphObject *obj = m_engine->findObjectByHashIdOrNameOrPath(m_behaviorInstance->parent(), m_presentation, handle);
     if (!obj) {
         qWarning("registerForEvent: Invalid object reference %s", qPrintable(handle));
         return;
@@ -246,7 +246,7 @@ void Q3DSBehaviorObject::unregisterForEvent(const QString &event)
 
 void Q3DSBehaviorObject::unregisterForEvent(const QString &handle, const QString &event)
 {
-    Q3DSGraphObject *obj = m_engine->findObjectByNameOrPath(m_behaviorInstance->parent(), m_presentation, handle);
+    Q3DSGraphObject *obj = m_engine->findObjectByHashIdOrNameOrPath(m_behaviorInstance->parent(), m_presentation, handle);
     if (!obj) {
         qWarning("unregisterForEvent: Invalid object reference %s", qPrintable(handle));
         return;
@@ -273,7 +273,7 @@ QMatrix4x4 Q3DSBehaviorObject::calculateGlobalTransform()
 
 QMatrix4x4 Q3DSBehaviorObject::calculateGlobalTransform(const QString &handle)
 {
-    Q3DSGraphObject *obj = m_engine->findObjectByNameOrPath(m_behaviorInstance->parent(), m_presentation, handle);
+    Q3DSGraphObject *obj = m_engine->findObjectByHashIdOrNameOrPath(m_behaviorInstance->parent(), m_presentation, handle);
     if (!obj || !obj->isNode()) {
         qWarning("calculateGlobalTransform: Invalid node reference %s", qPrintable(handle));
         return QMatrix4x4();
