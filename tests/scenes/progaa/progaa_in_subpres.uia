@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<application>
+	<assets initial="main">
+		<presentation id="main" src="progaa_in_subpres.uip"/>
+		<presentation id="subpres1" src="progaa_after_10_sec.uip"/>
+	</assets>
+	<statemachine ref="#logic">
+		<visual-states>
+			<state ref="Initial">
+				<enter>
+					<goto-slide element="main:Scene" rel="next"/>
+				</enter>
+			</state>
+		</visual-states>
+	</statemachine>
+</application>
