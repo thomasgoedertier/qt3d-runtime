@@ -564,6 +564,7 @@ void Q3DSAnimationManager::clearAnimations(Q3DSSlide *slide)
     qCDebug(lcAnim, "Clearing animations for slide (%s)", qPrintable(slide->name()));
 
     // Clear the old slide animator
+    // TODO: We no longer need this (keep the running check though).
     static const auto clearSlideAnimator = [](Q3DSSlide *slide) {
         Q_ASSERT(slide);
         Q3DSSlideAttached *data = slide->attached<Q3DSSlideAttached>();
@@ -571,8 +572,6 @@ void Q3DSAnimationManager::clearAnimations(Q3DSSlide *slide)
         if (animator) {
             Q_ASSERT(!animator->isRunning());
             slide->attached()->entity->removeComponent(animator);
-            delete animator;
-            data->animator = nullptr;
         }
     };
 
@@ -626,41 +625,42 @@ void Q3DSAnimationManager::buildClipAnimator(Q3DSSlide *slide)
 {
     using namespace Qt3DAnimation;
 
-    // Get the first start time and the last endtime of all layers in the slide
-    // TODO: Make sure we get the correct time
     qint32 startTime = 0.0f; // We always start from 0.0
     qint32 endTime = 0.0f;
     Q3DSSlideUtils::getStartAndEndTime(slide, nullptr, &endTime);
 
-    QClipAnimator *animator = new QClipAnimator;
-    animator->setClock(new QClock);
+    Q3DSSlideAttached *data = slide->attached<Q3DSSlideAttached>();
+    QClipAnimator *animator = data->animator ? data->animator : (data->animator = new QClipAnimator);
+    if (!animator->clock())
+        animator->setClock(new QClock);
 
-    QAnimationClip *clip = new QAnimationClip;
-    QAnimationClipData clipData;
+    QAnimationClip *clip = animator->clip() ? static_cast<QAnimationClip *>(animator->clip()) : new QAnimationClip;
 
     const QString channelName = slide->name() + QLatin1String("_timeDummy");
-    QChannel channel(channelName);
-    QChannelComponent component;
-    QChannelMapper *mapper = new QChannelMapper;
-    QCallbackMapping *mapping = new QCallbackMapping;
-    mapping->setChannelName(channelName);
-    mapping->setCallback(QMetaType::Float, new DummyCallback(slide));
-    mapper->addMapping(mapping);
-    animator->setChannelMapper(mapper);
-    // TODO: We could just use this to get the time values directly...
     QKeyFrame keyFrameStart(QVector2D(startTime / 1000.0f, 0.0f));
     QKeyFrame keyFrameEnd(QVector2D(endTime / 1000.0f, endTime / 1000.0f));
+
+    // New clip data
+    QAnimationClipData clipData;
+    QChannel channel(channelName);
+    QChannelComponent component;
     component.appendKeyFrame(keyFrameStart);
     component.appendKeyFrame(keyFrameEnd);
     channel.appendChannelComponent(component);
     clipData.appendChannel(channel);
 
+    if (!animator->channelMapper()) {
+        QChannelMapper *mapper = new QChannelMapper;
+        QCallbackMapping *mapping = new QCallbackMapping;
+        mapping->setChannelName(channelName);
+        mapping->setCallback(QMetaType::Float, new DummyCallback(slide));
+        mapper->addMapping(mapping);
+        animator->setChannelMapper(mapper);
+    }
+
     clip->setClipData(clipData);
     animator->setClip(clip);
 
-    Q3DSSlideAttached *data = slide->attached<Q3DSSlideAttached>();
-    Q_ASSERT(data->animator == nullptr);
-    data->animator = animator;
     data->entity->addComponent(animator);
 }
 
