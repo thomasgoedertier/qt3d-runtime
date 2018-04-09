@@ -32,9 +32,7 @@
 
 #include <QtGui/private/qguiapplication_p.h>
 #include <qpa/qplatformintegration.h>
-#include <QOpenGLContext>
-#include <QOffscreenSurface>
-#include <QOpenGLFunctions>
+#include <Qt3DStudioRuntime2/private/q3dsgraphicslimits_p.h>
 
 bool isOpenGLGoodEnough()
 {
@@ -42,27 +40,19 @@ bool isOpenGLGoodEnough()
         if (!QGuiApplicationPrivate::instance()->platformIntegration()->hasCapability(QPlatformIntegration::OpenGL))
             return false;
 
-        QOpenGLContext ctx;
-        if (!ctx.create())
+        Q3DSGraphicsLimits gfxLimits = Q3DS::graphicsLimits();
+        if (gfxLimits.versionedContextFailed)
             return false;
 
-        QOffscreenSurface s;
-        s.setFormat(ctx.format());
-        s.create();
-        if (!ctx.makeCurrent(&s))
+        if (gfxLimits.vendor.contains(QByteArrayLiteral("VMware, Inc.")))
             return false;
 
-        const char *vendor = reinterpret_cast<const char *>(ctx.functions()->glGetString(GL_VENDOR));
-        if (vendor && strstr(vendor, "VMware, Inc."))
+        if (gfxLimits.renderer.contains(QByteArrayLiteral("Apple Software Renderer")))
             return false;
 
-        const char *renderer = reinterpret_cast<const char *>(ctx.functions()->glGetString(GL_RENDERER));
-        if (renderer && strstr(renderer, "Apple Software Renderer"))
-            return false;
-        if (renderer && strstr(renderer, "ANGLE"))
+        if (gfxLimits.renderer.contains(QByteArrayLiteral("ANGLE")))
             return false;
 
-        ctx.doneCurrent();
         return true;
     }();
 

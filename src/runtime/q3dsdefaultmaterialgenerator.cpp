@@ -37,10 +37,10 @@
 #include <Qt3DRender/QGraphicsApiFilter>
 
 #include <QtCore/QLoggingCategory>
-#include <QtGui/QOpenGLContext>
 
 #include "q3dsdefaultmaterialgenerator_p.h"
 #include "q3dsutils_p.h"
+#include "q3dsgraphicslimits_p.h"
 
 #include "shadergenerator/q3dsshadermanager_p.h"
 
@@ -146,27 +146,28 @@ Qt3DRender::QMaterial *Q3DSDefaultMaterialGenerator::generateMaterial(Q3DSDefaul
 
 void Q3DSDefaultMaterialGenerator::addDefaultApiFilter(Qt3DRender::QTechnique *technique, bool *isGLES)
 {
-    QSurfaceFormat format = QSurfaceFormat::defaultFormat();
-    bool isOpenGLES = QOpenGLContext::openGLModuleType() == QOpenGLContext::LibGLES;
+    Q3DSGraphicsLimits gfxLimits = Q3DS::graphicsLimits();
+    const bool isOpenGLES = gfxLimits.format.renderableType() == QSurfaceFormat::OpenGLES;
     if (isGLES)
         *isGLES = isOpenGLES;
     if (isOpenGLES)
         technique->graphicsApiFilter()->setApi(Qt3DRender::QGraphicsApiFilter::OpenGLES);
     else
         technique->graphicsApiFilter()->setApi(Qt3DRender::QGraphicsApiFilter::OpenGL);
-    technique->graphicsApiFilter()->setMajorVersion(format.majorVersion());
-    technique->graphicsApiFilter()->setMinorVersion(format.minorVersion());
-    if (format.profile() == QSurfaceFormat::CoreProfile)
+    technique->graphicsApiFilter()->setMajorVersion(gfxLimits.format.majorVersion());
+    technique->graphicsApiFilter()->setMinorVersion(gfxLimits.format.minorVersion());
+    if (gfxLimits.format.profile() == QSurfaceFormat::CoreProfile)
         technique->graphicsApiFilter()->setProfile(Qt3DRender::QGraphicsApiFilter::CoreProfile);
 }
 
 bool Q3DSDefaultMaterialGenerator::hasCompute()
 {
-    QSurfaceFormat format = QSurfaceFormat::defaultFormat();
-    if (QOpenGLContext::openGLModuleType() == QOpenGLContext::LibGLES)
-        return format.version() >= qMakePair(3, 1);
+    Q3DSGraphicsLimits gfxLimits = Q3DS::graphicsLimits();
+    const bool isOpenGLES = gfxLimits.format.renderableType() == QSurfaceFormat::OpenGLES;
+    if (isOpenGLES)
+        return gfxLimits.format.version() >= qMakePair(3, 1);
     else
-        return format.version() >= qMakePair(4, 3);
+        return gfxLimits.format.version() >= qMakePair(4, 3);
 }
 
 void Q3DSDefaultMaterialGenerator::fillFeatureSet(Q3DSShaderFeatureSet *features,

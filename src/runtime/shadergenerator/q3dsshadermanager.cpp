@@ -29,7 +29,7 @@
 
 #include "q3dsshadermanager_p.h"
 #include "q3dsshadergenerators_p.h"
-#include <QOpenGLContext>
+#include "q3dsgraphicslimits_p.h"
 
 QT_BEGIN_NAMESPACE
 
@@ -595,7 +595,8 @@ Qt3DRender::QShaderProgram *Q3DSShaderManager::getBsdfMipPreFilterShader(Qt3DCor
 {
     if (!m_bsdfMipPreFilterShader) {
         m_bsdfMipPreFilterShader = new Qt3DRender::QShaderProgram;
-        bool isOpenGLES = QOpenGLContext::openGLModuleType() == QOpenGLContext::LibGLES;
+        Q3DSGraphicsLimits gfxLimits = Q3DS::graphicsLimits();
+        const bool isOpenGLES = gfxLimits.format.renderableType() == QSurfaceFormat::OpenGLES;
         QByteArray code;
 
         // NB changed to rgba32f as opposed to the half float (rgba16f) original

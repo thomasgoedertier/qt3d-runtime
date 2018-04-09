@@ -34,6 +34,7 @@
 #include "q3dsmesh_p.h"
 #include "q3dsenummaps_p.h"
 #include "q3dsimagemanager_p.h"
+#include "q3dsgraphicslimits_p.h"
 #include <QLoggingCategory>
 #include <QGuiApplication>
 #include <QMetaObject>
@@ -225,12 +226,12 @@ void Q3DSProfileView::frame()
     }
 
     if (ImGui::CollapsingHeader("OpenGL")) {
-        const Q3DSGraphicsLimits *limits = m_profiler->graphicsLimits();
-        ImGui::Text("RENDERER: %s", limits->renderer.constData());
-        ImGui::Text("VENDOR: %s", limits->vendor.constData());
-        ImGui::Text("VERSION: %s", limits->version.constData());
-        ImGui::Text("Multisample textures supported: %s", (limits->multisampleTextureSupported ? "yes" : "no"));
-        ImGui::Text("MAX_DRAW_BUFFERS: %d", limits->maxDrawBuffers);
+        Q3DSGraphicsLimits gfxLimits = Q3DS::graphicsLimits();
+        ImGui::Text("RENDERER: %s", gfxLimits.renderer.constData());
+        ImGui::Text("VENDOR: %s", gfxLimits.vendor.constData());
+        ImGui::Text("VERSION: %s", gfxLimits.version.constData());
+        ImGui::Text("Multisample textures supported: %s", (gfxLimits.multisampleTextureSupported ? "yes" : "no"));
+        ImGui::Text("MAX_DRAW_BUFFERS: %d", gfxLimits.maxDrawBuffers);
     }
 
     if (ImGui::CollapsingHeader("Frame rate")) {

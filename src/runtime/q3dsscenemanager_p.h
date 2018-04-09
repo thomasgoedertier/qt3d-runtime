@@ -591,7 +591,7 @@ public:
         Qt3DLogic::QFrameAction *frameAction = nullptr;
     };
 
-    Q3DSSceneManager(const Q3DSGraphicsLimits &limits);
+    Q3DSSceneManager();
     ~Q3DSSceneManager();
 
     Scene buildScene(Q3DSUipPresentation *presentation, const SceneBuilderParams &params);

@@ -30,13 +30,12 @@
 #include "q3dsshaderprogramgenerator_p.h"
 #include "q3dsutils_p.h"
 #include "q3dsprofiler_p.h"
+#include "q3dsgraphicslimits_p.h"
 
 #include <QtCore/QFile>
 #include <QtCore/QTextStream>
 #include <QtCore/QCache>
 #include <QtCore/QDebug>
-#include <QtGui/QSurfaceFormat>
-#include <QtGui/QOpenGLContext>
 
 QT_BEGIN_NAMESPACE
 
@@ -259,21 +258,23 @@ public:
 
     void addShaderPreprocessor(QString &output, const Q3DSShaderFeatureSet &inFeatureSet)
     {
-        const QSurfaceFormat format = QSurfaceFormat::defaultFormat();
-        // Version String
-        output.append(getVersionString(format));
+        Q3DSGraphicsLimits gfxLimits = Q3DS::graphicsLimits();
+        const bool isOpenGLES = gfxLimits.format.renderableType() == QSurfaceFormat::OpenGLES;
 
-        if (QOpenGLContext::openGLModuleType() == QOpenGLContext::LibGLES) {
+        // Version String
+        output.append(getVersionString(gfxLimits.format));
+
+        if (isOpenGLES) {
             // TODO: check if this is portable:
             output.append(QLatin1String("#extension GL_OES_standard_derivatives : enable\n"));
-            if (format.majorVersion() == 2) {
+            if (gfxLimits.format.majorVersion() == 2) {
                 // ES2
                 output.append(QLatin1String("#define GLSL_100 1\n"));
                 output.append(QLatin1String("#define GLSL_130 0\n"));
                 if (m_stage == Q3DSShaderGeneratorStages::Enum::Fragment) {
                     output.append(QLatin1String("#define fragOutput gl_FragData[0]\n"));
                 }
-            } else if (format.majorVersion() == 3) {
+            } else if (gfxLimits.format.majorVersion() == 3) {
                 // ES3
                 output.append(QLatin1String("#define GLSL_100 0\n"));
                 output.append(QLatin1String("#define GLSL_130 1\n"));
@@ -281,16 +282,16 @@ public:
             }
 
             // Extensions
-            output.append(addShaderExtensionStrings(format));
+            output.append(addShaderExtensionStrings(gfxLimits.format));
 
             // Precision qualifier
-            if (format.majorVersion() == 3) {
+            if (gfxLimits.format.majorVersion() == 3) {
                 // ES3
                 output.append(QLatin1String("precision highp float;\n"));
                 output.append(QLatin1String("precision highp int;\n"));
 
                 // Add backwards compatibility
-                output.append(addBackwardCompatibilityDefines(format, m_stage, inFeatureSet));
+                output.append(addBackwardCompatibilityDefines(gfxLimits.format, m_stage, inFeatureSet));
 
             } else {
                 // ES2
@@ -303,22 +304,22 @@ public:
             }
         } else {
             // OpenGL
-            if (format.majorVersion() == 2) {
+            if (gfxLimits.format.majorVersion() == 2) {
                 // GL2
                 output.append(QLatin1String("#define GLSL_100 1\n"));
                 output.append(QLatin1String("#define GLSL_130 0\n"));
-            } else if (format.majorVersion() >= 3) {
+            } else if (gfxLimits.format.majorVersion() >= 3) {
                 // GL3 +
                 output.append(QLatin1String("#define GLSL_100 0\n"));
                 output.append(QLatin1String("#define GLSL_130 1\n"));
                 output.append(QLatin1String("#define texture2D texture\n"));
 
                 // Extensions
-                output.append(addShaderExtensionStrings(format));
+                output.append(addShaderExtensionStrings(gfxLimits.format));
 
                 // Add backwards compatibility
                 output.append(QLatin1String("#if __VERSION__ >= 330\n"));
-                output.append(addBackwardCompatibilityDefines(format, m_stage, inFeatureSet));
+                output.append(addBackwardCompatibilityDefines(gfxLimits.format, m_stage, inFeatureSet));
                 output.append(QLatin1String("#else\n"));
                 if (m_stage == Q3DSShaderGeneratorStages::Enum::Fragment)
                     output.append(QLatin1String("#define fragOutput gl_FragData[0]\n"));
@@ -340,7 +341,7 @@ public:
     }
 
     QString getVersionString(const QSurfaceFormat &format) {
-        if (QOpenGLContext::openGLModuleType() == QOpenGLContext::LibGL) {
+        if (format.renderableType() == QSurfaceFormat::OpenGL) {
             // Too Old
             if (format.majorVersion() < 2)
                 return QLatin1String("\n");

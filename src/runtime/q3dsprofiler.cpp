@@ -44,8 +44,7 @@
 
 QT_BEGIN_NAMESPACE
 
-Q3DSProfiler::Q3DSProfiler(const Q3DSGraphicsLimits &limits)
-    : m_gfxLimits(limits)
+Q3DSProfiler::Q3DSProfiler()
 {
     m_frameData.reserve(64 * 1024);
 }

@@ -41,19 +41,27 @@
 // We mean it.
 //
 
+#include "q3dsruntimeglobal_p.h"
 #include <QByteArray>
+#include <QSurfaceFormat>
 
 QT_BEGIN_NAMESPACE
 
 struct Q3DSGraphicsLimits {
+    bool versionedContextFailed = false;
     int maxDrawBuffers = 4;
     bool multisampleTextureSupported = false;
     QByteArray renderer;
     QByteArray vendor;
     QByteArray version;
+    QSurfaceFormat format;
 };
 
 Q_DECLARE_TYPEINFO(Q3DSGraphicsLimits, Q_MOVABLE_TYPE);
+
+namespace Q3DS {
+Q3DSV_PRIVATE_EXPORT Q3DSGraphicsLimits graphicsLimits();
+}
 
 QT_END_NAMESPACE
 

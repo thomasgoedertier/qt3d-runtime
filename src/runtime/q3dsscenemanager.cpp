@@ -427,13 +427,13 @@ static const int LAYER_CACHING_THRESHOLD = 4;
 
 */
 
-Q3DSSceneManager::Q3DSSceneManager(const Q3DSGraphicsLimits &limits)
-    : m_gfxLimits(limits),
+Q3DSSceneManager::Q3DSSceneManager()
+    : m_gfxLimits(Q3DS::graphicsLimits()),
       m_matGen(new Q3DSDefaultMaterialGenerator),
       m_customMaterialGen(new Q3DSCustomMaterialGenerator),
       m_textMatGen(new Q3DSTextMaterialGenerator),
       m_textRenderer(new Q3DSTextRenderer),
-      m_profiler(new Q3DSProfiler(limits)),
+      m_profiler(new Q3DSProfiler),
       m_slidePlayer(new Q3DSSlidePlayer(this)),
       m_inputManager(new Q3DSInputManager(this))
 {
@@ -3121,7 +3121,7 @@ void Q3DSSceneManager::updateLayerCompositorProgram(Q3DSLayerNode *layer3DS)
 
         QString vertSuffix;
         QString fragSuffix;
-        if (QOpenGLContext::openGLModuleType() == QOpenGLContext::LibGLES) {
+        if (m_gfxLimits.format.renderableType() == QSurfaceFormat::OpenGLES) {
             vertSuffix = QLatin1String(".vert");
             fragSuffix = QLatin1String(".frag");
         } else {

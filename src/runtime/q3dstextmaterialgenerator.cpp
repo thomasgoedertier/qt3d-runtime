@@ -43,7 +43,6 @@
 #include <Qt3DRender/QBlendEquationArguments>
 
 #include <QtCore/QUrl>
-#include <QtGui/QOpenGLContext>
 
 QT_BEGIN_NAMESPACE
 

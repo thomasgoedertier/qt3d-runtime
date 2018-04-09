@@ -47,7 +47,6 @@
 #include <QObject>
 #include <QHash>
 #include <QSet>
-#include "q3dsgraphicslimits_p.h"
 
 QT_BEGIN_NAMESPACE
 
@@ -62,7 +61,7 @@ class QFrameGraphNode;
 class Q3DSProfiler
 {
 public:
-    Q3DSProfiler(const Q3DSGraphicsLimits &limits);
+    Q3DSProfiler();
     ~Q3DSProfiler();
     void resetForNewScene(Q3DSSceneManager *sceneManager);
 
@@ -127,8 +126,6 @@ public:
     Qt3DRender::QFrameGraphNode *frameGraphRoot() const { return m_frameGraphRoot; }
     QSet<Qt3DRender::QFrameGraphNode *> frameGraphStopNodes() const { return m_fgStopNodes; }
 
-    const Q3DSGraphicsLimits *graphicsLimits() const { return &m_gfxLimits; }
-
     const Q3DSUipPresentation *presentation() const { return m_presentation; }
     Q3DSUipPresentation *presentation() { return m_presentation; }
     QString presentationName() const { return m_presentationName; }
@@ -149,7 +146,6 @@ public:
 
 private:
     bool m_enabled = false; // disabled by default, profiling is opt-in
-    Q3DSGraphicsLimits m_gfxLimits;
     QVector<FrameData> m_frameData;
     QMultiMap<ObjectType, ObjectData> m_objectData;
     QVector<QMetaObject::Connection> m_objectDestroyConnections;

@@ -40,7 +40,6 @@
 #include <Qt3DRender/QGraphicsApiFilter>
 
 #include <QtCore/QLoggingCategory>
-#include <QtGui/QOpenGLContext>
 
 #include "q3dsutils_p.h"
 

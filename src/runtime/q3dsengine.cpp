@@ -203,6 +203,8 @@ static void initGraphicsLimits(QOpenGLContext *ctx)
         qDebug("  version: %s", versionStr);
     }
 
+    gfxLimits.format = ctx->format();
+
     ctx->doneCurrent();
 }
 
@@ -231,6 +233,7 @@ static QSurfaceFormat findIdealGLVersion()
     }
 
     qDebug("Impending doom");
+    gfxLimits.versionedContextFailed = true;
     return fmt;
 }
 
@@ -265,27 +268,37 @@ static QSurfaceFormat findIdealGLESVersion()
     }
 
     qDebug("Impending doom");
+    gfxLimits.versionedContextFailed = true;
     return fmt;
 }
 
 QSurfaceFormat Q3DSEngine::surfaceFormat()
 {
-    QSurfaceFormat fmt;
-    if (QOpenGLContext::openGLModuleType() == QOpenGLContext::LibGL) { // works in dynamic gl builds too because there's a qguiapp already
-        fmt = findIdealGLVersion();
-    } else {
-        fmt = findIdealGLESVersion();
-    }
-    fmt.setDepthBufferSize(24);
-    fmt.setStencilBufferSize(8);
-    // Ignore MSAA here as that is a per-layer setting.
-    return fmt;
+    static const QSurfaceFormat f = [] {
+        QSurfaceFormat fmt;
+        if (QOpenGLContext::openGLModuleType() == QOpenGLContext::LibGL) { // works in dynamic gl builds too because there's a qguiapp already
+            fmt = findIdealGLVersion();
+        } else {
+            fmt = findIdealGLESVersion();
+        }
+        fmt.setDepthBufferSize(24);
+        fmt.setStencilBufferSize(8);
+        // Ignore MSAA here as that is a per-layer setting.
+        return fmt;
+    }();
+    return f;
 }
 
 namespace Q3DS {
 QSurfaceFormat surfaceFormat()
 {
     return Q3DSEngine::surfaceFormat();
+}
+
+Q3DSGraphicsLimits graphicsLimits()
+{
+    Q3DSEngine::surfaceFormat();
+    return gfxLimits;
 }
 }
 
@@ -622,7 +635,7 @@ bool Q3DSEngine::buildUipPresentationScene(UipPresentation *pres)
     params.surface = m_surface;
     params.engine = this;
 
-    QScopedPointer<Q3DSSceneManager> sceneManager(new Q3DSSceneManager(gfxLimits));
+    QScopedPointer<Q3DSSceneManager> sceneManager(new Q3DSSceneManager);
     pres->q3dscene = sceneManager->buildScene(pres->presentation, params);
     if (!pres->q3dscene.rootEntity) {
         Q3DSUtils::showMessage(QObject::tr("Failed to build Qt3D scene"));
@@ -727,7 +740,7 @@ bool Q3DSEngine::buildSubUipPresentationScene(UipPresentation *pres)
     rtSel->setTarget(rt);
     params.frameGraphRoot = rtSel;
 
-    QScopedPointer<Q3DSSceneManager> sceneManager(new Q3DSSceneManager(gfxLimits));
+    QScopedPointer<Q3DSSceneManager> sceneManager(new Q3DSSceneManager);
     pres->q3dscene = sceneManager->buildScene(pres->presentation, params);
     if (!pres->q3dscene.rootEntity) {
         Q3DSUtils::showMessage(QObject::tr("Failed to build Qt3D scene for subpresentation"));
