@@ -204,16 +204,16 @@ void tst_SurfaceViewer::testGrab()
     QCOMPARE(fullImage.size(), w.size() * w.devicePixelRatio());
     // verify at least that the background is there
     QColor c = fullImage.pixel(5, 5);
-    qFuzzyCompare(float(c.redF()), 0.929412f);
-    qFuzzyCompare(float(c.greenF()), 0.956863f);
-    qFuzzyCompare(float(c.blueF()), 0.34902f);
+    QVERIFY(qFuzzyCompare(float(c.redF()), 0.929412f));
+    QVERIFY(qFuzzyCompare(float(c.greenF()), 0.956863f));
+    QVERIFY(qFuzzyCompare(float(c.blueF()), 0.34902f));
 
     QImage partialImage = viewer.grab(QRect(10, 10, 100, 100));
     QCOMPARE(partialImage.size(), QSize(100, 100));
     c = fullImage.pixel(5, 5);
-    qFuzzyCompare(float(c.redF()), 0.929412f);
-    qFuzzyCompare(float(c.greenF()), 0.956863f);
-    qFuzzyCompare(float(c.blueF()), 0.34902f);
+    QVERIFY(qFuzzyCompare(float(c.redF()), 0.929412f));
+    QVERIFY(qFuzzyCompare(float(c.greenF()), 0.956863f));
+    QVERIFY(qFuzzyCompare(float(c.blueF()), 0.34902f));
 }
 
 QTEST_MAIN(tst_SurfaceViewer)
