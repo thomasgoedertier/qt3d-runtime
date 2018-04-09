@@ -7101,14 +7101,21 @@ void Q3DSSceneManager::handleEvent(const Q3DSGraphObject::Event &e)
     Q3DSComponentNode *component = e.target->attached() ? e.target->attached()->component : nullptr;
     if (component)
         slide = component->currentSlide();
-    if (slide) {
-        for (const Q3DSAction &action : slide->actions()) {
-            if (!action.eyeball || action.triggerObject != e.target)
-                continue;
-            if (action.event == e.event)
-                runAction(action);
+
+    const auto runSlideAction = [this, &e](Q3DSSlide *slide) {
+        if (slide) {
+            for (const Q3DSAction &action : slide->actions()) {
+                if (!action.eyeball || action.triggerObject != e.target)
+                    continue;
+                if (action.event == e.event)
+                    runAction(action);
+            }
         }
-    }
+    };
+
+    // Run on both the current slide and its parent (the master slide).
+    runSlideAction(slide);
+    runSlideAction(static_cast<Q3DSSlide *>(slide->parent()));
 
     const bool isSlideEnter = e.event == Q3DSGraphObjectEvents::slideEnterEvent();
     const bool isSlideExit = e.event == Q3DSGraphObjectEvents::slideExitEvent();
