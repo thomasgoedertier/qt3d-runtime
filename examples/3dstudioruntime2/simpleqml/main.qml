@@ -112,7 +112,7 @@ Rectangle {
 
     Window {
         id: w
-        visible: true
+        visible: false
         width: 500
         height: 500
         Item {
@@ -125,7 +125,10 @@ Rectangle {
     RowLayout {
         Button {
             text: "Move to other window"
-            onClicked: if (s3d.parent === wroot) s3d.parent = root; else s3d.parent = wroot
+            onClicked: {
+                w.visible = true;
+                if (s3d.parent === wroot) s3d.parent = root; else s3d.parent = wroot;
+            }
             focusPolicy: Qt.NoFocus
         }
         Button {
