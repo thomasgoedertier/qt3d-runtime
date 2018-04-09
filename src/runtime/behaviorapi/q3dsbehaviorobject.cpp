@@ -57,7 +57,7 @@ void Q3DSBehaviorObject::prepareUpdate(float dt)
 
 void Q3DSBehaviorObject::call(const QString &function)
 {
-    const QString normalized = function + "()";
+    const QString normalized = function + QLatin1String("()");
     const int idx = metaObject()->indexOfMethod(normalized.toUtf8().constData());
     if (idx >= 0)
         metaObject()->method(idx).invoke(this);

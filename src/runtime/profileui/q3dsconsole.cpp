@@ -120,7 +120,7 @@ void Q3DSConsole::draw()
             auto it = std::find_if(m_commands.cbegin(), m_commands.cend(), [cmd](const Command &c) { return c.name == cmd; });
             if (it != m_commands.cend()) {
                 if (it->callback) {
-                    addMessageFmt(Qt::white, "\n > %s\n", qPrintable(fullCmd));
+                    addMessageFmt(Qt::white, "\n > %s\n", fullCmd.constData());
                     it->callback(args);
                 }
             } else {

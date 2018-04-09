@@ -57,7 +57,7 @@ static QByteArray unquote(const QByteArray &s)
 static QString printObject(Q3DSGraphObject *obj)
 {
     return QString(QLatin1String("%1 id='%2' name='%3'"))
-            .arg(obj->typeAsString()).arg(obj->id().constData()).arg(obj->name());
+            .arg(obj->typeAsString()).arg(QString::fromUtf8(obj->id())).arg(obj->name());
 }
 
 static void graphPrinter(QString *dst, Q3DSGraphObject *obj, int indent)
@@ -227,7 +227,7 @@ void Q3DSConsoleCommands::setupConsole(Q3DSConsole *console)
             const QByteArray name = unquote(splitArgs[1]);
             Q3DSGraphObject *obj = resolveObj(ref);
             if (obj) {
-                const int idx = obj->propertyNames().indexOf(name);
+                const int idx = obj->propertyNames().indexOf(QString::fromUtf8(name));
                 if (idx >= 0) {
                     const QString v = Q3DS::convertFromVariant(obj->propertyValues().at(idx));
                     m_console->addMessageFmt(responseColor, "%s", qPrintable(v));
@@ -245,7 +245,7 @@ void Q3DSConsoleCommands::setupConsole(Q3DSConsole *console)
             const QByteArray value = unquote(splitArgs[2]);
             Q3DSGraphObject *obj = resolveObj(ref);
             if (obj) {
-                Q3DSPropertyChangeList cl = { Q3DSPropertyChange(name, value) };
+                Q3DSPropertyChangeList cl = { Q3DSPropertyChange(QString::fromUtf8(name), QString::fromUtf8(value)) };
                 obj->applyPropertyChanges(cl);
                 obj->notifyPropertyChanges(cl);
                 m_console->addMessageFmt(responseColor, "%s on %s set to %s",
@@ -322,7 +322,7 @@ Q3DSGraphObject *Q3DSConsoleCommands::resolveObj(const QByteArray &ref, bool sho
     if (r.startsWith('#'))
         obj = m_currentPresentation->object(r.mid(1));
     else
-        obj = m_currentPresentation->objectByName(r);
+        obj = m_currentPresentation->objectByName(QString::fromUtf8(r));
 
     if (!obj && showErrorWhenNotFound)
         m_console->addMessageFmt(errorColor, "Object '%s' not found", r.constData());

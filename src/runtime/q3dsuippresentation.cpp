@@ -3662,7 +3662,7 @@ QVector<ClonedObject> cloneObjects(Q3DSGraphObject *target,
         return clonedObjects;
 
     Q3DSGraphObject *object = nullptr;
-    QString id = idPrefix + target->id();
+    QString id = idPrefix + QString::fromUtf8(target->id());
     if (target->type() == Q3DSGraphObject::Camera) {
         object = new Q3DSCameraNode;
     } else if (target->type() == Q3DSGraphObject::Light) {
@@ -3823,7 +3823,7 @@ void Q3DSUipPresentation::resolveAliases()
         if (!alias->referencedNode())
             continue;
 
-        QString aliasPrefix = alias->id() + QStringLiteral("_");
+        QString aliasPrefix = QString::fromUtf8(alias->id()) + QStringLiteral("_");
         // Create referenceNode subtree clone
         auto clonedObjects = cloneObjects(alias->referencedNode(), aliasPrefix, this, alias);
 
