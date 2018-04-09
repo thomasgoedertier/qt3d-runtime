@@ -492,9 +492,10 @@ void Q3DSSlidePlayer::reset()
 
 void Q3DSSlidePlayer::setInternalState(Q3DSSlidePlayer::PlayerState state)
 {
-    Q3DSSlide *currentSlide = m_data.slideDeck->currentSlide();
+    m_data.pendingState = state;
+    qCDebug(lcSlidePlayer, "Setting internal state from %d to %d", int(m_data.state), int(m_data.pendingState));
 
-    qCDebug(lcSlidePlayer, "Setting internal state from %d to %d", int(m_data.state), int(state));
+    Q3DSSlide *currentSlide = m_data.slideDeck->currentSlide();
 
     // The current slide is stored in the scene manager or in the component, depending
     // on which type of player we are.
@@ -524,8 +525,8 @@ void Q3DSSlidePlayer::setInternalState(Q3DSSlidePlayer::PlayerState state)
         updateAnimators(currentSlide, false, false, m_data.playbackRate);
     }
 
-    if (m_data.state != state) {
-        m_data.state = state;
+    if (m_data.state != m_data.pendingState) {
+        m_data.state = m_data.pendingState;
         Q_EMIT stateChanged(m_data.state);
     }
 }
@@ -560,14 +561,14 @@ void Q3DSSlidePlayer::handleCurrentSlideChanged(Q3DSSlide *slide,
             animator->clearPropertyTrackings();
             animator->disconnect();
             updateAnimators(previousSlide, false, true, 1.0f);
-            m_animationManager->clearAnimations(previousSlide);
+            m_animationManager->clearAnimations(previousSlide, (m_mode == PlayerMode::Editor));
         }
     }
 
     // Connect to monitors to the new slide
     if (slide && slideDidChange && isSlideVisible(slide)) {
         m_sceneManager->handleSlideChange(previousSlide, slide);
-        m_animationManager->updateAnimations(slide);
+        m_animationManager->updateAnimations(slide, (m_mode == PlayerMode::Editor));
 
         if (parentChanged)
             setSlideTime(static_cast<Q3DSSlide *>(slide->parent()), 0.0f);

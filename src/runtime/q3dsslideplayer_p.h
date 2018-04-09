@@ -149,6 +149,7 @@ private:
     struct Data {
         Q3DSSlideDeck *slideDeck = nullptr;
         PlayerState state = PlayerState::Idle;
+        PlayerState pendingState = PlayerState::Idle;
         float position = 0.0f;
         float duration = 0.0f;
         float playbackRate = 1.0f;

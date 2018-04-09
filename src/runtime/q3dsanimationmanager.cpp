@@ -251,7 +251,8 @@ static int componentSuffixToIndex(const QString &s)
 template<class T>
 void Q3DSAnimationManager::updateAnimationHelper(const AnimationTrackListMap<T *> &targets,
                                                  AnimatableTab *animatables,
-                                                 Q3DSSlide *slide)
+                                                 Q3DSSlide *slide,
+                                                 bool editorMode)
 {
     for (auto it = targets.cbegin(), ite = targets.cend(); it != ite; ++it) {
         T *target = it.key();
@@ -306,6 +307,7 @@ void Q3DSAnimationManager::updateAnimationHelper(const AnimationTrackListMap<T *
             Animatable meta;
             Qt3DAnimation::QChannelComponent comps[4];
             Qt3DAnimation::QChannel channel;
+            bool dynamic = false;
         };
         QHash<QString, ChannelComponents> channelData;
 
@@ -388,6 +390,33 @@ void Q3DSAnimationManager::updateAnimationHelper(const AnimationTrackListMap<T *
             }
         };
 
+        static const auto updateDynamicKeyFrame = [](Q3DSAnimationTrack::KeyFrame &keyFrame,
+                                                    AnimatableTab *animatables,
+                                                    Q3DSGraphObject *target,
+                                                    const QStringList &prop) {
+            qCDebug(lcScene, "Building dynamic key-frame for %s's property %s", target->id().constData(), qPrintable(prop[0]));
+            if (prop.count() == 1) {
+                const float value = animatables->value(prop[0]).getter(target, QString::fromLatin1("")).toFloat();
+                keyFrame.value = value;
+            } else {
+                const QVariant value = animatables->value(prop[0]).getter(target, QString::fromLatin1(""));
+                qreal x = 0.0, y = 0.0, z = 0.0;
+                if (value.type() == QVariant::Color) {
+                    qvariant_cast<QColor>(value).getRgbF(&x, &y, &z);
+                } else {
+                    x = qreal(qvariant_cast<QVector3D>(value)[0]);
+                    y = qreal(qvariant_cast<QVector3D>(value)[1]);
+                    z = qreal(qvariant_cast<QVector3D>(value)[2]);
+                }
+                if (prop[1] == QString::fromLatin1("x"))
+                    keyFrame.value = float(x);
+                else if (prop[1] == QString::fromLatin1("y"))
+                    keyFrame.value = float(y);
+                else if (prop[1] == QString::fromLatin1("z"))
+                    keyFrame.value = float(z);
+            }
+        };
+
         const auto &animatonTracks = it.value();
         for (const Q3DSAnimationTrack *animationTrack : animatonTracks) {
             const QStringList prop = animationTrack->property().split('.');
@@ -398,15 +427,21 @@ void Q3DSAnimationManager::updateAnimationHelper(const AnimationTrackListMap<T *
             if (!animatables->contains(propertyName))
                 continue;
 
-            const auto &keyFrames = animationTrack->keyFrames();
+            auto keyFrames = animationTrack->keyFrames();
             if (keyFrames.isEmpty())
                 continue;
 
             Animatable *animMeta = &(*animatables)[propertyName];
             ChannelComponents &channelComponent(channelData[animMeta->name]);
             channelComponent.meta = *animMeta;
+            channelComponent.dynamic = animationTrack->isDynamic();
 
             const auto type = animationTrack->type();
+            const bool isDynamic = animationTrack->isDynamic() && !editorMode;
+            // If track is marked as dynamic, update the first keyframe so it interpolates from
+            // the current position to the next.
+            if (isDynamic)
+                updateDynamicKeyFrame(keyFrames[0], animatables, target, prop);
             buildKeyFrames(keyFrames, type, channelComponent, prop);
         }
 
@@ -464,7 +499,7 @@ void Q3DSAnimationManager::updateAnimationHelper(const AnimationTrackListMap<T *
             mapper->addMapping(mapping.take());
 
             // Save the current value of the animated property.
-            if (chIt->meta.getter) {
+            if (chIt->meta.getter && (!chIt->dynamic || data->animationRollbacks.isEmpty())) {
                 Q3DSGraphObjectAttached::AnimatedValueRollbackData rd;
                 rd.obj = target;
                 rd.name = chIt->meta.name;
@@ -504,7 +539,7 @@ private:
     Q3DSSlidePlayer *m_slidePlayer;
 };
 
-void Q3DSAnimationManager::clearAnimations(Q3DSSlide *slide)
+void Q3DSAnimationManager::clearAnimations(Q3DSSlide *slide, bool editorMode)
 {
     qCDebug(lcScene, "Clearing animations for slide (%s)", qPrintable(slide->name()));
 
@@ -532,7 +567,7 @@ void Q3DSAnimationManager::clearAnimations(Q3DSSlide *slide)
     if (!hasAnimationData)
         return;
 
-    const auto clearAndRollback = [this](const QVector<Q3DSAnimationTrack> &anims, Q3DSSlide *slide) {
+    const auto clearAndRollback = [this, editorMode](const QVector<Q3DSAnimationTrack> &anims, Q3DSSlide *slide) {
         // Rollback properties
         for (const Q3DSAnimationTrack &track : anims) {
             if (!m_activeTargets.contains(track.target()))
@@ -545,7 +580,7 @@ void Q3DSAnimationManager::clearAnimations(Q3DSSlide *slide)
                 // original value, otherwise things will flicker when switching between
                 // slides since the animations we build may not update the first value
                 // in time for the next frame.
-                if (!data->animationRollbacks.isEmpty()) {
+                if ((!track.isDynamic() || editorMode) && !data->animationRollbacks.isEmpty()) {
                     for (const auto &rd : qAsConst(data->animationRollbacks)) {
                         Q3DSAnimationManager::AnimationValueChange change;
                         change.value = rd.value;
@@ -580,10 +615,18 @@ void Q3DSAnimationManager::clearAnimations(Q3DSSlide *slide)
         Q_ASSERT(slideAttached->animators.isEmpty());
     };
 
-    // NOTE: The second argument is the slide the animations are associated with, which
-    // we set to be the "current" slide in updateAnimations().
-    clearAndRollback(masterSlide->animations(), slide);
-    clearAndRollback(slide->animations(), slide);
+    // Handle unlinked properties (this is similart to the buildTrackListMap() pair in updateAnimations()).
+    // TODO: Make this more efficient
+    QVector<Q3DSAnimationTrack> tracks = masterSlide->animations();
+    for (const auto &track : slide->animations()) {
+        auto foundIt = std::find_if(tracks.begin(), tracks.end(), [&track](const Q3DSAnimationTrack &t) { return (t.target() == track.target()) && (t.property() == track.property()); });
+        if (foundIt != tracks.end())
+            *foundIt = track;
+        else
+            tracks.push_back(track);
+    }
+
+    clearAndRollback(tracks, slide);
 }
 
 // Dummy animator for keeping track of the time line for the current slide
@@ -646,7 +689,7 @@ static void insertTrack(T &trackList, const Q3DSAnimationTrack &animTrack, bool 
     }
 }
 
-void Q3DSAnimationManager::updateAnimations(Q3DSSlide *slide)
+void Q3DSAnimationManager::updateAnimations(Q3DSSlide *slide, bool editorMode)
 {
     Q_ASSERT(slide);
 
@@ -773,64 +816,64 @@ void Q3DSAnimationManager::updateAnimations(Q3DSSlide *slide)
     if (m_defaultMaterialAnimatables.isEmpty())
         gatherAnimatableMeta(QLatin1String("Material"), &m_defaultMaterialAnimatables);
 
-    updateAnimationHelper(defMatAnims, &m_defaultMaterialAnimatables, slide);
+    updateAnimationHelper(defMatAnims, &m_defaultMaterialAnimatables, slide, editorMode);
 
     if (m_cameraAnimatables.isEmpty()) {
         gatherAnimatableMeta(QLatin1String("Node"), &m_cameraAnimatables);
         gatherAnimatableMeta(QLatin1String("Camera"), &m_cameraAnimatables);
     }
 
-    updateAnimationHelper(camAnims, &m_cameraAnimatables, slide);
+    updateAnimationHelper(camAnims, &m_cameraAnimatables, slide, editorMode);
 
     if (m_lightAnimatables.isEmpty()) {
         gatherAnimatableMeta(QLatin1String("Node"), &m_lightAnimatables);
         gatherAnimatableMeta(QLatin1String("Light"), &m_lightAnimatables);
     }
 
-    updateAnimationHelper(lightAnims, &m_lightAnimatables, slide);
+    updateAnimationHelper(lightAnims, &m_lightAnimatables, slide, editorMode);
 
     if (m_modelAnimatables.isEmpty()) {
         gatherAnimatableMeta(QLatin1String("Node"), &m_modelAnimatables);
         gatherAnimatableMeta(QLatin1String("Model"), &m_modelAnimatables);
     }
 
-    updateAnimationHelper(modelAnims, &m_modelAnimatables, slide);
+    updateAnimationHelper(modelAnims, &m_modelAnimatables, slide, editorMode);
 
     if (m_groupAnimatables.isEmpty()) {
         gatherAnimatableMeta(QLatin1String("Node"), &m_groupAnimatables);
         gatherAnimatableMeta(QLatin1String("Group"), &m_groupAnimatables);
     }
 
-    updateAnimationHelper(groupAnims, &m_groupAnimatables, slide);
+    updateAnimationHelper(groupAnims, &m_groupAnimatables, slide, editorMode);
 
     if (m_componentAnimatables.isEmpty())
         gatherAnimatableMeta(QLatin1String("Node"), &m_componentAnimatables);
 
-    updateAnimationHelper(compAnims, &m_componentAnimatables, slide);
+    updateAnimationHelper(compAnims, &m_componentAnimatables, slide, editorMode);
 
     if (m_textAnimatables.isEmpty()) {
         gatherAnimatableMeta(QLatin1String("Node"), &m_textAnimatables);
         gatherAnimatableMeta(QLatin1String("Text"), &m_textAnimatables);
     }
 
-    updateAnimationHelper(textAnims, &m_textAnimatables, slide);
+    updateAnimationHelper(textAnims, &m_textAnimatables, slide, editorMode);
 
     if (m_imageAnimatables.isEmpty())
         gatherAnimatableMeta(QLatin1String("Image"), &m_imageAnimatables);
 
-    updateAnimationHelper(imageAnims, &m_imageAnimatables, slide);
+    updateAnimationHelper(imageAnims, &m_imageAnimatables, slide, editorMode);
 
     if (m_layerAnimatables.isEmpty())
         gatherAnimatableMeta(QLatin1String("Layer"), &m_layerAnimatables);
 
-    updateAnimationHelper(layerAnims, &m_layerAnimatables, slide);
+    updateAnimationHelper(layerAnims, &m_layerAnimatables, slide, editorMode);
 
     if (m_aliasAnimatables.isEmpty()) {
         gatherAnimatableMeta(QLatin1String("Node"), &m_aliasAnimatables);
         gatherAnimatableMeta(QLatin1String("Alias"), &m_aliasAnimatables);
     }
 
-    updateAnimationHelper(aliasAnims, &m_aliasAnimatables, slide);
+    updateAnimationHelper(aliasAnims, &m_aliasAnimatables, slide, editorMode);
 
     // custom materials and effects need special handling due to their dynamic properties
     if (!customMatAnims.isEmpty()) {
@@ -839,7 +882,7 @@ void Q3DSAnimationManager::updateAnimations(Q3DSSlide *slide)
             Q3DSCustomMaterialInstance *mat3DS = it.key();
             gatherDynamicProperties(mat3DS->customProperties(), mat3DS->material()->properties(), &customMaterialAnimatables);
         }
-        updateAnimationHelper(customMatAnims, &customMaterialAnimatables, slide);
+        updateAnimationHelper(customMatAnims, &customMaterialAnimatables, slide, editorMode);
     }
     if (!effectAnims.isEmpty()) {
         AnimatableTab effectAnimatables;
@@ -847,7 +890,7 @@ void Q3DSAnimationManager::updateAnimations(Q3DSSlide *slide)
             Q3DSEffectInstance *eff3DS = it.key();
             gatherDynamicProperties(eff3DS->customProperties(), eff3DS->effect()->properties(), &effectAnimatables);
         }
-        updateAnimationHelper(effectAnims, &effectAnimatables, slide);
+        updateAnimationHelper(effectAnims, &effectAnimatables, slide, editorMode);
     }
 }
 

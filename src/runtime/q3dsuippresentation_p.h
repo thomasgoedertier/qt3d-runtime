@@ -2000,6 +2000,7 @@ public:
     static void forAllModels(Q3DSGraphObject *obj, std::function<void(Q3DSModelNode *)> f, bool includeHidden = false);
     void forAllImages(std::function<void(Q3DSImage *)> f);
 
+    void applyPropertyChanges(const QHash<Q3DSGraphObject *, Q3DSPropertyChangeList *> &changeList) const;
     void applySlidePropertyChanges(Q3DSSlide *slide) const;
 
     qint64 loadTimeMsecs() const;

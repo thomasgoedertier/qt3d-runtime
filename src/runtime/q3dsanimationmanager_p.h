@@ -52,8 +52,8 @@ class Q3DSAnimationManager
 public:
     Q3DSAnimationManager(Q3DSSlidePlayer *slidePlayer) : m_slidePlayer(slidePlayer) {}
 
-    void updateAnimations(Q3DSSlide *slide);
-    void clearAnimations(Q3DSSlide *slide);
+    void updateAnimations(Q3DSSlide *slide, bool editorMode = false);
+    void clearAnimations(Q3DSSlide *slide, bool editorMode = false);
     void applyChanges();
     void clearPendingChanges();
     void objectAboutToBeRemovedFromScene(Q3DSGraphObject *obj);
@@ -88,7 +88,8 @@ private:
     template<class T>
     void updateAnimationHelper(const AnimationTrackListMap<T *> &targets,
                                AnimatableTab *animatables,
-                               Q3DSSlide *slide);
+                               Q3DSSlide *slide,
+                               bool editorMode);
 
     void buildClipAnimator(Q3DSSlide *slide);
 

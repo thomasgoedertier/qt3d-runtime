@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<UIP version="3" >
+	<Project >
+		<ProjectSettings author="" company="" presentationWidth="1920" presentationHeight="1080" maintainAspect="False" >
+			<CustomColors count="16" >#ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff</CustomColors>
+		</ProjectSettings>
+		<Graph >
+			<Scene id="Scene" >
+				<Layer id="Layer" >
+					<Camera id="Camera" />
+					<Light id="Light" />
+					<Model id="Cylinder" >
+						<Material id="Default" name="Default" />
+					</Model>
+					<Model id="Rectangle" >
+						<Material id="Default_001" name="Default" />
+					</Model>
+					<Text id="Text" />
+					<Model id="PauseRect" >
+						<Material id="Default_002" name="Default" />
+					</Model>
+					<Model id="PlayRect" >
+						<Material id="Default_004" name="Default" />
+					</Model>
+					<Text id="Text3" />
+					<Text id="Text4" />
+					<Model id="Rectangle2" >
+						<Material id="Default_003" name="Default" />
+					</Model>
+					<Text id="Text5" />
+				</Layer>
+			</Scene>
+		</Graph>
+		<Logic >
+			<State name="Master Slide" component="#Scene" >
+				<Add ref="#Layer" />
+				<Add ref="#Camera" />
+				<Add ref="#Light" />
+				<Add ref="#Cylinder" name="Cylinder" opacity="100" position="-200 0 0" scale="1 1 1" sourcepath="#Cylinder" >
+					<AnimationTrack property="position.x" type="EaseInOut" >0 -200 100 100 10 200 100 100</AnimationTrack>
+					<AnimationTrack property="position.y" type="EaseInOut" >0 0 100 100 10 0 100 100</AnimationTrack>
+					<AnimationTrack property="position.z" type="EaseInOut" >0 0 100 100 10 0 100 100</AnimationTrack>
+				</Add>
+				<Add ref="#Default" />
+				<Add ref="#Rectangle" name="Rectangle" position="-95.5836 195.143 0" scale="1.39157 0.779844 0.779844" sourcepath="#Rectangle" >
+					<Action id="Rectangle-Action" eyeball="True" triggerObject="#Rectangle" event="onPressureDown" targetObject="#Scene" handler="Go to Slide" >
+						<HandlerArgument name="Slide" type="String" argtype="Slide" value="Slide2" />
+					</Action>
+				</Add>
+				<Add ref="#Default_001" />
+				<Add ref="#Text" name="Text" font="TitilliumWeb-Regular" position="-236.341 196.525 0" size="36" textcolor="0 0.333333 0" textstring="Slide 1" />
+				<Add ref="#PauseRect" name="PauseRect" position="-76.3388 137.281 0" scale="1.00131 0.328565 0.453463" sourcepath="#Rectangle" >
+					<Action id="PauseRect-Action" eyeball="True" triggerObject="#PauseRect" event="onPressureDown" targetObject="#Scene" handler="Pause" />
+				</Add>
+				<Add ref="#Default_002" />
+				<Add ref="#PlayRect" name="PlayRect" position="-257.242 135.998 0" scale="1.00131 0.328565 0.453463" sourcepath="#Rectangle" >
+					<Action id="PlayRect-Action" eyeball="True" triggerObject="#PlayRect" event="onPressureDown" targetObject="#Scene" handler="Play" />
+				</Add>
+				<Add ref="#Default_004" />
+				<Add ref="#Text3" name="Text3" font="TitilliumWeb-Regular" position="-252.751 136.64 0" textcolor="0 0 0" textstring="Play" />
+				<Add ref="#Text4" name="Text4" font="TitilliumWeb-Regular" position="-75.0491 138.564 0" textcolor="0 0 0" textstring="Pause" />
+				<Add ref="#Rectangle2" name="Rectangle2" position="-237.355 195.143 0" scale="1.39157 0.779844 0.779844" sourcepath="#Rectangle" >
+					<Action id="Rectangle2-Action" eyeball="True" triggerObject="#Rectangle2" event="onPressureDown" targetObject="#Scene" handler="Go to Slide" >
+						<HandlerArgument name="Slide" type="String" argtype="Slide" value="Slide1" />
+					</Action>
+				</Add>
+				<Add ref="#Default_003" />
+				<Add ref="#Text5" name="Text5" font="TitilliumWeb-Regular" position="-98.791 196.299 0" textcolor="0.333333 0 1" textstring="Slide 2" />
+				<State id="Scene-Slide1" name="Slide1" playmode="Play Through To..." >
+					<Set ref="#Cylinder" opacity="100" position="-200 0 0" >
+						<AnimationTrack property="opacity" type="EaseInOut" dynamic="True" >0 100 100 100 10 19 100 100</AnimationTrack>
+						<AnimationTrack property="position.x" type="EaseInOut" dynamic="True" >0 -200 100 100 5.647 31.5622 100 100 10 200 100 100</AnimationTrack>
+						<AnimationTrack property="position.y" type="EaseInOut" dynamic="True" >0 0 100 100 5.647 0 100 100 10 0 100 100</AnimationTrack>
+						<AnimationTrack property="position.z" type="EaseInOut" dynamic="True" >0 0 100 100 5.647 0 100 100 10 0 100 100</AnimationTrack>
+					</Set>
+					<Set ref="#Text" textcolor="0 0.333333 0" >
+						<AnimationTrack property="textcolor.x" type="EaseInOut" dynamic="True" >0 0 100 100 10 0.392157 100 100</AnimationTrack>
+						<AnimationTrack property="textcolor.y" type="EaseInOut" dynamic="True" >0 0.333333 100 100 10 0 100 100</AnimationTrack>
+						<AnimationTrack property="textcolor.z" type="EaseInOut" dynamic="True" >0 0 100 100 10 0 100 100</AnimationTrack>
+					</Set>
+				</State>
+				<State id="Scene-Slide2" name="Slide2" initialplaystate="Play" playmode="Stop at end" playthroughto="Previous" >
+					<Set ref="#Cylinder" opacity="100" position="-200 0 0" >
+						<AnimationTrack property="opacity" type="EaseInOut" dynamic="True" >0.92 100 100 100 10 7 100 100</AnimationTrack>
+						<AnimationTrack property="position.x" type="EaseInOut" dynamic="True" >0.92 200 100 100 10 -200 100 100</AnimationTrack>
+						<AnimationTrack property="position.y" type="EaseInOut" dynamic="True" >0.92 0 100 100 10 -150 100 100</AnimationTrack>
+						<AnimationTrack property="position.z" type="EaseInOut" dynamic="True" >0.92 0 100 100 10 0 100 100</AnimationTrack>
+					</Set>
+					<Set ref="#Text" textcolor="0 0.333333 0" />
+				</State>
+			</State>
+		</Logic>
+	</Project>
+</UIP>
