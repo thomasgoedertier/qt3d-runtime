@@ -41,7 +41,7 @@
 // We mean it.
 //
 
-#include <qglobal.h>
+#include <QByteArrayList>
 
 QT_BEGIN_NAMESPACE
 
@@ -64,6 +64,7 @@ private:
     Q3DSSceneManager *m_sceneManager;
     Q3DSConsole *m_console = nullptr;
     Q3DSUipPresentation *m_currentPresentation = nullptr;
+    QByteArrayList m_program;
 };
 
 QT_END_NAMESPACE

@@ -33,6 +33,9 @@
 #include "profileui/q3dsconsole_p.h"
 #endif
 
+#include <QFile>
+#include <QDir>
+
 QT_BEGIN_NAMESPACE
 
 Q3DSConsoleCommands::Q3DSConsoleCommands(Q3DSSceneManager *mainPresSceneManager)
@@ -112,37 +115,46 @@ void Q3DSConsoleCommands::setupConsole(Q3DSConsole *console)
     m_console->addMessageFmt(responseColor, "Qt 3D Studio Console, 2nd Edition Ver. 2.31");
     // start with the main presentation active
     setCurrentPresentation(m_sceneManager->m_presentation);
+    // in immediate mode
+    m_console->setRecording(false);
 
     m_console->addCommand(Q3DSConsole::makeCommand("help", [this](const QByteArray &) {
         m_console->addMessageFmt(responseColor, "Available commands:\n");
         m_console->addMessageFmt(longResponseColor,
                                "help - Shows this text.\n"
-                               "clear - Clears the console.\n"
-                               "presentations - Lists all presentations. (main+sub)\n"
-                               "pres(id) - Changes to the given presentation. (id == the id from the .uia or main) Default is main.\n"
-                               "scenegraph - Prints the scene graph in the current presentation.\n"
-                               "scenegraph(obj) - Prints the scene graph subtree starting from the given object in the current presentation.\n"
-                               "slidegraph - Prints the slide graph in the current presentation.\n"
-                               "slidegraph(obj) - Prints the slide graph in the given component node.\n"
-                               "properties(obj) - Prints the properties for the given object.\n"
-                               "info(obj) - Prints additional properties for the given object (node or slide).\n"
-                               "get(obj, property) - Prints the property value.\n"
-                               "set(obj, property, value) - Applies and notifies a change to the given property.\n"
-                               "kill(obj) - Removes a node from the scene graph (and from the slides' object list).\n"
-                               "primitive(id, name, source, parentObj, slide) - Adds a model node with one default material. (source == #Cube, #Cone, etc.)\n"
+                               "clear - Clears the console. [R]\n"
+                               "presentations - Lists all presentations. (main+sub) [R]\n"
+                               "pres(id) - Changes to the given presentation. (id == the id from the .uia or main) Default is main. [R]\n"
+                               "scenegraph - Prints the scene graph in the current presentation. [R]\n"
+                               "scenegraph(obj) - Prints the scene graph subtree starting from the given object in the current presentation. [R]\n"
+                               "slidegraph - Prints the slide graph in the current presentation. [R]\n"
+                               "slidegraph(obj) - Prints the slide graph in the given component node. [R]\n"
+                               "properties(obj) - Prints the properties for the given object. [R]\n"
+                               "info(obj) - Prints additional properties for the given object (node or slide). [R]\n"
+                               "get(obj, property) - Prints the property value. [R]\n"
+                               "set(obj, property, value) - Applies and notifies a change to the given property. [R]\n"
+                               "kill(obj) - Removes a node from the scene graph (and from the slides' object list). [R]\n"
+                               "primitive(id, name, source, parentObj, slide) - Adds a model node with one default material. (source == #Cube, #Cone, etc.) [R]\n"
+                               "record - Switches to recording mode.\n"
+                               "immed - Switches to immediate mode (the default).\n"
+                               "prgnew - Clears recorded commands and switches to recording mode.\n"
+                               "prglist - Lists recorded commands.\n"
+                               "prgsave(fn) - Saves recorded commands to the specified file.\n"
+                               "prgload(fn) - Loads the specified file.\n"
+                               "prgrun - Runs the recorded commands.\n"
                                );
-        m_console->addMessageFmt(responseColor, "\nObject references (obj) are either by id ('#id') or by name ('name')\n");
+        m_console->addMessageFmt(responseColor, "\n[R] = recordable\nObject references (obj) are either by id ('#id') or by name ('name')\n");
     }));
     m_console->addCommand(Q3DSConsole::makeCommand("clear", [this](const QByteArray &) {
         m_console->clear();
-    }));
+    }, Q3DSConsole::CmdRecordable));
     m_console->addCommand(Q3DSConsole::makeCommand("presentations", [this](const QByteArray &) {
         m_console->addMessageFmt(longResponseColor, "%s", qPrintable(m_sceneManager->m_presentation->name()));
         for (const Q3DSSubPresentation &subPres : m_sceneManager->m_subPresentations) {
             if (subPres.sceneManager)
                 m_console->addMessageFmt(longResponseColor, "%s", qPrintable(subPres.sceneManager->m_presentation->name()));
         }
-    }));
+    }, Q3DSConsole::CmdRecordable));
     m_console->addCommand(Q3DSConsole::makeCommand("pres", [this](const QByteArray &args) {
         const QString id = QString::fromUtf8(args);
         bool found = false;
@@ -160,14 +172,14 @@ void Q3DSConsoleCommands::setupConsole(Q3DSConsole *console)
         }
         if (!found)
             m_console->addMessageFmt(errorColor, "Unknown presentation '%s'", qPrintable(id));
-    }));
+    }, Q3DSConsole::CmdRecordable));
     m_console->addCommand(Q3DSConsole::makeCommand("scenegraph", [this](const QByteArray &args) {
         Q3DSGraphObject *root = m_currentPresentation->scene();
         if (!args.isEmpty())
             root = resolveObj(args);
         if (root)
             m_console->addMessage(printGraph(root), longResponseColor);
-    }));
+    }, Q3DSConsole::CmdRecordable));
     m_console->addCommand(Q3DSConsole::makeCommand("slidegraph", [this](const QByteArray &args) {
         Q3DSGraphObject *obj = nullptr;
         if (args.isEmpty()) {
@@ -182,7 +194,7 @@ void Q3DSConsoleCommands::setupConsole(Q3DSConsole *console)
         }
         if (obj)
             m_console->addMessage(printGraph(obj), longResponseColor);
-    }));
+    }, Q3DSConsole::CmdRecordable));
     m_console->addCommand(Q3DSConsole::makeCommand("properties", [this](const QByteArray &args) {
         Q3DSGraphObject *obj = resolveObj(args);
         if (obj) {
@@ -194,7 +206,7 @@ void Q3DSConsoleCommands::setupConsole(Q3DSConsole *console)
                                          qPrintable(Q3DS::convertFromVariant(values[i])));
             }
         }
-    }));
+    }, Q3DSConsole::CmdRecordable));
     m_console->addCommand(Q3DSConsole::makeCommand("info", [this](const QByteArray &args) {
         Q3DSGraphObject *obj = resolveObj(args);
         if (obj) {
@@ -219,7 +231,7 @@ void Q3DSConsoleCommands::setupConsole(Q3DSConsole *console)
                     m_console->addMessageFmt(longResponseColor, "  %s\n", qPrintable(printObject(slideObj)));
             }
         }
-    }));
+    }, Q3DSConsole::CmdRecordable));
     m_console->addCommand(Q3DSConsole::makeCommand("get", [this](const QByteArray &args) {
         QByteArrayList splitArgs = args.split(',');
         if (splitArgs.count() >= 2) {
@@ -236,7 +248,7 @@ void Q3DSConsoleCommands::setupConsole(Q3DSConsole *console)
         } else {
             m_console->addMessageFmt(errorColor, "Invalid arguments, expected 2");
         }
-    }));
+    }, Q3DSConsole::CmdRecordable));
     m_console->addCommand(Q3DSConsole::makeCommand("set", [this](const QByteArray &args) {
         QByteArrayList splitArgs = args.split(',');
         if (splitArgs.count() >= 3) {
@@ -254,7 +266,7 @@ void Q3DSConsoleCommands::setupConsole(Q3DSConsole *console)
         } else {
             m_console->addMessageFmt(errorColor, "Invalid arguments, expected 3");
         }
-    }));
+    }, Q3DSConsole::CmdRecordable));
     m_console->addCommand(Q3DSConsole::makeCommand("kill", [this](const QByteArray &args) {
         Q3DSGraphObject *obj = resolveObj(args);
         if (obj) {
@@ -272,7 +284,7 @@ void Q3DSConsoleCommands::setupConsole(Q3DSConsole *console)
             delete obj;
             m_console->addMessageFmt(responseColor, "Removed");
         }
-    }));
+    }, Q3DSConsole::CmdRecordable));
     m_console->addCommand(Q3DSConsole::makeCommand("primitive", [this](const QByteArray &args) {
         QByteArrayList splitArgs = args.split(',');
         if (splitArgs.count() >= 5) {
@@ -297,6 +309,65 @@ void Q3DSConsoleCommands::setupConsole(Q3DSConsole *console)
                 m_console->addMessageFmt(responseColor, "Added");
             }
         }
+    }, Q3DSConsole::CmdRecordable));
+
+    m_console->setCommandRecorder([this](const QByteArray &cmd) {
+        m_program.append(cmd);
+    });
+    m_console->addCommand(Q3DSConsole::makeCommand("record", [this](const QByteArray &) {
+        m_console->setRecording(true);
+    }));
+    m_console->addCommand(Q3DSConsole::makeCommand("immed", [this](const QByteArray &) {
+        m_console->setRecording(false);
+    }));
+    m_console->addCommand(Q3DSConsole::makeCommand("prgnew", [this](const QByteArray &) {
+        m_program.clear();
+        m_console->addMessageFmt(responseColor, "Cleared");
+        m_console->setRecording(true);
+    }));
+    m_console->addCommand(Q3DSConsole::makeCommand("prglist", [this](const QByteArray &) {
+        for (const QByteArray &line : m_program)
+            m_console->addMessageFmt(longResponseColor, "%s\n", line.constData());
+    }));
+    m_console->addCommand(Q3DSConsole::makeCommand("prgsave", [this](const QByteArray &args) {
+        QFile f(QString::fromUtf8(args));
+        if (f.open(QIODevice::WriteOnly | QIODevice::Text)) {
+            for (const QByteArray &line : m_program) {
+                f.write(line);
+                f.write("\n");
+            }
+            m_console->addMessageFmt(responseColor, "Saved");
+        } else {
+            m_console->addMessageFmt(errorColor, "Save failed");
+        }
+    }));
+    m_console->addCommand(Q3DSConsole::makeCommand("prgload", [this](const QByteArray &args) {
+        if (args == QByteArrayLiteral("$")) { // hehe
+            QStringList entries = QDir(QLatin1String(".")).entryList();
+            m_program.clear();
+            for (const QString &entry : entries)
+                m_program.append(entry.toUtf8()); // cannot be run but can be listed
+        } else {
+            QFile f(QString::fromUtf8(args));
+            if (f.open(QIODevice::ReadOnly | QIODevice::Text)) {
+                m_program = f.readAll().split('\n');
+                auto it = m_program.begin();
+                while (it != m_program.end()) {
+                    *it = it->trimmed();
+                    if (it->isEmpty())
+                        m_program.erase(it);
+                    else
+                        ++it;
+                }
+                m_console->addMessageFmt(responseColor, "Loaded");
+            } else {
+                m_console->addMessageFmt(errorColor, "Load failed");
+            }
+        }
+    }));
+    m_console->addCommand(Q3DSConsole::makeCommand("prgrun", [this](const QByteArray &) {
+        for (const QByteArray &line : m_program)
+            m_console->runRecordedCommand(line);
     }));
 #else
     Q_UNUSED(console);

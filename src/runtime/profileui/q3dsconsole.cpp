@@ -69,6 +69,16 @@ void Q3DSConsole::addCommand(const Command &command)
     m_commands.append(command);
 }
 
+void Q3DSConsole::setCommandRecorder(CommandFunc f)
+{
+    m_recorder = f;
+}
+
+void Q3DSConsole::setRecording(bool enabled)
+{
+    m_recording = enabled;
+}
+
 void Q3DSConsole::draw()
 {
     ImGui::TextWrapped("Enter 'help' for help, press TAB for completion, UP/DOWN for history.");
@@ -93,6 +103,10 @@ void Q3DSConsole::draw()
     ImGui::EndChild();
     ImGui::Separator();
 
+    if (m_recording) {
+        ImGui::Text("REC");
+        ImGui::SameLine();
+    }
     if (ImGui::InputText("Input", m_inputBuf, InputBufSize,
                          ImGuiInputTextFlags_EnterReturnsTrue | ImGuiInputTextFlags_CallbackCompletion | ImGuiInputTextFlags_CallbackHistory,
                          editCallbackStatic, this))
@@ -108,30 +122,44 @@ void Q3DSConsole::draw()
             }
             m_history.append(fullCmd);
 
-            // split to cmd(args)
-            const int argsStart = fullCmd.indexOf('(');
-            const int argsEnd = fullCmd.lastIndexOf(')');
-            QByteArray cmd = fullCmd;
-            QByteArray args;
-            if (argsStart >= 0 && argsEnd > argsStart) {
-                cmd = fullCmd.left(argsStart);
-                args = fullCmd.mid(argsStart + 1, argsEnd - argsStart - 1);
-            }
-            auto it = std::find_if(m_commands.cbegin(), m_commands.cend(), [cmd](const Command &c) { return c.name == cmd; });
-            if (it != m_commands.cend()) {
-                if (it->callback) {
-                    addMessageFmt(Qt::white, "\n > %s\n", fullCmd.constData());
-                    it->callback(args);
-                }
-            } else {
-                addMessageFmt(Qt::red, "\nUnknown command '%s'", cmd.constData());
-            }
+            runCommand(fullCmd);
         }
         m_inputBuf[0] = '\0';
     }
 
     if (ImGui::IsItemHovered() || (ImGui::IsRootWindowOrAnyChildFocused() && !ImGui::IsAnyItemActive() && !ImGui::IsMouseClicked(0)))
         ImGui::SetKeyboardFocusHere(-1);
+}
+
+void Q3DSConsole::runCommand(const QByteArray &fullCmd, bool fromRecording)
+{
+    // split to cmd(args)
+    const int argsStart = fullCmd.indexOf('(');
+    const int argsEnd = fullCmd.lastIndexOf(')');
+    QByteArray cmd = fullCmd;
+    QByteArray args;
+    if (argsStart >= 0 && argsEnd > argsStart) {
+        cmd = fullCmd.left(argsStart);
+        args = fullCmd.mid(argsStart + 1, argsEnd - argsStart - 1);
+    }
+    auto it = std::find_if(m_commands.cbegin(), m_commands.cend(), [cmd](const Command &c) { return c.name == cmd; });
+    if (it != m_commands.cend()) {
+        if (!fromRecording && m_recording && it->flags.testFlag(CmdRecordable)) {
+            if (m_recorder)
+                m_recorder(fullCmd.constData());
+        } else if (it->callback) {
+            if (!fromRecording)
+                addMessageFmt(Qt::white, "\n > %s\n", fullCmd.constData());
+            it->callback(args);
+        }
+    } else {
+        addMessageFmt(Qt::red, "\nUnknown command '%s'", cmd.constData());
+    }
+}
+
+void Q3DSConsole::runRecordedCommand(const QByteArray &fullCmd)
+{
+    runCommand(fullCmd, true);
 }
 
 int Q3DSConsole::editCallbackStatic(ImGuiTextEditCallbackData *data)

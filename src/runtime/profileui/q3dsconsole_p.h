@@ -58,24 +58,37 @@ public:
     void addMessage(const QString &msg, const QColor &color = Qt::white);
     void addMessageFmt(const QColor &color, const char *msg, ...);
 
+    enum CommandFlag {
+        CmdRecordable = 0x01
+    };
+    Q_DECLARE_FLAGS(CommandFlags, CommandFlag)
+
     typedef std::function<void(const QByteArray &)> CommandFunc;
     struct Command {
         QByteArray name;
         CommandFunc callback = nullptr;
+        CommandFlags flags;
     };
-    static Command makeCommand(const char *name, CommandFunc cb) {
+    static Command makeCommand(const char *name, CommandFunc cb, CommandFlags flags = 0) {
         Command c;
         c.name = name;
         c.callback = cb;
+        c.flags = flags;
         return c;
     }
     void addCommand(const Command &command);
 
     void clear();
 
+    void setCommandRecorder(CommandFunc f);
+    void setRecording(bool enabled);
+    bool isRecording() const { return m_recording; }
+    void runRecordedCommand(const QByteArray &fullCmd);
+
 private:
     static int editCallbackStatic(ImGuiTextEditCallbackData *data);
     int editCallback(ImGuiTextEditCallbackData *data);
+    void runCommand(const QByteArray &fullCmd, bool fromRecording = false);
 
     struct Item {
         QByteArray text;
@@ -89,7 +102,11 @@ private:
     char m_inputBuf[InputBufSize];
     QByteArrayList m_history;
     int m_historyPos = -1;
+    CommandFunc m_recorder = nullptr;
+    bool m_recording = false;
 };
+
+Q_DECLARE_OPERATORS_FOR_FLAGS(Q3DSConsole::CommandFlags)
 
 QT_END_NAMESPACE
 
