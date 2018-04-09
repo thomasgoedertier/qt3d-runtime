@@ -316,6 +316,9 @@ public:
     struct EffectData {
         Qt3DRender::QFrameGraphNode *effectRoot = nullptr;
         QVector<Q3DSEffectInstance *> effects;
+        Qt3DRender::QAbstractTexture *sourceTexture = nullptr;
+        bool ownsSourceTexture = false;
+        Qt3DRender::QFrameGraphNode *resolve = nullptr;
     } effectData;
 
     struct IBLProbeData {
@@ -520,10 +523,11 @@ public:
         Qt3DRender::QParameter *destSizeParam = nullptr;
     };
     QVector<PassData> passData;
-    QVector<Qt3DRender::QParameter *> sourceDepTextureInfoParams;
-    Qt3DRender::QAbstractTexture *sourceTexture = nullptr;
-    bool ownsSourceTexture = false;
+    QVector<QPair<Qt3DRender::QParameter *, Qt3DRender::QAbstractTexture *> > sourceDepTextureInfoParams;
     QVector<Qt3DRender::QFrameGraphNode *> passFgRoots;
+    Qt3DRender::QAbstractTexture *sourceTexture = nullptr; // never owned
+    Qt3DRender::QAbstractTexture *outputTexture = nullptr;
+    bool ownsOutputTexture = false;
 };
 
 class Q3DSSlideAttached : public Q3DSGraphObjectAttached
@@ -629,6 +633,12 @@ public:
     };
     Q_DECLARE_FLAGS(FsQuadFlags, FsQuadFlag)
 
+    enum EffectActivationFlag {
+        EffIsFirst = 0x01,
+        EffIsLast = 0x02
+    };
+    Q_DECLARE_FLAGS(EffectActivationFlags, EffectActivationFlag)
+
     static QVector<Qt3DRender::QRenderPass *> standardRenderPasses(Qt3DRender::QShaderProgram *program,
                                                                    Q3DSLayerNode *layer3DS,
                                                                    Q3DSDefaultMaterial::BlendMode blendMode = Q3DSDefaultMaterial::Normal,
@@ -728,7 +738,9 @@ private:
     void updateCustomMaterial(Q3DSCustomMaterialInstance *m, Q3DSReferencedMaterial *rm = nullptr);
     void buildEffect(Q3DSEffectInstance *eff3DS, Q3DSLayerNode *layer3DS);
     void updateEffectStatus(Q3DSLayerNode *layer3DS);
-    void activateEffect(Q3DSEffectInstance *eff3DS, Q3DSLayerNode *layer3DS);
+    void ensureEffectSource(Q3DSLayerNode *layer3DS);
+    void cleanupEffectSource(Q3DSLayerNode *layer3DS);
+    void activateEffect(Q3DSEffectInstance *eff3DS, Q3DSLayerNode *layer3DS, EffectActivationFlags flags, Qt3DRender::QAbstractTexture *prevOutput);
     void deactivateEffect(Q3DSEffectInstance *eff3DS, Q3DSLayerNode *layer3DS);
     void setupEffectTextureBuffer(Q3DSEffectAttached::TextureBuffer *tb, const Q3DSMaterial::PassBuffer &bufDesc, Q3DSLayerNode *layer3DS);
     void createEffectBuffers(Q3DSEffectInstance *eff3DS);
@@ -827,6 +839,7 @@ Q_DECLARE_OPERATORS_FOR_FLAGS(Q3DSSceneManager::SetNodePropFlags)
 Q_DECLARE_OPERATORS_FOR_FLAGS(Q3DSSceneManager::UpdateGlobalFlags)
 Q_DECLARE_OPERATORS_FOR_FLAGS(Q3DSSceneManager::BuildLayerQuadFlags)
 Q_DECLARE_OPERATORS_FOR_FLAGS(Q3DSSceneManager::FsQuadFlags)
+Q_DECLARE_OPERATORS_FOR_FLAGS(Q3DSSceneManager::EffectActivationFlags)
 
 class Q3DSFrameUpdater : public QObject
 {

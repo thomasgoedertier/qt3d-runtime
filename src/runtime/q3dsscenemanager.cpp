@@ -5134,21 +5134,69 @@ static inline void setupStencilTest(Qt3DRender::QStencilTest *stencilTest, const
     }
 }
 
+// The main entry point for activating/deactivating effects on a layer. Called
+// upon scene building and every time an effect gets hidden/shown (eyeball).
 void Q3DSSceneManager::updateEffectStatus(Q3DSLayerNode *layer3DS)
 {
-    int activeEffectCount = 0;
     Q3DSLayerAttached *layerData = static_cast<Q3DSLayerAttached *>(layer3DS->attached());
-    for (Q3DSEffectInstance *eff3DS : layerData->effectData.effects) {
+    const int count = layerData->effectData.effects.count();
+    int activeEffectCount = 0;
+    int firstActiveIndex = 0;
+    int lastActiveIndex = 0;
+    bool change = false;
+
+    for (int i = 0; i < count; ++i) {
+        Q3DSEffectInstance *eff3DS = layerData->effectData.effects[i];
         Q3DSEffectAttached *effData = static_cast<Q3DSEffectAttached *>(eff3DS->attached());
         if (eff3DS->active()) {
             ++activeEffectCount;
+            if (activeEffectCount == 1)
+                firstActiveIndex = i;
+            lastActiveIndex = i;
             if (!effData->active)
-                activateEffect(eff3DS, layer3DS);
+                change = true;
         } else {
             if (effData->active)
-                deactivateEffect(eff3DS, layer3DS);
+                change = true;
         }
     }
+
+    if (!change)
+        return; // nothing has changed
+
+    // Activating/deactivating an effect in the chain needs resetting
+    // source/output related settings in the other effects so it is simpler to
+    // reactivate everything (considering also that multiple effects (like more
+    // than two) are rare).
+
+    qCDebug(lcScene, "Reinitializing effect chain (%d of %d active) on layer %s",
+            activeEffectCount, count, layer3DS->id().constData());
+
+    for (int i = 0; i < count; ++i) {
+        Q3DSEffectInstance *eff3DS = layerData->effectData.effects[i];
+        deactivateEffect(eff3DS, layer3DS);
+    }
+
+    cleanupEffectSource(layer3DS);
+
+    if (activeEffectCount) {
+        ensureEffectSource(layer3DS);
+
+        Qt3DRender::QAbstractTexture *prevOutput = nullptr;
+        for (int i = 0; i < count; ++i) {
+            Q3DSEffectInstance *eff3DS = layerData->effectData.effects[i];
+            if (eff3DS->active()) {
+                Q3DSSceneManager::EffectActivationFlags flags = 0;
+                if (i == firstActiveIndex)
+                    flags |= Q3DSSceneManager::EffIsFirst;
+                if (i == lastActiveIndex)
+                    flags |= Q3DSSceneManager::EffIsLast;
+                activateEffect(eff3DS, layer3DS, flags, prevOutput);
+                prevOutput = eff3DS->attached<Q3DSEffectAttached>()->outputTexture;
+            }
+        }
+    }
+
     const bool wasActive = layerData->effectActive;
     if (activeEffectCount) {
         // The layer compositor must use the output of the effect passes from now on.
@@ -5164,7 +5212,74 @@ void Q3DSSceneManager::updateEffectStatus(Q3DSLayerNode *layer3DS)
     }
 }
 
-void Q3DSSceneManager::activateEffect(Q3DSEffectInstance *eff3DS, Q3DSLayerNode *layer3DS)
+void Q3DSSceneManager::ensureEffectSource(Q3DSLayerNode *layer3DS)
+{
+    Q3DSLayerAttached *layerData = static_cast<Q3DSLayerAttached *>(layer3DS->attached());
+    // MSAA/SSAA layers need an additional resolve step since effects can only
+    // work with non-MSAA (and 1:1 sized) textures as input.
+    const bool needsResolve = layerData->msaaSampleCount > 1 || layerData->ssaaScaleFactor > 1;
+    if (needsResolve) {
+        layerData->effectData.sourceTexture = new Qt3DRender::QTexture2D(m_rootEntity);
+        m_profiler->trackNewObject(layerData->effectData.sourceTexture, Q3DSProfiler::Texture2DObject,
+                                   "Resolve buffer for effects");
+        layerData->effectData.sourceTexture->setFormat(Qt3DRender::QAbstractTexture::RGBA8_UNorm);
+        layerData->effectData.sourceTexture->setMinificationFilter(Qt3DRender::QAbstractTexture::Linear);
+        layerData->effectData.sourceTexture->setMagnificationFilter(Qt3DRender::QAbstractTexture::Linear);
+        layerData->effectData.ownsSourceTexture = true;
+
+        Qt3DRender::QRenderTarget *rtSrc = new Qt3DRender::QRenderTarget;
+        m_profiler->trackNewObject(rtSrc, Q3DSProfiler::RenderTargetObject,
+                                   "Src resolve RT for effects");
+        Qt3DRender::QRenderTargetOutput *rtSrcOutput = new Qt3DRender::QRenderTargetOutput;
+        rtSrcOutput->setAttachmentPoint(Qt3DRender::QRenderTargetOutput::Color0);
+        rtSrcOutput->setTexture(layerData->layerTexture);
+        rtSrc->addOutput(rtSrcOutput);
+
+        Qt3DRender::QRenderTarget *rtDst = new Qt3DRender::QRenderTarget;
+        m_profiler->trackNewObject(rtDst, Q3DSProfiler::RenderTargetObject,
+                                   "Dst resolve RT for effects");
+        Qt3DRender::QRenderTargetOutput *rtDstOutput = new Qt3DRender::QRenderTargetOutput;
+        rtDstOutput->setAttachmentPoint(Qt3DRender::QRenderTargetOutput::Color0);
+        rtDstOutput->setTexture(layerData->effectData.sourceTexture);
+        rtDst->addOutput(rtDstOutput);
+
+        Qt3DRender::QBlitFramebuffer *resolve = new Qt3DRender::QBlitFramebuffer(layerData->effectData.effectRoot);
+        layerData->effectData.resolve = resolve;
+        new Qt3DRender::QNoDraw(resolve);
+        resolve->setSource(rtSrc);
+        resolve->setDestination(rtDst);
+
+        auto blitResizer = [resolve, layerData](Q3DSLayerNode *) {
+            resolve->setSourceRect(QRectF(QPointF(0, 0), layerData->layerSize * layerData->ssaaScaleFactor));
+            resolve->setDestinationRect(QRectF(QPointF(0, 0), layerData->layerSize));
+        };
+
+        // must track layer size, but without the SSAA scale
+        prepareSizeDependentTexture(layerData->effectData.sourceTexture, layer3DS, blitResizer,
+                                    Q3DSLayerAttached::SizeManagedTexture::IgnoreSSAA);
+    } else {
+        layerData->effectData.sourceTexture = layerData->layerTexture;
+        layerData->effectData.ownsSourceTexture = false;
+        layerData->effectData.resolve = nullptr;
+    }
+}
+
+void Q3DSSceneManager::cleanupEffectSource(Q3DSLayerNode *layer3DS)
+{
+    Q3DSLayerAttached *layerData = static_cast<Q3DSLayerAttached *>(layer3DS->attached());
+    delete layerData->effectData.resolve;
+    layerData->effectData.resolve = nullptr;
+    if (layerData->effectData.ownsSourceTexture) {
+        layerData->effectData.ownsSourceTexture = false;
+        layerData->sizeManagedTextures.removeOne(layerData->effectData.sourceTexture);
+        delete layerData->effectData.sourceTexture;
+    }
+}
+
+void Q3DSSceneManager::activateEffect(Q3DSEffectInstance *eff3DS,
+                                      Q3DSLayerNode *layer3DS,
+                                      EffectActivationFlags flags,
+                                      Qt3DRender::QAbstractTexture *prevOutput)
 {
     Q3DSLayerAttached *layerData = static_cast<Q3DSLayerAttached *>(layer3DS->attached());
 
@@ -5228,50 +5343,30 @@ void Q3DSSceneManager::activateEffect(Q3DSEffectInstance *eff3DS, Q3DSLayerNode 
     // Set initial QParameter (uniform) values.
     updateEffect(eff3DS);
 
-    // MSAA/SSAA layers need an additional resolve step since effects can only
-    // work with non-MSAA (and 1:1 sized) textures as input.
-    const bool needsResolve = layerData->msaaSampleCount > 1 || layerData->ssaaScaleFactor > 1;
-    if (needsResolve) {
-        effData->sourceTexture = new Qt3DRender::QTexture2D(m_rootEntity);
-        m_profiler->trackNewObject(effData->sourceTexture, Q3DSProfiler::Texture2DObject,
-                                   "Resolve buffer for effect %s", eff3DS->id().constData());
-        effData->sourceTexture->setFormat(Qt3DRender::QAbstractTexture::RGBA8_UNorm);
-        effData->sourceTexture->setMinificationFilter(Qt3DRender::QAbstractTexture::Linear);
-        effData->sourceTexture->setMagnificationFilter(Qt3DRender::QAbstractTexture::Linear);
-        effData->ownsSourceTexture = true;
-
-        Qt3DRender::QRenderTarget *rtSrc = new Qt3DRender::QRenderTarget;
-        m_profiler->trackNewObject(rtSrc, Q3DSProfiler::RenderTargetObject, "Src resolve RT for effect %s",
-                                   eff3DS->id().constData());
-        Qt3DRender::QRenderTargetOutput *rtSrcOutput = new Qt3DRender::QRenderTargetOutput;
-        rtSrcOutput->setAttachmentPoint(Qt3DRender::QRenderTargetOutput::Color0);
-        rtSrcOutput->setTexture(layerData->layerTexture);
-        rtSrc->addOutput(rtSrcOutput);
-
-        Qt3DRender::QRenderTarget *rtDst = new Qt3DRender::QRenderTarget;
-        m_profiler->trackNewObject(rtDst, Q3DSProfiler::RenderTargetObject, "Dst resolve RT for effect %s",
-                                   eff3DS->id().constData());
-        Qt3DRender::QRenderTargetOutput *rtDstOutput = new Qt3DRender::QRenderTargetOutput;
-        rtDstOutput->setAttachmentPoint(Qt3DRender::QRenderTargetOutput::Color0);
-        rtDstOutput->setTexture(effData->sourceTexture);
-        rtDst->addOutput(rtDstOutput);
-
-        Qt3DRender::QBlitFramebuffer *resolve = new Qt3DRender::QBlitFramebuffer(layerData->effectData.effectRoot);
-        effData->passFgRoots.append(resolve);
-        new Qt3DRender::QNoDraw(resolve);
-        resolve->setSource(rtSrc);
-        resolve->setDestination(rtDst);
-
-        auto blitResizer = [resolve, layerData](Q3DSLayerNode *) {
-            resolve->setSourceRect(QRectF(QPointF(0, 0), layerData->layerSize * layerData->ssaaScaleFactor));
-            resolve->setDestinationRect(QRectF(QPointF(0, 0), layerData->layerSize));
-        };
-
-        // must track layer size, but without the SSAA scale
-        prepareSizeDependentTexture(effData->sourceTexture, layer3DS, blitResizer, Q3DSLayerAttached::SizeManagedTexture::IgnoreSSAA);
+    // The first effect takes either the layer's output texture or a resolved
+    // (if MSAA/SSAA) version of it as its input. The last effect outputs to
+    // effLayerTexture. Effects in-between have their own output textures while
+    // the source refers to the output of the previous effect.
+    if (flags.testFlag(EffIsFirst)) {
+        Q_ASSERT(layerData->effectData.sourceTexture);
+        effData->sourceTexture = layerData->effectData.sourceTexture;
     } else {
-        effData->sourceTexture = layerData->layerTexture;
-        effData->ownsSourceTexture = false;
+        Q_ASSERT(prevOutput);
+        effData->sourceTexture = prevOutput;
+    }
+    if (flags.testFlag(EffIsLast)) {
+        Q_ASSERT(layerData->effLayerTexture);
+        effData->outputTexture = layerData->effLayerTexture;
+        effData->ownsOutputTexture = false;
+    } else {
+        effData->outputTexture = new Qt3DRender::QTexture2D(m_rootEntity);
+        m_profiler->trackNewObject(effData->outputTexture, Q3DSProfiler::Texture2DObject,
+                                   "Output texture for effect %s", eff3DS->id().constData());
+        effData->outputTexture->setFormat(Qt3DRender::QAbstractTexture::RGBA8_UNorm);
+        effData->outputTexture->setMinificationFilter(Qt3DRender::QAbstractTexture::Linear);
+        effData->outputTexture->setMagnificationFilter(Qt3DRender::QAbstractTexture::Linear);
+        prepareSizeDependentTexture(effData->outputTexture, layer3DS);
+        effData->ownsOutputTexture = true;
     }
 
     const Q3DSEffect *effDesc = eff3DS->effect();
@@ -5315,6 +5410,7 @@ void Q3DSSceneManager::activateEffect(Q3DSEffectInstance *eff3DS, Q3DSLayerNode 
         bool stencilNeedsClear = false;
         QString depthStencilBufferName;
 
+        // figure out what the effect wants as shader inputs or when it comes to render states
         for (const Q3DSMaterial::PassCommand &cmd : pass.commands) {
             switch (cmd.type()) {
             case Q3DSMaterial::PassCommand::BufferInputType:
@@ -5329,7 +5425,7 @@ void Q3DSSceneManager::activateEffect(Q3DSEffectInstance *eff3DS, Q3DSLayerNode 
                     Qt3DRender::QParameter *texInfoParam = new Qt3DRender::QParameter;
                     texInfoParam->setName(cmd.data()->param + QLatin1String("Info"));
                     setTextureInfoUniform(texInfoParam, effData->sourceTexture);
-                    effData->sourceDepTextureInfoParams.append(texInfoParam);
+                    effData->sourceDepTextureInfoParams.append(qMakePair(texInfoParam, effData->sourceTexture));
                     paramList.append(texInfoParam);
                 } else if (effData->textureBuffers.contains(bufferName)) {
                     Q3DSEffectAttached::TextureBuffer &tb(effData->textureBuffers[bufferName]);
@@ -5373,7 +5469,7 @@ void Q3DSSceneManager::activateEffect(Q3DSEffectInstance *eff3DS, Q3DSLayerNode 
                     // sourceDepTextureInfoParams since we get size updates
                     // via the same code path.
                     setTextureInfoUniform(texInfoParam, effData->sourceTexture);
-                    effData->sourceDepTextureInfoParams.append(texInfoParam);
+                    effData->sourceDepTextureInfoParams.append(qMakePair(texInfoParam, effData->sourceTexture));
                     paramList.append(texInfoParam);
                 } else {
                     qWarning("Effect %s: Unknown depth texture sampler %s",
@@ -5489,6 +5585,7 @@ void Q3DSSceneManager::activateEffect(Q3DSEffectInstance *eff3DS, Q3DSLayerNode 
             }
         }
 
+        // input
         Qt3DRender::QAbstractTexture *passInput = nullptr;
         if (pass.input == QStringLiteral("[source]")) {
             passInput = effData->sourceTexture;
@@ -5502,10 +5599,11 @@ void Q3DSSceneManager::activateEffect(Q3DSEffectInstance *eff3DS, Q3DSLayerNode 
             }
         }
 
+        // output
         bool outputNeedsClear = false;
         Qt3DRender::QAbstractTexture *passOutput = nullptr;
         if (pass.output == QStringLiteral("[dest]")) {
-            passOutput = layerData->effLayerTexture;
+            passOutput = effData->outputTexture;
             outputNeedsClear = true;
         } else {
             if (effData->textureBuffers.contains(pass.output)) {
@@ -5519,6 +5617,7 @@ void Q3DSSceneManager::activateEffect(Q3DSEffectInstance *eff3DS, Q3DSLayerNode 
             }
         }
 
+        // shader uniforms
         Qt3DRender::QParameter *texture0Param = new Qt3DRender::QParameter;
         texture0Param->setName(QLatin1String("Texture0"));
         texture0Param->setValue(QVariant::fromValue(passInput));
@@ -5549,6 +5648,7 @@ void Q3DSSceneManager::activateEffect(Q3DSEffectInstance *eff3DS, Q3DSLayerNode 
         pd.destSizeParam = destSizeParam;
         effData->passData.append(pd);
 
+        // get the shader program
         const Q3DSMaterial::Shader &shaderProgram = !implicitPass ? shaderPrograms.value(pass.shaderName) : shaderPrograms.first();
         const QString decoratedShaderName = QString::fromUtf8(eff3DS->id()) + QLatin1Char('_') + pass.shaderName;
         const QString decoratedVertexShader = effDesc->addPropertyUniforms(shaderProgram.vertexShader);
@@ -5578,6 +5678,7 @@ void Q3DSSceneManager::activateEffect(Q3DSEffectInstance *eff3DS, Q3DSLayerNode 
 
         effData->quadEntity = buildFsQuad(quadInfo);
 
+        // framegraph
         Qt3DRender::QRenderTargetSelector *rtSel = new Qt3DRender::QRenderTargetSelector(layerData->effectData.effectRoot);
         effData->passFgRoots.append(rtSel);
         Qt3DRender::QRenderTarget *rt = new Qt3DRender::QRenderTarget;
@@ -5645,9 +5746,9 @@ void Q3DSSceneManager::deactivateEffect(Q3DSEffectInstance *eff3DS, Q3DSLayerNod
         delete tb.texture;
     }
 
-    if (effData->ownsSourceTexture) {
-        layerData->sizeManagedTextures.removeOne(effData->sourceTexture);
-        delete effData->sourceTexture;
+    if (effData->ownsOutputTexture) {
+        layerData->sizeManagedTextures.removeOne(effData->outputTexture);
+        delete effData->outputTexture;
     }
 
     *effData = Q3DSEffectAttached();
@@ -5826,8 +5927,8 @@ void Q3DSSceneManager::updateEffectForNextFrame(Q3DSEffectInstance *eff3DS, qint
         for (Qt3DRender::QParameter *param : tb.textureInfoParams)
             setTextureInfoUniform(param, tb.texture);
     }
-    for (Qt3DRender::QParameter *param : effData->sourceDepTextureInfoParams)
-        setTextureInfoUniform(param, effData->sourceTexture);
+    for (const auto &p : effData->sourceDepTextureInfoParams)
+        setTextureInfoUniform(p.first, p.second);
 }
 
 void Q3DSSceneManager::gatherLights(Q3DSGraphObject *root,
