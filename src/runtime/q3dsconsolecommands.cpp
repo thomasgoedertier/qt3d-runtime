@@ -198,7 +198,7 @@ void Q3DSConsoleCommands::setupConsole(Q3DSConsole *console)
     m_console->addCommand(Q3DSConsole::makeCommand("info", [this](const QByteArray &args) {
         Q3DSGraphObject *obj = resolveObj(args);
         if (obj) {
-            Q3DSComponentNode *owningComponent = obj->attached()->component;
+            Q3DSComponentNode *owningComponent = obj->attached() ? obj->attached()->component : nullptr;
             m_console->addMessageFmt(longResponseColor, "Owner component node: %s (%p)",
                                      owningComponent ? owningComponent->id().constData() : "",
                                      owningComponent);
