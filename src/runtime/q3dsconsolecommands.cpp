@@ -110,6 +110,17 @@ static void removeFromSlide_helper(Q3DSGraphObject *obj, Q3DSSlide *slide)
     }
 }
 
+static QVariantMap findCustomProperties(Q3DSGraphObject *obj)
+{
+    if (obj->type() == Q3DSGraphObject::CustomMaterial)
+        return static_cast<Q3DSCustomMaterialInstance *>(obj)->customProperties();
+    else if (obj->type() == Q3DSGraphObject::Effect)
+        return static_cast<Q3DSEffectInstance *>(obj)->customProperties();
+    else if (obj->type() == Q3DSGraphObject::Behavior)
+        return static_cast<Q3DSBehaviorInstance *>(obj)->customProperties();
+    return QVariantMap();
+}
+
 void Q3DSConsoleCommands::setupConsole(Q3DSConsole *console)
 {
 #if QT_CONFIG(q3ds_profileui)
@@ -207,13 +218,7 @@ void Q3DSConsoleCommands::setupConsole(Q3DSConsole *console)
                                          qPrintable(names[i]),
                                          qPrintable(Q3DS::convertFromVariant(values[i])));
             }
-            QVariantMap customProperties;
-            if (obj->type() == Q3DSGraphObject::CustomMaterial)
-                customProperties = static_cast<Q3DSCustomMaterialInstance *>(obj)->customProperties();
-            else if (obj->type() == Q3DSGraphObject::Effect)
-                customProperties = static_cast<Q3DSEffectInstance *>(obj)->customProperties();
-            else if (obj->type() == Q3DSGraphObject::Behavior)
-                customProperties = static_cast<Q3DSBehaviorInstance *>(obj)->customProperties();
+            QVariantMap customProperties = findCustomProperties(obj);
             if (!customProperties.isEmpty()) {
                 m_console->addMessageFmt(longResponseColor, "\nCustom properties:");
                 for (auto it = customProperties.cbegin(), itEnd = customProperties.cend(); it != itEnd; ++it) {
@@ -272,9 +277,17 @@ void Q3DSConsoleCommands::setupConsole(Q3DSConsole *console)
             const QByteArray name = unquote(splitArgs[1]);
             Q3DSGraphObject *obj = resolveObj(ref);
             if (obj) {
-                const int idx = obj->propertyNames().indexOf(QString::fromUtf8(name));
+                const QString nameStr = QString::fromUtf8(name);
+                const int idx = obj->propertyNames().indexOf(nameStr);
+                QVariant value;
                 if (idx >= 0) {
-                    const QString v = Q3DS::convertFromVariant(obj->propertyValues().at(idx));
+                    value = obj->propertyValues().at(idx);
+                } else {
+                    QVariantMap customProperties = findCustomProperties(obj);
+                    value = customProperties.value(nameStr);
+                }
+                if (!value.isNull()) {
+                    const QString v = Q3DS::convertFromVariant(value);
                     m_console->addMessageFmt(responseColor, "%s", qPrintable(v));
                 }
             }
