@@ -563,6 +563,11 @@ public:
     QSet<Q3DSDefaultMaterial *> referencingDefaultMaterials;
 };
 
+class Q3DSBehaviorAttached : public Q3DSGraphObjectAttached
+{
+public:
+};
+
 struct Q3DSSubPresentation
 {
     QString id;
@@ -704,6 +709,7 @@ private:
     void setLayerCameraSizeProperties(Q3DSLayerNode *layer3DS, const QVector2D &offset = QVector2D());
     void setLayerSizeProperties(Q3DSLayerNode *layer3DS);
     void setLayerProperties(Q3DSLayerNode *layer3DS);
+    void initNonNode(Q3DSGraphObject *obj);
     void buildLayerScene(Q3DSGraphObject *obj, Q3DSLayerNode *layer3DS, Qt3DCore::QEntity *parent);
     void setSsaoTextureEnabled(Q3DSLayerNode *layer3DS, bool enabled);
     void updateAoParameters(Q3DSLayerNode *layer3DS);

@@ -1324,9 +1324,19 @@ void Q3DSEngine::loadBehaviorInstance(Q3DSBehaviorInstance *behaviorInstance,
                                       Q3DSUipPresentation *pres,
                                       BehaviorLoadedCallback callback)
 {
+    auto handleError = [behaviorInstance, callback](const QString &error) {
+        qCWarning(lcUip, "Failed to load QML code for behavior instance %s: %s",
+                  behaviorInstance->id().constData(), qPrintable(error));
+        if (callback)
+            callback(behaviorInstance, error);
+    };
+
+    QElapsedTimer loadTime;
+    loadTime.start();
+
     const Q3DSBehavior *behavior = behaviorInstance->behavior();
     if (behavior->qmlCode().isEmpty()) {
-        callback(behaviorInstance, QLatin1String("No QML source code present"));
+        handleError(QLatin1String("No QML source code present"));
         return;
     }
 
@@ -1341,13 +1351,13 @@ void Q3DSEngine::loadBehaviorInstance(Q3DSBehaviorInstance *behaviorInstance,
         QQmlContext *context = new QQmlContext(m_behaviorQmlEngine, component);
         QObject *obj = component->beginCreate(context);
         if (!obj) {
-            qCWarning(lcUip, "Failed to create behavior object");
+            handleError(QLatin1String("Failed to create behavior object"));
             delete context;
             return;
         }
         h.object = qobject_cast<Q3DSBehaviorObject *>(obj);
         if (!h.object) {
-            qCWarning(lcUip, "QML root item is not a Behavior");
+            handleError(QLatin1String("QML root item is not a Behavior"));
             delete obj;
             delete context;
             return;
@@ -1358,7 +1368,12 @@ void Q3DSEngine::loadBehaviorInstance(Q3DSBehaviorInstance *behaviorInstance,
 
         m_behaviorHandles.insert(behaviorInstance, h);
 
-        callback(behaviorInstance, QString());
+        m_behaviorLoadTime += loadTime.elapsed();
+        qCDebug(lcUip, "Loaded QML code for behavior %s in %lld ms",
+                behaviorInstance->id().constData(), loadTime.elapsed());
+
+        if (callback)
+            callback(behaviorInstance, QString());
     };
 
     if (component->isReady()) {
@@ -1369,12 +1384,12 @@ void Q3DSEngine::loadBehaviorInstance(Q3DSBehaviorInstance *behaviorInstance,
             if (status == QQmlComponent::Status::Ready) {
                 buildComponent();
             } else {
-                callback(behaviorInstance, component->errorString());
+                handleError(component->errorString());
                 delete component;
             }
         });
     } else {
-        callback(behaviorInstance, component->errorString());
+        handleError(component->errorString());
         delete component;
     }
 }
@@ -1383,6 +1398,10 @@ void Q3DSEngine::unloadBehaviorInstance(Q3DSBehaviorInstance *behaviorInstance)
 {
     auto it = m_behaviorHandles.find(behaviorInstance);
     if (it != m_behaviorHandles.end()) {
+        if (it->behaviorInstance && it->object) {
+            qDebug(lcUip, "Unloading QML code for behavior %s", it->behaviorInstance->id().constData());
+            emit it->object->deactivate();
+        }
         destroyBehaviorHandle(*it);
         m_behaviorHandles.erase(it);
     }
@@ -1398,14 +1417,20 @@ void Q3DSEngine::loadBehaviors()
 {
     m_behaviorLoadTime = 0;
 
-    QVector<QPair<Q3DSBehaviorInstance *, Q3DSUipPresentation *> > behaviorInstances;
+    struct BehavInstDesc {
+        Q3DSBehaviorInstance *behaviorInstance;
+        Q3DSUipPresentation *presentation;
+    };
+    QVector<BehavInstDesc> behaviorInstances;
     for (int i = 0, ie = presentationCount(); i != ie; ++i) {
-        Q3DSUipPresentation *pres = presentation(i);
-        Q3DSUipPresentation::forAllObjectsOfType(pres->scene(),
+        BehavInstDesc desc;
+        desc.presentation = presentation(i);
+        Q3DSUipPresentation::forAllObjectsOfType(desc.presentation->scene(),
                                                  Q3DSGraphObject::Behavior,
-                                                 [&behaviorInstances, pres](Q3DSGraphObject *obj)
+                                                 [&behaviorInstances, &desc](Q3DSGraphObject *obj)
         {
-            behaviorInstances.append({ static_cast<Q3DSBehaviorInstance *>(obj), pres });
+            desc.behaviorInstance = static_cast<Q3DSBehaviorInstance *>(obj);
+            behaviorInstances.append(desc);
         });
     }
 
@@ -1421,23 +1446,9 @@ void Q3DSEngine::loadBehaviors()
     qmlRegisterType<Q3DSBehaviorObject, 1>("QtStudio3D.Behavior", 1, 1, "Behavior");
     qmlRegisterType<Q3DSBehaviorObject, 2>("QtStudio3D.Behavior", 2, 0, "Behavior");
 
-    for (auto biPresPair : behaviorInstances) {
-        Q3DSBehaviorInstance *behaviorInstance = biPresPair.first;
-        QElapsedTimer loadTime;
-        loadTime.start();
-        loadBehaviorInstance(behaviorInstance,
-                             biPresPair.second,
-                             [this, loadTime](Q3DSBehaviorInstance *behaviorInstance, const QString &error)
-        {
-            if (error.isEmpty()) {
-                m_behaviorLoadTime += loadTime.elapsed();
-                qCDebug(lcUip, "Loaded QML code for behavior %s in %lld ms",
-                        behaviorInstance->id().constData(), loadTime.elapsed());
-            } else {
-                qCWarning(lcUip, "Failed to load behavior QML code: %s",
-                          qPrintable(error));
-            }
-        });
+    for (const BehavInstDesc &desc : behaviorInstances) {
+        if (desc.behaviorInstance->active()) // skip if eyeball==false
+            loadBehaviorInstance(desc.behaviorInstance, desc.presentation);
     }
 }
 
@@ -1461,7 +1472,7 @@ void Q3DSEngine::behaviorFrameUpdate(float dt)
     for (auto &h : m_behaviorHandles) {
         h.updateProperties();
 
-        const bool active = true; // ### what is this?
+        const bool active = h.behaviorInstance->active();
 
         if (active && !h.initialized) {
             h.initialized = true;
@@ -1473,7 +1484,7 @@ void Q3DSEngine::behaviorFrameUpdate(float dt)
             if (active)
                 emit h.object->activate();
             else
-                emit h.object->deactivate();
+                emit h.object->deactivate(); // this is unreachable in practice, emitted from unloadBehaviorInstance instead
         }
 
         if (active) {

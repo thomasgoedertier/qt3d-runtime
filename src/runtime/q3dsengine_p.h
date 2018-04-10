@@ -170,7 +170,7 @@ public:
     typedef std::function<void(Q3DSBehaviorInstance *, const QString &)> BehaviorLoadedCallback;
     void loadBehaviorInstance(Q3DSBehaviorInstance *behaviorInstance,
                               Q3DSUipPresentation *pres,
-                              BehaviorLoadedCallback callback);
+                              BehaviorLoadedCallback callback = nullptr);
     void unloadBehaviorInstance(Q3DSBehaviorInstance *behaviorInstance);
     const BehaviorMap &behaviorHandles() const { return m_behaviorHandles; }
 

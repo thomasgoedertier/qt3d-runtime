@@ -203,7 +203,8 @@ public:
         LayerDirty = 0x800,
         CustomMaterialDirty = 0x1000,
         EffectDirty = 0x2000,
-        AliasDirty = 0x4000
+        AliasDirty = 0x4000,
+        BehaviorDirty = 0x8000
     };
     Q_DECLARE_FLAGS(FrameDirtyFlags, FrameDirtyFlag)
 
@@ -1852,18 +1853,24 @@ private:
 class Q3DSV_PRIVATE_EXPORT Q3DSBehaviorInstance : public Q3DSGraphObject
 {
 public:
+    enum BehaviorInstancePropertyChanges {
+        EyeBallChanges = 1 << 0
+    };
+
     Q3DSBehaviorInstance();
     Q3DSBehaviorInstance(const Q3DSBehavior &behavior);
 
     void setProperties(const QXmlStreamAttributes &attrs, PropSetFlags flags) override;
     void applyPropertyChanges(const Q3DSPropertyChangeList &changeList) override;
     void resolveReferences(Q3DSUipPresentation &pres) override;
+    int mapChangeFlags(const Q3DSPropertyChangeList &changeList) override;
 
     QStringList propertyNames() const override;
     QVariantList propertyValues() const override;
 
     // Properties
     const Q3DSBehavior *behavior() const { return &m_behavior; }
+    bool active() const { return m_active; }
 
     QVariantMap customProperties() const { return m_behaviorPropertyVals; }
     QVariant customProperty(const QString &name) const { return m_behaviorPropertyVals.value(name); }
@@ -1876,6 +1883,7 @@ private:
     QString m_behavior_unresolved;
     Q3DSBehavior m_behavior;
     bool m_behaviorIsResolved = false;
+    bool m_active = true;
     Q3DSPropertyChangeList m_pendingCustomProperties;
     QVariantMap m_behaviorPropertyVals;
 };

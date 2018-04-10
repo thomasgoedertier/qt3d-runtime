@@ -2381,6 +2381,8 @@ void Q3DSBehaviorInstance::setProps(const V &attrs, PropSetFlags flags)
     const QString typeName = QStringLiteral("Behavior");
     parseProperty(attrs, flags, typeName, QStringLiteral("class"), &m_behavior_unresolved);
 
+    parseProperty(attrs, flags, typeName, QStringLiteral("eyeball"), &m_active);
+
     // Different default value.
     parseProperty(attrs, flags, typeName, QStringLiteral("name"), &m_name);
 }
@@ -2446,17 +2448,27 @@ void Q3DSBehaviorInstance::resolveReferences(Q3DSUipPresentation &pres)
     }
 }
 
+int Q3DSBehaviorInstance::mapChangeFlags(const Q3DSPropertyChangeList &changeList)
+{
+    int changeFlags = Q3DSGraphObject::mapChangeFlags(changeList);
+    for (auto it = changeList.cbegin(), itEnd = changeList.cend(); it != itEnd; ++it) {
+        if (it->nameStr() == QStringLiteral("eyeball"))
+            changeFlags |= EyeBallChanges;
+    }
+    return changeFlags;
+}
+
 QStringList Q3DSBehaviorInstance::propertyNames() const
 {
     QStringList s = Q3DSGraphObject::propertyNames();
-    s << QLatin1String("class");
+    s << QLatin1String("class") << QLatin1String("eyeball");
     return s;
 }
 
 QVariantList Q3DSBehaviorInstance::propertyValues() const
 {
     QVariantList s = Q3DSGraphObject::propertyValues();
-    s << m_behavior_unresolved;
+    s << m_behavior_unresolved << m_active;
     return s;
 }
 

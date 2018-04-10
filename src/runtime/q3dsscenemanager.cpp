@@ -715,6 +715,14 @@ Q3DSSceneManager::Scene Q3DSSceneManager::buildScene(Q3DSUipPresentation *presen
             buildSubPresentationLayer(layer3DS, m_outputPixelSize);
     });
 
+    // The Scene object may have non-layer children, for example behavior instances.
+    Q3DSGraphObject *sceneChild = m_scene->firstChild();
+    while (sceneChild) {
+        if (sceneChild->type() != Q3DSGraphObject::Layer)
+            initNonNode(sceneChild);
+        sceneChild = sceneChild->nextSibling();
+    }
+
     // Onscreen (or not) compositor (still offscreen when this is a subpresentation)
     buildCompositor(frameGraphRoot, m_rootEntity);
 
@@ -3435,6 +3443,18 @@ Qt3DCore::QEntity *Q3DSSceneManager::buildFsQuad(const FsQuadParams &info)
     return fsQuadEntity;
 }
 
+void Q3DSSceneManager::initNonNode(Q3DSGraphObject *obj)
+{
+    obj->addPropertyChangeObserver(std::bind(&Q3DSSceneManager::handlePropertyChange, this,
+                                             std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
+    obj->addEventHandler(QString(), std::bind(&Q3DSSceneManager::handleEvent, this, std::placeholders::_1));
+
+    // behaviors' attached object is handled here since behavior instances may
+    // never hit buildLayerScene if the parent is the Scene
+    if (obj->type() == Q3DSGraphObject::Behavior)
+        obj->setAttached(new Q3DSBehaviorAttached);
+}
+
 void Q3DSSceneManager::buildLayerScene(Q3DSGraphObject *obj, Q3DSLayerNode *layer3DS, Qt3DCore::QEntity *parent)
 {
     if (!obj)
@@ -3449,9 +3469,7 @@ void Q3DSSceneManager::buildLayerScene(Q3DSGraphObject *obj, Q3DSLayerNode *laye
     };
 
     if (!obj->isNode()) {
-        obj->addPropertyChangeObserver(std::bind(&Q3DSSceneManager::handlePropertyChange, this,
-                                                 std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
-        obj->addEventHandler(QString(), std::bind(&Q3DSSceneManager::handleEvent, this, std::placeholders::_1));
+        initNonNode(obj);
 
         if (obj->type() == Q3DSGraphObject::Effect)
             buildEffect(static_cast<Q3DSEffectInstance *>(obj), layer3DS);
@@ -3817,9 +3835,11 @@ void Q3DSSceneManager::updateText(Q3DSTextNode *text3DS, bool needsNewImage)
         if (!sz.isEmpty()) {
             data->mesh->setWidth(sz.width());
             data->mesh->setHeight(sz.height());
-            data->textureImage->setSize(sz);
+            if (data->textureImage->size() != sz)
+                data->textureImage->setSize(sz); // this repaints, no need for update() afterwards
+            else
+                data->textureImage->update();
         }
-        data->textureImage->update();
     }
 }
 
@@ -6167,6 +6187,12 @@ void Q3DSSceneManager::handlePropertyChange(Q3DSGraphObject *obj, const QSet<QSt
         data->frameChangeFlags |= changeFlags;
     }
         break;
+    case Q3DSGraphObject::Behavior:
+    {
+        data->frameDirty |= Q3DSGraphObjectAttached::BehaviorDirty;
+        data->frameChangeFlags |= changeFlags;
+    }
+        break;
     case Q3DSGraphObject::Image:
     {
         data->frameDirty |= Q3DSGraphObjectAttached::ImageDirty;
@@ -6566,6 +6592,22 @@ void Q3DSSceneManager::updateSubTreeRecursive(Q3DSGraphObject *obj)
             updateEffect(eff3DS);
             m_wasDirty = true;
             markLayerForObjectDirty(eff3DS);
+        }
+    }
+        break;
+    case Q3DSGraphObject::Behavior:
+    {
+        Q3DSBehaviorInstance *behaviorInstance = static_cast<Q3DSBehaviorInstance *>(obj);
+        Q3DSBehaviorAttached *data = static_cast<Q3DSBehaviorAttached *>(behaviorInstance->attached());
+        if (data && (data->frameDirty & Q3DSGraphObjectAttached::BehaviorDirty)) {
+            const bool activeFlagChanges = data->frameChangeFlags & Q3DSBehaviorInstance::EyeBallChanges;
+            if (activeFlagChanges) {
+                if (behaviorInstance->active())
+                    m_engine->loadBehaviorInstance(behaviorInstance, m_presentation);
+                else
+                    m_engine->unloadBehaviorInstance(behaviorInstance);
+            }
+            // ignore layer dirty flags
         }
     }
         break;
@@ -7125,8 +7167,9 @@ void Q3DSSceneManager::runAction(const Q3DSAction &action)
                 qmlObj = handles[bi].object;
             if (qmlObj)
                 qmlObj->call(action.behaviorHandler);
-            else
-                qWarning("BehaviorHandler: BehaviorInstance not loaded");
+            // else the behavior instance is not loaded (QML object is not
+            // active) - this is fine and not an error when the behavior instance
+            // has active (eyeball) == false
         } else {
             qWarning("BehaviorHandler: Invalid target object");
         }
