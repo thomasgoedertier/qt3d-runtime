@@ -36,6 +36,8 @@
 #include <QFile>
 #include <QDir>
 
+#include <Qt3DRender/QParameter>
+
 QT_BEGIN_NAMESPACE
 
 Q3DSConsoleCommands::Q3DSConsoleCommands(Q3DSSceneManager *mainPresSceneManager)
@@ -220,6 +222,22 @@ void Q3DSConsoleCommands::setupConsole(Q3DSConsole *console)
                                          qPrintable(printMatrix(d->globalTransform)),
                                          d->globalOpacity,
                                          d->globalVisibility);
+                if (d->lightsData) {
+                    auto printLightSources = [this](const QVector<Q3DSLightSource> &lightSources) {
+                        for (int i = 0; i < lightSources.count(); ++i) {
+                            const Q3DSLightSource &lightSource(lightSources.at(i));
+                            m_console->addMessageFmt(longResponseColor, "  %d:\n    global position %s\n    global direction %s\n",
+                                                     i,
+                                                     qPrintable(Q3DS::convertFromVariant(lightSource.positionParam->value())),
+                                                     qPrintable(Q3DS::convertFromVariant(lightSource.directionParam->value())));
+                        }
+                    };
+                    m_console->addMessageFmt(longResponseColor, "%d lights for this subtree\nNon-area lights:\n",
+                                             d->lightsData->allLights.count());
+                    printLightSources(d->lightsData->nonAreaLights);
+                    m_console->addMessageFmt(longResponseColor, "Area lights:\n");
+                    printLightSources(d->lightsData->areaLights);
+                }
             } else if (obj->type() == Q3DSGraphObject::Slide) {
                 auto slide = static_cast<Q3DSSlide *>(obj);
                 m_console->addMessageFmt(longResponseColor,
