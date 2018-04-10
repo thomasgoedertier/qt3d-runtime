@@ -1868,6 +1868,9 @@ public:
     QStringList propertyNames() const override;
     QVariantList propertyValues() const override;
 
+    QString qmlErrorString() const { return m_qmlErrorString; }
+    void setQmlErrorString(const QString &error) { m_qmlErrorString = error; }
+
     // Properties
     const Q3DSBehavior *behavior() const { return &m_behavior; }
     bool active() const { return m_active; }
@@ -1886,6 +1889,7 @@ private:
     bool m_active = true;
     Q3DSPropertyChangeList m_pendingCustomProperties;
     QVariantMap m_behaviorPropertyVals;
+    QString m_qmlErrorString;
 };
 
 class Q3DSV_PRIVATE_EXPORT Q3DSAliasNode : public Q3DSNode

@@ -73,6 +73,7 @@ public:
 private:
     void addQt3DObjectsWindow();
     void addLayerWindow();
+    void addBehaviorWindow();
     void addLogWindow();
     void addConsoleWindow();
     void addFrameGraphWindow();
@@ -93,6 +94,7 @@ private:
 
     bool m_qt3dObjectsWindowOpen = false;
     bool m_layerWindowOpen = false;
+    bool m_behaviorWindowOpen = false;
     bool m_logWindowOpen = false;
     bool m_consoleWindowOpen = false;
     bool m_logScrollToBottomOnChange = true;
@@ -310,6 +312,8 @@ void Q3DSProfileView::frame()
             m_qt3dObjectsWindowOpen = !m_qt3dObjectsWindowOpen;
         if (ImGui::Button("Qt 3D frame graph"))
             m_frameGraphWindowOpen = !m_frameGraphWindowOpen;
+        if (ImGui::Button("Behavior list"))
+            m_behaviorWindowOpen = !m_behaviorWindowOpen;
     }
 
     if (ImGui::CollapsingHeader("Alter scene"))
@@ -322,6 +326,9 @@ void Q3DSProfileView::frame()
 
     if (m_layerWindowOpen)
         addLayerWindow();
+
+    if (m_behaviorWindowOpen)
+        addBehaviorWindow();
 
     if (m_logWindowOpen)
         addLogWindow();
@@ -644,6 +651,46 @@ void Q3DSProfileView::addLayerWindow()
            "Therefore a large number of layers lead to lower performance. The size matters too since "
            "a larger layer means more fragment processing work for the GPU. Antialiasing methods can also "
            "heavily affect the performance.");
+
+    ImGui::End();
+}
+
+void Q3DSProfileView::addBehaviorWindow()
+{
+    ImGui::SetNextWindowSize(ImVec2(640, 200), ImGuiCond_FirstUseEver);
+    ImGui::Begin("Behaviors", &m_behaviorWindowOpen, ImGuiWindowFlags_NoSavedSettings);
+
+    addPresentationSelector();
+
+    ImGui::Text("behaviors");
+    ImGui::Columns(3, "behaviorcols");
+    ImGui::Separator();
+    ImGui::Text("ID"); ImGui::NextColumn();
+    ImGui::Text("Active");
+    addTip("Corresponds to the eyeball in the editor. "
+           "Inactive behavior instances have no QML component and QObject instantiated. "
+           "Note that only behavior instances with no error (next column) are really alive.");
+    ImGui::NextColumn();
+    ImGui::Text("QML error string"); ImGui::NextColumn();
+    ImGui::Separator();
+
+    Q3DSProfiler *p = selectedProfiler();
+    Q3DSUipPresentation::forAllObjectsOfType(p->presentation()->scene(), Q3DSGraphObject::Behavior, [&](Q3DSGraphObject *obj) {
+        Q3DSBehaviorInstance *behaviorInstance = static_cast<Q3DSBehaviorInstance *>(obj);
+        ImGui::Text("%s", behaviorInstance->id().constData());
+        ImGui::NextColumn();
+        ImGui::Text("%s", behaviorInstance->active() ? "true" : "false");
+        ImGui::NextColumn();
+        QString err = behaviorInstance->qmlErrorString();
+        for (int i = 0; i < err.count(); ++i) {
+            if (i && !(i % 60))
+                err.insert(i, QLatin1Char('\n'));
+        }
+        ImGui::Text("%s", qPrintable(err));
+        ImGui::NextColumn();
+    });
+    ImGui::Columns(1);
+    ImGui::Separator();
 
     ImGui::End();
 }

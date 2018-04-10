@@ -1327,6 +1327,7 @@ void Q3DSEngine::loadBehaviorInstance(Q3DSBehaviorInstance *behaviorInstance,
     auto handleError = [behaviorInstance, callback](const QString &error) {
         qCWarning(lcUip, "Failed to load QML code for behavior instance %s: %s",
                   behaviorInstance->id().constData(), qPrintable(error));
+        behaviorInstance->setQmlErrorString(error);
         if (callback)
             callback(behaviorInstance, error);
     };
