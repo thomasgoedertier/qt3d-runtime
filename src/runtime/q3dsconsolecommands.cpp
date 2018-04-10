@@ -207,6 +207,21 @@ void Q3DSConsoleCommands::setupConsole(Q3DSConsole *console)
                                          qPrintable(names[i]),
                                          qPrintable(Q3DS::convertFromVariant(values[i])));
             }
+            QVariantMap customProperties;
+            if (obj->type() == Q3DSGraphObject::CustomMaterial)
+                customProperties = static_cast<Q3DSCustomMaterialInstance *>(obj)->customProperties();
+            else if (obj->type() == Q3DSGraphObject::Effect)
+                customProperties = static_cast<Q3DSEffectInstance *>(obj)->customProperties();
+            else if (obj->type() == Q3DSGraphObject::Behavior)
+                customProperties = static_cast<Q3DSBehaviorInstance *>(obj)->customProperties();
+            if (!customProperties.isEmpty()) {
+                m_console->addMessageFmt(longResponseColor, "\nCustom properties:");
+                for (auto it = customProperties.cbegin(), itEnd = customProperties.cend(); it != itEnd; ++it) {
+                    m_console->addMessageFmt(longResponseColor, "%s = %s",
+                                             qPrintable(it.key()),
+                                             qPrintable(Q3DS::convertFromVariant(it.value())));
+                }
+            }
         }
     }, Q3DSConsole::CmdRecordable));
     m_console->addCommand(Q3DSConsole::makeCommand("info", [this](const QByteArray &args) {
