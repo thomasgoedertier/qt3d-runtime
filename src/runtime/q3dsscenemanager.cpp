@@ -5284,6 +5284,8 @@ void Q3DSSceneManager::ensureEffectSource(Q3DSLayerNode *layer3DS)
         // must track layer size, but without the SSAA scale
         prepareSizeDependentTexture(layerData->effectData.sourceTexture, layer3DS, blitResizer,
                                     Q3DSLayerAttached::SizeManagedTexture::IgnoreSSAA);
+        // set initial blit rects
+        blitResizer(layer3DS);
     } else {
         layerData->effectData.sourceTexture = layerData->layerTexture;
         layerData->effectData.ownsSourceTexture = false;
