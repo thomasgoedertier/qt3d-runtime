@@ -184,7 +184,7 @@ void Q3DSBehaviorObject::setAttribute(const QString &handle, const QString &attr
                 default:
                     break;
                 }
-                cl.append(Q3DSPropertyChange::fromVariant(attribute, newValue));
+                cl.append(Q3DSPropertyChange::fromVariant(vecCompRef[0], newValue));
             }
         }
     } else {
