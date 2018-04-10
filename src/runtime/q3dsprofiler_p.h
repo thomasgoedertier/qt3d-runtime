@@ -107,7 +107,7 @@ public:
     qint64 totalParseBuildTime() const { return m_totalParseBuildTime; }
     void reportBehaviorStats(qint64 loadTimeMs, int loadCount);
     qint64 behaviorLoadTime() const { return m_behaviorLoadTime; }
-    int behaviorLoadCount() const { return m_behaviorLoadCount; }
+    int behaviorActiveCount() const { return m_behaviorActiveCount; }
     void reportTimeAfterBuildUntilFirstFrameAction(qint64 ms);
     qint64 timeAfterBuildUntilFirstFrameAction() const { return m_firstFrameActionTime; }
 
@@ -154,7 +154,7 @@ private:
     QString m_presentationName;
     qint64 m_totalParseBuildTime = 0;
     qint64 m_behaviorLoadTime = 0;
-    int m_behaviorLoadCount = 0;
+    int m_behaviorActiveCount = 0;
     qint64 m_firstFrameActionTime = 0;
     QHash<Q3DSMesh *, SubMeshData> m_subMeshData;
     QVector<Q3DSProfiler *> m_subPresProfilers;

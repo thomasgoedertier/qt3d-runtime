@@ -6740,10 +6740,10 @@ void Q3DSFrameUpdater::frameAction(float dt)
             // total parse/build time is taken from the main presentation (since
             // the time includes all subpresentations too)
             m_sceneManager->m_profiler->reportTotalParseBuildTime(m_sceneManager->m_engine->totalLoadTimeMsecs());
-            m_sceneManager->m_profiler->reportBehaviorStats(m_sceneManager->m_engine->behaviorLoadTimeMsecs(),
-                                                            m_sceneManager->m_engine->behaviorHandles().count());
         }
     }
+    m_sceneManager->m_profiler->reportBehaviorStats(m_sceneManager->m_engine->behaviorLoadTimeMsecs(),
+                                                    m_sceneManager->m_engine->behaviorHandles().count());
 
     static const bool animDebug = qEnvironmentVariableIntValue("Q3DS_DEBUG") >= 3;
     if (Q_UNLIKELY(animDebug))
