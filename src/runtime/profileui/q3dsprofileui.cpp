@@ -639,8 +639,12 @@ void Q3DSProfileView::addLayerWindow()
         ImGui::NextColumn();
         ImGui::Text("%s", data->wasDirty ? "true" : "false");
         ImGui::NextColumn();
-        const bool isCached = data->layerFgRoot->parentNode() == data->layerFgDummyParent;
-        ImGui::Text("%s", isCached ? "true" : "false");
+        if (data->layerFgRoot) {
+            const bool isCached = data->layerFgRoot->parentNode() == data->layerFgDummyParent;
+            ImGui::Text("%s", isCached ? "true" : "false");
+        } else {
+            ImGui::Text("N/A");
+        }
         ImGui::NextColumn();
     });
     ImGui::Columns(1);

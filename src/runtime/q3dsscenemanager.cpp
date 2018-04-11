@@ -6376,6 +6376,8 @@ void Q3DSSceneManager::prepareNextFrame()
     static const bool layerCacheDebug = qEnvironmentVariableIntValue("Q3DS_DEBUG") >= 2;
     Q3DSUipPresentation::forAllLayers(m_scene, [this](Q3DSLayerNode *layer3DS) {
         Q3DSLayerAttached *layerData = layer3DS->attached<Q3DSLayerAttached>();
+        if (!layerData->layerFgRoot) // layers with a subpresentation won't have this
+            return;
         if (!layerData->wasDirty && !m_layerUncachePending) {
             ++layerData->nonDirtyRenderCount;
             if (layerData->nonDirtyRenderCount > LAYER_CACHING_THRESHOLD) {
