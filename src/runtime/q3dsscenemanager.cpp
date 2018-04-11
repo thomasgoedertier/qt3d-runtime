@@ -6699,6 +6699,12 @@ void Q3DSSceneManager::setNodeVisibility(Q3DSNode *node, bool visible)
     if (!data->entity)
         return;
 
+    // Attempting to manage visibility by QLayer tags for nodes that are not
+    // backed by a dedicated entity (3DS layers for instance) is an error and
+    // cannot happen. The concept of QLayer tags is only suitable for "normal" nodes.
+    Q_ASSERT_X(data->entity != m_rootEntity,"Q3DSSceneManager::setNodeVisibility",
+               "Attempted to manage visibility of a node with non-dedicated entity by QLayer. This should not happen.");
+
     Q3DSLayerAttached *layerData = static_cast<Q3DSLayerAttached *>(data->layer3DS->attached());
     if (!layerData->opaqueTag || !layerData->transparentTag) // bail out for subpresentation layers
         return;

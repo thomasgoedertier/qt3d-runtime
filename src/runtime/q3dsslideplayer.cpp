@@ -627,7 +627,7 @@ void Q3DSSlidePlayer::setSlideTime(Q3DSSlide *slide, float time, bool parentVisi
     const bool forceUpdate = parentVisible &&
         (qFuzzyCompare(time, 0.0f) || qFuzzyCompare(time, -1.0f));
     for (Q3DSGraphObject *obj : slide->objects()) {
-        if (!obj->isNode() || obj->type() == Q3DSGraphObject::Camera)
+        if (!obj->isNode() || obj->type() == Q3DSGraphObject::Camera || obj->type() == Q3DSGraphObject::Layer)
             continue;
 
         Q3DSNode *node = static_cast<Q3DSNode *>(obj);
