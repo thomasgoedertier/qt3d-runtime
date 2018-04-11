@@ -614,8 +614,8 @@ Q3DSSceneManager::Scene Q3DSSceneManager::buildScene(Q3DSUipPresentation *presen
     m_currentSlide = nullptr;
     m_pendingNodeShow.clear();
     m_pendingNodeHide.clear();
-    m_subPresLayers.clear();
-    m_subPresImages.clear();
+    m_pendingSubPresLayers.clear();
+    m_pendingSubPresImages.clear();
     m_subPresentations.clear();
     m_profiler->resetForNewScene(this);
 
@@ -799,7 +799,7 @@ void Q3DSSceneManager::finalizeMainScene(const QVector<Q3DSSubPresentation> &sub
 
     m_subPresentations = subPresentations;
 
-    for (Q3DSLayerNode *layer3DS : m_subPresLayers) {
+    for (Q3DSLayerNode *layer3DS : m_pendingSubPresLayers) {
         const QString subPresId = layer3DS->sourcePath();
         Q_ASSERT(!subPresId.isEmpty());
         auto it = std::find_if(subPresentations.cbegin(), subPresentations.cend(),
@@ -816,8 +816,11 @@ void Q3DSSceneManager::finalizeMainScene(const QVector<Q3DSSubPresentation> &sub
         }
     }
 
-    for (auto p : m_subPresImages)
+    for (auto p : m_pendingSubPresImages)
         setImageTextureFromSubPresentation(p.first, p.second);
+
+    m_pendingSubPresLayers.clear();
+    m_pendingSubPresImages.clear();
 
     for (const Q3DSSubPresentation &subPres : m_subPresentations) {
         if (!subPres.sceneManager)
@@ -1154,8 +1157,6 @@ Qt3DRender::QAbstractTexture *Q3DSSceneManager::dummyTexture()
 
 void Q3DSSceneManager::buildSubPresentationLayer(Q3DSLayerNode *layer3DS, const QSize &parentSize)
 {
-    m_subPresLayers.insert(layer3DS);
-
     Q3DSLayerAttached *data = new Q3DSLayerAttached;
     data->entity = m_rootEntity; // must set an entity to to make Q3DSLayerNode properties animatable, just use the root
     data->layer3DS = layer3DS;
@@ -1166,6 +1167,7 @@ void Q3DSSceneManager::buildSubPresentationLayer(Q3DSLayerNode *layer3DS, const 
 
     // leave compositorSourceParam dummy for now, we don't know the actual texture yet
     data->compositorSourceParam = new Qt3DRender::QParameter(QLatin1String("tex"), dummyTexture());
+    m_pendingSubPresLayers.insert(layer3DS);
 
     // subpresentations associated with layers follow the size of the layer
     data->updateSubPresentationSize = [this, layer3DS, data]() {
@@ -2788,9 +2790,6 @@ static const int MAX_AA_LEVELS = 8;
 // each progressive AA enabled layer.
 void Q3DSSceneManager::updateProgressiveAA(Q3DSLayerNode *layer3DS)
 {
-    if (m_flags.testFlag(SubPresentation)) // no PAA for subpresentation layers
-        return;
-
     Q3DSLayerAttached *data = static_cast<Q3DSLayerAttached *>(layer3DS->attached());
     if (!data || !data->cam3DS)
         return;
@@ -4351,7 +4350,7 @@ void Q3DSSceneManager::updateTextureParameters(Q3DSTextureParameters &texturePar
             // won't yet have the subpresentations if this is still during the building of the main one
             if (m_subPresentations.isEmpty()) {
                 textureParameters.sampler->setValue(QVariant::fromValue(dummyTexture()));
-                m_subPresImages.append(qMakePair(textureParameters.sampler, image));
+                m_pendingSubPresImages.append(qMakePair(textureParameters.sampler, image));
             } else {
                 setImageTextureFromSubPresentation(textureParameters.sampler, image);
             }
@@ -4412,6 +4411,8 @@ void Q3DSSceneManager::setImageTextureFromSubPresentation(Qt3DRender::QParameter
         qCDebug(lcScene, "Directing subpresentation %s to image %s",
                 qPrintable(image->subPresentation()), image->id().constData());
         sampler->setValue(QVariant::fromValue(it->colorTex));
+        qCDebug(lcPerf, "Using a subpresentation as texture map (not as layer) makes layer caching in main presentation less efficient");
+        m_layerCacheDeps.insert(it->sceneManager);
     } else {
         qCDebug(lcScene, "Subpresentation %s for image %s not found",
                 qPrintable(image->subPresentation()), image->id().constData());
@@ -6378,7 +6379,19 @@ void Q3DSSceneManager::prepareNextFrame()
         Q3DSLayerAttached *layerData = layer3DS->attached<Q3DSLayerAttached>();
         if (!layerData->layerFgRoot) // layers with a subpresentation won't have this
             return;
-        if (!layerData->wasDirty && !m_layerUncachePending) {
+
+        // m_layerCacheDeps holds scenemanagers for subpresentations whose
+        // result is used as texture maps by us. Best we can do is to check the
+        // global dirty flag and prevent any layer caching to kick in.
+        bool subDirty = false;
+        for (Q3DSSceneManager *subSceneManager : m_layerCacheDeps) {
+            if (subSceneManager->m_wasDirty) {
+                subDirty = true;
+                break;
+            }
+        }
+
+        if (!layerData->wasDirty && !m_layerUncachePending && !subDirty) {
             ++layerData->nonDirtyRenderCount;
             if (layerData->nonDirtyRenderCount > LAYER_CACHING_THRESHOLD) {
                 layerData->nonDirtyRenderCount = 0;

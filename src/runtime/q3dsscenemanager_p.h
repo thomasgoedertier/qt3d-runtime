@@ -831,8 +831,8 @@ private:
     QSet<Q3DSNode *> m_pendingNodeHide;
     Qt3DRender::QLayer *m_fsQuadTag = nullptr;
     QStack<Q3DSComponentNode *> m_componentNodeStack;
-    QSet<Q3DSLayerNode *> m_subPresLayers;
-    QVector<QPair<Qt3DRender::QParameter *, Q3DSImage *> > m_subPresImages;
+    QSet<Q3DSLayerNode *> m_pendingSubPresLayers;
+    QVector<QPair<Qt3DRender::QParameter *, Q3DSImage *> > m_pendingSubPresImages;
     QVector<Q3DSSubPresentation> m_subPresentations;
     Qt3DRender::QAbstractTexture *m_dummyTex = nullptr;
     bool m_wasDirty = false;
@@ -850,6 +850,7 @@ private:
     bool m_inDestructor = false;
     bool m_layerCaching = true;
     bool m_layerUncachePending = false;
+    QSet<Q3DSSceneManager *> m_layerCacheDeps;
 
     friend class Q3DSFrameUpdater;
     friend class Q3DSProfiler;

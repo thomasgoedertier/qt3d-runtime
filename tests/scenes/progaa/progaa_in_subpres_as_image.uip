@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<UIP version="3" >
+	<Project >
+		<ProjectSettings author="" company="" presentationWidth="800" presentationHeight="480" maintainAspect="False" >
+			<CustomColors count="16" >#ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff</CustomColors>
+		</ProjectSettings>
+		<Graph >
+			<Scene id="Scene" >
+				<Layer id="Layer" >
+					<Camera id="Camera" />
+					<Model id="Cylinder" >
+						<Material id="Material" />
+					</Model>
+					<Light id="Light" />
+					<Model id="Rectangle" >
+						<Material id="Default" name="Default" >
+							<Image id="Default_diffusemap" />
+						</Material>
+					</Model>
+				</Layer>
+			</Scene>
+		</Graph>
+		<Logic >
+			<State name="Master Slide" component="#Scene" >
+				<Add ref="#Layer" background="Transparent" backgroundcolor="0.0392157 0.45098 0.564706" />
+				<Add ref="#Camera" />
+				<State id="Scene-Slide1" name="Slide1" >
+					<Add ref="#Cylinder" name="Cylinder" position="525.195 -281.039 147.747" rotation="-26.2701 -25.7819 13.1225" sourcepath="#Cylinder" />
+					<Add ref="#Material" />
+					<Add ref="#Light" name="Light" position="303.109 95.2628 0" />
+					<Add ref="#Rectangle" name="Rectangle" position="10.166 90.9326 0" scale="10.5093 4.40912 1" sourcepath="#Rectangle" />
+					<Add ref="#Default" diffusemap="#Default_diffusemap" />
+					<Add ref="#Default_diffusemap" sourcepath="UV-Checker.png" subpresentation="subpres1" />
+				</State>
+			</State>
+		</Logic>
+	</Project>
+</UIP>
