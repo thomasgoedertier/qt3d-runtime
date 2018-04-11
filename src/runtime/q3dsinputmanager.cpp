@@ -119,10 +119,19 @@ void Q3DSInputManager::castRayIntoLayer(Q3DSLayerNode *layer, const QPointF &pos
         return;
     }
 
-    auto cameraNodeAttached = static_cast<Q3DSNodeAttached*>(camera->attached());
     auto cameraData = static_cast<Q3DSCameraAttached*>(camera->attached());
+    if (!cameraData) {
+        // Subpresentations can lead to this. By default the editor adds a
+        // light and camera to a layer. If then a layer gets made into using a
+        // subpresentation as its source, the scene is left with an
+        // uninitialized camera and light in that layer (since layers sourcing
+        // a subpresentation do not participate in regular scene building,
+        // naturally).
+        return;
+    }
+
     // Get Camera ViewMatrix
-    auto viewMatrix = calculateCameraViewMatrix(cameraNodeAttached->globalTransform);
+    auto viewMatrix = calculateCameraViewMatrix(cameraData->globalTransform);
     auto projectionMatrix = cameraData->camera->lens()->projectionMatrix();
     QRect viewport(-1, -1, 2, 2);
 
