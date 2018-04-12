@@ -315,16 +315,31 @@ public:
         Qt3DRender::QAbstractTexture *currentOutputTexture = nullptr;
         Qt3DRender::QAbstractTexture *stolenColorBuf = nullptr;
         Qt3DRender::QAbstractTexture *extraColorBuf = nullptr;
-        Qt3DRender::QAbstractTexture *stolenDS = nullptr;
         Qt3DRender::QParameter *accumTexParam = nullptr;
         Qt3DRender::QParameter *lastTexParam = nullptr;
         Qt3DRender::QParameter *blendFactorsParam = nullptr;
         Qt3DRender::QLayerFilter *layerFilter = nullptr;
         int pass = 0;
         int curTarget = 0;
-        bool cameraViewCenterAltered = false;
+        bool cameraAltered = false;
         bool enabled = false;
     } progAA;
+
+    struct TempAAData {
+        int nonDirtyPass = 0;
+        int passIndex = 0; // wraps around
+        Qt3DRender::QFrameGraphNode *fg = nullptr;
+        Qt3DRender::QRenderTargetSelector *rtSel = nullptr;
+        Qt3DRender::QRenderTarget *rts[2];
+        Qt3DRender::QAbstractTexture *currentAccumulatorTexture = nullptr;
+        Qt3DRender::QAbstractTexture *currentOutputTexture = nullptr;
+        Qt3DRender::QAbstractTexture *stolenColorBuf = nullptr;
+        Qt3DRender::QAbstractTexture *extraColorBuf = nullptr;
+        Qt3DRender::QParameter *accumTexParam = nullptr;
+        Qt3DRender::QParameter *lastTexParam = nullptr;
+        Qt3DRender::QParameter *blendFactorsParam = nullptr;
+        Qt3DRender::QLayerFilter *layerFilter = nullptr;
+    } tempAA;
 
     struct AdvBlendData {
         Qt3DRender::QAbstractTexture *tempTexture = nullptr;
@@ -358,6 +373,7 @@ Q_DECLARE_OPERATORS_FOR_FLAGS(Q3DSLayerAttached::SizeManagedTexture::Flags)
 // NB! Q3DSLayerAttached::SizeManagedTexture cannot be Q_MOVABLE_TYPE due to std::function in it
 Q_DECLARE_TYPEINFO(Q3DSLayerAttached::PerLightShadowMapData, Q_MOVABLE_TYPE);
 Q_DECLARE_TYPEINFO(Q3DSLayerAttached::ProgAAData, Q_MOVABLE_TYPE);
+Q_DECLARE_TYPEINFO(Q3DSLayerAttached::TempAAData, Q_MOVABLE_TYPE);
 Q_DECLARE_TYPEINFO(Q3DSLayerAttached::RayCastQueueEntry, Q_MOVABLE_TYPE);
 
 // ensure a lookup based on a texture hits the entry regardless of the callback or flags
@@ -702,7 +718,8 @@ private:
     void buildSubPresentationLayer(Q3DSLayerNode *layer3DS, const QSize &parentSize);
     Qt3DRender::QRenderTarget *newLayerRenderTarget(const QSize &layerPixelSize, int msaaSampleCount,
                                                     Qt3DRender::QAbstractTexture **colorTex, Qt3DRender::QAbstractTexture **dsTexOrRb,
-                                                    Qt3DCore::QNode *textureParentNode, Q3DSLayerNode *layer3DS);
+                                                    Qt3DCore::QNode *textureParentNode, Q3DSLayerNode *layer3DS,
+                                                    Qt3DRender::QAbstractTexture *existingDS = nullptr);
     QSize calculateLayerSize(Q3DSLayerNode *layer3DS, const QSize &parentSize);
     QPointF calculateLayerPos(Q3DSLayerNode *layer3DS, const QSize &parentSize);
     void updateSizesForLayer(Q3DSLayerNode *layer3DS, const QSize &newParentSize);
@@ -723,11 +740,10 @@ private:
     void updateOrthoShadowCam(Q3DSLayerAttached::PerLightShadowMapData *d, Q3DSLightNode *light3DS, Q3DSLayerAttached *layerData);
     void genOrthoBlurPassFg(Q3DSLayerAttached::PerLightShadowMapData *d, Qt3DRender::QAbstractTexture *inTex,
                             Qt3DRender::QAbstractTexture *outTex, const QString &passName, Q3DSLightNode *light3DS);
-    void stealLayerRenderTarget(Qt3DRender::QAbstractTexture **stolenColorBuf,
-                                Qt3DRender::QAbstractTexture **stolenDS,
-                                Q3DSLayerNode *layer3DS);
+    void stealLayerRenderTarget(Qt3DRender::QAbstractTexture **stolenColorBuf, Q3DSLayerNode *layer3DS);
     Qt3DRender::QAbstractTexture *createProgressiveTemporalAAExtraBuffer(Q3DSLayerNode *layer3DS);
-    void updateProgressiveAA(Q3DSLayerNode *layer3DS);
+    bool updateProgressiveAA(Q3DSLayerNode *layer3DS);
+    void updateTemporalAA(Q3DSLayerNode *layer3DS);
 
     Qt3DRender::QCamera *buildCamera(Q3DSCameraNode *cam3DS, Q3DSLayerNode *layer3DS, Qt3DCore::QEntity *parent);
     void setCameraProperties(Q3DSCameraNode *camNode, int changeFlags);

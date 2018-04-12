@@ -53,13 +53,13 @@
 						<AnimationTrack property="position.y" type="EaseInOut" >0 132.791 100 100 15.9 -249.704 100 100</AnimationTrack>
 						<AnimationTrack property="position.z" type="EaseInOut" >0 0 100 100 15.9 0 100 100</AnimationTrack>
 					</Add>
-					<Add ref="#Material_001" diffuse="0 0 0" />
+					<Add ref="#Material_001" diffuse="0.576471 1 0.603922" />
 					<Add ref="#Rectangle" name="Rectangle" endtime="18805" position="362.287 155.885 0" scale="2.5 2.10294 1" sourcepath="#Rectangle" >
 						<AnimationTrack property="rotation.x" type="EaseInOut" >0 0 100 100 15.896 0 100 100</AnimationTrack>
 						<AnimationTrack property="rotation.y" type="EaseInOut" >0 0 100 100 15.896 0 100 100</AnimationTrack>
 						<AnimationTrack property="rotation.z" type="EaseInOut" >0 0 100 100 15.896 360 100 100</AnimationTrack>
 					</Add>
-					<Add ref="#Material_002" diffuse="0 0 0" />
+					<Add ref="#Material_002" diffuse="0.176471 0.117647 1" />
 				</State>
 			</State>
 		</Logic>
