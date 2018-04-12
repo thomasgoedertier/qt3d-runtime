@@ -1,0 +1,47 @@
+From 9a22a6977f3dead17df9014277ae5ab71b55d939 Mon Sep 17 00:00:00 2001
+From: Laszlo Agocs <laszlo.agocs@qt.io>
+Date: Thu, 12 Apr 2018 13:33:34 +0200
+Subject: [PATCH] Add Qt stuff to imconfig.h
+
+Change-Id: Ic61e03ff753434a9e63db1a43a926f8da6cb861e
+---
+ src/3rdparty/imgui/imconfig.h | 19 +++++++++++++++++++
+ 1 file changed, 19 insertions(+)
+
+diff --git a/src/3rdparty/imgui/imconfig.h b/src/3rdparty/imgui/imconfig.h
+index 47f4f54..b05e012 100644
+--- a/src/3rdparty/imgui/imconfig.h
++++ b/src/3rdparty/imgui/imconfig.h
+@@ -11,6 +11,8 @@
+ 
+ #pragma once
+ 
++#include <qglobal.h>
++
+ //---- Define assertion handler. Defaults to calling assert().
+ //#define IM_ASSERT(_EXPR)  MyAssert(_EXPR)
+ 
+@@ -67,3 +69,20 @@ namespace ImGui
+     void MyFunction(const char* name, const MyMatrix44& v);
+ }
+ */
++
++// Qt3D does not like 2 component position attributes (in bounding volume calculation for instance).
++// Therefore, add a z vertex coordinate.
++#define IMGUI_OVERRIDE_DRAWVERT_STRUCT_LAYOUT \
++    struct ImDrawVert { \
++        ImVec2 pos; \
++        float z; \
++        ImVec2 uv; \
++        ImU32 col; \
++    };
++
++// The WindowsWindows_10x86_64WinRTWinRT_10armv7 CI config did not like the
++// clipboard and imm stuff so disable it for now on winrt.
++#ifdef Q_OS_WINRT
++#define IMGUI_DISABLE_WIN32_DEFAULT_CLIPBOARD_FUNCS
++#define IMGUI_DISABLE_WIN32_DEFAULT_IME_FUNCS
++#endif
+-- 
+2.12.2.windows.1
+
