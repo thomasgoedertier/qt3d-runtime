@@ -59,7 +59,7 @@
   vec3 lightAmbient, lightDiffuse, lightSpecular, L;
   for ( int i=0 ; i<uNumLights ; i++ )
   {
-    sampleLight( lights[i], varWorldPos, L, lightAmbient, lightDiffuse, lightSpecular);
+    sampleLight( qLights[i], varWorldPos, L, lightAmbient, lightDiffuse, lightSpecular);
     lightAmbient *= aoFactor;
     lightDiffuse *= aoFactor;
 

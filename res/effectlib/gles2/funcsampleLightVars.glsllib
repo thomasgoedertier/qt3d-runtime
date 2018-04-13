@@ -24,4 +24,4 @@ struct LightSource
 };
 
 uniform int uNumLights;
-uniform LightSource lights[MAX_NUM_LIGHTS];
+uniform LightSource qLights[MAX_NUM_LIGHTS];

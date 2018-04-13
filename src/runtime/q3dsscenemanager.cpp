@@ -4284,7 +4284,7 @@ void Q3DSSceneManager::buildModelMaterial(Q3DSModelNode *model3DS)
                         params.append(lightsData->allLightsParam);
                     } else {
                         // ubo not supported, create uniforms for each light
-                        params.append(prepareSeparateLightUniforms(lightsData->allLights, QStringLiteral("lights")));
+                        params.append(prepareSeparateLightUniforms(lightsData->allLights, QStringLiteral("qLights")));
                     }
                 }
 
@@ -4359,7 +4359,7 @@ void Q3DSSceneManager::buildModelMaterial(Q3DSModelNode *model3DS)
                         params.append(lightsData->areaLightsParam);
                     } else {
                         // ubo not supported, create uniforms for each light
-                        params.append(prepareSeparateLightUniforms(lightsData->nonAreaLights, QStringLiteral("lights")));
+                        params.append(prepareSeparateLightUniforms(lightsData->nonAreaLights, QStringLiteral("qLights")));
                         params.append(prepareSeparateLightUniforms(lightsData->areaLights, QStringLiteral("areaLights")));
                     }
                 }

@@ -423,7 +423,7 @@ struct ShaderGenerator : public Q3DSDefaultMaterialShaderGenerator
     void setupLightVariableNames(qint32 lightIdx, Q3DSLightNode &inLight)
     {
         Q_ASSERT(lightIdx > -1);
-        m_LightStem = QLatin1String("lights");
+        m_LightStem = QLatin1String("qLights");
         m_LightStem.append(QLatin1String("["));
         m_LightStem.append(QString::number(lightIdx));
         m_LightStem.append(QLatin1String("]."));

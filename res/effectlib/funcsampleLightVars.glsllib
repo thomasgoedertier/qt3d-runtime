@@ -25,5 +25,5 @@ struct LightSource
 layout (std140) uniform cbBufferLights
 {
     int uNumLights;
-    LightSource lights[MAX_NUM_LIGHTS];
+    LightSource qLights[MAX_NUM_LIGHTS];
 };
