@@ -689,12 +689,12 @@ Q3DSSceneManager::Scene Q3DSSceneManager::buildScene(Q3DSUipPresentation *presen
     m_guiData.outputSize = params.outputSize;
     m_guiData.outputDpr = params.outputDpr;
 
-    // Parent it to anything (but not a QEntity of course since this is a
-    // component). Cannot leave globally used components unparented since that
-    // would mean they get parented to the first node they get added to - and
-    // that might be something that gets destroyed over time, e.g. in a
-    // framegraph subtree that gets removed or replaced at some point.
-    m_fsQuadTag = new Qt3DRender::QLayer(frameGraphRoot);
+    // Parent it to something long-living (note: cannot be the framegraph).
+    // Cannot leave globally used components unparented since that would mean
+    // they get parented to the first node they get added to - and that might
+    // be something that gets destroyed over time, e.g. in a framegraph subtree
+    // that gets removed or replaced at some point.
+    m_fsQuadTag = new Qt3DRender::QLayer(m_rootEntity);
     m_fsQuadTag->setObjectName(QLatin1String("Fullscreen quad pass"));
 
     // Prepare image objects (these are non-nodes and not covered in layer building below).
@@ -995,9 +995,9 @@ void Q3DSSceneManager::buildLayer(Q3DSLayerNode *layer3DS,
     techniqueFilterKey->setValue(QLatin1String("main"));
     mainTechniqueSelector->addMatch(techniqueFilterKey);
 
-    Qt3DRender::QLayer *opaqueTag = new Qt3DRender::QLayer;
+    Qt3DRender::QLayer *opaqueTag = new Qt3DRender::QLayer(m_rootEntity);
     opaqueTag->setObjectName(QLatin1String("Opaque pass"));
-    Qt3DRender::QLayer *transparentTag = new Qt3DRender::QLayer;
+    Qt3DRender::QLayer *transparentTag = new Qt3DRender::QLayer(m_rootEntity);
     transparentTag->setObjectName(QLatin1String("Transparent pass"));
 
     // Depth texture pass, optional, with its own rendertarget and clear. Just
@@ -3296,7 +3296,7 @@ void Q3DSSceneManager::buildCompositor(Qt3DRender::QFrameGraphNode *parent, Qt3D
 
     if (!needsAdvanced) {
         Qt3DRender::QLayerFilter *layerFilter = new Qt3DRender::QLayerFilter(cameraSelector);
-        Qt3DRender::QLayer *tag = new Qt3DRender::QLayer;
+        Qt3DRender::QLayer *tag = new Qt3DRender::QLayer(parentEntity);
         tag->setObjectName(QLatin1String("Compositor quad pass"));
         layerFilter->addLayer(tag);
 
@@ -3382,7 +3382,7 @@ void Q3DSSceneManager::buildCompositor(Qt3DRender::QFrameGraphNode *parent, Qt3D
                 setSizeDependentValues(layer3DS);
 
                 Qt3DRender::QLayerFilter *layerFilter = new Qt3DRender::QLayerFilter(cameraSelector);
-                Qt3DRender::QLayer *tag = new Qt3DRender::QLayer;
+                Qt3DRender::QLayer *tag = new Qt3DRender::QLayer(parentEntity);
                 tag->setObjectName(QLatin1String("Adv. blend mode compositor quad pass"));
                 layerFilter->addLayer(tag);
 
@@ -3418,7 +3418,7 @@ void Q3DSSceneManager::buildCompositor(Qt3DRender::QFrameGraphNode *parent, Qt3D
                 data->usesDefaultCompositorProgram = true;
 
                 Qt3DRender::QLayerFilter *layerFilter = new Qt3DRender::QLayerFilter(cameraSelector);
-                Qt3DRender::QLayer *tag = new Qt3DRender::QLayer;
+                Qt3DRender::QLayer *tag = new Qt3DRender::QLayer(parentEntity);
                 tag->setObjectName(QLatin1String("Compositor quad pass (adv.blend path)"));
                 layerFilter->addLayer(tag);
 
@@ -3439,8 +3439,8 @@ void Q3DSSceneManager::buildGuiPass(Qt3DRender::QFrameGraphNode *parent, Qt3DCor
     // then assume the framegraph has the necessary LayerFilters both for
     // including and excluding.
 
-    m_guiData.tag = new Qt3DRender::QLayer; // all gui entities are tagged with this
-    m_guiData.activeTag = new Qt3DRender::QLayer; // active gui entities - added/removed to entities dynamically by imguimanager
+    m_guiData.tag = new Qt3DRender::QLayer(parentEntity); // all gui entities are tagged with this
+    m_guiData.activeTag = new Qt3DRender::QLayer(parentEntity); // active gui entities - added/removed to entities dynamically by imguimanager
     m_guiData.techniqueFilterKey = new Qt3DRender::QFilterKey;
     m_guiData.techniqueFilterKey->setName(QLatin1String("type"));
     m_guiData.techniqueFilterKey->setValue(QLatin1String("gui"));
@@ -5796,7 +5796,7 @@ void Q3DSSceneManager::activateEffect(Q3DSEffectInstance *eff3DS,
                                                                                          decoratedVertexShader,
                                                                                          decoratedFragmentShader);
 
-        effData->quadEntityTag = new Qt3DRender::QLayer;
+        effData->quadEntityTag = new Qt3DRender::QLayer(layerData->entity);
         effData->quadEntityTag->setObjectName(QLatin1String("Effect quad pass"));
 
         FsQuadParams quadInfo;
