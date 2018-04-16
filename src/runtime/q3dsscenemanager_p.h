@@ -223,10 +223,10 @@ public:
         Q_DECLARE_FLAGS(Flags, Flag)
         SizeManagedTexture() { }
         SizeManagedTexture(Qt3DRender::QAbstractTexture *t, SizeChangeCallback c = nullptr, Flags f = Flags())
-            : texture(t), sizeChangeCallback(c), flags(f)
+            : sizeChangeCallback(c), texture(t), flags(f)
         { }
-        Qt3DRender::QAbstractTexture *texture = nullptr;
         SizeChangeCallback sizeChangeCallback = nullptr;
+        Qt3DRender::QAbstractTexture *texture = nullptr;
         Flags flags;
     };
 
@@ -237,7 +237,6 @@ public:
     Qt3DRender::QAbstractTexture *layerDS = nullptr;
     Qt3DRender::QParameter *compositorSourceParam = nullptr;
     Qt3DRender::QRenderPass *compositorRenderPass = nullptr;
-    bool usesDefaultCompositorProgram = true;
     std::function<void()> updateCompositorCalculations = nullptr;
     std::function<void()> updateSubPresentationSize = nullptr;
     QSize layerSize;
@@ -245,14 +244,15 @@ public:
     QPointF layerPos;
     int msaaSampleCount = 0;
     int ssaaScaleFactor = 1;
+    int nonDirtyRenderCount = 0;
+    bool usesDefaultCompositorProgram = true;
     bool effectActive = false;
     bool wasDirty = false;
-    int nonDirtyRenderCount = 0;
+    bool rayCasterBusy = false;
     Qt3DRender::QParameter *cameraPropertiesParam = nullptr;
     Qt3DRender::QLayer *opaqueTag = nullptr;
     Qt3DRender::QLayer *transparentTag = nullptr;
     Qt3DRender::QRayCaster *layerRayCaster = nullptr;
-    bool rayCasterBusy = false;
 
     struct RayCastQueueEntry {
         QVector3D direction;
@@ -308,13 +308,9 @@ public:
     } shadowMapData;
 
     struct ProgAAData {
-        int pass = 0;
-        bool cameraViewCenterAltered = false;
         Qt3DRender::QFrameGraphNode *fg = nullptr;
-        bool enabled = false;
         Qt3DRender::QRenderTargetSelector *rtSel = nullptr;
         Qt3DRender::QRenderTarget *rts[2];
-        int curTarget = 0;
         Qt3DRender::QAbstractTexture *currentAccumulatorTexture = nullptr;
         Qt3DRender::QAbstractTexture *currentOutputTexture = nullptr;
         Qt3DRender::QAbstractTexture *stolenColorBuf = nullptr;
@@ -324,6 +320,10 @@ public:
         Qt3DRender::QParameter *lastTexParam = nullptr;
         Qt3DRender::QParameter *blendFactorsParam = nullptr;
         Qt3DRender::QLayerFilter *layerFilter = nullptr;
+        int pass = 0;
+        int curTarget = 0;
+        bool cameraViewCenterAltered = false;
+        bool enabled = false;
     } progAA;
 
     struct AdvBlendData {
