@@ -172,7 +172,7 @@ Q3DSGraphExplorer::Q3DSGraphExplorer(Q3DSGraphObject *root, QWidget *parent)
                     Q3DSComponentNode *comp = static_cast<Q3DSComponentNode *>(obj);
                     QMenu *tvContextMenu = new QMenu(this);
                     QAction *action = new QAction(tr("Show component slide tree"), this);
-                    connect(action, &QAction::triggered, this, [this, comp]() {
+                    connect(action, &QAction::triggered, this, [comp]() {
                         if (comp->masterSlide())
                             Q3DSUtils::showObjectGraph(comp->masterSlide());
                         else

@@ -710,7 +710,7 @@ void Q3DSGraphObject::processEvent(const Event &e)
     Event ev = e;
     ev.target = this;
 
-    auto invokeCallbacks = [this, ev](const QVector<EventCallback> &v) {
+    auto invokeCallbacks = [ev](const QVector<EventCallback> &v) {
         for (EventCallback callback : v) {
             if (callback)
                 callback(ev);

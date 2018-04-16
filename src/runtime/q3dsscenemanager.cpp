@@ -1176,7 +1176,7 @@ void Q3DSSceneManager::buildSubPresentationLayer(Q3DSLayerNode *layer3DS, const 
             return;
         const QSize layerPixelSize = safeLayerPixelSize(data);
         auto it = std::find_if(m_subPresentations.cbegin(), m_subPresentations.cend(),
-                               [this, layer3DS](const Q3DSSubPresentation &sp) { return sp.id == layer3DS->sourcePath(); });
+                               [layer3DS](const Q3DSSubPresentation &sp) { return sp.id == layer3DS->sourcePath(); });
         if (it != m_subPresentations.cend()) {
             qCDebug(lcScene, "Resizing subpresentation %s for layer %s to %dx%d",
                     qPrintable(layer3DS->sourcePath()), layer3DS->id().constData(), sz.width(), sz.height());
@@ -3278,7 +3278,7 @@ void Q3DSSceneManager::buildCompositor(Qt3DRender::QFrameGraphNode *parent, Qt3D
                 new Qt3DRender::QNoDraw(bgBlit);
 
                 // Layer size dependent properties have to be updated dynamically.
-                auto setSizeDependentValues = [this, bgBlit, layer3DS, data](Q3DSLayerNode *changedLayer) {
+                auto setSizeDependentValues = [bgBlit, layer3DS, data](Q3DSLayerNode *changedLayer) {
                     if (changedLayer != layer3DS)
                         return;
 
@@ -6354,7 +6354,7 @@ void Q3DSSceneManager::handleSlideChange(Q3DSSlide *prevSlide,
 void Q3DSSceneManager::prepareNextFrame()
 {
     m_wasDirty = false;
-    Q3DSUipPresentation::forAllLayers(m_scene, [this](Q3DSLayerNode *layer3DS) {
+    Q3DSUipPresentation::forAllLayers(m_scene, [](Q3DSLayerNode *layer3DS) {
         static_cast<Q3DSLayerAttached *>(layer3DS->attached())->wasDirty = false;
     });
 
@@ -6877,7 +6877,7 @@ void Q3DSSceneManager::changeSlideByName(Q3DSGraphObject *sceneOrComponent, cons
 
     Q3DSSlide *targetSlide = nullptr;
     Q3DSUipPresentation::forAllObjectsOfType(root, Q3DSGraphObject::Slide,
-                                             [this, name, &targetSlide](Q3DSGraphObject *obj) {
+                                             [name, &targetSlide](Q3DSGraphObject *obj) {
         Q3DSSlide *slide = static_cast<Q3DSSlide *>(obj);
         if (slide->name() == name)
             targetSlide = slide;
