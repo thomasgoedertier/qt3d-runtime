@@ -50,8 +50,8 @@ Q_DECLARE_LOGGING_CATEGORY(lcScene)
 static struct AnimatableExtraMeta {
     QString type3DS;
     QString name3DS;
-    Q3DSAnimationManager::SetterFunc setter;
-    Q3DSAnimationManager::GetterFunc getter;
+    Qt3DAnimation::SetterFunc setter;
+    Qt3DAnimation::GetterFunc getter;
 } extraMeta[] = {
     { QLatin1String("Node"), QLatin1String("position"), &Q3DSNodeAnimator::setPosition, &Q3DSNodeAnimator::getPosition },
     { QLatin1String("Node"), QLatin1String("rotation"), &Q3DSNodeAnimator::setRotation, &Q3DSNodeAnimator::getRotation },

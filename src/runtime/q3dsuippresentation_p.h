@@ -74,12 +74,16 @@ class QTransform;
 class QEntity;
 }
 
+class Q3DSGraphObject;
+
 namespace Qt3DAnimation {
 class QClipAnimator;
 class QAnimationCallback;
+
+using SetterFunc = void (*)(Q3DSGraphObject *, const QVariant &, const QString &);
+using GetterFunc = QVariant (*)(Q3DSGraphObject *, const QString &);
 }
 
-class Q3DSGraphObject;
 class Q3DSSlide;
 
 class Q3DSV_PRIVATE_EXPORT Q3DSPropertyChange
@@ -184,7 +188,7 @@ public:
         Q3DSGraphObject *obj;
         QString name;
         QVariant value;
-        std::function<void (Q3DSGraphObject *, const QVariant &, const QString &)> setter;
+        Qt3DAnimation::SetterFunc setter;
     };
     QVector<AnimatedValueRollbackData> animationRollbacks;
 

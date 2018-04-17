@@ -58,21 +58,18 @@ public:
     void clearPendingChanges();
     void objectAboutToBeRemovedFromScene(Q3DSGraphObject *obj);
 
-    typedef std::function<void (Q3DSGraphObject *, const QVariant &, const QString &)> SetterFunc;
-    typedef std::function<QVariant (Q3DSGraphObject *, const QString &)> GetterFunc;
-
     struct Animatable {
         QString name;
         Q3DS::PropertyType type = Q3DS::Unknown;
         int componentCount = 0;
-        SetterFunc setter;
-        GetterFunc getter;
+        Qt3DAnimation::SetterFunc setter;
+        Qt3DAnimation::GetterFunc getter;
     };
 
     struct AnimationValueChange {
         QVariant value;
         QString name;
-        Q3DSAnimationManager::SetterFunc setter;
+        Qt3DAnimation::SetterFunc setter;
     };
 
     void queueChange(Q3DSGraphObject *target, const AnimationValueChange &change);
