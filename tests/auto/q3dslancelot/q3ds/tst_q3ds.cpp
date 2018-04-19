@@ -170,10 +170,18 @@ void tst_Q3DS::runTest(const QStringList &extraArgs)
 bool tst_Q3DS::renderAndGrab(const QString &uipFile, const QStringList &extraArgs, QImage *screenshot, QString *errMsg)
 {
     bool usePipe = true;  // Whether to transport the grabbed image using temp. file or pipe. TBD: cmdline option
-    QString cmd = QCoreApplication::applicationDirPath() + "/q3dsscenegrabber";
+    bool q3ds1 = qEnvironmentVariableIsSet("QT_LANCELOT_Q3DS1");
+    QString cmd;
+    if (!q3ds1)
+        cmd = QCoreApplication::applicationDirPath() + "/q3dsscenegrabber";
+    else
+        cmd = QCoreApplication::applicationDirPath() + "/q3ds1scenegrabber";
 #ifdef Q_OS_WIN
     usePipe = false;
-    cmd = QCoreApplication::applicationDirPath() + "/q3dsscenegrabber.exe";
+    if (!q3ds1)
+        cmd = QCoreApplication::applicationDirPath() + "/q3dsscenegrabber.exe";
+    else
+        cmd = QCoreApplication::applicationDirPath() + "/q3ds1scenegrabber.exe";
 #endif
     QProcess grabber;
     QStringList args = extraArgs;

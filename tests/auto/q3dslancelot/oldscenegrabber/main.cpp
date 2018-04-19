@@ -33,13 +33,12 @@
 #include <QtCore/QHashFunctions>
 #include <QtGui/QGuiApplication>
 #include <QtGui/QImage>
+#include <QtGui/QWindow>
+#include <QtGui/QOpenGLContext>
 
-#include <private/q3dsengine_p.h>
-#include <private/q3dswindow_p.h>
-#include <private/q3dsutils_p.h>
-
-#include <Qt3DRender/QRenderCapture>
-#include <Qt3DRender/QRenderCaptureReply>
+#include <QtStudio3D/Q3DSSurfaceViewer>
+#include <QtStudio3D/Q3DSViewerSettings>
+#include <QtStudio3D/Q3DSPresentation>
 
 // Timeout values:
 
@@ -48,59 +47,39 @@
 #define SCENE_STABLE_TIME 200
 
 // Give up after SCENE_TIMEOUT ms
-#define SCENE_TIMEOUT     10000
+#define SCENE_TIMEOUT     6000
 
-class GrabbingView : public Q3DSWindow
+class Grabber : public QObject
 {
     Q_OBJECT
 
 public:
-    GrabbingView(const QString &outputFile)
-        : q3dsEngine(new Q3DSEngine)
-        , ofile(outputFile)
+    Grabber(Q3DSSurfaceViewer *viewer, const QString &outputFile)
+        : ofile(outputFile)
         , grabNo(0)
         , isGrabbing(false)
-        , initDone(false)
+        , surfaceViewer(viewer)
     {
-        setEngine(q3dsEngine);
         grabTimer = new QTimer(this);
         grabTimer->setSingleShot(true);
         grabTimer->setInterval(SCENE_STABLE_TIME);
-        connect(grabTimer, SIGNAL(timeout()), q3dsEngine, SLOT(requestGrab()));
-        connect(q3dsEngine, SIGNAL(nextFrameStarting()), SLOT(startGrabbing()));
-        connect(q3dsEngine, SIGNAL(grabReady(QImage)), this, SLOT(grab(QImage)));
+        connect(grabTimer, SIGNAL(timeout()), this, SLOT(grab()));
 
+        grabTimer->start();
         QTimer::singleShot(SCENE_TIMEOUT, this, SLOT(timedOut()));
-    }
-    ~GrabbingView()
-    {
-        delete q3dsEngine;
     }
 
 private slots:
-    void startGrabbing()
-    {
-        if (!initDone) {
-            initDone = true;
-            grabTimer->start();
-        }
-    }
-
-    bool isJustClear(const QImage &image) {
-        QColor color = image.pixel(0, 0);
-        QImage imageCopy = image;
-        imageCopy.fill(color);
-        return image == imageCopy;
-    }
-
-    void grab(QImage image)
+    void grab()
     {
         if (isGrabbing)
             return;
         isGrabbing = true;
         grabNo++;
 
-        if (!image.isNull() && !isJustClear(image) && image == lastGrab) {
+        auto image = surfaceViewer->grab();
+
+        if (!image.isNull() && image == lastGrab) {
             sceneStabilized();
         } else {
             lastGrab = image;
@@ -136,13 +115,12 @@ private slots:
     }
 
 private:
-    Q3DSEngine *q3dsEngine;
     QImage lastGrab;
     QTimer *grabTimer;
     QString ofile;
     int grabNo;
     bool isGrabbing;
-    bool initDone;
+    Q3DSSurfaceViewer *surfaceViewer;
 };
 
 int main(int argc, char *argv[])
@@ -150,9 +128,6 @@ int main(int argc, char *argv[])
     qSetGlobalQHashSeed(0);
 
     QGuiApplication a(argc, argv);
-    QSurfaceFormat::setDefaultFormat(Q3DSEngine::surfaceFormat());
-
-    Q3DSUtils::setDialogsEnabled(false);
 
     // Parse command line
     QString ifile, ofile;
@@ -182,13 +157,34 @@ int main(int argc, char *argv[])
     }
     // End parsing
 
-    GrabbingView v(ofile);
-    v.engine()->setSource(ifile);
-    v.forceResize(1280, 720);
-    v.show();
+
+    QWindow window;
+
+    QSize size(1280, 720);
+    window.resize(size);
+    window.setSurfaceType(QSurface::OpenGLSurface);
+    window.setTitle(QStringLiteral("Qt 3D Studio 1.x Scene Grabber"));
+    window.create();
+
+    QOpenGLContext context;
+    context.setFormat(window.format());
+    context.create();
+
+    Q3DSSurfaceViewer viewer;
+    viewer.presentation()->setSource(QUrl::fromLocalFile(ifile));
+    viewer.setUpdateInterval(0);
+    viewer.settings()->setScaleMode(Q3DSViewerSettings::ScaleModeFill);
+    viewer.settings()->setShowRenderStats(false);
+
+    viewer.initialize(&window, &context);
+
+    window.show();
+
+    Grabber grabber(&viewer, ofile);
 
     int retVal = a.exec();
     return retVal;
 }
 
 #include "main.moc"
+
