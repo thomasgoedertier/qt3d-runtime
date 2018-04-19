@@ -132,189 +132,196 @@ static const int LAYER_CACHING_THRESHOLD = 4;
                         ...
                     }
 
-                    // Layer #1 framegraph
-                    FrameGraphNode { // layer subtree root, children may get added/deleted dynamically due to progressive AA for example
-                        // main layer framegraph, always present
-                        RenderTargetSelector { Viewport { CameraSelector {
-                            // objects in the scene will be tagged with these. note
-                            // that entities without geometryrenderers will have
-                            // both so that we do not lose the transforms.
-                            Layer { id: layer1Opaque }
-                            Layer { id: layer1Transparent }
+                    FrameGraphNode { // layerContainerFg
+                        // Due to layer caching children may appear and disappear at any time, and while the order relative
+                        // to each other does not matter, they must never be placed after the compositor subtree. Hence the need
+                        // for a "container" node here too.
+                        NoDraw { }
 
-                            // 0.1 optional texture prefiltering via compute [not currently implemented, although material provides renderpass already]
-                            TechniqueFilter {
-                                matchAll: [ FilterKey { name: "type"; value: "bsdfPrefilter"} ]
-                                NoDraw { }
-                                // [creation of the rest below is deferred]
-                                DispatchCompute {
-                                   ... // with appropriate technique filter
-                                }
-                            }
+                        // Layer #1 framegraph
+                        FrameGraphNode { // layer subtree root, children may get added/deleted dynamically due to progressive AA for example
+                            // main layer framegraph, always present
+                            RenderTargetSelector { Viewport { CameraSelector {
+                                // objects in the scene will be tagged with these. note
+                                // that entities without geometryrenderers will have
+                                // both so that we do not lose the transforms.
+                                Layer { id: layer1Opaque }
+                                Layer { id: layer1Transparent }
 
-                            TechniqueFilter {
-                                matchAll: [ FilterKey { name: "type"; value: "main"} ]
-
-                                // 1.1 optional depth texture generation
-                                RenderTargetSelector {
-                                    NoDraw { } // so that we do not issue drawcalls when depth texture is not needed
+                                // 0.1 optional texture prefiltering via compute [not currently implemented, although material provides renderpass already]
+                                TechniqueFilter {
+                                    matchAll: [ FilterKey { name: "type"; value: "bsdfPrefilter"} ]
+                                    NoDraw { }
                                     // [creation of the rest below is deferred]
-                                    ... // depth texture (depth attachment only)
-                                    ClearBuffers {
-                                        // depth clear
-                                        enabled: when depth texture is needed
-                                        NoDraw { }
+                                    DispatchCompute {
+                                       ... // with appropriate technique filter
                                     }
-                                    RenderPassFilter {
-                                        matchAny: [ FilterKey { name: "pass"; value: "depth" } ]
-                                        LayerFilter {
-                                            layers: [ layer1Opaque ] or empty list if depth texture gets disabled afterwards
+                                }
+
+                                TechniqueFilter {
+                                    matchAll: [ FilterKey { name: "type"; value: "main"} ]
+
+                                    // 1.1 optional depth texture generation
+                                    RenderTargetSelector {
+                                        NoDraw { } // so that we do not issue drawcalls when depth texture is not needed
+                                        // [creation of the rest below is deferred]
+                                        ... // depth texture (depth attachment only)
+                                        ClearBuffers {
+                                            // depth clear
+                                            enabled: when depth texture is needed
+                                            NoDraw { }
                                         }
-                                    }
-                                    RenderPassFilter {
-                                        matchAny: [ FilterKey { name: "pass"; value: "depth" } ]
-                                        SortPolicy {
-                                            sortTypes: [ SortPolicy.BackToFront ]
+                                        RenderPassFilter {
+                                            matchAny: [ FilterKey { name: "pass"; value: "depth" } ]
                                             LayerFilter {
-                                                layers: [ layer1Transparent ] or empty list if depth texture gets disabled afterwards
+                                                layers: [ layer1Opaque ] or empty list if depth texture gets disabled afterwards
+                                            }
+                                        }
+                                        RenderPassFilter {
+                                            matchAny: [ FilterKey { name: "pass"; value: "depth" } ]
+                                            SortPolicy {
+                                                sortTypes: [ SortPolicy.BackToFront ]
+                                                LayerFilter {
+                                                    layers: [ layer1Transparent ] or empty list if depth texture gets disabled afterwards
+                                                }
                                             }
                                         }
                                     }
-                                }
 
-                                // 1.2 optional SSAO texture generation (depends on depth texture)
-                                RenderTargetSelector {
-                                    NoDraw { } // so that we do not issue drawcalls when depth texture is not needed
-                                    // [creation of the rest below is deferred]
-                                    ... // color attachment only, rgba8 texture
-                                    ClearBuffers {
-                                        // color clear
-                                        enabled: when ssao is enabled
-                                        NoDraw { }
-                                    }
-                                    RenderPassFilter {
-                                        matchAny: [ FilterKey { name: "pass"; value: "ssao" } ]
-                                        LayerFilter {
-                                            layers: [ fsQuad ] or empty list if ssao gets disabled afterwards
+                                    // 1.2 optional SSAO texture generation (depends on depth texture)
+                                    RenderTargetSelector {
+                                        NoDraw { } // so that we do not issue drawcalls when depth texture is not needed
+                                        // [creation of the rest below is deferred]
+                                        ... // color attachment only, rgba8 texture
+                                        ClearBuffers {
+                                            // color clear
+                                            enabled: when ssao is enabled
+                                            NoDraw { }
+                                        }
+                                        RenderPassFilter {
+                                            matchAny: [ FilterKey { name: "pass"; value: "ssao" } ]
+                                            LayerFilter {
+                                                layers: [ fsQuad ] or empty list if ssao gets disabled afterwards
+                                            }
                                         }
                                     }
-                                }
 
-                                // 1.3 optional shadow map generation
-                                FrameGraphNode {
-                                    NoDraw { } // so that we do not issue drawcalls when there are no shadow casting lights in the scene
-                                    // [the creation of the rest is deferred and is *repeated for each shadow casting light* hence the need for a dummy FrameGraphNode as our sub-root ]
-                                    FrameGraphNode { // per-light sub-tree root
-                                        for each cubemap face (if cubemap is used):
-                                            RenderTargetSelector {
-                                                ... // per-light shadow map texture (2d or cubemap) of R16 as color, throwaway depth-stencil; select the current face when cubemap
-                                                Viewport {
-                                                    ClearBuffers {
-                                                        NoDraw { }
-                                                    }
-                                                    RenderPassFilter {
-                                                        matchAny: [ FilterKey { name: "pass"; value: "shadowCube" } ] // or "shadowOrtho" depending on the light type
-                                                        LayerFilter {
-                                                            layers: [ layer1Opaque ]
+                                    // 1.3 optional shadow map generation
+                                    FrameGraphNode {
+                                        NoDraw { } // so that we do not issue drawcalls when there are no shadow casting lights in the scene
+                                        // [the creation of the rest is deferred and is *repeated for each shadow casting light* hence the need for a dummy FrameGraphNode as our sub-root ]
+                                        FrameGraphNode { // per-light sub-tree root
+                                            for each cubemap face (if cubemap is used):
+                                                RenderTargetSelector {
+                                                    ... // per-light shadow map texture (2d or cubemap) of R16 as color, throwaway depth-stencil; select the current face when cubemap
+                                                    Viewport {
+                                                        ClearBuffers {
+                                                            NoDraw { }
                                                         }
-                                                    }
-                                                    RenderPassFilter {
-                                                        matchAny: [ FilterKey { name: "pass"; value: "shadowCube" } ] // or "shadowOrtho" depending on the light type
-                                                        SortPolicy {
-                                                            sortTypes: [ SortPolicy.BackToFront ]
+                                                        RenderPassFilter {
+                                                            matchAny: [ FilterKey { name: "pass"; value: "shadowCube" } ] // or "shadowOrtho" depending on the light type
                                                             LayerFilter {
-                                                                layers: [ layer1Transparent ] or empty list when depth texture is not needed
+                                                                layers: [ layer1Opaque ]
+                                                            }
+                                                        }
+                                                        RenderPassFilter {
+                                                            matchAny: [ FilterKey { name: "pass"; value: "shadowCube" } ] // or "shadowOrtho" depending on the light type
+                                                            SortPolicy {
+                                                                sortTypes: [ SortPolicy.BackToFront ]
+                                                                LayerFilter {
+                                                                    layers: [ layer1Transparent ] or empty list when depth texture is not needed
+                                                                }
                                                             }
                                                         }
                                                     }
                                                 }
-                                            }
-                                        // cubemap blur X
-                                        RenderTargetSelector {
-                                            ... // input is 6 cubemap faces attached to color0-5, output is another cubemap
-                                            RenderPassFilter {
-                                                matchAny: [ FilterKey { name: "pass"; value: "shadowCubeBlurX" } ]
-                                                LayerFilter {
-                                                    layers: [ fsQuad ]
+                                            // cubemap blur X
+                                            RenderTargetSelector {
+                                                ... // input is 6 cubemap faces attached to color0-5, output is another cubemap
+                                                RenderPassFilter {
+                                                    matchAny: [ FilterKey { name: "pass"; value: "shadowCubeBlurX" } ]
+                                                    LayerFilter {
+                                                        layers: [ fsQuad ]
+                                                    }
                                                 }
                                             }
+                                            // repeat for cubemap blur Y
+                                            RenderTargetSelector {
+                                                ...
+                                            }
+                                            ... // repeat for orthographic blur, concept is the same, input/output is a 2d texture, passes are shadowOrthoBlurX and Y
                                         }
-                                        // repeat for cubemap blur Y
+                                    }
+
+                                    // 2. main clear
+                                    ClearBuffers {
+                                        NoDraw { }
+                                    }
+
+                                    // 3. depth pre-pass, optional depending on layer flags
+                                    RenderPassFilter {
+                                        matchAny: [ FilterKey { name: "pass"; value: "depth" } ]
+                                        LayerFilter {
+                                            layers: [ layer1Opaque ] or empty list when DisableDepthPrePass is set
+                                        }
+                                    }
+
+                                    // 4. opaque pass
+                                    RenderPassFilter {
+                                        matchAny: [ FilterKey { name: "pass"; value: "opaque" } ]
+                                        LayerFilter {
+                                            layers: [ layer1Opaque ]
+                                        }
+                                    }
+
+                                    // 5. transparent pass
+                                    RenderPassFilter {
+                                        matchAny: [ FilterKey { name: "pass"; value: "transparent" } ]
+                                        SortPolicy {
+                                            sortTypes: [ SortPolicy.BackToFront ]
+                                            LayerFilter {
+                                                layers: [ layer1Transparent ]
+                                            }
+                                        }
+                                    }
+
+                                    // 6. Post-processing effect passes
+                                    FrameGraphNode {
+                                        NoDraw { } [so that the rest below can be added/deleted dynamically]
+                                        // effect 1 pass 1
                                         RenderTargetSelector {
-                                            ...
+                                            // input is either layerTexture or the output of another pass
+                                            // output is either effLayerTexture or one of the intermediate textures
+                                            [BlitFramebuffer - NoDraw] ... // from BufferBlit commands or to resolve samples when layer is MSAA
+                                            LayerFilter {
+                                                layers: [ layer1_eff1_pass1_quad_tag ]
+                                                // said quad has a single renderpass with the desired material and render states
+                                            }
                                         }
-                                        ... // repeat for orthographic blur, concept is the same, input/output is a 2d texture, passes are shadowOrthoBlurX and Y
+                                        // effect 1 pass 2, ..., effect 2 pass 1, etc.
+                                        ...
                                     }
                                 }
+                            } } }
 
-                                // 2. main clear
-                                ClearBuffers {
-                                    NoDraw { }
-                                }
-
-                                // 3. depth pre-pass, optional depending on layer flags
-                                RenderPassFilter {
-                                    matchAny: [ FilterKey { name: "pass"; value: "depth" } ]
-                                    LayerFilter {
-                                        layers: [ layer1Opaque ] or empty list when DisableDepthPrePass is set
-                                    }
-                                }
-
-                                // 4. opaque pass
-                                RenderPassFilter {
-                                    matchAny: [ FilterKey { name: "pass"; value: "opaque" } ]
-                                    LayerFilter {
-                                        layers: [ layer1Opaque ]
-                                    }
-                                }
-
-                                // 5. transparent pass
-                                RenderPassFilter {
-                                    matchAny: [ FilterKey { name: "pass"; value: "transparent" } ]
-                                    SortPolicy {
-                                        sortTypes: [ SortPolicy.BackToFront ]
-                                        LayerFilter {
-                                            layers: [ layer1Transparent ]
-                                        }
-                                    }
-                                }
-
-                                // 6. Post-processing effect passes
-                                FrameGraphNode {
-                                    NoDraw { } [so that the rest below can be added/deleted dynamically]
-                                    // effect 1 pass 1
-                                    RenderTargetSelector {
-                                        // input is either layerTexture or the output of another pass
-                                        // output is either effLayerTexture or one of the intermediate textures
-                                        [BlitFramebuffer - NoDraw] ... // from BufferBlit commands or to resolve samples when layer is MSAA
-                                        LayerFilter {
-                                            layers: [ layer1_eff1_pass1_quad_tag ]
-                                            // said quad has a single renderpass with the desired material and render states
-                                        }
-                                    }
-                                    // effect 1 pass 2, ..., effect 2 pass 1, etc.
-                                    ...
-                                }
+                            // Optional progressive AA pass, depends on the texture from the main layer pass
+                            RenderTargetSelector {
+                                ... // draw a quad using layer texture + accumulator texture with the prog AA blend shader
                             }
-                        } } }
-
-                        // Optional progressive AA pass, depends on the texture from the main layer pass
-                        RenderTargetSelector {
-                            ... // draw a quad using layer texture + accumulator texture with the prog AA blend shader
                         }
-                    }
 
-                    // Layer #2 framegraph
-                    FrameGraphNode {
-                        // main
-                        RenderTargetSelector {
-                            ... // like above in layer #1
+                        // Layer #2 framegraph
+                        FrameGraphNode {
+                            // main
+                            RenderTargetSelector {
+                                ... // like above in layer #1
+                            }
+                            // prog. AA
+                            [RenderTargetSelector { ... } ]
                         }
-                        // prog. AA
-                        [RenderTargetSelector { ... } ]
-                    }
 
-                    ...
+                        ... // layer #3, #4, etc.
+                    }
 
                     // compositor framegraph
                     LayerFilter {
@@ -708,9 +715,11 @@ Q3DSSceneManager::Scene Q3DSSceneManager::buildScene(Q3DSUipPresentation *presen
     });
 
     // Build the (offscreen) Qt3D scene
+    Qt3DRender::QFrameGraphNode *layerContainerFg = new Qt3DRender::QFrameGraphNode(frameGraphRoot);
+    new Qt3DRender::QNoDraw(layerContainerFg); // in case there are no layers at all
     Q3DSUipPresentation::forAllLayers(m_scene, [=](Q3DSLayerNode *layer3DS) {
         if (layer3DS->sourcePath().isEmpty())
-            buildLayer(layer3DS, frameGraphRoot, m_outputPixelSize);
+            buildLayer(layer3DS, layerContainerFg, m_outputPixelSize);
         else
             buildSubPresentationLayer(layer3DS, m_outputPixelSize);
     });
