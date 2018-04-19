@@ -4497,8 +4497,10 @@ void Q3DSSceneManager::setImageTextureFromSubPresentation(Qt3DRender::QParameter
         qCDebug(lcScene, "Directing subpresentation %s to image %s",
                 qPrintable(image->subPresentation()), image->id().constData());
         sampler->setValue(QVariant::fromValue(it->colorTex));
-        qCDebug(lcPerf, "Using a subpresentation as texture map (not as layer) makes layer caching in main presentation less efficient");
-        m_layerCacheDeps.insert(it->sceneManager);
+        if (it->sceneManager) { // QML subpresentations will not have a scenemanager
+            qCDebug(lcPerf, "Using a subpresentation as texture map (not as layer) makes layer caching in main presentation less efficient");
+            m_layerCacheDeps.insert(it->sceneManager);
+        }
     } else {
         qCDebug(lcScene, "Subpresentation %s for image %s not found",
                 qPrintable(image->subPresentation()), image->id().constData());
