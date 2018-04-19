@@ -79,6 +79,7 @@ int main(int argc, char *argv[])
         if (!msg.isEmpty())
             QMessageBox::critical(&w, QLatin1String("Failed to load presentation"), msg, QLatin1String("Ok"));
     });
+    w3DS->presentation()->setProfilingEnabled(true);
     w3DS->presentation()->setSource(QUrl(QLatin1String("qrc:/barrel.uip")));
     layout->addWidget(w3DS);
 
@@ -97,6 +98,11 @@ int main(int argc, char *argv[])
     QPushButton *reloadBtn = new QPushButton(QLatin1String("Reload"));
     QObject::connect(reloadBtn, &QPushButton::clicked, w3DS, [w3DS] { w3DS->presentation()->reload(); });
     buttonLayout->addWidget(reloadBtn);
+    QPushButton *profBtn = new QPushButton(QLatin1String("Toggle profile UI"));
+    QObject::connect(profBtn, &QPushButton::clicked, w3DS, [w3DS] {
+        w3DS->presentation()->setProfileUiVisible(!w3DS->presentation()->isProfileUiVisible());
+    });
+    buttonLayout->addWidget(profBtn);
 
     w.resize(1024, 768);
     w.show();
