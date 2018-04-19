@@ -1572,6 +1572,7 @@ public:
     Q3DSImage *specularMap() const { return m_specularMap; }
     SpecularModel specularModel() const { return m_specularModel; }
     float specularRoughness() const { return m_specularRoughness; }
+    Q3DSImage *roughnessMap() const { return m_roughnessMap; }
     float fresnelPower() const { return m_fresnelPower; }
     float ior() const { return m_ior; }
     Q3DSImage *bumpMap() const { return m_bumpMap; }
@@ -1607,6 +1608,7 @@ public:
     Q3DSPropertyChange setSpecularMap(Q3DSImage *v);
     Q3DSPropertyChange setSpecularModel(SpecularModel v);
     Q3DSPropertyChange setSpecularRoughness(float v);
+    Q3DSPropertyChange setRoughnessMap(Q3DSImage *v);
     Q3DSPropertyChange setFresnelPower(float v);
     Q3DSPropertyChange setIor(float v);
     Q3DSPropertyChange setBumpMap(Q3DSImage *v);
@@ -1650,6 +1652,8 @@ private:
     Q3DSImage *m_specularMap = nullptr;
     SpecularModel m_specularModel = DefaultSpecularModel;
     float m_specularRoughness = 0;
+    QString m_roughnessMap_unresolved;
+    Q3DSImage *m_roughnessMap = nullptr;
     float m_fresnelPower = 0;
     float m_ior = 0.2f;
     QString m_bumpMap_unresolved;

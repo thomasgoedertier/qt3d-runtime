@@ -251,8 +251,8 @@ struct ShaderGenerator : public Q3DSDefaultMaterialShaderGenerator
                               "specularColor * kggxGlossyDefaultMtl( "
                            << "world_normal, tangent, -" << lightDir.constData() << ".xyz, view_vector, "
                            << lightSpecColor.constData()
-                           << ".rgb, vec3(material_specular.xyz), material_properties.y, "
-                              "material_properties.y ).rgb;"
+                           << ".rgb, vec3(material_specular.xyz), roughnessAmount, "
+                              "roughnessAmount).rgb;"
                            << "\n";
         } break;
         case Q3DSDefaultMaterial::SpecularModel::KWard: {
@@ -262,8 +262,8 @@ struct ShaderGenerator : public Q3DSDefaultMaterialShaderGenerator
                               "specularColor * wardGlossyDefaultMtl( "
                            << "world_normal, tangent, -" << lightDir.constData() << ".xyz, view_vector, "
                            << lightSpecColor.constData()
-                           << ".rgb, vec3(material_specular.xyz), material_properties.y, "
-                              "material_properties.y ).rgb;"
+                           << ".rgb, vec3(material_specular.xyz), roughnessAmount, "
+                              "roughnessAmount ).rgb;"
                            << "\n";
         } break;
         default:
@@ -271,7 +271,7 @@ struct ShaderGenerator : public Q3DSDefaultMaterialShaderGenerator
             fragmentShader << "\tglobal_specular_light.rgb += lightAttenuation * specularAmount * "
                               "specularColor * specularBSDF( "
                            << "world_normal, -" << lightDir.constData() << ".xyz, view_vector, "
-                           << lightSpecColor.constData() << ".rgb, 1.0, 2.56 / (material_properties.y + "
+                           << lightSpecColor.constData() << ".rgb, 1.0, 2.56 / (roughnessAmount + "
                                                   "0.01), vec3(1.0), scatter_reflect ).rgb;"
                            << "\n";
             break;
@@ -312,7 +312,7 @@ struct ShaderGenerator : public Q3DSDefaultMaterialShaderGenerator
                             "specularColor * specularAmount * sampleAreaGlossyDefault( tanFrame, "
                          << pos.constData() << ", " << normalizedDirection.constData() << ", " << lightPos.constData() << ".xyz, "
                          << lightRt.constData() << ".w, " << lightUp.constData() << ".w, " << view.constData()
-                         << ", material_properties.y, material_properties.y ).rgb;" << "\n";
+                         << ", roughnessAmount, roughnessAmount ).rgb;" << "\n";
     }
 
     void addTranslucencyIrradiance(Q3DSAbstractShaderStageGenerator &infragmentShader, Q3DSImage *image,
@@ -529,6 +529,7 @@ struct ShaderGenerator : public Q3DSDefaultMaterialShaderGenerator
         // beware of the differences between specularAmount and specularReflection maps
         Q3DSImage *specularAmountImage = m_CurrentMaterial->specularMap();
         Q3DSImage *specularReflectionImage = m_CurrentMaterial->specularReflection();
+        Q3DSImage *roughnessImage = m_CurrentMaterial->roughnessMap();
         Q3DSImage *normalImage = m_CurrentMaterial->normalMap();
         Q3DSImage *translucencyImage = m_CurrentMaterial->translucencyMap();
         // lightmaps
@@ -556,6 +557,7 @@ struct ShaderGenerator : public Q3DSDefaultMaterialShaderGenerator
         const bool hasImage = m_CurrentMaterial->diffuseMap()
                 || m_CurrentMaterial->specularReflection()
                 || m_CurrentMaterial->specularMap()
+                || m_CurrentMaterial->roughnessMap()
                 || m_CurrentMaterial->bumpMap()
                 || m_CurrentMaterial->normalMap()
                 || m_CurrentMaterial->displacementmap()
@@ -790,6 +792,19 @@ struct ShaderGenerator : public Q3DSDefaultMaterialShaderGenerator
             if (fresnelEnabled)
                 fragmentHasSpecularAmount = maybeAddMaterialFresnel(fragmentShader, fragmentHasSpecularAmount);
 
+            fragmentShader << "\tfloat roughnessAmount = material_properties.y;" << "\n";
+            if (roughnessImage) {
+                generateImageUVCoordinates(QLatin1String("roughnessMap"), *roughnessImage);
+                const QByteArray imageSampler = m_ImageSampler.toUtf8();
+                const QByteArray imageFragCoords = m_ImageFragCoords.toUtf8();
+
+                fragmentShader << "\tfloat sampledRoughness = texture2D( "
+                               << imageSampler.constData() << ", " << imageFragCoords.constData() << " ).x;" << "\n";
+                //The roughness sampled from roughness textures is Disney roughness
+                //which has to be squared to get the proper value
+                fragmentShader << "\troughnessAmount = roughnessAmount * sampledRoughness * sampledRoughness;" << "\n";
+            }
+
             // Iterate through all lights. Note that this is suitable for
             // default materials only, where all lights are provided in a
             // single constant buffer (cbBufferLights). Custom materials need
@@ -999,7 +1014,7 @@ struct ShaderGenerator : public Q3DSDefaultMaterialShaderGenerator
 
                 fragmentShader << "\tglobal_specular_light.xyz += specularColor * specularAmount * "
                                   "vec3(material_specular.xyz) * sampleGlossy( tanFrame, "
-                                  "view_vector, material_properties.y ).xyz;"
+                                  "view_vector, roughnessAmount ).xyz;"
                                << "\n";
             }
         }

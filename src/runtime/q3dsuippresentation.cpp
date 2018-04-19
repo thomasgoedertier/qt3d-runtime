@@ -1765,6 +1765,9 @@ void Q3DSDefaultMaterial::setProps(const V &attrs, PropSetFlags flags)
 
     parseProperty(attrs, flags, typeName, QStringLiteral("specularmodel"), &m_specularModel);
     parseProperty(attrs, flags, typeName, QStringLiteral("specularroughness"), &m_specularRoughness);
+
+    parseImageProperty(attrs, flags, typeName, QStringLiteral("roughnessmap"), &m_roughnessMap_unresolved);
+
     parseProperty(attrs, flags, typeName, QStringLiteral("fresnelPower"), &m_fresnelPower);
     parseProperty(attrs, flags, typeName, QStringLiteral("ior"), &m_ior);
 
@@ -1818,6 +1821,7 @@ void Q3DSDefaultMaterial::resolveReferences(Q3DSUipPresentation &pres)
     resolveRef(m_diffuseMap3_unresolved, Q3DSGraphObject::Image, &m_diffuseMap3, pres);
     resolveRef(m_specularReflection_unresolved, Q3DSGraphObject::Image, &m_specularReflection, pres);
     resolveRef(m_specularMap_unresolved, Q3DSGraphObject::Image, &m_specularMap, pres);
+    resolveRef(m_roughnessMap_unresolved, Q3DSGraphObject::Image, &m_roughnessMap, pres);
     resolveRef(m_bumpMap_unresolved, Q3DSGraphObject::Image, &m_bumpMap, pres);
     resolveRef(m_normalMap_unresolved, Q3DSGraphObject::Image, &m_normalMap, pres);
     resolveRef(m_displacementMap_unresolved, Q3DSGraphObject::Image, &m_displacementMap, pres);
@@ -1849,7 +1853,7 @@ QStringList Q3DSDefaultMaterial::propertyNames() const
       << QLatin1String("diffusemap") << QLatin1String("diffusemap2") << QLatin1String("diffusemap3")
       << QLatin1String("specularreflection") << QLatin1String("speculartint") << QLatin1String("specularamount")
       << QLatin1String("specularmap") << QLatin1String("specularmodel")
-      << QLatin1String("specularroughness") << QLatin1String("fresnelpower") << QLatin1String("ior") << QLatin1String("bumpmap")
+      << QLatin1String("specularroughness") << QLatin1String("roughnessmap") << QLatin1String("fresnelpower") << QLatin1String("ior") << QLatin1String("bumpmap")
       << QLatin1String("normalmap") << QLatin1String("bumpamount") << QLatin1String("displacementmap")
       << QLatin1String("displaceamount") << QLatin1String("opacity") << QLatin1String("opacitymap") << QLatin1String("emissivecolor")
       << QLatin1String("emissivepower") << QLatin1String("emissivemap") << QLatin1String("emissivemap2")
@@ -1864,7 +1868,7 @@ QVariantList Q3DSDefaultMaterial::propertyValues() const
     QVariantList s = Q3DSGraphObject::propertyValues();
     s << m_shaderLighting << m_blendMode << m_diffuse << m_diffuseMap_unresolved << m_diffuseMap2_unresolved << m_diffuseMap3_unresolved
       << m_specularReflection_unresolved << m_specularTint << m_specularAmount << m_specularMap_unresolved << m_specularModel
-      << m_specularRoughness << m_fresnelPower << m_ior << m_bumpMap_unresolved << m_normalMap_unresolved << m_bumpAmount << m_displacementMap_unresolved
+      << m_specularRoughness << m_roughnessMap_unresolved << m_fresnelPower << m_ior << m_bumpMap_unresolved << m_normalMap_unresolved << m_bumpAmount << m_displacementMap_unresolved
       << m_displaceAmount << m_opacity << m_opacityMap_unresolved << m_emissiveColor << m_emissivePower << m_emissiveMap_unresolved << m_emissiveMap2_unresolved
       << m_translucencyMap_unresolved << m_translucentFalloff << m_diffuseLightWrap
       << m_lightmapIndirectMap_unresolved << m_lightmapRadiosityMap_unresolved << m_lightmapShadowMap_unresolved << m_lightProbe_unresolved;
@@ -1929,6 +1933,11 @@ Q3DSPropertyChange Q3DSDefaultMaterial::setSpecularModel(SpecularModel v)
 Q3DSPropertyChange Q3DSDefaultMaterial::setSpecularRoughness(float v)
 {
     return createPropSetter(m_specularRoughness, v, "specularroughness");
+}
+
+Q3DSPropertyChange Q3DSDefaultMaterial::setRoughnessMap(Q3DSImage *v)
+{
+    return createObjectRefSetter(MEMBER_PAIR(m_roughnessMap), v, "roughnessmap");
 }
 
 Q3DSPropertyChange Q3DSDefaultMaterial::setFresnelPower(float v)

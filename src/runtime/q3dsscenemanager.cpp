@@ -4666,6 +4666,12 @@ QVector<Qt3DRender::QParameter *> Q3DSSceneManager::prepareDefaultMaterial(Q3DSD
         static_cast<Q3DSImageAttached *>(m->specularMap()->attached())->referencingDefaultMaterials.insert(m);
     }
 
+    if (m->roughnessMap()) {
+        prepareTextureParameters(data->roughnessMapParams, QLatin1String("roughnessMap"), m->roughnessMap());
+        params.append(data->roughnessMapParams.parameters());
+        static_cast<Q3DSImageAttached *>(m->roughnessMap()->attached())->referencingDefaultMaterials.insert(m);
+    }
+
     if (m->bumpMap()) {
         prepareTextureParameters(data->bumpMapParams, QLatin1String("bumpMap"), m->bumpMap());
         params.append(data->bumpMapParams.parameters());
@@ -4823,6 +4829,9 @@ void Q3DSSceneManager::updateDefaultMaterial(Q3DSDefaultMaterial *m, Q3DSReferen
 
     if (m->specularMap())
         updateTextureParameters(data->specularMapParams, m->specularMap());
+
+    if (m->roughnessMap())
+        updateTextureParameters(data->roughnessMapParams, m->roughnessMap());
 
     if (m->bumpMap())
         updateTextureParameters(data->bumpMapParams, m->bumpMap());

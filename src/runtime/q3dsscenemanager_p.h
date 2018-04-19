@@ -483,6 +483,7 @@ public:
     Q3DSTextureParameters diffuseMap3Params;
     Q3DSTextureParameters specularReflectionParams;
     Q3DSTextureParameters specularMapParams;
+    Q3DSTextureParameters roughnessMapParams;
     Q3DSTextureParameters bumpMapParams;
     Q3DSTextureParameters normalMapParams;
     Q3DSTextureParameters displacementMapParams;
