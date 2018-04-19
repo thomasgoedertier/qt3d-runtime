@@ -304,6 +304,7 @@ Q3DSGraphicsLimits graphicsLimits()
 
 void Q3DSEngine::createAspectEngine()
 {
+    qCDebug(lcUip, "Aspect engine reset");
     m_aspectEngine.reset(new Qt3DCore::QAspectEngine);
     if (!m_flags.testFlag(WithoutRenderAspect))
         m_aspectEngine->registerAspect(new Qt3DRender::QRenderAspect);
@@ -584,6 +585,13 @@ void Q3DSEngine::finalizePresentations()
 
     if (m_aspectEngine.isNull())
         createAspectEngine();
+    else
+        m_aspectEngine->setRootEntity(Qt3DCore::QEntityPtr(m_uipPresentations[0].q3dscene.rootEntity));
+
+    if (m_autoStart) {
+        for (const UipPresentation &pres : m_uipPresentations)
+            pres.sceneManager->prepareAnimators();
+    }
 
     m_loadTime = m_sourceLoadTimer.elapsed();
     qCDebug(lcPerf, "Total setSource time (incl. subpresentations + Qt3D scene building): %lld ms", m_loadTime);
@@ -674,13 +682,6 @@ bool Q3DSEngine::buildUipPresentationScene(UipPresentation *pres)
     // Setup picking backend
     pres->q3dscene.renderSettings->pickingSettings()->setPickMethod(Qt3DRender::QPickingSettings::PrimitivePicking);
 
-    // Set new root entity if the engine was already up and running.
-    if (!m_aspectEngine.isNull())
-        m_aspectEngine->setRootEntity(Qt3DCore::QEntityPtr(pres->q3dscene.rootEntity));
-
-    if (m_autoStart)
-        pres->sceneManager->prepareAnimators();
-
     return true;
 }
 
@@ -750,9 +751,6 @@ bool Q3DSEngine::buildSubUipPresentationScene(UipPresentation *pres)
     pres->subPres.sceneManager = pres->sceneManager;
 
     pres->q3dscene.rootEntity->setParent(entityParent);
-
-    if (m_autoStart)
-        pres->sceneManager->prepareAnimators();
 
     return true;
 }
@@ -995,9 +993,8 @@ void Q3DSEngine::prepareForReload()
         Qt3DCore::QAspectEnginePrivate::get(m_aspectEngine.data())->exitSimulationLoop();
         createAspectEngine();
 
-        for (UipPresentation &pres : m_uipPresentations) {
+        for (UipPresentation &pres : m_uipPresentations)
             delete pres.sceneManager;
-        }
         m_uipPresentations.clear();
     } else {
         Q3DSSceneManager::prepareEngineResetGlobal();
