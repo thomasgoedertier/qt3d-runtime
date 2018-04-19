@@ -9,4 +9,6 @@ qtHaveModule(widgets) {
 
 SOURCES += main.cpp
 
-load(qt_tool)
+load(qt_app)
+
+CONFIG += app_bundle
