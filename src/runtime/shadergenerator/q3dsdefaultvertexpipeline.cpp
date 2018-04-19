@@ -248,7 +248,7 @@ struct ShaderGenerator : public Q3DSDefaultMaterialShaderGenerator
             fragmentShader.addInclude("defaultMaterialPhysGlossyBSDF.glsllib");
             fragmentShader.addUniform("material_specular", "vec4");
             fragmentShader << "\tglobal_specular_light.rgb += lightAttenuation * specularAmount * "
-                              "kggxGlossyDefaultMtl( "
+                              "specularColor * kggxGlossyDefaultMtl( "
                            << "world_normal, tangent, -" << lightDir.constData() << ".xyz, view_vector, "
                            << lightSpecColor.constData()
                            << ".rgb, vec3(material_specular.xyz), material_properties.y, "
@@ -259,7 +259,7 @@ struct ShaderGenerator : public Q3DSDefaultMaterialShaderGenerator
             fragmentShader.addInclude("defaultMaterialPhysGlossyBSDF.glsllib");
             fragmentShader.addUniform("material_specular", "vec4");
             fragmentShader << "\tglobal_specular_light.rgb += lightAttenuation * specularAmount * "
-                              "wardGlossyDefaultMtl( "
+                              "specularColor * wardGlossyDefaultMtl( "
                            << "world_normal, tangent, -" << lightDir.constData() << ".xyz, view_vector, "
                            << lightSpecColor.constData()
                            << ".rgb, vec3(material_specular.xyz), material_properties.y, "
@@ -269,7 +269,7 @@ struct ShaderGenerator : public Q3DSDefaultMaterialShaderGenerator
         default:
             addFunction(fragmentShader, "specularBSDF");
             fragmentShader << "\tglobal_specular_light.rgb += lightAttenuation * specularAmount * "
-                              "specularBSDF( "
+                              "specularColor * specularBSDF( "
                            << "world_normal, -" << lightDir.constData() << ".xyz, view_vector, "
                            << lightSpecColor.constData() << ".rgb, 1.0, 2.56 / (material_properties.y + "
                                                   "0.01), vec3(1.0), scatter_reflect ).rgb;"
@@ -309,7 +309,7 @@ struct ShaderGenerator : public Q3DSDefaultMaterialShaderGenerator
         const QByteArray view = inView.toUtf8();
         infragmentShader << "global_specular_light.rgb += " << lightSpecColor.constData()
                          << ".rgb * lightAttenuation * shadowFac * material_specular.rgb * "
-                            "specularAmount * sampleAreaGlossyDefault( tanFrame, "
+                            "specularColor * specularAmount * sampleAreaGlossyDefault( tanFrame, "
                          << pos.constData() << ", " << normalizedDirection.constData() << ", " << lightPos.constData() << ".xyz, "
                          << lightRt.constData() << ".w, " << lightUp.constData() << ".w, " << view.constData()
                          << ", material_properties.y, material_properties.y ).rgb;" << "\n";
@@ -775,6 +775,7 @@ struct ShaderGenerator : public Q3DSDefaultMaterialShaderGenerator
             }
             // Fragment lighting means we can perhaps attenuate the specular amount by a texture
             // lookup.
+            fragmentShader << "\tvec3 specularColor = vec3(1.0);" << "\n";
             if (specularAmountImage) {
                 if (!specularEnabled)
                     fragmentShader << "\tfloat specularAmount = 1.0;" << "\n";
@@ -782,8 +783,8 @@ struct ShaderGenerator : public Q3DSDefaultMaterialShaderGenerator
                 const QByteArray imageSampler = m_ImageSampler.toUtf8();
                 const QByteArray imageFragCoords = m_ImageFragCoords.toUtf8();
 
-                fragmentShader << "\tspecularAmount = specularAmount * texture2D( "
-                               << imageSampler.constData() << ", " << imageFragCoords.constData() << " ).x;" << "\n";
+                fragmentShader << "\tspecularColor = texture2D( "
+                               << imageSampler.constData() << ", " << imageFragCoords.constData() << " ).xyz;" << "\n";
                 fragmentHasSpecularAmount = true;
             }
             if (fresnelEnabled)
@@ -996,7 +997,7 @@ struct ShaderGenerator : public Q3DSDefaultMaterialShaderGenerator
             if (specularEnabled) {
                 fragmentShader.addUniform("material_specular", "vec4");
 
-                fragmentShader << "\tglobal_specular_light.xyz += specularAmount * "
+                fragmentShader << "\tglobal_specular_light.xyz += specularColor * specularAmount * "
                                   "vec3(material_specular.xyz) * sampleGlossy( tanFrame, "
                                   "view_vector, material_properties.y ).xyz;"
                                << "\n";
@@ -1059,7 +1060,7 @@ struct ShaderGenerator : public Q3DSDefaultMaterialShaderGenerator
                 addTexColor(QLatin1String("specularreflection"), m_CurrentMaterial->specularReflection());
                 fragmentShader.addUniform("material_specular", "vec4");
                 if (fragmentHasSpecularAmount) {
-                    fragmentShader.append("\tglobal_specular_light.xyz += specularAmount * "
+                    fragmentShader.append("\tglobal_specular_light.xyz += specularColor * specularAmount * "
                                           "texture_color.xyz * material_specular.xyz;");
                 } else {
                     fragmentShader.append("\tglobal_specular_light.xyz += texture_color.xyz * "
