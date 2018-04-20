@@ -1,3 +1,6 @@
 TEMPLATE = subdirs
-SUBDIRS = \
-    datamodelgen
+qtHaveModule(widgets) {
+    SUBDIRS += \
+        qt3dsexplorer \
+        datamodelgen
+}
