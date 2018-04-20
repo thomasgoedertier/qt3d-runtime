@@ -59,6 +59,7 @@ public:
     void setUpdateInterval(int interval);
 
 Q_SIGNALS:
+    void presentationLoaded();
     void frameUpdate();
     void errorChanged();
     void runningChanged();

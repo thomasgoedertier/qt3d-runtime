@@ -1,7 +1,9 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <UIP version="3" >
 	<Project >
-		<ProjectSettings author="" company="" presentationWidth="800" presentationHeight="480" maintainAspect="False" />
+		<ProjectSettings author="" company="" presentationWidth="800" presentationHeight="480" maintainAspect="False" >
+			<CustomColors count="16" >#ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff</CustomColors>
+		</ProjectSettings>
 		<Graph >
 			<Scene id="Scene" >
 				<Layer id="Layer" >
@@ -16,6 +18,7 @@
 						</Material>
 					</Model>
 					<Text id="Text" />
+					<Text id="Text2" />
 				</Layer>
 			</Scene>
 		</Graph>
@@ -31,7 +34,7 @@
 						<AnimationTrack property="rotation.y" type="EaseInOut" >0 0 100 100 5 -302 100 100 10 0 100 100</AnimationTrack>
 						<AnimationTrack property="rotation.z" type="EaseInOut" >0 0 100 100 5 0 100 100 10 0 100 100</AnimationTrack>
 					</Add>
-					<Add ref="#Material" bumpamount="0" diffusemap="#Material_diffusemap" emissivemap="#Material_emissivemap" fresnelPower="25" normalmap="#Material_normalmap" specularamount="4" specularmap="#Material_specularmap" specularmodel="Default" specularroughness="0.001" >
+					<Add ref="#Material" bumpamount="0" diffuse="1 1 1" diffusemap="#Material_diffusemap" emissivemap="#Material_emissivemap" fresnelPower="25" normalmap="#Material_normalmap" specularamount="4" specularmap="#Material_specularmap" specularmodel="Default" specularroughness="0.001" >
 						<AnimationTrack property="bumpamount" type="EaseInOut" >0 0 100 100 5 1 100 100</AnimationTrack>
 					</Add>
 					<Add ref="#Material_diffusemap" sourcepath=".\maps\barrel_barrel_Diffuse.png" />
@@ -47,6 +50,7 @@
 						<AnimationTrack property="textcolor.y" type="EaseInOut" >0 1 100 100 5.009 0.235294 100 100 10 1 100 100</AnimationTrack>
 						<AnimationTrack property="textcolor.z" type="EaseInOut" >0 0 100 100 5.009 0.333333 100 100 10 0 100 100</AnimationTrack>
 					</Add>
+                                        <Add ref="#Text2" name="Text2" controlledproperty="di_text textstring" font="Arimo-Regular" position="435.899 267.025 0" />
 				</State>
 			</State>
 		</Logic>

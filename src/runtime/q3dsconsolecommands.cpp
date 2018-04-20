@@ -127,7 +127,7 @@ void Q3DSConsoleCommands::setupConsole(Q3DSConsole *console)
     m_console = console;
     m_console->addMessageFmt(responseColor, "Qt 3D Studio Console, 2nd Edition Ver. 2.31");
     // start with the main presentation active
-    setCurrentPresentation(m_sceneManager->m_presentation);
+    setCurrentPresentation(m_sceneManager);
     // in immediate mode
     m_console->setRecording(false);
 
@@ -146,6 +146,7 @@ void Q3DSConsoleCommands::setupConsole(Q3DSConsole *console)
                                "info(obj) - Prints additional properties for the given object (node or slide). [R]\n"
                                "get(obj, property) - Prints the property value. [R]\n"
                                "set(obj, property, value) - Applies and notifies a change to the given property. [R]\n"
+                               "datainput - Lists data input entry - object connections. [R]\n"
                                "kill(obj) - Removes a node from the scene graph (and from the slides' object list). [R]\n"
                                "primitive(id, name, source, parentObj, slide) - Adds a model node with one default material. (source == #Cube, #Cone, etc.) [R]\n"
                                "record - Switches to recording mode.\n"
@@ -172,12 +173,12 @@ void Q3DSConsoleCommands::setupConsole(Q3DSConsole *console)
         const QString id = QString::fromUtf8(args);
         bool found = false;
         if (id == m_sceneManager->m_presentation->name()) {
-            setCurrentPresentation(m_sceneManager->m_presentation);
+            setCurrentPresentation(m_sceneManager);
             found = true;
         } else {
             for (const Q3DSSubPresentation &subPres : m_sceneManager->m_subPresentations) {
                 if (subPres.sceneManager && subPres.id == id) {
-                    setCurrentPresentation(subPres.sceneManager->m_presentation);
+                    setCurrentPresentation(subPres.sceneManager);
                     found = true;
                     break;
                 }
@@ -313,6 +314,17 @@ void Q3DSConsoleCommands::setupConsole(Q3DSConsole *console)
             m_console->addMessageFmt(errorColor, "Invalid arguments, expected 3");
         }
     }, Q3DSConsole::CmdRecordable));
+    m_console->addCommand(Q3DSConsole::makeCommand("datainput", [this](const QByteArray &) {
+        auto diMap = m_currentPresentation->dataInputMap();
+        if (diMap) {
+            for (auto it = diMap->cbegin(); it != diMap->cend(); ++it) {
+                m_console->addMessageFmt(longResponseColor, "%s\n  %s",
+                                         qPrintable(it.key()), qPrintable(printObject(it.value())));
+                for (const QString &propName : it.value()->dataInputControlledProperties()->values(it.key()))
+                    m_console->addMessageFmt(longResponseColor, "    %s", qPrintable(propName));
+            }
+        }
+    }, Q3DSConsole::CmdRecordable));
     m_console->addCommand(Q3DSConsole::makeCommand("kill", [this](const QByteArray &args) {
         Q3DSGraphObject *obj = resolveObj(args);
         if (obj) {
@@ -420,12 +432,14 @@ void Q3DSConsoleCommands::setupConsole(Q3DSConsole *console)
 #endif
 }
 
-void Q3DSConsoleCommands::setCurrentPresentation(Q3DSUipPresentation *pres)
+void Q3DSConsoleCommands::setCurrentPresentation(Q3DSSceneManager *sceneManager)
 {
 #if QT_CONFIG(q3ds_profileui)
-    m_currentPresentation = pres;
+    m_currentSceneManager = sceneManager;
+    m_currentPresentation = sceneManager->m_presentation;
     m_console->addMessageFmt(responseColor, "Switched to presentation '%s' (%s)",
-                             qPrintable(pres->name()), qPrintable(pres->sourceFile()));
+                             qPrintable(m_currentPresentation->name()),
+                             qPrintable(m_currentPresentation->sourceFile()));
 #else
     Q_UNUSED(pres);
 #endif

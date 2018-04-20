@@ -340,6 +340,8 @@ bool Q3DSSurfaceViewerPrivate::createEngine()
             engine->resize(actualSize);
     }
 
+    QObject::connect(engine, &Q3DSEngine::presentationLoaded, q, &Q3DSSurfaceViewer::presentationLoaded);
+
     QString err;
     sourceLoaded = engine->setSource(fn, &err);
     if (!sourceLoaded) {

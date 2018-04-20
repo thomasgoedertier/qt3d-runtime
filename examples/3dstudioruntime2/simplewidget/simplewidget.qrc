@@ -1,5 +1,6 @@
 <RCC>
     <qresource prefix="/">
+        <file alias="barrel.uia">../simpleqml/presentation/barrel.uia</file>
         <file alias="barrel.uip">../simpleqml/presentation/barrel.uip</file>
         <file alias="barrel/meshes/Barrel.mesh">../simpleqml/presentation/barrel/meshes/Barrel.mesh</file>
         <file alias="fonts/Arimo-Regular.ttf">../simpleqml/presentation/fonts/Arimo-Regular.ttf</file>

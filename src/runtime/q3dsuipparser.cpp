@@ -300,9 +300,8 @@ void Q3DSUipParser::parseScene()
 
     auto scene = new Q3DSScene;
     scene->setProperties(r->attributes(), Q3DSGraphObject::PropSetDefaults);
-    scene->setDataInputControlledProperties(getDataInputControlledProperties());
+    scene->addDataInputControlledProperties(getDataInputControlledProperties());
     m_presentation->registerObject(id, scene);
-    m_presentation->registerDataInputTarget(scene);
     m_presentation->setScene(scene);
 
     while (r->readNextStartElement()) {
@@ -358,9 +357,8 @@ void Q3DSUipParser::parseObjects(Q3DSGraphObject *parent)
     }
 
     obj->setProperties(r->attributes(), Q3DSGraphObject::PropSetDefaults);
-    obj->setDataInputControlledProperties(getDataInputControlledProperties());
+    obj->addDataInputControlledProperties(getDataInputControlledProperties());
     m_presentation->registerObject(id, obj);
-    m_presentation->registerDataInputTarget(obj);
     parent->appendChildNode(obj);
 
     while (r->readNextStartElement())
@@ -418,9 +416,8 @@ Q3DSSlide *Q3DSUipParser::parseSlide(Q3DSSlide *parent, const QByteArray &idPref
 
     Q3DSSlide *slide = new Q3DSSlide;
     slide->setProperties(r->attributes(), Q3DSGraphObject::PropSetDefaults);
-    slide->setDataInputControlledProperties(getDataInputControlledProperties());
+    slide->addDataInputControlledProperties(getDataInputControlledProperties());
     m_presentation->registerObject(id, slide);
-    m_presentation->registerDataInputTarget(slide);
     if (parent)
         parent->appendChildNode(slide);
 
@@ -476,6 +473,9 @@ void Q3DSUipParser::parseAddSet(Q3DSSlide *slide, bool isSet, bool isMaster)
         if (!changeList->isEmpty())
             slide->addPropertyChanges(obj, changeList.take());
     }
+
+    // controlledproperty attributes may be present in the Logic section as well.
+    obj->addDataInputControlledProperties(getDataInputControlledProperties());
 
     // Store animations and actions.
     while (r->readNextStartElement()) {
@@ -656,6 +656,8 @@ void Q3DSUipParser::resolveReferences(Q3DSGraphObject *obj)
 {
     while (obj) {
         obj->resolveReferences(*m_presentation);
+        m_presentation->registerDataInputTarget(obj);
+
         resolveReferences(obj->firstChild());
         obj = obj->nextSibling();
     }

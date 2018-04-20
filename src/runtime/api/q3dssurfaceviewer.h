@@ -83,6 +83,7 @@ public Q_SLOTS:
     void update();
 
 Q_SIGNALS:
+    void presentationLoaded();
     void frameUpdate();
     void errorChanged();
     void runningChanged();

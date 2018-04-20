@@ -220,6 +220,8 @@ Q3DSWidgetPrivate::~Q3DSWidgetPrivate()
 
 void Q3DSWidgetPrivate::createEngine()
 {
+    Q_Q(Q3DSWidget);
+
     engine = new Q3DSEngine;
 
     Q3DSEngine::Flags flags = Q3DSEngine::WithoutRenderAspect;
@@ -239,6 +241,8 @@ void Q3DSWidgetPrivate::createEngine()
     const QSize sz = q_ptr->size();
     if (!sz.isEmpty())
         engine->resize(sz);
+
+    QObject::connect(engine, &Q3DSEngine::presentationLoaded, q, &Q3DSWidget::presentationLoaded);
 
     QString err;
     sourceLoaded = engine->setSource(fn, &err);

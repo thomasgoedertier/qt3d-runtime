@@ -1,7 +1,7 @@
 /****************************************************************************
 **
-** Copyright (C) 2017 The Qt Company Ltd.
-** Contact: http://www.qt.io/licensing/
+** Copyright (C) 2018 The Qt Company Ltd.
+** Contact: https://www.qt.io/licensing/
 **
 ** This file is part of Qt 3D Studio.
 **
@@ -27,36 +27,49 @@
 **
 ****************************************************************************/
 
-#include <QtQml/qqmlextensionplugin.h>
-#include <QtQml/qqml.h>
-#include "q3dsstudio3ditem_p.h"
-#include "q3dspresentationitem_p.h"
-#include "q3dsdatainput.h"
+#ifndef Q3DSDATAINPUT_H
+#define Q3DSDATAINPUT_H
 
-static void initResources()
-{
-#ifdef QT_STATIC
-    Q_INIT_RESOURCE(qmake_QtStudio3D_2);
-#endif
-}
+#include <Qt3DStudioRuntime2/q3dsruntimeglobal.h>
+#include <QtCore/qobject.h>
+#include <QtCore/qvariant.h>
 
 QT_BEGIN_NAMESPACE
 
-class Q3DSStudio3DPlugin : public QQmlExtensionPlugin
+class Q3DSDataInputPrivate;
+class Q3DSPresentation;
+
+class Q3DSV_EXPORT Q3DSDataInput : public QObject
 {
     Q_OBJECT
-    Q_PLUGIN_METADATA(IID QQmlExtensionInterface_iid)
+    Q_PROPERTY(QString name READ name WRITE setName NOTIFY nameChanged)
+    Q_PROPERTY(QVariant value READ value WRITE setValue NOTIFY valueChanged)
 
 public:
-    Q3DSStudio3DPlugin(QObject *parent = 0) : QQmlExtensionPlugin(parent) { initResources(); }
-    void registerTypes(const char *uri) override
-    {
-        qmlRegisterType<Q3DSStudio3DItem>(uri, 2, 0, "Studio3D");
-        qmlRegisterType<Q3DSPresentationItem>(uri, 2, 0, "Presentation");
-        qmlRegisterType<Q3DSDataInput>(uri, 2, 0, "DataInput");
-    }
+    explicit Q3DSDataInput(QObject *parent = nullptr);
+    explicit Q3DSDataInput(const QString &name, QObject *parent = nullptr);
+    Q3DSDataInput(Q3DSPresentation *presentation, const QString &name, QObject *parent = nullptr);
+    ~Q3DSDataInput();
+
+    QString name() const;
+    QVariant value() const;
+
+public Q_SLOTS:
+    void setName(const QString &name);
+    void setValue(const QVariant &value);
+
+Q_SIGNALS:
+    void nameChanged();
+    void valueChanged();
+
+protected:
+    Q3DSDataInput(Q3DSDataInputPrivate &dd, QObject *parent);
+
+private:
+    Q_DISABLE_COPY(Q3DSDataInput)
+    Q_DECLARE_PRIVATE(Q3DSDataInput)
 };
 
 QT_END_NAMESPACE
 
-#include "plugin.moc"
+#endif // Q3DSDATAINPUT_H

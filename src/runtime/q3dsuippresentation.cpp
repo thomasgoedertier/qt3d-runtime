@@ -3728,6 +3728,7 @@ QVector<ClonedObject> cloneObjects(Q3DSGraphObject *target,
         object->applyPropertyChanges(props);
         object->setName(id);
         presentation->registerObject(id.toLatin1(), object);
+        object->addDataInputControlledProperties(*target->dataInputControlledProperties());
         presentation->registerDataInputTarget(object);
         if (parent)
             parent->appendChildNode(object);

@@ -51,6 +51,15 @@ void Q3DSPresentationController::initializePresentationController(Q3DSEngine *en
     {
         emit presentation->slideExited(engine->makePath(context), index, name);
     });
+
+    // Setting a data input value needs a scenemanager. Therefore we must defer further.
+    QObject::connect(engine, &Q3DSEngine::presentationLoaded, engine,
+            [this]()
+    {
+        for (auto p : m_pendingDataInputSets)
+            m_pcEngine->setDataInputValue(p.first, p.second);
+        m_pendingDataInputSets.clear();
+    });
 }
 
 void Q3DSPresentationController::handlePresentationKeyPressEvent(QKeyEvent *e)
@@ -101,6 +110,8 @@ void Q3DSPresentationController::handleDataInputValue(const QString &name, const
 {
     if (m_pcEngine)
         m_pcEngine->setDataInputValue(name, value);
+    else
+        m_pendingDataInputSets.append({ name, value }); // defer to initializePresentationController
 }
 
 void Q3DSPresentationController::handleFireEvent(const QString &elementPath, const QString &eventName)

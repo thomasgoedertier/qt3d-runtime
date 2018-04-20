@@ -205,6 +205,7 @@ void Q3DSStudio3DItem::createEngine()
         qCDebug(lcStudio3D, "created engine %p", m_engine);
 
         connect(m_engine, &Q3DSEngine::presentationLoaded, this, [this]() {
+            m_presentation->studio3DPresentationLoaded();
             if (!m_running) {
                 m_running = true;
                 emit runningChanged();

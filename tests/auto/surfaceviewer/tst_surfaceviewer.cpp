@@ -104,6 +104,7 @@ void tst_SurfaceViewer::testWindow()
     Q3DSSurfaceViewer viewer;
     QSignalSpy errorSpy(&viewer, SIGNAL(errorChanged()));
     QSignalSpy runningSpy(&viewer, SIGNAL(runningChanged()));
+    QSignalSpy presLoadedSpy(&viewer, SIGNAL(presentationLoaded()));
     QSignalSpy frameSpy(&viewer, SIGNAL(frameUpdate()));
 
     QCOMPARE(viewer.isRunning(), false);
@@ -121,6 +122,7 @@ void tst_SurfaceViewer::testWindow()
     QCOMPARE(viewer.error(), QString());
     QCOMPARE(errorSpy.count(), 0);
     QCOMPARE(runningSpy.count(), 1);
+    QCOMPARE(presLoadedSpy.count(), 1);
 
     // wait for 60 frames at least
     QTRY_VERIFY(frameSpy.count() >= 60);
@@ -134,6 +136,7 @@ void tst_SurfaceViewer::testWindowWithReload()
     Q3DSSurfaceViewer viewer;
     QSignalSpy errorSpy(&viewer, SIGNAL(errorChanged()));
     QSignalSpy runningSpy(&viewer, SIGNAL(runningChanged()));
+    QSignalSpy presLoadedSpy(&viewer, SIGNAL(presentationLoaded()));
     QSignalSpy frameSpy(&viewer, SIGNAL(frameUpdate()));
 
     const QUrl source = QUrl(QLatin1String("qrc:/data/primitives.uip"));
@@ -148,6 +151,7 @@ void tst_SurfaceViewer::testWindowWithReload()
     QCOMPARE(viewer.error(), QString());
     QCOMPARE(errorSpy.count(), 0);
     QCOMPARE(runningSpy.count(), 1);
+    QCOMPARE(presLoadedSpy.count(), 1);
 
     QTRY_VERIFY(frameSpy.count() >= 60);
 
@@ -156,6 +160,7 @@ void tst_SurfaceViewer::testWindowWithReload()
     QCOMPARE(viewer.error(), QString());
     QCOMPARE(errorSpy.count(), 0);
     QCOMPARE(viewer.presentation()->source(), source);
+    QCOMPARE(presLoadedSpy.count(), 2);
 
     QTRY_VERIFY(frameSpy.count() >= 120);
 }

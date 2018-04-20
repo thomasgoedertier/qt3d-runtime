@@ -2,6 +2,7 @@
     <qresource prefix="/">
         <file>main.qml</file>
         <file>presentation/barrel.uip</file>
+        <file>presentation/barrel.uia</file>
         <file>presentation/barrel_no_background.uip</file>
         <file>presentation/barrel/meshes/Barrel.mesh</file>
         <file>presentation/fonts/Arimo-Regular.ttf</file>

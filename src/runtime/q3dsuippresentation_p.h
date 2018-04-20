@@ -329,8 +329,8 @@ public:
     typedef QMultiHash<QString, QString> DataInputControlledProperties; // data input entry name - property name
     const DataInputControlledProperties *dataInputControlledProperties() const
     { return &m_dataInputControlledProperties; }
-    void setDataInputControlledProperties(const DataInputControlledProperties &props)
-    { m_dataInputControlledProperties = props; }
+    void addDataInputControlledProperties(const DataInputControlledProperties &props)
+    { m_dataInputControlledProperties += props; }
 
     struct Event {
         Event() = default;

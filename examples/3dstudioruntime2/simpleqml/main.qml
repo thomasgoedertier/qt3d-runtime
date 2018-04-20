@@ -68,6 +68,8 @@ Rectangle {
         focus: true
         anchors.margins: 60
         anchors.fill: parent
+        property string textValue: "hello world"
+
         Presentation {
             id: s3dpres
             source: "qrc:/presentation/barrel.uip"
@@ -76,6 +78,11 @@ Rectangle {
             onCustomSignalEmitted: customSignalName.text = Date.now() + ": " + name
             onSlideEntered: slideEnter.text = "Entered slide " + name + "(index " + index + ") on " + elementPath
             onSlideExited: slideExit.text = "Exited slide " + name + "(index " + index + ") on " + elementPath
+
+            DataInput {
+                name: "di_text"
+                value: s3d.textValue
+            }
         }
         ignoredEvents: mouseEvCb.checked ? Studio3D.EnableAllEvents : (Studio3D.IgnoreMouseEvents | Studio3D.IgnoreWheelEvents)
         onRunningChanged: console.log("running: " + s3d.running)
@@ -168,6 +175,12 @@ Rectangle {
                 var v = s3dpres.getAttribute("Scene.Layer.Camera", "eyeball")
                 s3dpres.setAttribute("Scene.Layer.Camera", "eyeball", !v)
             }
+            focusPolicy: Qt.NoFocus
+        }
+        Button {
+            text: "Send new data input value"
+            property int invocationCount: 0
+            onClicked: s3d.textValue = "Data input value " + (++invocationCount)
             focusPolicy: Qt.NoFocus
         }
     }

@@ -58,11 +58,12 @@ public:
     void setupConsole(Q3DSConsole *console);
 
 private:
-    void setCurrentPresentation(Q3DSUipPresentation *pres);
+    void setCurrentPresentation(Q3DSSceneManager *sceneManager);
     Q3DSGraphObject *resolveObj(const QByteArray &ref, bool showErrorWhenNotFound = true);
 
     Q3DSSceneManager *m_sceneManager;
     Q3DSConsole *m_console = nullptr;
+    Q3DSSceneManager *m_currentSceneManager = nullptr;
     Q3DSUipPresentation *m_currentPresentation = nullptr;
     QByteArrayList m_program;
 };

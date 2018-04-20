@@ -87,6 +87,7 @@ public:
 
 protected:
     Q3DSEngine *m_pcEngine = nullptr; // don't want clashes with commonly used m_engine members
+    QVector<QPair<QString, QVariant> > m_pendingDataInputSets;
 };
 
 Q_DECLARE_OPERATORS_FOR_FLAGS(Q3DSPresentationController::SourceFlags)

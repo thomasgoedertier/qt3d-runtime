@@ -28,6 +28,7 @@
 ****************************************************************************/
 
 #include "q3dspresentationitem_p.h"
+#include <private/q3dsdatainput_p.h>
 
 QT_BEGIN_NAMESPACE
 
@@ -47,10 +48,18 @@ QQmlListProperty<QObject> Q3DSPresentationItem::qmlChildren()
 
 void Q3DSPresentationItem::appendQmlChildren(QQmlListProperty<QObject> *list, QObject *obj)
 {
-    auto item = qobject_cast<Q3DSPresentationItem *>(list->object);
-    if (item) {
-        Q_UNUSED(obj);
-        // ###
+    if (Q3DSPresentationItem *item = qobject_cast<Q3DSPresentationItem *>(list->object)) {
+        obj->setParent(item);
+        if (Q3DSDataInput *dataInput = qobject_cast<Q3DSDataInput *>(obj))
+            Q3DSDataInputPrivate::get(dataInput)->presentation = item;
+    }
+}
+
+void Q3DSPresentationItem::studio3DPresentationLoaded()
+{
+    for (QObject *obj : children()) {
+        if (Q3DSDataInput *dataInput = qobject_cast<Q3DSDataInput *>(obj))
+            Q3DSDataInputPrivate::get(dataInput)->sendValue();
     }
 }
 

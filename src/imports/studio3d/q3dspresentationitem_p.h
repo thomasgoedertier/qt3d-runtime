@@ -47,10 +47,10 @@ public:
 
     QQmlListProperty<QObject> qmlChildren();
 
+    void studio3DPresentationLoaded();
+
 public Q_SLOTS:
     static void appendQmlChildren(QQmlListProperty<QObject> *list, QObject *obj);
-
-private:
 };
 
 QT_END_NAMESPACE

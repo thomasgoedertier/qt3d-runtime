@@ -1,7 +1,7 @@
 /****************************************************************************
 **
-** Copyright (C) 2017 The Qt Company Ltd.
-** Contact: http://www.qt.io/licensing/
+** Copyright (C) 2018 The Qt Company Ltd.
+** Contact: https://www.qt.io/licensing/
 **
 ** This file is part of Qt 3D Studio.
 **
@@ -27,36 +27,41 @@
 **
 ****************************************************************************/
 
-#include <QtQml/qqmlextensionplugin.h>
-#include <QtQml/qqml.h>
-#include "q3dsstudio3ditem_p.h"
-#include "q3dspresentationitem_p.h"
-#include "q3dsdatainput.h"
+#ifndef Q3DSDATAINPUT_P_H
+#define Q3DSDATAINPUT_P_H
 
-static void initResources()
-{
-#ifdef QT_STATIC
-    Q_INIT_RESOURCE(qmake_QtStudio3D_2);
-#endif
-}
+//
+//  W A R N I N G
+//  -------------
+//
+// This file is not part of the QtStudio3D API.  It exists purely as an
+// implementation detail.  This header file may change from version to
+// version without notice, or even be removed.
+//
+// We mean it.
+//
+
+#include <private/q3dsruntimeglobal_p.h>
+#include "q3dsdatainput.h"
+#include <private/qobject_p.h>
 
 QT_BEGIN_NAMESPACE
 
-class Q3DSStudio3DPlugin : public QQmlExtensionPlugin
+class Q3DSPresentation;
+
+class Q3DSV_PRIVATE_EXPORT Q3DSDataInputPrivate : public QObjectPrivate
 {
-    Q_OBJECT
-    Q_PLUGIN_METADATA(IID QQmlExtensionInterface_iid)
+    Q_DECLARE_PUBLIC(Q3DSDataInput)
 
 public:
-    Q3DSStudio3DPlugin(QObject *parent = 0) : QQmlExtensionPlugin(parent) { initResources(); }
-    void registerTypes(const char *uri) override
-    {
-        qmlRegisterType<Q3DSStudio3DItem>(uri, 2, 0, "Studio3D");
-        qmlRegisterType<Q3DSPresentationItem>(uri, 2, 0, "Presentation");
-        qmlRegisterType<Q3DSDataInput>(uri, 2, 0, "DataInput");
-    }
+    static Q3DSDataInputPrivate *get(Q3DSDataInput *p) { return p->d_func(); }
+    void sendValue();
+
+    QString name;
+    QVariant value;
+    Q3DSPresentation *presentation = nullptr;
 };
 
 QT_END_NAMESPACE
 
-#include "plugin.moc"
+#endif // Q3DSDATAINPUT_P_H

@@ -55,6 +55,7 @@
 #include <q3dsruntimeglobal.h>
 #include <Q3DSSurfaceViewer>
 #include <Q3DSPresentation>
+#include <Q3DSDataInput>
 
 #include "window_manualupdate.h"
 #include "window_autoupdate.h"
@@ -77,6 +78,16 @@ int main(int argc, char *argv[])
         if (!msg.isEmpty())
             qWarning() << msg;
     });
+
+    // The presentation has a data input entry "di_text" for the textstring
+    // property of one of the Text nodes. Provide a custom value.
+    Q3DSDataInput dataInput(viewer.presentation(), QLatin1String("di_text"));
+    // Assuming the source is never changed or reloaded, a plain setValue()
+    // call is good enough. Otherwise, we would need to connect to the
+    // presentationLoaded() signal and set the value whenever a new
+    // presentation is loaded.
+    dataInput.setValue(QLatin1String("Hello world"));
+
     viewer.presentation()->setSource(QUrl(QLatin1String("qrc:/barrel.uip")));
     viewer.create(&w, w.context());
     w.setViewer(&viewer);
