@@ -108,7 +108,7 @@ static void updatePosition(Q3DSSlide *slide, float pos, float duration)
         const float nt = qBound(0.0f, pos / duration, 1.0f);
         // NOTE!!!: This is a bit funky, but it means we can avoid tracking the normalized values in the
         // frontend node. This of course assumes that the limit in the fuzzy compare doesn't change!
-        animator->setNormalizedTime(qFuzzyCompare(nt, animator->normalizedTime()) ? (nt + (1.0f / 100000.0f)) : nt);
+        animator->setNormalizedTime(qFuzzyCompare(nt, animator->normalizedTime()) ? qAbs(nt - (1.0f / 100000.0f)) : nt);
     };
     const auto updateAnimators = [&updateAnimator](const QVector<Qt3DAnimation::QClipAnimator *> &animators) {
         for (auto animator : animators) {
