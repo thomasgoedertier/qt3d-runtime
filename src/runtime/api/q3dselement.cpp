@@ -90,4 +90,9 @@ void Q3DSElement::fireEvent(const QString &eventName)
         d->presentation->fireEvent(d->elementPath, eventName);
 }
 
+void Q3DSElementPrivate::setPresentation(Q3DSPresentation *pres)
+{
+    presentation = pres;
+}
+
 QT_END_NAMESPACE

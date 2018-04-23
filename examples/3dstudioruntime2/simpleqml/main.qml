@@ -83,6 +83,13 @@ Rectangle {
                 name: "di_text"
                 value: s3d.textValue
             }
+
+            SceneElement {
+                id: sceneElementForScene
+                elementPath: "Scene" // could also refer to a Component node instead
+                onCurrentSlideIndexChanged: console.log("Current slide index for 'Scene': " + currentSlideIndex)
+                onCurrentSlideNameChanged: console.log("Current slide name for 'Scene': " + currentSlideName)
+            }
         }
         ignoredEvents: mouseEvCb.checked ? Studio3D.EnableAllEvents : (Studio3D.IgnoreMouseEvents | Studio3D.IgnoreWheelEvents)
         onRunningChanged: console.log("running: " + s3d.running)
@@ -211,17 +218,34 @@ Rectangle {
     }
     Button {
         id: nextSlideByIndex
-        text: "Next slide"
+        text: "Next slide (via pres., wrap)"
         anchors.left: parent.left
         anchors.bottom: fpsCount.top
         onClicked: s3dpres.goToSlide("Scene", true, true)
         focusPolicy: Qt.NoFocus
     }
     Button {
-        text: "Seek to 5 seconds"
+        id: seekBtn
+        text: "Seek to 5 seconds (via pres.)"
         anchors.left: nextSlideByIndex.right
         anchors.bottom: fpsCount.top
         onClicked: s3dpres.goToTime("Scene", 5)
+        focusPolicy: Qt.NoFocus
+    }
+    Button {
+        id: nextSlideViaSceneElement
+        text: "Next slide (via SceneElement, no wrap)"
+        anchors.left: seekBtn.right
+        anchors.bottom: fpsCount.top
+        onClicked: sceneElementForScene.currentSlideIndex += 1
+        focusPolicy: Qt.NoFocus
+    }
+    Button {
+        id: seekBtn2
+        text: "Seek to 5 seconds (via SceneElement)"
+        anchors.left: nextSlideViaSceneElement.right
+        anchors.bottom: fpsCount.top
+        onClicked: sceneElementForScene.goToTime(5)
         focusPolicy: Qt.NoFocus
     }
 

@@ -85,6 +85,8 @@ public:
     virtual void handleSetAttribute(const QString &elementPath, const QString &attributeName, const QVariant &value);
     virtual void handleSetProfileUiVisible(bool visible, float scale = 1.0f);
 
+    bool compareElementPath(const QString &a, const QString &b) const;
+
 protected:
     Q3DSEngine *m_pcEngine = nullptr; // don't want clashes with commonly used m_engine members
     QVector<QPair<QString, QVariant> > m_pendingDataInputSets;
@@ -101,6 +103,7 @@ public:
 
     void setController(Q3DSPresentationController *c);
     Q3DSPresentationController::SourceFlags sourceFlags() const;
+    bool compareElementPath(const QString &a, const QString &b) const;
 
     QUrl source;
     Q3DSPresentationController *controller = nullptr;

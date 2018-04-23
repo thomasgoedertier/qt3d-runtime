@@ -27,8 +27,8 @@
 **
 ****************************************************************************/
 
-#ifndef Q3DSELEMENT_P_H
-#define Q3DSELEMENT_P_H
+#ifndef Q3DSSCENEELEMENT_P_H
+#define Q3DSSCENEELEMENT_P_H
 
 //
 //  W A R N I N G
@@ -42,25 +42,31 @@
 //
 
 #include <private/q3dsruntimeglobal_p.h>
-#include "q3dselement.h"
-#include <private/qobject_p.h>
+#include "q3dssceneelement.h"
+#include <private/q3dselement_p.h>
 
 QT_BEGIN_NAMESPACE
 
-class Q3DSPresentation;
-
-class Q3DSV_PRIVATE_EXPORT Q3DSElementPrivate : public QObjectPrivate
+class Q3DSV_PRIVATE_EXPORT Q3DSSceneElementPrivate : public Q3DSElementPrivate
 {
-    Q_DECLARE_PUBLIC(Q3DSElement)
+    Q_DECLARE_PUBLIC(Q3DSSceneElement)
 
 public:
-    static Q3DSElementPrivate *get(Q3DSElement *p) { return p->d_func(); }
-    virtual void setPresentation(Q3DSPresentation *pres);
+    static Q3DSSceneElementPrivate *get(Q3DSSceneElement *p) { return p->d_func(); }
+    void setPresentation(Q3DSPresentation *pres) override;
+    void _q_onSlideEntered(const QString &contextElemPath, int index, const QString &name);
 
-    QString elementPath;
-    Q3DSPresentation *presentation = nullptr;
+    void sendPendingValues();
+
+    int currentSlideIndex = 0;
+    int previousSlideIndex = 0;
+    QString currentSlideName;
+    QString previousSlideName;
+
+    int pendingSlideSetIndex = -1;
+    QString pendingSlideSetName;
 };
 
 QT_END_NAMESPACE
 
-#endif // Q3DSELEMENT_P_H
+#endif // Q3DSSCENEELEMENT_P_H

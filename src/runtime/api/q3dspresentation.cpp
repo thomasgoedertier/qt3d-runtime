@@ -266,4 +266,9 @@ Q3DSPresentationController::SourceFlags Q3DSPresentationPrivate::sourceFlags() c
     return flags;
 }
 
+bool Q3DSPresentationPrivate::compareElementPath(const QString &a, const QString &b) const
+{
+    return controller ? controller->compareElementPath(a, b) : false;
+}
+
 QT_END_NAMESPACE

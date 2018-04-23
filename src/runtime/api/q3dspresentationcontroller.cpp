@@ -212,4 +212,15 @@ void Q3DSPresentationController::handleSetProfileUiVisible(bool visible, float s
     }
 }
 
+bool Q3DSPresentationController::compareElementPath(const QString &a, const QString &b) const
+{
+    if (!m_pcEngine)
+        return false;
+
+    Q3DSUipPresentation *defaultPresentation = m_pcEngine->presentation(0);
+    const Q3DSGraphObject *objA = m_pcEngine->findObjectByHashIdOrNameOrPath(nullptr, defaultPresentation, a);
+    const Q3DSGraphObject *objB = m_pcEngine->findObjectByHashIdOrNameOrPath(nullptr, defaultPresentation, b);
+    return objA == objB;
+}
+
 QT_END_NAMESPACE

@@ -182,8 +182,8 @@ public:
     Q3DSGraphObject *findObjectByHashIdOrNameOrPath(Q3DSGraphObject *thisObject,
                                                     Q3DSUipPresentation *defaultPresentation,
                                                     const QString &idOrNameOrPath,
-                                                    Q3DSUipPresentation **actualPresentation = nullptr);
-    QString makePath(Q3DSGraphObject *obj);
+                                                    Q3DSUipPresentation **actualPresentation = nullptr) const;
+    QString makePath(Q3DSGraphObject *obj) const;
 
 public Q_SLOTS:
     void requestGrab();

@@ -3,7 +3,8 @@ SOURCES += \
     $$PWD/q3dspresentationcontroller.cpp \
     $$PWD/q3dssurfaceviewer.cpp \
     $$PWD/q3dsdatainput.cpp \
-    $$PWD/q3dselement.cpp
+    $$PWD/q3dselement.cpp \
+    $$PWD/q3dssceneelement.cpp
 
 HEADERS += \
     $$PWD/q3dspresentation.h \
@@ -13,7 +14,9 @@ HEADERS += \
     $$PWD/q3dsdatainput.h \
     $$PWD/q3dsdatainput_p.h \
     $$PWD/q3dselement.h \
-    $$PWD/q3dselement_p.h
+    $$PWD/q3dselement_p.h \
+    $$PWD/q3dssceneelement.h \
+    $$PWD/q3dssceneelement_p.h
 
 qtHaveModule(widgets) {
     SOURCES += \

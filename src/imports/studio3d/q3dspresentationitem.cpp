@@ -30,6 +30,7 @@
 #include "q3dspresentationitem_p.h"
 #include <private/q3dsdatainput_p.h>
 #include <private/q3dselement_p.h>
+#include <private/q3dssceneelement_p.h>
 
 QT_BEGIN_NAMESPACE
 
@@ -53,8 +54,8 @@ void Q3DSPresentationItem::appendQmlChildren(QQmlListProperty<QObject> *list, QO
         obj->setParent(item);
         if (Q3DSDataInput *dataInput = qobject_cast<Q3DSDataInput *>(obj))
             Q3DSDataInputPrivate::get(dataInput)->presentation = item;
-        else if (Q3DSElement *element = qobject_cast<Q3DSElement *>(obj))
-            Q3DSElementPrivate::get(element)->presentation = item;
+        else if (Q3DSElement *element = qobject_cast<Q3DSElement *>(obj)) // also handles Q3DSSceneElement
+            Q3DSElementPrivate::get(element)->setPresentation(item);
     }
 }
 
@@ -63,6 +64,8 @@ void Q3DSPresentationItem::studio3DPresentationLoaded()
     for (QObject *obj : children()) {
         if (Q3DSDataInput *dataInput = qobject_cast<Q3DSDataInput *>(obj))
             Q3DSDataInputPrivate::get(dataInput)->sendValue();
+        else if (Q3DSSceneElement *sceneElement = qobject_cast<Q3DSSceneElement *>(obj))
+            Q3DSSceneElementPrivate::get(sceneElement)->sendPendingValues();
     }
 }
 

@@ -47,7 +47,7 @@ class Q3DSV_EXPORT Q3DSElement : public QObject
 public:
     explicit Q3DSElement(QObject *parent = nullptr);
     explicit Q3DSElement(const QString &elementPath, QObject *parent = nullptr);
-    Q3DSElement(Q3DSPresentation *presentation, const QString &elementyPath, QObject *parent = nullptr);
+    Q3DSElement(Q3DSPresentation *presentation, const QString &elementPath, QObject *parent = nullptr);
     ~Q3DSElement();
 
     QString elementPath() const;

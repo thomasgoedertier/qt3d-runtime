@@ -1539,7 +1539,7 @@ void Q3DSEngine::behaviorFrameUpdate(float dt)
 Q3DSGraphObject *Q3DSEngine::findObjectByHashIdOrNameOrPath(Q3DSGraphObject *thisObject,
                                                             Q3DSUipPresentation *defaultPresentation,
                                                             const QString &idOrNameOrPath,
-                                                            Q3DSUipPresentation **actualPresentation)
+                                                            Q3DSUipPresentation **actualPresentation) const
 {
     Q3DSUipPresentation *pres = defaultPresentation;
     QString attr = idOrNameOrPath;
@@ -1593,7 +1593,7 @@ Q3DSGraphObject *Q3DSEngine::findObjectByHashIdOrNameOrPath(Q3DSGraphObject *thi
     return obj;
 }
 
-QString Q3DSEngine::makePath(Q3DSGraphObject *obj)
+QString Q3DSEngine::makePath(Q3DSGraphObject *obj) const
 {
     QString path = obj->name();
     obj = obj->parent();
