@@ -68,7 +68,7 @@ void Q3DSPresentation::setSource(const QUrl &source)
 
     d->source = source;
     if (d->controller)
-        d->controller->handlePresentationSource(source, d->sourceFlags());
+        d->controller->handlePresentationSource(source, d->sourceFlags(), d->inlineQmlSubPresentations);
 
     emit sourceChanged();
 }
@@ -254,7 +254,7 @@ void Q3DSPresentationPrivate::setController(Q3DSPresentationController *c)
         return;
 
     controller = c;
-    controller->handlePresentationSource(source, sourceFlags());
+    controller->handlePresentationSource(source, sourceFlags(), inlineQmlSubPresentations);
 }
 
 Q3DSPresentationController::SourceFlags Q3DSPresentationPrivate::sourceFlags() const
@@ -269,6 +269,11 @@ Q3DSPresentationController::SourceFlags Q3DSPresentationPrivate::sourceFlags() c
 bool Q3DSPresentationPrivate::compareElementPath(const QString &a, const QString &b) const
 {
     return controller ? controller->compareElementPath(a, b) : false;
+}
+
+void Q3DSPresentationPrivate::registerInlineQmlSubPresentations(const QVector<Q3DSInlineQmlSubPresentation *> &list)
+{
+    inlineQmlSubPresentations += list;
 }
 
 QT_END_NAMESPACE

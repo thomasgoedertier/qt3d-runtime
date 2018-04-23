@@ -33,7 +33,8 @@ SOURCES += \
     q3dsimagemanager.cpp \
     q3dsbehavior.cpp \
     q3dsinputmanager.cpp \
-    q3dsconsolecommands.cpp
+    q3dsconsolecommands.cpp \
+    q3dsinlineqmlsubpresentation.cpp
 
 HEADERS += \
     q3dsruntimeglobal.h \
@@ -71,7 +72,8 @@ HEADERS += \
     q3dsimageloaders_p.h \
     q3dsbehavior_p.h \
     q3dsinputmanager_p.h \
-    q3dsconsolecommands_p.h
+    q3dsconsolecommands_p.h \
+    q3dsinlineqmlsubpresentation_p.h
 
 qtHaveModule(widgets) {
     QT += widgets

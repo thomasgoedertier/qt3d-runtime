@@ -245,7 +245,7 @@ void Q3DSWidgetPrivate::createEngine()
     QObject::connect(engine, &Q3DSEngine::presentationLoaded, q, &Q3DSWidget::presentationLoaded);
 
     QString err;
-    sourceLoaded = engine->setSource(fn, &err);
+    sourceLoaded = engine->setSource(fn, &err, inlineQmlSubPresentations);
     if (sourceLoaded) {
         if (!error.isEmpty()) {
             error.clear();
@@ -285,7 +285,9 @@ void Q3DSWidgetPrivate::destroyEngine()
     }
 }
 
-void Q3DSWidgetPrivate::handlePresentationSource(const QUrl &newSource, SourceFlags flags)
+void Q3DSWidgetPrivate::handlePresentationSource(const QUrl &newSource,
+                                                 SourceFlags flags,
+                                                 const QVector<Q3DSInlineQmlSubPresentation *> &inlineSubPres)
 {
     if (newSource == source)
         return;
@@ -295,6 +297,7 @@ void Q3DSWidgetPrivate::handlePresentationSource(const QUrl &newSource, SourceFl
 
     source = newSource;
     sourceFlags = flags;
+    inlineQmlSubPresentations = inlineSubPres;
 
     needsInit = true;
     q_ptr->update();

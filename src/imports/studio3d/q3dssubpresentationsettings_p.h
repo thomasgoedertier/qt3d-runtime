@@ -1,7 +1,7 @@
 /****************************************************************************
 **
-** Copyright (C) 2017 The Qt Company Ltd.
-** Contact: http://www.qt.io/licensing/
+** Copyright (C) 2018 The Qt Company Ltd.
+** Contact: https://www.qt.io/licensing/
 **
 ** This file is part of Qt 3D Studio.
 **
@@ -27,47 +27,33 @@
 **
 ****************************************************************************/
 
-#include <QtQml/qqmlextensionplugin.h>
-#include <QtQml/qqml.h>
+#ifndef Q3DSSUBPRESENTATIONSETTINGS_P_H
+#define Q3DSSUBPRESENTATIONSETTINGS_P_H
 
-#include "q3dsstudio3ditem_p.h"
-#include "q3dspresentationitem_p.h"
-#include "q3dssubpresentationsettings_p.h"
-
-#include "q3dsdatainput.h"
-#include "q3dselement.h"
-#include "q3dssceneelement.h"
-#include <private/q3dsinlineqmlsubpresentation_p.h>
-
-static void initResources()
-{
-#ifdef QT_STATIC
-    Q_INIT_RESOURCE(qmake_QtStudio3D_2);
-#endif
-}
+#include <QtCore/qvector.h>
+#include <QtQml/qqmllist.h>
 
 QT_BEGIN_NAMESPACE
 
-class Q3DSStudio3DPlugin : public QQmlExtensionPlugin
+class Q3DSInlineQmlSubPresentation;
+
+class Q3DSSubPresentationSettings : public QObject
 {
     Q_OBJECT
-    Q_PLUGIN_METADATA(IID QQmlExtensionInterface_iid)
+    Q_PROPERTY(QQmlListProperty<Q3DSInlineQmlSubPresentation> qmlStreams READ qmlStreams)
 
 public:
-    Q3DSStudio3DPlugin(QObject *parent = 0) : QQmlExtensionPlugin(parent) { initResources(); }
-    void registerTypes(const char *uri) override
-    {
-        qmlRegisterType<Q3DSStudio3DItem>(uri, 2, 0, "Studio3D");
-        qmlRegisterType<Q3DSPresentationItem>(uri, 2, 0, "Presentation");
-        qmlRegisterType<Q3DSSubPresentationSettings>(uri, 2, 0, "SubPresentationSettings");
+    explicit Q3DSSubPresentationSettings(QObject *parent = nullptr);
+    ~Q3DSSubPresentationSettings();
 
-        qmlRegisterType<Q3DSDataInput>(uri, 2, 0, "DataInput");
-        qmlRegisterType<Q3DSElement>(uri, 2, 0, "Element");
-        qmlRegisterType<Q3DSSceneElement>(uri, 2, 0, "SceneElement");
-        qmlRegisterType<Q3DSInlineQmlSubPresentation>(uri, 2, 0, "QmlStream");
-    }
+    QQmlListProperty<Q3DSInlineQmlSubPresentation> qmlStreams();
+
+    QVector<Q3DSInlineQmlSubPresentation *> inlineSubPresentationList() const { return m_list.toVector(); }
+
+private:
+    QList<Q3DSInlineQmlSubPresentation *> m_list;
 };
 
 QT_END_NAMESPACE
 
-#include "plugin.moc"
+#endif // Q3DSSUBPRESENTATIONSETTINGS_P_H

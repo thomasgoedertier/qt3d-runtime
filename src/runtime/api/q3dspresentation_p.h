@@ -49,6 +49,7 @@
 QT_BEGIN_NAMESPACE
 
 class Q3DSEngine;
+class Q3DSInlineQmlSubPresentation;
 
 class Q3DSV_PRIVATE_EXPORT Q3DSPresentationController
 {
@@ -62,7 +63,9 @@ public:
     };
     Q_DECLARE_FLAGS(SourceFlags, SourceFlag)
 
-    virtual void handlePresentationSource(const QUrl &source, SourceFlags flags) = 0;
+    virtual void handlePresentationSource(const QUrl &source,
+                                          SourceFlags flags,
+                                          const QVector<Q3DSInlineQmlSubPresentation *> &inlineQmlSubPresentations) = 0;
     virtual void handlePresentationReload() = 0;
 
     virtual void handlePresentationKeyPressEvent(QKeyEvent *e);
@@ -104,12 +107,14 @@ public:
     void setController(Q3DSPresentationController *c);
     Q3DSPresentationController::SourceFlags sourceFlags() const;
     bool compareElementPath(const QString &a, const QString &b) const;
+    void registerInlineQmlSubPresentations(const QVector<Q3DSInlineQmlSubPresentation *> &list);
 
     QUrl source;
     Q3DSPresentationController *controller = nullptr;
     bool profiling = false; // unlike the viewer, the public API defaults to profile off
     bool profileUiVisible = false;
     float profileUiScale = 1.0f;
+    QVector<Q3DSInlineQmlSubPresentation *> inlineQmlSubPresentations;
 };
 
 QT_END_NAMESPACE

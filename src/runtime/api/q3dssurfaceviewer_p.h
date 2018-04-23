@@ -83,7 +83,9 @@ public:
     bool createEngine();
     void destroyEngine();
 
-    void handlePresentationSource(const QUrl &source, SourceFlags flags) override;
+    void handlePresentationSource(const QUrl &source,
+                                  SourceFlags flags,
+                                  const QVector<Q3DSInlineQmlSubPresentation *> &inlineSubPres) override;
     void handlePresentationReload() override;
 
     void sendResizeToQt3D(const QSize &size);
@@ -96,6 +98,7 @@ public:
     Q3DSEngine *engine = nullptr;
     QUrl source;
     SourceFlags sourceFlags;
+    QVector<Q3DSInlineQmlSubPresentation *> inlineQmlSubPresentations;
     bool sourceLoaded = false;
     QString error;
     Qt3DRender::QRenderAspect *renderAspect = nullptr;

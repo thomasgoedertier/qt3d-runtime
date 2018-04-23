@@ -91,7 +91,9 @@ private slots:
     void destroyEngine();
 
 private:
-    void handlePresentationSource(const QUrl &source, SourceFlags flags) override;
+    void handlePresentationSource(const QUrl &source,
+                                  SourceFlags flags,
+                                  const QVector<Q3DSInlineQmlSubPresentation *> &inlineSubPres) override;
     void handlePresentationReload() override;
 
     QSGNode *updatePaintNode(QSGNode *node, UpdatePaintNodeData *nodeData) override;
@@ -121,6 +123,7 @@ private:
     Q3DSEngine *m_engine = nullptr;
     QUrl m_source;
     SourceFlags m_sourceFlags;
+    QVector<Q3DSInlineQmlSubPresentation *> m_inlineQmlSubPresentations;
     bool m_sourceLoaded = false;
     bool m_running = false;
     QString m_error;

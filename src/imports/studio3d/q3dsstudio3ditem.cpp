@@ -123,12 +123,17 @@ void Q3DSStudio3DItem::componentComplete()
     if (!m_presentation)
         m_presentation = new Q3DSPresentationItem(this);
 
+    // setController may lead to creating the engine hence this must happen before
+    m_presentation->preStudio3DPresentationLoaded();
+
     Q3DSPresentationPrivate::get(m_presentation)->setController(this);
 
     QQuickItem::componentComplete();
 }
 
-void Q3DSStudio3DItem::handlePresentationSource(const QUrl &source, SourceFlags flags)
+void Q3DSStudio3DItem::handlePresentationSource(const QUrl &source,
+                                                SourceFlags flags,
+                                                const QVector<Q3DSInlineQmlSubPresentation *> &inlineSubPres)
 {
     if (source == m_source)
         return;
@@ -138,6 +143,7 @@ void Q3DSStudio3DItem::handlePresentationSource(const QUrl &source, SourceFlags 
 
     m_source = source;
     m_sourceFlags = flags;
+    m_inlineQmlSubPresentations = inlineSubPres;
 
     if (window()) // else defer to itemChange()
         createEngine();
@@ -224,7 +230,7 @@ void Q3DSStudio3DItem::createEngine()
         m_engine->resize(sz);
 
     QString err;
-    m_sourceLoaded = m_engine->setSource(fn, &err);
+    m_sourceLoaded = m_engine->setSource(fn, &err, m_inlineQmlSubPresentations);
     if (m_sourceLoaded) {
         if (!m_error.isEmpty()) {
             m_error.clear();

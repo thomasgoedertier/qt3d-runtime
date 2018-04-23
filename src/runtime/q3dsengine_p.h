@@ -58,6 +58,7 @@ class QMouseEvent;
 class QWheelEvent;
 class QQmlEngine;
 class QQmlComponent;
+class Q3DSInlineQmlSubPresentation;
 
 namespace Qt3DRender {
 class QRenderCapture;
@@ -103,8 +104,11 @@ public:
     void setSharedSubPresentationQmlEngine(QQmlEngine *qmlEngine);
     void setSharedBehaviorQmlEngine(QQmlEngine *qmlEngine);
 
+    using InlineSubPresList = QVector<Q3DSInlineQmlSubPresentation *>;
     // Load presentation from a uip/uia file.
-    bool setSource(const QString &uipOrUiaFileName, QString *error = nullptr);
+    bool setSource(const QString &uipOrUiaFileName,
+                   QString *error = nullptr,
+                   const InlineSubPresList &inlineQmlSubPresentations = InlineSubPresList());
     QString source() const;
 
     // Load presentation from a uip document object.
@@ -211,7 +215,10 @@ private:
     };
 
     struct QmlPresentation : Presentation {
+        // we have either a QmlDocument with the source or filename, or an
+        // inline subpresentation object with a QQuickItem* in it
         Q3DSQmlDocument *qmlDocument = nullptr;
+        Q3DSInlineQmlSubPresentation *inlineQmlSubPres = nullptr;
         Qt3DRender::Quick::QScene2D *scene2d = nullptr;
     };
 
@@ -243,6 +250,7 @@ private:
     QString m_source; // uip or uia file
     QVector<UipPresentation> m_uipPresentations;
     QVector<QmlPresentation> m_qmlPresentations;
+    QVector<Q3DSInlineQmlSubPresentation *> m_inlineQmlPresentations;
     Q3DSDataInputEntry::Map m_dataInputEntries;
 
     QQmlEngine *m_qmlSubPresentationEngine = nullptr;

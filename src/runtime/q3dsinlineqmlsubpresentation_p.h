@@ -1,7 +1,7 @@
 /****************************************************************************
 **
-** Copyright (C) 2017 The Qt Company Ltd.
-** Contact: http://www.qt.io/licensing/
+** Copyright (C) 2018 The Qt Company Ltd.
+** Contact: https://www.qt.io/licensing/
 **
 ** This file is part of Qt 3D Studio.
 **
@@ -27,47 +27,54 @@
 **
 ****************************************************************************/
 
-#include <QtQml/qqmlextensionplugin.h>
-#include <QtQml/qqml.h>
+#ifndef Q3DSINLINEQMLSUBPRESENTATION_P_H
+#define Q3DSINLINEQMLSUBPRESENTATION_P_H
 
-#include "q3dsstudio3ditem_p.h"
-#include "q3dspresentationitem_p.h"
-#include "q3dssubpresentationsettings_p.h"
+//
+//  W A R N I N G
+//  -------------
+//
+// This file is not part of the Qt API.  It exists purely as an
+// implementation detail.  This header file may change from version to
+// version without notice, or even be removed.
+//
+// We mean it.
+//
 
-#include "q3dsdatainput.h"
-#include "q3dselement.h"
-#include "q3dssceneelement.h"
-#include <private/q3dsinlineqmlsubpresentation_p.h>
-
-static void initResources()
-{
-#ifdef QT_STATIC
-    Q_INIT_RESOURCE(qmake_QtStudio3D_2);
-#endif
-}
+#include <Qt3DStudioRuntime2/private/q3dsruntimeglobal_p.h>
+#include <QObject>
 
 QT_BEGIN_NAMESPACE
 
-class Q3DSStudio3DPlugin : public QQmlExtensionPlugin
+class QQuickItem;
+
+class Q3DSV_PRIVATE_EXPORT Q3DSInlineQmlSubPresentation : public QObject
 {
     Q_OBJECT
-    Q_PLUGIN_METADATA(IID QQmlExtensionInterface_iid)
+    Q_PROPERTY(QString presentationId READ presentationId WRITE setPresentationId NOTIFY presentationIdChanged)
+    Q_PROPERTY(QQuickItem *item READ item WRITE setItem NOTIFY itemChanged)
+    Q_CLASSINFO("DefaultProperty", "item")
 
 public:
-    Q3DSStudio3DPlugin(QObject *parent = 0) : QQmlExtensionPlugin(parent) { initResources(); }
-    void registerTypes(const char *uri) override
-    {
-        qmlRegisterType<Q3DSStudio3DItem>(uri, 2, 0, "Studio3D");
-        qmlRegisterType<Q3DSPresentationItem>(uri, 2, 0, "Presentation");
-        qmlRegisterType<Q3DSSubPresentationSettings>(uri, 2, 0, "SubPresentationSettings");
+    Q3DSInlineQmlSubPresentation(QObject *parent = nullptr);
+    ~Q3DSInlineQmlSubPresentation();
 
-        qmlRegisterType<Q3DSDataInput>(uri, 2, 0, "DataInput");
-        qmlRegisterType<Q3DSElement>(uri, 2, 0, "Element");
-        qmlRegisterType<Q3DSSceneElement>(uri, 2, 0, "SceneElement");
-        qmlRegisterType<Q3DSInlineQmlSubPresentation>(uri, 2, 0, "QmlStream");
-    }
+    QString presentationId() const;
+    QQuickItem *item() const;
+
+public Q_SLOTS:
+    void setPresentationId(const QString &presentationId);
+    void setItem(QQuickItem *item);
+
+Q_SIGNALS:
+    void presentationIdChanged();
+    void itemChanged();
+
+private:
+    QString m_presentationId;
+    QQuickItem *m_item = nullptr;
 };
 
 QT_END_NAMESPACE
 
-#include "plugin.moc"
+#endif // Q3DSINLINEQMLSUBPRESENTATION_P_H

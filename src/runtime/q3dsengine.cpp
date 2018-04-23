@@ -32,6 +32,7 @@
 #include "q3dsuipparser_p.h"
 #include "q3dsutils_p.h"
 #include "q3dsinputmanager_p.h"
+#include "q3dsinlineqmlsubpresentation_p.h"
 
 #include <QLoggingCategory>
 #include <QKeyEvent>
@@ -378,7 +379,12 @@ void Q3DSEngine::setSharedBehaviorQmlEngine(QQmlEngine *qmlEngine)
     m_ownsBehaviorQmlEngine = false;
 }
 
-bool Q3DSEngine::setSource(const QString &uipOrUiaFileName, QString *error)
+// Loads presentation(s) from uia/uip files, with support for inline QML
+// subpresentations (i.e. where there is an app-provided QQuickItem already).
+// This is the only fully featured entry point atm.
+bool Q3DSEngine::setSource(const QString &uipOrUiaFileName,
+                           QString *error,
+                           const InlineSubPresList &inlineQmlSubPresentations)
 {
     if (!m_surface) {
         Q3DSUtils::showMessage(tr("setSource: Cannot be called without setSurface"));
@@ -433,9 +439,37 @@ bool Q3DSEngine::setSource(const QString &uipOrUiaFileName, QString *error)
         }
     }
 
+    m_inlineQmlPresentations = inlineQmlSubPresentations;
+    if (!m_inlineQmlPresentations.isEmpty()) {
+        qCDebug(lcUip, "Registered %d inline qml subpresentations", m_inlineQmlPresentations.count());
+        for (auto p : m_inlineQmlPresentations) {
+            qCDebug(lcUip) << "  " << p->presentationId() << p->item();
+            QmlPresentation pres;
+            pres.subPres.id = p->presentationId();
+            pres.inlineQmlSubPres = p;
+            // See if there was a qml subpresentation entry with the same id in
+            // the .uia and reuse that slot if so as we take priority, the
+            // "static" entry is there for editor purposes only.
+            int idx = -1;
+            for (int i = 0; i < m_qmlPresentations.count(); ++i) {
+                if (m_qmlPresentations.at(i).subPres.id == pres.subPres.id) {
+                    idx = i;
+                    break;
+                }
+            }
+            if (idx >= 0)
+                m_qmlPresentations[idx] = pres;
+            else
+                m_qmlPresentations.append(pres);
+        }
+    }
+
     return loadPresentations();
 }
 
+// setDocument allows constructing presentation(s) from in-memory data
+// (provided the uips do not reference any actual files) and is used by srbench
+// for example. May need to be revised later.
 bool Q3DSEngine::setDocument(const Q3DSUipDocument &uipDocument, QString *error)
 {
     if (!m_surface) {
@@ -527,6 +561,8 @@ bool Q3DSEngine::setDocument(const Q3DSUiaDocument &uiaDocument, QString *error)
     return loadPresentations();
 }
 
+// This method of providing the presentation(s) is incomplete and is only here to
+// support the scene-building-from-C++ experiments. Needs major revisions later on.
 bool Q3DSEngine::setPresentations(const QVector<Q3DSUipPresentation *> &presentations)
 {
     if (!m_surface) {
@@ -782,98 +818,104 @@ bool Q3DSEngine::buildSubUipPresentationScene(UipPresentation *pres)
 bool Q3DSEngine::loadSubQmlPresentation(QmlPresentation *pres)
 {
     Q_ASSERT(pres);
-    Q_ASSERT(pres->qmlDocument);
+    Q_ASSERT(pres->qmlDocument || pres->inlineQmlSubPres);
+    Q_ASSERT(!(pres->qmlDocument && pres->inlineQmlSubPres));
+
     if (!m_qmlSubPresentationEngine) {
         m_qmlSubPresentationEngine = new QQmlEngine;
         m_ownsQmlSubPresentationEngine = true;
     }
 
-    Qt3DCore::QNode *entityParent = m_uipPresentations[0].q3dscene.rootEntity;
-    QQmlComponent *component;
-    QString qmlSource = pres->qmlDocument->source();
-    if (!qmlSource.isEmpty()) {
-        QUrl sourceUrl;
-        // Support also files from resources
-        QFileInfo fi(qmlSource);
-        if (fi.isAbsolute()) {
-            sourceUrl = QUrl::fromLocalFile(fi.absoluteFilePath());
+    QQmlComponent *component = nullptr;
+    if (pres->qmlDocument) {
+        QString qmlSource = pres->qmlDocument->source();
+        if (!qmlSource.isEmpty()) {
+            QUrl sourceUrl;
+            // Support also files from resources
+            QFileInfo fi(qmlSource);
+            if (fi.isAbsolute()) {
+                sourceUrl = QUrl::fromLocalFile(fi.absoluteFilePath());
+            } else {
+                sourceUrl = qmlSource;
+            }
+            component = new QQmlComponent(m_qmlSubPresentationEngine, sourceUrl);
         } else {
-            sourceUrl = qmlSource;
+            component = new QQmlComponent(m_qmlSubPresentationEngine);
+            component->setData(pres->qmlDocument->sourceData(), QUrl());
         }
-        component = new QQmlComponent(m_qmlSubPresentationEngine, sourceUrl);
-    } else {
-        component = new QQmlComponent(m_qmlSubPresentationEngine);
-        component->setData(pres->qmlDocument->sourceData(), QUrl());
     }
 
-    if (component->isReady()) {
-        int width = 0;
-        int height = 0;
-        QQuickItem *item = static_cast<QQuickItem *>(component->create());
-        if (!item) {
-            qCDebug(lcUip, "Failed to load qml. Root is not a quick item.");
-            delete component;
-            delete item;
-            return false;
-        }
-
-        pres->scene2d = new Qt3DRender::Quick::QScene2D(entityParent);
-        pres->scene2d->setItem(item);
-        item->setParent(pres->scene2d);
-        Qt3DRender::QRenderTargetOutput *color
-                = new Qt3DRender::QRenderTargetOutput(pres->scene2d);
-
+    Qt3DCore::QNode *entityParent = m_uipPresentations[0].q3dscene.rootEntity;
+    auto createColorBuffer = [pres, entityParent] {
+        Qt3DRender::QRenderTargetOutput *color = new Qt3DRender::QRenderTargetOutput(pres->scene2d);
         color->setAttachmentPoint(Qt3DRender::QRenderTargetOutput::Color0);
         pres->subPres.colorTex = new Qt3DRender::QTexture2D(entityParent);
         pres->subPres.colorTex->setFormat(Qt3DRender::QAbstractTexture::RGBA8_UNorm);
         pres->subPres.colorTex->setMinificationFilter(Qt3DRender::QAbstractTexture::Linear);
         pres->subPres.colorTex->setMagnificationFilter(Qt3DRender::QAbstractTexture::Linear);
         color->setTexture(pres->subPres.colorTex);
+        return color;
+    };
+    auto ensureItemSize = [](QQuickItem *item) {
+        int width = int(item->width());
+        int height = int(item->height());
+        bool itemNeedsSize = false;
+        if (!width) {
+            width = 128;
+            itemNeedsSize = true;
+        }
+        if (!height) {
+            height = 128;
+            itemNeedsSize = true;
+        }
+        if (itemNeedsSize)
+            item->setSize(QSize(width, height));
+    };
 
-        pres->scene2d->setOutput(color);
+    if (!component || component->isReady()) {
+        QQuickItem *item;
+        if (component) {
+            item = static_cast<QQuickItem *>(component->create());
+            if (!item) {
+                qCDebug(lcUip, "Failed to load qml. Root is not a quick item.");
+                delete component;
+                delete item;
+                return false;
+            }
+        } else {
+            item = pres->inlineQmlSubPres->item();
+            Q_ASSERT(item);
+        }
 
-        width = int(item->width());
-        height = int(item->height());
-        if (!width) width = 128;
-        if (!height) height = 128;
+        pres->scene2d = new Qt3DRender::Quick::QScene2D(entityParent);
+        pres->scene2d->setOutput(createColorBuffer());
 
-        pres->subPres.colorTex->setWidth(width);
-        pres->subPres.colorTex->setHeight(height);
+        ensureItemSize(item);
+        pres->scene2d->setItem(item);
+        item->setParent(pres->scene2d);
+
+        pres->subPres.colorTex->setWidth(int(item->width()));
+        pres->subPres.colorTex->setHeight(int(item->height()));
 
         delete component;
     } else if (component->isLoading()) {
-        int width = 128;
-        int height = 128;
-
         /* Must create these already here in order to link the texture to wherever it is used */
         pres->scene2d = new Qt3DRender::Quick::QScene2D(entityParent);
-        Qt3DRender::QRenderTargetOutput *color
-                = new Qt3DRender::QRenderTargetOutput(pres->scene2d);
+        pres->scene2d->setOutput(createColorBuffer());
 
-        color->setAttachmentPoint(Qt3DRender::QRenderTargetOutput::Color0);
-        pres->subPres.colorTex = new Qt3DRender::QTexture2D(entityParent);
-        pres->subPres.colorTex->setFormat(Qt3DRender::QAbstractTexture::RGBA8_UNorm);
-        pres->subPres.colorTex->setMinificationFilter(Qt3DRender::QAbstractTexture::Linear);
-        pres->subPres.colorTex->setMagnificationFilter(Qt3DRender::QAbstractTexture::Linear);
-        color->setTexture(pres->subPres.colorTex);
-
-        pres->scene2d->setOutput(color);
-
-        pres->subPres.colorTex->setWidth(width);
-        pres->subPres.colorTex->setHeight(height);
+        pres->subPres.colorTex->setWidth(128);
+        pres->subPres.colorTex->setHeight(128);
 
         QObject::connect(component, &QQmlComponent::statusChanged,
-                         [&, component, pres](QQmlComponent::Status status) {
+                         [component, pres, ensureItemSize](QQmlComponent::Status status) {
             if (status == QQmlComponent::Status::Ready) {
                 QQuickItem *item = static_cast<QQuickItem *>(component->create());
                 if (item) {
+                    ensureItemSize(item);
                     pres->scene2d->setItem(item);
                     item->setParent(pres->scene2d);
-                    int width = int(item->width());
-                    int height = int(item->height());
-
-                    pres->subPres.colorTex->setWidth(width);
-                    pres->subPres.colorTex->setHeight(height);
+                    pres->subPres.colorTex->setWidth(int(item->width()));
+                    pres->subPres.colorTex->setHeight(int(item->height()));
                 } else {
                     qCDebug(lcUip, "Failed to load qml. Root is not a quick item.");
                     delete item;

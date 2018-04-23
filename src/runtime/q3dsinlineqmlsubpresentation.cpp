@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2017 The Qt Company Ltd.
+** Copyright (C) 2018 The Qt Company Ltd.
 ** Contact: https://www.qt.io/licensing/
 **
 ** This file is part of Qt 3D Studio.
@@ -27,42 +27,43 @@
 **
 ****************************************************************************/
 
-#ifndef Q3DSPRESENTATIONITEM_P_H
-#define Q3DSPRESENTATIONITEM_P_H
-
-#include <Qt3DStudioRuntime2/q3dspresentation.h>
-#include <QtQml/qqmllist.h>
+#include "q3dsinlineqmlsubpresentation_p.h"
 
 QT_BEGIN_NAMESPACE
 
-class Q3DSPresentationItemPrivate;
-
-class Q3DSPresentationItem : public Q3DSPresentation
+Q3DSInlineQmlSubPresentation::Q3DSInlineQmlSubPresentation(QObject *parent)
+    : QObject(parent)
 {
-    Q_OBJECT
-    Q_PROPERTY(QQmlListProperty<QObject> qmlChildren READ qmlChildren DESIGNABLE false)
-    Q_CLASSINFO("DefaultProperty", "qmlChildren")
+}
 
-public:
-    explicit Q3DSPresentationItem(QObject *parent = nullptr);
-    ~Q3DSPresentationItem();
+Q3DSInlineQmlSubPresentation::~Q3DSInlineQmlSubPresentation()
+{
+}
 
-    QQmlListProperty<QObject> qmlChildren();
+QString Q3DSInlineQmlSubPresentation::presentationId() const
+{
+    return m_presentationId;
+}
 
-    void preStudio3DPresentationLoaded();
-    void studio3DPresentationLoaded();
+QQuickItem *Q3DSInlineQmlSubPresentation::item() const
+{
+    return m_item;
+}
 
-public Q_SLOTS:
-    static void appendQmlChildren(QQmlListProperty<QObject> *list, QObject *obj);
+void Q3DSInlineQmlSubPresentation::setPresentationId(const QString &presentationId)
+{
+    if (m_presentationId != presentationId) {
+        m_presentationId = presentationId;
+        emit presentationIdChanged();
+    }
+}
 
-protected:
-    Q3DSPresentationItem(Q3DSPresentationItemPrivate &dd, QObject *parent);
-
-private:
-    Q_DISABLE_COPY(Q3DSPresentationItem)
-    Q_DECLARE_PRIVATE(Q3DSPresentationItem)
-};
+void Q3DSInlineQmlSubPresentation::setItem(QQuickItem *item)
+{
+    if (m_item != item) {
+        m_item = item;
+        emit itemChanged();
+    }
+}
 
 QT_END_NAMESPACE
-
-#endif // Q3DSPRESENTATIONITEM_P_H

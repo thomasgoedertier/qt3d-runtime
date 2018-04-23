@@ -6,6 +6,7 @@
 		</ProjectSettings>
 		<Graph >
 			<Scene id="Scene" >
+				<Layer id="splayer" />
 				<Layer id="Layer" >
 					<Camera id="Camera" />
 					<Light id="Light" />
@@ -24,10 +25,10 @@
 		</Graph>
 		<Logic >
 			<State name="Master Slide" component="#Scene" >
-				<Add ref="#Layer" />
 				<Add ref="#Camera" />
 				<Add ref="#Light" />
 				<State id="Scene-Slide1" name="Slide1" playmode="Looping" >
+                                        <Add ref="#splayer" name="splayer" height="30" sourcepath="embeddedQmlScene" top="50" width="30" />
 					<Add ref="#Barrel" name="Barrel" position="0 -42 -483" rotation="90 0 0" scale="100 100 100" sourcepath=".\barrel\meshes\Barrel.mesh#1" >
 						<AnimationTrack property="opacity" type="EaseInOut" />
 						<AnimationTrack property="rotation.x" type="EaseInOut" >0 90 100 100 5 64 100 100 10 90 100 100</AnimationTrack>
@@ -50,7 +51,7 @@
 						<AnimationTrack property="textcolor.y" type="EaseInOut" >0 1 100 100 5.009 0.235294 100 100 10 1 100 100</AnimationTrack>
 						<AnimationTrack property="textcolor.z" type="EaseInOut" >0 0 100 100 5.009 0.333333 100 100 10 0 100 100</AnimationTrack>
 					</Add>
-                                        <Add ref="#Text2" name="Text2" controlledproperty="di_text textstring" font="Arimo-Regular" position="435.899 267.025 0" />
+					<Add ref="#Text2" name="Text2" controlledproperty="di_text textstring" font="Arimo-Regular" position="435.899 267.025 0" />
 				</State>
 			</State>
 		</Logic>

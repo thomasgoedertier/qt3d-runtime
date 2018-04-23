@@ -343,7 +343,7 @@ bool Q3DSSurfaceViewerPrivate::createEngine()
     QObject::connect(engine, &Q3DSEngine::presentationLoaded, q, &Q3DSSurfaceViewer::presentationLoaded);
 
     QString err;
-    sourceLoaded = engine->setSource(fn, &err);
+    sourceLoaded = engine->setSource(fn, &err, inlineQmlSubPresentations);
     if (!sourceLoaded) {
         qWarning("Q3DSSurfaceViewer: Failed to load %s\n%s", qPrintable(fn), qPrintable(err));
         error = err;
@@ -398,7 +398,9 @@ void Q3DSSurfaceViewerPrivate::destroyEngine()
     }
 }
 
-void Q3DSSurfaceViewerPrivate::handlePresentationSource(const QUrl &newSource, SourceFlags flags)
+void Q3DSSurfaceViewerPrivate::handlePresentationSource(const QUrl &newSource,
+                                                        SourceFlags flags,
+                                                        const QVector<Q3DSInlineQmlSubPresentation *> &inlineSubPres)
 {
     if (newSource == source)
         return;
@@ -407,6 +409,7 @@ void Q3DSSurfaceViewerPrivate::handlePresentationSource(const QUrl &newSource, S
 
     source = newSource;
     sourceFlags = flags;
+    inlineQmlSubPresentations = inlineSubPres;
 
     if (surface && context)
         createEngine();

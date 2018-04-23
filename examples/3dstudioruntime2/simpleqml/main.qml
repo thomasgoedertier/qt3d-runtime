@@ -98,6 +98,33 @@ Rectangle {
                 id: barrelRef
                 elementPath: "Barrel" // or Scene.Layer.Barrel but as long as it's unique the name's good enough
             }
+
+            // Let's try out a QML subpresentation defined in-line, i.e. no separate .qml file.
+            SubPresentationSettings {
+                qmlStreams: [
+                    QmlStream {
+                        presentationId: "embeddedQmlScene"
+                        Rectangle {
+                            color: "white"
+                            Rectangle {
+                                color: "red"
+                                width: parent.width * 0.8
+                                height: parent.height * 0.8
+                                anchors.centerIn: parent
+                                Text {
+                                    anchors.centerIn: parent
+                                    text: "Hello from\nembedded Qt Quick"
+                                    color: "white"
+                                }
+                                NumberAnimation on rotation {
+                                    from: 0; to: 360; duration: 10000
+                                    loops: Animation.Infinite
+                                }
+                            }
+                        }
+                    }
+                ]
+            }
         }
         ignoredEvents: mouseEvCb.checked ? Studio3D.EnableAllEvents : (Studio3D.IgnoreMouseEvents | Studio3D.IgnoreWheelEvents)
         onRunningChanged: console.log("running: " + s3d.running)

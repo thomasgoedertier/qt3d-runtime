@@ -28,14 +28,26 @@
 ****************************************************************************/
 
 #include "q3dspresentationitem_p.h"
+#include "q3dssubpresentationsettings_p.h"
+#include <private/q3dspresentation_p.h>
 #include <private/q3dsdatainput_p.h>
 #include <private/q3dselement_p.h>
 #include <private/q3dssceneelement_p.h>
 
 QT_BEGIN_NAMESPACE
 
+// only here to get easy access to Q3DSPresentationPrivate
+class Q3DSPresentationItemPrivate : public Q3DSPresentationPrivate
+{
+};
+
 Q3DSPresentationItem::Q3DSPresentationItem(QObject *parent)
-    : Q3DSPresentation(parent)
+    : Q3DSPresentation(*new Q3DSPresentationItemPrivate, parent)
+{
+}
+
+Q3DSPresentationItem::Q3DSPresentationItem(Q3DSPresentationItemPrivate &dd, QObject *parent)
+    : Q3DSPresentation(dd, parent)
 {
 }
 
@@ -56,6 +68,15 @@ void Q3DSPresentationItem::appendQmlChildren(QQmlListProperty<QObject> *list, QO
             Q3DSDataInputPrivate::get(dataInput)->presentation = item;
         else if (Q3DSElement *element = qobject_cast<Q3DSElement *>(obj)) // also handles Q3DSSceneElement
             Q3DSElementPrivate::get(element)->setPresentation(item);
+    }
+}
+
+void Q3DSPresentationItem::preStudio3DPresentationLoaded()
+{
+    Q_D(Q3DSPresentationItem);
+    for (QObject *obj : children()) {
+        if (Q3DSSubPresentationSettings *sps = qobject_cast<Q3DSSubPresentationSettings *>(obj))
+            d->registerInlineQmlSubPresentations(sps->inlineSubPresentationList());
     }
 }
 
