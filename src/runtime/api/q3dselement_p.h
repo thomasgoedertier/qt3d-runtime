@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2017 The Qt Company Ltd.
+** Copyright (C) 2018 The Qt Company Ltd.
 ** Contact: https://www.qt.io/licensing/
 **
 ** This file is part of Qt 3D Studio.
@@ -27,43 +27,39 @@
 **
 ****************************************************************************/
 
-#include "q3dspresentationitem_p.h"
-#include <private/q3dsdatainput_p.h>
-#include <private/q3dselement_p.h>
+#ifndef Q3DSELEMENT_P_H
+#define Q3DSELEMENT_P_H
+
+//
+//  W A R N I N G
+//  -------------
+//
+// This file is not part of the QtStudio3D API.  It exists purely as an
+// implementation detail.  This header file may change from version to
+// version without notice, or even be removed.
+//
+// We mean it.
+//
+
+#include <private/q3dsruntimeglobal_p.h>
+#include "q3dselement.h"
+#include <private/qobject_p.h>
 
 QT_BEGIN_NAMESPACE
 
-Q3DSPresentationItem::Q3DSPresentationItem(QObject *parent)
-    : Q3DSPresentation(parent)
-{
-}
+class Q3DSPresentation;
 
-Q3DSPresentationItem::~Q3DSPresentationItem()
+class Q3DSV_PRIVATE_EXPORT Q3DSElementPrivate : public QObjectPrivate
 {
-}
+    Q_DECLARE_PUBLIC(Q3DSElement)
 
-QQmlListProperty<QObject> Q3DSPresentationItem::qmlChildren()
-{
-    return QQmlListProperty<QObject>(this, nullptr, &appendQmlChildren, nullptr, nullptr, nullptr);
-}
+public:
+    static Q3DSElementPrivate *get(Q3DSElement *p) { return p->d_func(); }
 
-void Q3DSPresentationItem::appendQmlChildren(QQmlListProperty<QObject> *list, QObject *obj)
-{
-    if (Q3DSPresentationItem *item = qobject_cast<Q3DSPresentationItem *>(list->object)) {
-        obj->setParent(item);
-        if (Q3DSDataInput *dataInput = qobject_cast<Q3DSDataInput *>(obj))
-            Q3DSDataInputPrivate::get(dataInput)->presentation = item;
-        else if (Q3DSElement *element = qobject_cast<Q3DSElement *>(obj))
-            Q3DSElementPrivate::get(element)->presentation = item;
-    }
-}
-
-void Q3DSPresentationItem::studio3DPresentationLoaded()
-{
-    for (QObject *obj : children()) {
-        if (Q3DSDataInput *dataInput = qobject_cast<Q3DSDataInput *>(obj))
-            Q3DSDataInputPrivate::get(dataInput)->sendValue();
-    }
-}
+    QString elementPath;
+    Q3DSPresentation *presentation = nullptr;
+};
 
 QT_END_NAMESPACE
+
+#endif // Q3DSELEMENT_P_H

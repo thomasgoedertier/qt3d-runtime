@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2017 The Qt Company Ltd.
+** Copyright (C) 2018 The Qt Company Ltd.
 ** Contact: https://www.qt.io/licensing/
 **
 ** This file is part of Qt 3D Studio.
@@ -27,43 +27,47 @@
 **
 ****************************************************************************/
 
-#include "q3dspresentationitem_p.h"
-#include <private/q3dsdatainput_p.h>
-#include <private/q3dselement_p.h>
+#ifndef Q3DSELEMENT_H
+#define Q3DSELEMENT_H
+
+#include <Qt3DStudioRuntime2/q3dsruntimeglobal.h>
+#include <QtCore/qobject.h>
+#include <QtCore/qvariant.h>
 
 QT_BEGIN_NAMESPACE
 
-Q3DSPresentationItem::Q3DSPresentationItem(QObject *parent)
-    : Q3DSPresentation(parent)
-{
-}
+class Q3DSElementPrivate;
+class Q3DSPresentation;
 
-Q3DSPresentationItem::~Q3DSPresentationItem()
+class Q3DSV_EXPORT Q3DSElement : public QObject
 {
-}
+    Q_OBJECT
+    Q_PROPERTY(QString elementPath READ elementPath WRITE setElementPath NOTIFY elementPathChanged)
 
-QQmlListProperty<QObject> Q3DSPresentationItem::qmlChildren()
-{
-    return QQmlListProperty<QObject>(this, nullptr, &appendQmlChildren, nullptr, nullptr, nullptr);
-}
+public:
+    explicit Q3DSElement(QObject *parent = nullptr);
+    explicit Q3DSElement(const QString &elementPath, QObject *parent = nullptr);
+    Q3DSElement(Q3DSPresentation *presentation, const QString &elementyPath, QObject *parent = nullptr);
+    ~Q3DSElement();
 
-void Q3DSPresentationItem::appendQmlChildren(QQmlListProperty<QObject> *list, QObject *obj)
-{
-    if (Q3DSPresentationItem *item = qobject_cast<Q3DSPresentationItem *>(list->object)) {
-        obj->setParent(item);
-        if (Q3DSDataInput *dataInput = qobject_cast<Q3DSDataInput *>(obj))
-            Q3DSDataInputPrivate::get(dataInput)->presentation = item;
-        else if (Q3DSElement *element = qobject_cast<Q3DSElement *>(obj))
-            Q3DSElementPrivate::get(element)->presentation = item;
-    }
-}
+    QString elementPath() const;
 
-void Q3DSPresentationItem::studio3DPresentationLoaded()
-{
-    for (QObject *obj : children()) {
-        if (Q3DSDataInput *dataInput = qobject_cast<Q3DSDataInput *>(obj))
-            Q3DSDataInputPrivate::get(dataInput)->sendValue();
-    }
-}
+public Q_SLOTS:
+    void setElementPath(const QString &elementPath);
+    void setAttribute(const QString &attributeName, const QVariant &value);
+    void fireEvent(const QString &eventName);
+
+Q_SIGNALS:
+    void elementPathChanged();
+
+protected:
+    Q3DSElement(Q3DSElementPrivate &dd, QObject *parent);
+
+private:
+    Q_DISABLE_COPY(Q3DSElement)
+    Q_DECLARE_PRIVATE(Q3DSElement)
+};
 
 QT_END_NAMESPACE
+
+#endif // Q3DSELEMENT_H

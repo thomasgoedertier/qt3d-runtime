@@ -32,6 +32,7 @@
 #include "q3dsstudio3ditem_p.h"
 #include "q3dspresentationitem_p.h"
 #include "q3dsdatainput.h"
+#include "q3dselement.h"
 
 static void initResources()
 {
@@ -54,6 +55,7 @@ public:
         qmlRegisterType<Q3DSStudio3DItem>(uri, 2, 0, "Studio3D");
         qmlRegisterType<Q3DSPresentationItem>(uri, 2, 0, "Presentation");
         qmlRegisterType<Q3DSDataInput>(uri, 2, 0, "DataInput");
+        qmlRegisterType<Q3DSElement>(uri, 2, 0, "Element");
     }
 };
 
