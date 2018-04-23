@@ -259,6 +259,9 @@ void Q3DSSlidePlayer::setMode(Q3DSSlidePlayer::PlayerMode mode)
 
 void Q3DSSlidePlayer::play()
 {
+    if (m_data.state == PlayerState::Playing)
+        return;
+
     if (m_data.state == PlayerState::Idle) {
         qCWarning(lcSlidePlayer) << "Play called in Idle state (no content)";
         return;
@@ -512,7 +515,8 @@ void Q3DSSlidePlayer::setInternalState(Q3DSSlidePlayer::PlayerState state)
 
     if (state == PlayerState::Playing) {
         const bool restart = (m_mode == PlayerMode::Viewer)
-                             && (currentSlide->playMode() == Q3DSSlide::Looping);
+                             && (currentSlide->playMode() == Q3DSSlide::Looping)
+                             && (m_data.state != PlayerState::Paused);
         updateAnimators(currentSlide, true, restart, m_data.playbackRate);
     } else if (state == PlayerState::Stopped) {
         updateAnimators(currentSlide, false, false, m_data.playbackRate);
