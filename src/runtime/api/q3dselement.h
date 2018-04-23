@@ -54,6 +54,7 @@ public:
 
 public Q_SLOTS:
     void setElementPath(const QString &elementPath);
+    QVariant getAttribute(const QString &attributeName) const;
     void setAttribute(const QString &attributeName, const QVariant &value);
     void fireEvent(const QString &eventName);
 

@@ -90,6 +90,14 @@ Rectangle {
                 onCurrentSlideIndexChanged: console.log("Current slide index for 'Scene': " + currentSlideIndex)
                 onCurrentSlideNameChanged: console.log("Current slide name for 'Scene': " + currentSlideName)
             }
+
+            // Exercise Element a bit. This is no different from using the
+            // functions on Presentations, just avoids the need to specify the
+            // name/path repeatedly.
+            Element {
+                id: barrelRef
+                elementPath: "Barrel" // or Scene.Layer.Barrel but as long as it's unique the name's good enough
+            }
         }
         ignoredEvents: mouseEvCb.checked ? Studio3D.EnableAllEvents : (Studio3D.IgnoreMouseEvents | Studio3D.IgnoreWheelEvents)
         onRunningChanged: console.log("running: " + s3d.running)
@@ -112,6 +120,13 @@ Rectangle {
                 fpsCount.text = "~" + s3d.frameCount + " FPS";
                 s3d.frameCount = 0;
             }
+        }
+
+        Timer {
+            interval: 2000
+            running: true
+            repeat: true
+            onTriggered: console.log("Barrel rotation is " + barrelRef.getAttribute("rotation"))
         }
 
         NumberAnimation on opacity {

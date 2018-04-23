@@ -76,6 +76,15 @@ void Q3DSElement::setElementPath(const QString &elementPath)
     }
 }
 
+QVariant Q3DSElement::getAttribute(const QString &attributeName) const
+{
+    Q_D(const Q3DSElement);
+    if (d->presentation && !d->elementPath.isEmpty())
+        return d->presentation->getAttribute(d->elementPath, attributeName);
+
+    return QVariant();
+}
+
 void Q3DSElement::setAttribute(const QString &attributeName, const QVariant &value)
 {
     Q_D(Q3DSElement);
