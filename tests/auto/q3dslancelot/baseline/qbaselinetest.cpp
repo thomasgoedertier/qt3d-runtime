@@ -71,6 +71,16 @@ void handleCmdLineArgs(int *argcp, char ***argvp)
 
         if (arg == "-simfail") {
             simfail = true;
+        } else if (arg == "-fuzzlevel") {
+            i++;
+            bool ok = false;
+            (void)nextArg.toInt(&ok);
+            if (!ok) {
+                qWarning() << "-fuzzlevel requires integer parameter";
+                showHelp = true;
+                break;
+            }
+            customInfo.insert("FuzzLevel", QString::fromLatin1(nextArg));
         } else if (arg == "-auto") {
             customAutoModeSet = true;
             customInfo.setAdHocRun(false);
@@ -106,6 +116,7 @@ void handleCmdLineArgs(int *argcp, char ***argvp)
         QTextStream out(stdout);
         out << "\n Baseline testing (lancelot) options:\n";
         out << " -simfail            : Force an image comparison mismatch. For testing purposes.\n";
+        out << " -fuzzlevel <int>    : Specify the percentage of fuzziness in comparison. Overrides server default. 0 means exact match.\n";
         out << " -auto               : Inform server that this run is done by a daemon, CI system or similar.\n";
         out << " -adhoc (default)    : The inverse of -auto; this run is done by human, e.g. for testing.\n";
         out << " -compareto KEY=VAL  : Force comparison to baselines from a different client,\n";
