@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<UIP version="3" >
+	<Project >
+		<ProjectSettings author="" company="" presentationWidth="1920" presentationHeight="1080" maintainAspect="False" >
+			<CustomColors count="16" >#ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff</CustomColors>
+		</ProjectSettings>
+		<Graph >
+			<Scene id="Scene" >
+				<Layer id="Layer2" >
+					<Camera id="Camera_001" />
+					<Model id="Cube_001" >
+						<Material id="Default_002" name="Default" />
+					</Model>
+				</Layer>
+				<Layer id="Layer" >
+					<Camera id="Camera" />
+					<Light id="Light" />
+					<Model id="Cube" >
+						<Material id="Default" name="Default" />
+					</Model>
+					<Model id="Cube2" >
+						<Material id="Default_001" name="Default" />
+					</Model>
+					<Light id="Light2" />
+				</Layer>
+			</Scene>
+		</Graph>
+		<Logic >
+			<State name="Master Slide" component="#Scene" >
+				<Add ref="#Layer" />
+				<Add ref="#Camera" />
+				<Add ref="#Light" lightdiffuse="0.486275 0.992157 1" scope="#Cube" shdwfilter="36.98" />
+				<Add ref="#Cube" name="Cube" position="-284.867 0 0" sourcepath="#Cube" />
+				<Add ref="#Default" />
+				<Add ref="#Cube2" name="Cube2" position="340.036 0 0" sourcepath="#Cube" />
+				<Add ref="#Default_001" />
+				<Add ref="#Light2" name="Light2" lightdiffuse="0.682353 0.682353 1" scope="#Cube2" />
+				<State id="Scene-Slide1" name="Slide1" >
+					<Add ref="#Layer2" name="Layer2" />
+					<Add ref="#Camera_001" />
+					<Add ref="#Cube_001" name="Cube" position="0 169.409 0" sourcepath="#Cube" />
+					<Add ref="#Default_002" />
+				</State>
+			</State>
+		</Logic>
+	</Project>
+</UIP>
