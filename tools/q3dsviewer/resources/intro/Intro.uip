@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<UIP version="3" >
+	<Project >
+		<ProjectSettings author="" company="" presentationWidth="1920" presentationHeight="1080" maintainAspect="False" >
+			<CustomColors count="16" >#ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff</CustomColors>
+		</ProjectSettings>
+		<Graph >
+			<Scene id="Scene" backgroundcolor="0.180392 0.184314 0.188235" >
+				<Layer id="Layer" >
+					<Camera id="Camera" />
+					<Light id="Light" />
+					<Text id="Text" />
+					<Text id="errorText" />
+				</Layer>
+			</Scene>
+		</Graph>
+		<Logic >
+			<State name="Master Slide" component="#Scene" >
+				<Add ref="#Layer" background="Transparent" backgroundcolor="0.211765 0.211765 0.211765" height="80" left="10" top="10" width="80" />
+				<Add ref="#Camera" />
+				<Add ref="#Light" />
+				<State id="Scene-Slide1" name="Slide1" >
+					<Add ref="#Text" name="connectionText" controlledproperty="connectionInfo textstring" font="TitilliumWeb-Regular" position="6.41181 0 0" size="36" textstring="Use IP: x.x.x.x and Port: 36000&#10;in Qt 3D Studio Editor to connect to this viewer.&#10;&#10;Use File/Open... to open a local presentation." />
+					<Add ref="#errorText" name="errorText" controlledproperty="errorInfo textstring" font="TitilliumWeb-Regular" position="0 -232.208 0" textcolor="1 0.341176 0.341176" textstring="Error Text" />
+				</State>
+			</State>
+		</Logic>
+	</Project>
+</UIP>

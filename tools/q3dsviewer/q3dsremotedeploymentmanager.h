@@ -1,7 +1,7 @@
 /****************************************************************************
 **
-** Copyright (C) 2017 The Qt Company Ltd.
-** Contact: http://www.qt.io/licensing/
+** Copyright (C) 2018 The Qt Company Ltd.
+** Contact: https://www.qt.io/licensing/
 **
 ** This file is part of Qt 3D Studio.
 **
@@ -27,25 +27,61 @@
 **
 ****************************************************************************/
 
-#ifndef Q3DSTUDIOMAINWINDOW_H
-#define Q3DSTUDIOMAINWINDOW_H
+#ifndef Q3DSREMOTEDEPLOYMENTMANAGER_H
+#define Q3DSREMOTEDEPLOYMENTMANAGER_H
 
-#include <QMainWindow>
+#include <QObject>
 
 QT_BEGIN_NAMESPACE
 
-class Q3DSWindow;
-class Q3DSRemoteDeploymentManager;
+class Q3DSEngine;
+class Q3DSRemoteDeploymentServer;
 
-class Q3DStudioMainWindow : public QMainWindow
+class Q3DSRemoteDeploymentManager : public QObject
 {
     Q_OBJECT
 public:
-    explicit Q3DStudioMainWindow(Q3DSWindow *view, Q3DSRemoteDeploymentManager *remote = nullptr, QWidget *parent = nullptr);
+    enum State {
+        LocalProject,
+        ConnectionInfo,
+        RemoteConnected,
+        RemoteLoading,
+        RemoteProject
+    };
 
-    static QString fileFilter();
+    explicit Q3DSRemoteDeploymentManager(Q3DSEngine *engine, int port = 36000);
+    ~Q3DSRemoteDeploymentManager();
+
+    void setConnectionPort(int port);
+
+    void startServer();
+    void stopServer();
+
+    void showConnectionSetup();
+
+    void setState(Q3DSRemoteDeploymentManager::State state);
+    Q3DSRemoteDeploymentManager::State state() const;
+
+private Q_SLOTS:
+    void remoteConnected();
+    void remoteDisconnected();
+    void remoteProjectChanging();
+    void loadRemoteProject();
+    void loadFile(const QString &filename);
+
+Q_SIGNALS:
+    void stateChanged(Q3DSRemoteDeploymentManager::State state);
+
+private:
+    void setupConnectionScene();
+    QString generateConnectionInfo();
+
+    Q3DSEngine *m_engine = nullptr;
+    Q3DSRemoteDeploymentServer *m_server = nullptr;
+    int m_port;
+    State m_state = LocalProject;
 };
 
 QT_END_NAMESPACE
 
-#endif // Q3DSTUDIOMAINWINDOW_H
+#endif // Q3DSREMOTEDEPLOYMENTMANAGER_H

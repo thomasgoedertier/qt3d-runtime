@@ -7,7 +7,9 @@ qtHaveModule(widgets) {
     HEADERS += q3dsmainwindow.h
 }
 
-SOURCES += main.cpp
+SOURCES += main.cpp \
+    q3dsremotedeploymentserver.cpp \
+    q3dsremotedeploymentmanager.cpp
 
 RC_ICONS = resources/images/3D-studio-viewer.ico
 ICON = resources/images/viewer.icns
@@ -16,3 +18,10 @@ QMAKE_TARGET_DESCRIPTION = Qt 3D Studio Viewer
 load(qt_app)
 
 CONFIG += app_bundle
+
+HEADERS += \
+    q3dsremotedeploymentserver.h \
+    q3dsremotedeploymentmanager.h
+
+RESOURCES += \
+    resources.qrc

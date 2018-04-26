@@ -35,6 +35,8 @@
 #include <QGuiApplication>
 #endif
 
+#include "q3dsremotedeploymentmanager.h"
+
 #include <QCommandLineParser>
 #include <QStandardPaths>
 #include <private/q3dsengine_p.h>
@@ -47,6 +49,12 @@ QT_END_NAMESPACE
 
 int main(int argc, char *argv[])
 {
+    QCoreApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
+    QCoreApplication::setOrganizationName(QStringLiteral("The Qt Company"));
+    QCoreApplication::setOrganizationDomain(QStringLiteral("qt.io"));
+    QCoreApplication::setApplicationName(QStringLiteral("Qt 3D Viewer"));
+    QCoreApplication::setApplicationVersion(QStringLiteral("2.0"));
+
 #ifdef Q3DSVIEWER_WIDGETS
     QApplication app(argc, argv);
 #else
@@ -65,6 +73,12 @@ int main(int argc, char *argv[])
     cmdLineParser.addOption(msaaOption);
     QCommandLineOption noProfOption({ "p", "no-profile" }, QObject::tr("Opens presentation without profiling enabled"));
     cmdLineParser.addOption(noProfOption);
+    cmdLineParser.addOption({"connect", QObject::tr("main",
+                             "If this parameter is specified, the viewer\n"
+                             "is started in connection mode.\n"
+                             "The default value is 36000."),
+                             QObject::tr("main", "port"), QString::number(36000)});
+
     cmdLineParser.process(app);
 
 #if !defined(Q_OS_ANDROID) && !defined(Q_OS_IOS)
@@ -82,28 +96,6 @@ int main(int argc, char *argv[])
     QStringList fn = cmdLineParser.positionalArguments();
     if (noWidgets) {
         Q3DSUtils::setDialogsEnabled(false);
-    } else if (fn.isEmpty()) {
-#ifdef Q3DSVIEWER_WIDGETS
-        QString fileName = QFileDialog::getOpenFileName(nullptr, QObject::tr("Open"), QString(),
-                                                        Q3DStudioMainWindow::fileFilter());
-        if (!fileName.isEmpty())
-            fn.append(fileName);
-#endif
-    }
-
-    // Try a default file on mobile,
-    // e.g. /storage/emulated/0/Documents/default.uip on Android.
-#if defined(Q_OS_ANDROID) || defined(Q_OS_IOS)
-    if (fn.isEmpty()) {
-        QStringList docPath = QStandardPaths::standardLocations(QStandardPaths::DocumentsLocation);
-        if (!docPath.isEmpty())
-            fn = QStringList { docPath.first() + QLatin1String("/default.uip") };
-    }
-#endif
-
-    if (fn.isEmpty()) {
-        Q3DSUtils::showMessage(QObject::tr("No file specified."));
-        return 0;
     }
 
     Q3DSEngine::Flags flags = 0;
@@ -116,8 +108,21 @@ int main(int argc, char *argv[])
     QScopedPointer<Q3DSWindow> view(new Q3DSWindow);
     view->setEngine(engine.data());
     engine->setFlags(flags);
-    if (!engine->setSource(fn.first()))
-        return 0;
+
+    // Setup Remote Viewer
+    QScopedPointer<Q3DSRemoteDeploymentManager> remote(new Q3DSRemoteDeploymentManager(engine.data()));
+    int port = 36000;
+    if (cmdLineParser.isSet(QStringLiteral("connect")))
+        port = cmdLineParser.value(QStringLiteral("connect")).toInt();
+    remote->setConnectionPort(port);
+    if (fn.isEmpty()) {
+        remote->startServer();
+        remote->showConnectionSetup();
+    } else {
+        // Try and set the source for the engine
+        if (!engine->setSource(fn.first()))
+            return 0;
+    }
 
 #ifdef Q3DSVIEWER_WIDGETS
     Q3DStudioMainWindow *mw = nullptr;
@@ -129,7 +134,7 @@ int main(int argc, char *argv[])
             view->show();
     } else {
 #ifdef Q3DSVIEWER_WIDGETS
-        mw = new Q3DStudioMainWindow(view.take());
+        mw = new Q3DStudioMainWindow(view.take(), remote.data());
         if (fullscreen)
             mw->showFullScreen();
         else

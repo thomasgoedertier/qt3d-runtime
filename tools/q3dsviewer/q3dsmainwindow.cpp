@@ -28,6 +28,7 @@
 ****************************************************************************/
 
 #include "q3dsmainwindow.h"
+#include "q3dsremotedeploymentmanager.h"
 #include <private/q3dswindow_p.h>
 #include <private/q3dsengine_p.h>
 #include <private/q3dsutils_p.h>
@@ -46,7 +47,7 @@ QString Q3DStudioMainWindow::fileFilter()
     return tr("All Supported Formats (*.uia *.uip);;Studio UI Presentation (*.uip);;Application File (*.uia);;All Files (*)");
 }
 
-Q3DStudioMainWindow::Q3DStudioMainWindow(Q3DSWindow *view, QWidget *parent)
+Q3DStudioMainWindow::Q3DStudioMainWindow(Q3DSWindow *view, Q3DSRemoteDeploymentManager *remote, QWidget *parent)
     : QMainWindow(parent)
 {
     QWidget *wrapper = QWidget::createWindowContainer(view);
@@ -70,6 +71,10 @@ Q3DStudioMainWindow::Q3DStudioMainWindow(Q3DSWindow *view, QWidget *parent)
         view->engine()->setFlag(Q3DSEngine::EnableProfiling, false);
         open();
     });
+    if (remote)
+        fileMenu->addAction(tr("Remote Setup"), this, [remote] {
+            remote->showConnectionSetup();
+        });
     fileMenu->addAction(tr("&Reload"), this, [=] {
         view->engine()->setSource(view->engine()->source());
     }, QKeySequence::Refresh);
