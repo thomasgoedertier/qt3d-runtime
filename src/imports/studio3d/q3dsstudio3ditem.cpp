@@ -52,9 +52,25 @@ QT_BEGIN_NAMESPACE
 
 Q_LOGGING_CATEGORY(lcStudio3D, "q3ds.studio3d")
 
+static bool engineCleanerRegistered = false;
+static QSet<Q3DSEngine *> engineTracker;
+static void engineCleaner()
+{
+    // We cannot go down with engines alive, mainly because some Qt 3D stuff
+    // uses threads which need proper shutdown.
+    QSet<Q3DSEngine *> strayEngines = std::move(engineTracker);
+    for (Q3DSEngine *engine : strayEngines)
+        delete engine;
+}
+
 Q3DSStudio3DItem::Q3DSStudio3DItem(QQuickItem *parent)
     : QQuickItem(parent)
 {
+    if (!engineCleanerRegistered) {
+        qAddPostRoutine(engineCleaner);
+        engineCleanerRegistered = true;
+    }
+
     setFlag(QQuickItem::ItemHasContents, true);
 
     // not strictly needed since we'll use Q3DSUtilsMessageRedirect but just in case
@@ -178,6 +194,7 @@ void Q3DSStudio3DItem::createEngine()
         }
 
         m_engine = new Q3DSEngine;
+        engineTracker.insert(m_engine);
 
         // Rendering will be driven manually from the Quick render thread via the QRenderAspect.
         // We create the render aspect ourselves on the Quick render thread.
@@ -307,6 +324,7 @@ void Q3DSStudio3DItem::destroyEngine()
     if (m_engine) {
         Q_ASSERT(!m_renderer);
         qCDebug(lcStudio3D, "destroying engine %p", m_engine);
+        engineTracker.remove(m_engine);
         delete m_engine; // recreate on next window change - if we are still around, that is
         m_engine = nullptr;
         if (m_running) {
@@ -323,8 +341,11 @@ public:
         : m_engine(engine)
     { }
     ~EngineReleaser() {
-        qCDebug(lcStudio3D, "async release: destroying engine %p", m_engine);
-        delete m_engine;
+        if (engineTracker.contains(m_engine)) {
+            qCDebug(lcStudio3D, "async release: destroying engine %p", m_engine);
+            engineTracker.remove(m_engine);
+            delete m_engine;
+        }
 
         // Here the destruction of the old engine and the creation of a new one
         // will overlap (if the item survives, that is). So don't bother with
@@ -344,6 +365,13 @@ public:
     { }
     void run() override {
         delete m_renderer;
+
+        // now, if this is on the render thread (Qt Quick with threaded render
+        // loop) and the application is exiting, the deleteLater may not
+        // actually be executed ever. Hence the need for the post routine and
+        // engineTracker. However, if the application stays alive and we are
+        // cleaning up for another reason, this is just fine since the engine
+        // will eventually get deleted fine by the main thread.
         m_engineReleaser->deleteLater();
     }
 
