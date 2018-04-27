@@ -74,6 +74,8 @@ struct Q3DSSubsetMaterialVertexPipeline : public Q3DSVertexPipelineImpl
 
     void doGenerateVarTangentAndBinormal() override;
 
+    void doGenerateVertexColor() override;
+
     void endVertexGeneration() override;
 
     void endFragmentGeneration() override;

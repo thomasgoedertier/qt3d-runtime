@@ -1554,6 +1554,7 @@ public:
     // Properties
     ShaderLighting shaderLighting() const { return m_shaderLighting; }
     BlendMode blendMode() const { return m_blendMode; }
+    bool vertexColors() const { return m_vertexColors; }
     QColor diffuse() const { return m_diffuse; }
     Q3DSImage *diffuseMap() const { return m_diffuseMap; }
     Q3DSImage *diffuseMap2() const { return m_diffuseMap2; }
@@ -1629,6 +1630,7 @@ private:
 
     ShaderLighting m_shaderLighting = PixelShaderLighting;
     BlendMode m_blendMode = Normal;
+    bool m_vertexColors = false;
     QColor m_diffuse = Qt::white;
     QString m_diffuseMap_unresolved;
     Q3DSImage *m_diffuseMap = nullptr;

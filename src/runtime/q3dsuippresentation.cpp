@@ -1752,6 +1752,8 @@ void Q3DSDefaultMaterial::setProps(const V &attrs, PropSetFlags flags)
 
     parseProperty(attrs, flags, typeName, QStringLiteral("shaderlighting"), &m_shaderLighting);
     parseProperty(attrs, flags, typeName, QStringLiteral("blendmode"), &m_blendMode);
+
+    parseProperty(attrs, flags, typeName, QStringLiteral("vertexcolors"), &m_vertexColors);
     parseProperty(attrs, flags, typeName, QStringLiteral("diffuse"), &m_diffuse);
 
     parseImageProperty(attrs, flags, typeName, QStringLiteral("diffusemap"), &m_diffuseMap_unresolved);
@@ -1850,7 +1852,7 @@ int Q3DSDefaultMaterial::mapChangeFlags(const Q3DSPropertyChangeList &changeList
 QStringList Q3DSDefaultMaterial::propertyNames() const
 {
     QStringList s = Q3DSGraphObject::propertyNames();
-    s << QLatin1String("shaderlighting") << QLatin1String("blendmode") << QLatin1String("diffuse")
+    s << QLatin1String("shaderlighting") << QLatin1String("blendmode") << QLatin1String("vertexcolors") << QLatin1String("diffuse")
       << QLatin1String("diffusemap") << QLatin1String("diffusemap2") << QLatin1String("diffusemap3")
       << QLatin1String("specularreflection") << QLatin1String("speculartint") << QLatin1String("specularamount")
       << QLatin1String("specularmap") << QLatin1String("specularmodel")
@@ -1867,7 +1869,7 @@ QStringList Q3DSDefaultMaterial::propertyNames() const
 QVariantList Q3DSDefaultMaterial::propertyValues() const
 {
     QVariantList s = Q3DSGraphObject::propertyValues();
-    s << m_shaderLighting << m_blendMode << m_diffuse << m_diffuseMap_unresolved << m_diffuseMap2_unresolved << m_diffuseMap3_unresolved
+    s << m_shaderLighting << m_blendMode << m_vertexColors << m_diffuse << m_diffuseMap_unresolved << m_diffuseMap2_unresolved << m_diffuseMap3_unresolved
       << m_specularReflection_unresolved << m_specularTint << m_specularAmount << m_specularMap_unresolved << m_specularModel
       << m_specularRoughness << m_roughnessMap_unresolved << m_fresnelPower << m_ior << m_bumpMap_unresolved << m_normalMap_unresolved << m_bumpAmount << m_displacementMap_unresolved
       << m_displaceAmount << m_opacity << m_opacityMap_unresolved << m_emissiveColor << m_emissivePower << m_emissiveMap_unresolved << m_emissiveMap2_unresolved

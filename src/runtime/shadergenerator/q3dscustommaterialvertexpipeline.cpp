@@ -677,4 +677,10 @@ void Q3DSCustomMaterialVertexPipeline::doGenerateVarTangentAndBinormal()
                 "\tvarObjBinormal = attr_binormal;\n";
 }
 
+void Q3DSCustomMaterialVertexPipeline::doGenerateVertexColor()
+{
+    vertex().addIncoming("attr_color", "vec3");
+    vertex() << "\tvarColor = attr_color;";
+}
+
 QT_END_NAMESPACE
