@@ -78,6 +78,10 @@ private:
     void addConsoleWindow();
     void addFrameGraphWindow();
     void addAlterSceneStuff();
+    void showNumberInput(const QString &diName);
+    void showVec2Input(const QString &diName);
+    void showVec3Input(const QString &diName);
+    void showStringInput(const QString &diName);
     void addPresentationSelector();
     Q3DSProfiler *selectedProfiler() const;
     bool isFiltered(const QString &s) const;
@@ -99,6 +103,7 @@ private:
     bool m_consoleWindowOpen = false;
     bool m_logScrollToBottomOnChange = true;
     int m_currentPresentationIndex = 0;
+    int m_currentVariantTypeIdx = 0;
     bool m_logFilterWindowOpen = false;
     const char *m_logFilterPrefixes[MAX_LOG_FILTER_ENTRIES];
     bool m_logFilterEnabled[MAX_LOG_FILTER_ENTRIES];
@@ -935,46 +940,39 @@ void Q3DSProfileView::addAlterSceneStuff()
             const Q3DSDataInputEntry &diMeta((*diMetaMap)[diName]);
             switch (diMeta.type) {
             case Q3DSDataInputEntry::TypeString:
-            {
-                QByteArray *buf;
-                if (m_dataInputTextBuf.contains(diName)) {
-                    buf = &m_dataInputTextBuf[diName];
-                } else {
-                    buf = &m_dataInputTextBuf[diName];
-                    buf->resize(255);
-                    buf->data()[0] = '\0';
-                }
-                ImGui::InputText(qPrintable(diName), buf->data(), 255);
-                ImGui::SameLine();
-                if (ImGui::Button("Apply"))
-                    p->sendDataInputValueChange(diName, QString::fromUtf8(*buf));
-            }
+                showStringInput(diName);
                 break;
             case Q3DSDataInputEntry::TypeRangedNumber:
-            {
-                float &buf(m_dataInputFloatBuf[diName]);
-                ImGui::InputFloat(qPrintable(diName), &buf);
-                ImGui::SameLine();
-                if (ImGui::Button("Apply"))
-                    p->sendDataInputValueChange(diName, buf);
-            }
+                showNumberInput(diName);
                 break;
             case Q3DSDataInputEntry::TypeVec2:
-            {
-                QVector2D &buf(m_dataInputVec2Buf[diName]); // QVector2D is two floats in practice
-                ImGui::InputFloat2(qPrintable(diName), reinterpret_cast<float *>(&buf));
-                ImGui::SameLine();
-                if (ImGui::Button("Apply"))
-                    p->sendDataInputValueChange(diName, buf);
-            }
+                showVec2Input(diName);
                 break;
             case Q3DSDataInputEntry::TypeVec3:
+                showVec3Input(diName);
+                break;
+            case Q3DSDataInputEntry::TypeVariant:
             {
-                QVector3D &buf(m_dataInputVec3Buf[diName]); // QVector3D is three floats in practice
-                ImGui::InputFloat3(qPrintable(diName), reinterpret_cast<float *>(&buf));
+                // show dropdown for selecting datatype inputted to Variant datainput
+                const char *dTypes = "String\0Number\0Vector2\0Vector3";
+                ImGui::Combo("Datatype", &m_currentVariantTypeIdx, dTypes, 4);
                 ImGui::SameLine();
-                if (ImGui::Button("Apply"))
-                    p->sendDataInputValueChange(diName, buf);
+                switch (m_currentVariantTypeIdx) {
+                case 0:
+                    showStringInput(diName);
+                    break;
+                case 1:
+                    showNumberInput(diName);
+                    break;
+                case 2:
+                    showVec2Input(diName);
+                    break;
+                case 3:
+                    showVec3Input(diName);
+                    break;
+                default:
+                    break;
+                }
             }
                 break;
             default:
@@ -992,6 +990,49 @@ void Q3DSProfileView::addAlterSceneStuff()
 
         ImGui::End();
     }
+}
+
+void Q3DSProfileView::showNumberInput(const QString &diName)
+{
+    float &buf(m_dataInputFloatBuf[diName]);
+    ImGui::InputFloat(qPrintable(diName), &buf);
+    ImGui::SameLine();
+    if (ImGui::Button("Apply"))
+        selectedProfiler()->sendDataInputValueChange(diName, buf);
+}
+
+void Q3DSProfileView::showVec2Input(const QString &diName)
+{
+    QVector2D &buf(m_dataInputVec2Buf[diName]);
+    ImGui::InputFloat2(qPrintable(diName), reinterpret_cast<float *>(&buf));
+    ImGui::SameLine();
+    if (ImGui::Button("Apply"))
+        selectedProfiler()->sendDataInputValueChange(diName, buf);
+}
+
+void Q3DSProfileView::showVec3Input(const QString &diName)
+{
+    QVector3D &buf(m_dataInputVec3Buf[diName]);
+    ImGui::InputFloat3(qPrintable(diName), reinterpret_cast<float *>(&buf));
+    ImGui::SameLine();
+    if (ImGui::Button("Apply"))
+        selectedProfiler()->sendDataInputValueChange(diName, buf);
+}
+
+void Q3DSProfileView::showStringInput(const QString &diName)
+{
+    QByteArray *buf;
+    if (m_dataInputTextBuf.contains(diName)) {
+        buf = &m_dataInputTextBuf[diName];
+    } else {
+        buf = &m_dataInputTextBuf[diName];
+        buf->resize(255);
+        buf->data()[0] = '\0';
+    }
+    ImGui::InputText(qPrintable(diName), buf->data(), 255);
+    ImGui::SameLine();
+    if (ImGui::Button("Apply"))
+        selectedProfiler()->sendDataInputValueChange(diName, QString::fromUtf8(*buf));
 }
 
 Q3DSProfileUi::Q3DSProfileUi(Q3DSGuiData *guiData, Q3DSProfiler *profiler, ConsoleInitFunc consoleInitFunc)

@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<UIP version="3" >
+	<Project >
+		<ProjectSettings author="" company="" presentationWidth="800" presentationHeight="480" maintainAspect="False" >
+			<CustomColors count="16" >#ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff</CustomColors>
+		</ProjectSettings>
+		<Graph >
+			<Scene id="Scene" controlledproperty="$rangeInput @timeline" >
+				<Layer id="Layer" >
+					<Camera id="Camera" />
+					<Light id="Light" />
+					<Text id="Text" />
+					<Text id="Text2" />
+					<Model id="Cone" >
+						<Material id="Default" name="Default" />
+					</Model>
+					<Model id="Cylinder" >
+						<Material id="Default_002" name="Default" />
+					</Model>
+					<Text id="Text6" />
+					<Text id="Text8" />
+					<Model id="Cube2" >
+						<Material id="Default_003" name="Default" />
+					</Model>
+					<Text id="Text3" />
+					<Text id="Text4" />
+				</Layer>
+			</Scene>
+		</Graph>
+		<Logic >
+			<State name="Master Slide" component="#Scene" >
+				<Add ref="#Layer" multisampleaa="None" progressiveaa="4x" temporalaa="True" />
+				<Add ref="#Camera" controlledproperty="$cameraRotInput rotation" pivot="0 0 0" rotation="0 0 0" />
+				<Add ref="#Light" castshadow="True" controlledproperty="$colorInput lightdiffuse" lightdiffuse="1 0 0" position="-350.984 -229.258 -30" />
+				<State id="Scene-Slide1" name="Slide1" initialplaystate="Pause" >
+					<Add ref="#Text" name="Text" font="TitilliumWeb-Regular" position="216.513 76.6172 -113.498" scale="1 1 1" size="24" textstring="0" >
+						<AnimationTrack property="rotation.x" type="EaseInOut" >0 0 0 0 10 0 0 0</AnimationTrack>
+						<AnimationTrack property="rotation.y" type="EaseInOut" >0 0 0 0 10 0 0 0</AnimationTrack>
+						<AnimationTrack property="rotation.z" type="EaseInOut" >0 0 0 0 10 -360 0 0</AnimationTrack>
+					</Add>
+					<Add ref="#Text2" name="Text2" controlledproperty="" font="TitilliumWeb-Regular" position="259.808 217.95 0" scale="1 1 1" size="16" textstring="Text control&#10;Rotation animation control via datainput timeline control" />
+					<Add ref="#Cone" name="Cone" controlledproperty="$scaleInput scale" position="-417.135 -225.166 0" sourcepath="#Cone" />
+					<Add ref="#Default" />
+					<Add ref="#Cylinder" name="Cylinder" controlledproperty="$variantInput opacity" position="131.347 -180.422 0" sourcepath="#Cylinder" />
+					<Add ref="#Default_002" />
+					<Add ref="#Text6" name="Text6" font="TitilliumWeb-Regular" position="135.678 -300.019 -8.28656" size="16" textstring="Opacity control&#10;(Variant type)" />
+					<Add ref="#Text8" name="Text8" font="TitilliumWeb-Regular" position="-428.683 -290.118 0" size="16" textstring="Scale control" />
+					<Add ref="#Cube2" name="Cube2" controlledproperty="$vec3Input rotation" position="409.919 -177.535 0" sourcepath="#Cube" />
+					<Add ref="#Default_003" controlledproperty="$vec3Input2 diffuse" />
+					<Add ref="#Text3" name="Text3" font="TitilliumWeb-Regular" position="434.456 -304.552 0" size="16" textstring="Rotation control&#10;Diffuse color control" />
+					<Add ref="#Text4" name="Text4" font="TitilliumWeb-Regular" position="-381.051 290.118 0" size="18" textstring="Directional light color and Camera xy &#10;rotation controlled via Datainput" />
+				</State>
+			</State>
+		</Logic>
+	</Project>
+</UIP>

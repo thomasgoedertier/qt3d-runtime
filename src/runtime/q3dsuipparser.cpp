@@ -646,7 +646,12 @@ Q3DSGraphObject::DataInputControlledProperties Q3DSUipParser::getDataInputContro
                 reader()->raiseError(QObject::tr("Malformed controlledproperty attribute: %1").arg(cp.toString()));
                 return dataInputControlledProperties;
             }
-            dataInputControlledProperties.insert(nameTargetPairs[i].toString(), nameTargetPairs[i + 1].toString());
+            // remove prefix '$' from datainput controller name
+            QString controller = nameTargetPairs[i].toString();
+            if (controller.at(0) == QLatin1Char('$'))
+                controller.remove(0, 1);
+
+            dataInputControlledProperties.insert(controller, nameTargetPairs[i + 1].toString());
         }
     }
     return dataInputControlledProperties;

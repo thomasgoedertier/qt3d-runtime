@@ -5,7 +5,8 @@ SUBDIRS += \
     simpleoffscreen
 
 qtHaveModule(quick) {
-    SUBDIRS += simpleqml
+    SUBDIRS += simpleqml \
+               qmldatainput
 }
 
 qtHaveModule(widgets) {

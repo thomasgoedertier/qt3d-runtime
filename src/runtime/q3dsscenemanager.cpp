@@ -7237,6 +7237,12 @@ void Q3DSSceneManager::setDataInputValue(const QString &dataInputName, const QVa
             case Q3DSDataInputEntry::TypeVec3:
                 type = Q3DS::Vector;
                 break;
+            // for Variant datainput the target type is unknown
+            // but values are passed on from this function anyway
+            // as QVariants.
+            case Q3DSDataInputEntry::TypeVariant:
+                type = Q3DS::Unknown;
+                break;
             default:
                 break;
             }
@@ -7253,10 +7259,13 @@ void Q3DSSceneManager::setDataInputValue(const QString &dataInputName, const QVa
                     changeSlideByName(obj, value.toString());
                 } else if (propName == QStringLiteral("@timeline")) {
                     if (obj->type() == Q3DSGraphObject::Scene || obj->type() == Q3DSGraphObject::Component) {
-                        // Normalize the value to dataInput range (just because 3DS1 does it)
-                        // Input value is assumed to be in milliseconds.
+                        // Normalize the datainput min-max range between scene or component
+                        // timeline length and map the incoming value on it (just because 3DS1
+                        // does it). If min-max is not specified, interpret value directly as
+                        // timeline point in milliseconds
                         const float seekTimeMs = meta.hasMinMax()
-                                ? (value.toFloat() - meta.minValue) / (meta.maxValue - meta.minValue)
+                                ? ((value.toFloat() - meta.minValue) /
+                                  (meta.maxValue - meta.minValue))* obj->endTime()
                                 : value.toFloat();
                         goToTime(obj, seekTimeMs);
                     } else {

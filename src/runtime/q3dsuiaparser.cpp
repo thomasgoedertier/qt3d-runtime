@@ -129,6 +129,8 @@ void Q3DSUiaParser::parsePresentations()
                     e.type = Q3DSDataInputEntry::TypeVec2;
                 } else if (type == QLatin1String("Vector3")) {
                     e.type = Q3DSDataInputEntry::TypeVec3;
+                } else if (type == QLatin1String("Variant")) {
+                    e.type = Q3DSDataInputEntry::TypeVariant;
                 } else {
                     r->raiseError(QObject::tr("Unknown type in dataInput element"));
                     m_uia.presentations.clear();

@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<application>
+	<assets initial="datainput">
+		<presentation id="datainput" src="datainput.uip"/>
+		<dataInput name="rangeInput" type="Ranged Number" min="0" max="360"/>
+		<dataInput name="scaleInput" type="Vector3"/>
+		<dataInput name="stringInput" type="String"/>
+		<dataInput name="colorInput" type="Vector3"/>
+		<dataInput name="cameraRotInput" type="Vector3"/>
+		<dataInput name="variantInput" type="Variant"/>
+	</assets>
+	<statemachine ref="#logic">
+		<visual-states>
+			<state ref="Initial">
+				<enter>
+					<goto-slide element="main:Scene" rel="next"/>
+				</enter>
+			</state>
+		</visual-states>
+	</statemachine>
+</application>
