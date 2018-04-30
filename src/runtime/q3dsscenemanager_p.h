@@ -134,7 +134,6 @@ Q_DECLARE_TYPEINFO(Q3DSLightSource, Q_MOVABLE_TYPE);
 // these are our current shader limits
 #define Q3DS_MAX_NUM_LIGHTS 16
 #define Q3DS_MAX_NUM_LIGHTS_ES2 8
-#define Q3DS_MAX_NUM_SHADOWS 8
 
 // note this struct must exactly match the memory layout of the
 // struct sampleLight.glsllib and sampleArea.glsllib. If you make changes here you need

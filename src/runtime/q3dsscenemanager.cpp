@@ -4242,6 +4242,16 @@ void Q3DSSceneManager::buildModelMaterial(Q3DSModelNode *model3DS)
     for (auto light : lights)
         lightNodes.append(light->lightNodes);
 
+    const int lightNodeLimit = m_gfxLimits.shaderUniformBufferSupported ? Q3DS_MAX_NUM_LIGHTS : Q3DS_MAX_NUM_LIGHTS_ES2;
+    if (lightNodes.count() > lightNodeLimit) {
+        qCWarning(lcPerf, "Default material for model %s got %d lights, shader input truncated to %d",
+                  model3DS->id().constData(), lightNodes.count(), lightNodeLimit);
+        // This is what the shader generator will see so truncate this. That
+        // some calculations below may still use all the lights does not
+        // matters so much.
+        lightNodes.resize(lightNodeLimit);
+    }
+
     for (Q3DSModelAttached::SubMesh &sm : modelData->subMeshes) {
         if (sm.resolvedMaterial && !sm.materialComponent) {
             if (sm.resolvedMaterial->type() == Q3DSGraphObject::DefaultMaterial) {
@@ -6209,7 +6219,7 @@ QVector<Qt3DRender::QParameter*> Q3DSSceneManager::prepareSeparateLightUniforms(
 {
     QVector<Qt3DRender::QParameter*> params;
     for (int i = 0; i < allLights.size(); ++i) {
-        if (i > Q3DS_MAX_NUM_LIGHTS_ES2)
+        if (i >= Q3DS_MAX_NUM_LIGHTS_ES2)
             break;
 
         const QString uniformPrefix = lightsUniformName + QStringLiteral("[") + QString::number(i) + QStringLiteral("].");
@@ -6297,6 +6307,8 @@ void Q3DSSceneManager::updateLightsBuffer(const QVector<Q3DSLightSource> &lights
     // Set the lightData
     Q3DSLightSourceData *lightData = reinterpret_cast<Q3DSLightSourceData *>(lightBufferData.data() + (4 * sizeof(qint32)));
     for (int i = 0; i < lights.count(); ++i) {
+        if (i >= Q3DS_MAX_NUM_LIGHTS)
+            break;
         lightData[i].m_position = lights[i].positionParam->value().value<QVector4D>();
         lightData[i].m_direction = lights[i].directionParam->value().value<QVector3D>().toVector4D();
         lightData[i].m_up = lights[i].upParam->value().value<QVector4D>();
