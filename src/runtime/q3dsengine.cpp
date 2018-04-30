@@ -892,7 +892,6 @@ bool Q3DSEngine::loadSubQmlPresentation(QmlPresentation *pres)
 
         ensureItemSize(item);
         pres->scene2d->setItem(item);
-        item->setParent(pres->scene2d);
 
         pres->subPres.colorTex->setWidth(int(item->width()));
         pres->subPres.colorTex->setHeight(int(item->height()));
@@ -913,7 +912,6 @@ bool Q3DSEngine::loadSubQmlPresentation(QmlPresentation *pres)
                 if (item) {
                     ensureItemSize(item);
                     pres->scene2d->setItem(item);
-                    item->setParent(pres->scene2d);
                     pres->subPres.colorTex->setWidth(int(item->width()));
                     pres->subPres.colorTex->setHeight(int(item->height()));
                 } else {
