@@ -73,7 +73,7 @@ void Q3DSRemoteDeploymentManager::setConnectionPort(int port)
     if (m_server && m_server->isConnected()) {
         m_server->disconnectRemote();
         m_server->setServerPort(m_port);
-        m_server->startServer();
+        m_errorMessage = m_server->startServer();
     } else {
         m_server->setServerPort(m_port);
     }
@@ -82,7 +82,7 @@ void Q3DSRemoteDeploymentManager::setConnectionPort(int port)
 void Q3DSRemoteDeploymentManager::startServer()
 {
     if (!m_server->isConnected())
-        m_server->startServer();
+        m_errorMessage = m_server->startServer();
 }
 
 void Q3DSRemoteDeploymentManager::stopServer()
@@ -113,16 +113,25 @@ Q3DSRemoteDeploymentManager::State Q3DSRemoteDeploymentManager::state() const
 void Q3DSRemoteDeploymentManager::remoteConnected()
 {
     setState(RemoteConnected);
+    setErrorMessage(tr("Connected!"));
 }
 
 void Q3DSRemoteDeploymentManager::remoteDisconnected()
 {
     setState(ConnectionInfo);
+    setErrorMessage(tr("Disconnected from Qt 3D Studio..."));
 }
 
 void Q3DSRemoteDeploymentManager::remoteProjectChanging()
 {
+    // Only set this state the first time (until text bug is fixed)
+    // it would be possible to impliment a progress bar but right
+    // now we can't change text every frame in Qt3D.
+    if (m_state == RemoteLoading)
+        return;
+
     setState(RemoteLoading);
+    setErrorMessage(tr("Loading Remote Project..."));
 }
 
 void Q3DSRemoteDeploymentManager::loadRemoteProject()
@@ -149,7 +158,7 @@ void Q3DSRemoteDeploymentManager::loadFile(const QString &filename)
     QFileInfo fileInfo(targetFilename);
     if (!fileInfo.exists()) {
         setupConnectionScene();
-        m_engine->setDataInputValue(c_connectionErrorDataInput(), QString(tr("Tried to load nonexistent file %1").arg(targetFilename)));
+        setErrorMessage(QString(tr("Tried to load nonexistent file %1").arg(targetFilename)));
         return;
     }
 
@@ -161,8 +170,11 @@ void Q3DSRemoteDeploymentManager::setupConnectionScene()
     // start the connection information scene
     m_engine->setSource(c_introPresentation());
     m_engine->setDataInputValue(c_connectionTextDataInput(), generateConnectionInfo());
-    m_engine->setDataInputValue(c_connectionErrorDataInput(), QStringLiteral(""));
-    setState(ConnectionInfo);
+    m_engine->setDataInputValue(c_connectionErrorDataInput(), m_errorMessage);
+    if (!m_server->isConnected())
+        setState(ConnectionInfo);
+    else
+        remoteConnected();
 }
 
 QString Q3DSRemoteDeploymentManager::generateConnectionInfo()
@@ -171,7 +183,13 @@ QString Q3DSRemoteDeploymentManager::generateConnectionInfo()
                      "in Qt 3D Studio Editor to connect to this viewer.\n\n"
                      "Use File/Open... to open a local presentation.")
                   .arg(m_server->hostAddress().toString())
-                  .arg(QString::number(m_port));
+            .arg(QString::number(m_port));
+}
+
+void Q3DSRemoteDeploymentManager::setErrorMessage(const QString &errorString)
+{
+    m_errorMessage = errorString;
+    m_engine->setDataInputValue(c_connectionErrorDataInput(), errorString);
 }
 
 QT_END_NAMESPACE

@@ -75,10 +75,12 @@ Q_SIGNALS:
 private:
     void setupConnectionScene();
     QString generateConnectionInfo();
+    void setErrorMessage(const QString &errorString);
 
     Q3DSEngine *m_engine = nullptr;
     Q3DSRemoteDeploymentServer *m_server = nullptr;
     int m_port;
+    QString m_errorMessage;
     State m_state = LocalProject;
 };
 

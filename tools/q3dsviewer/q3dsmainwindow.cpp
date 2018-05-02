@@ -62,6 +62,8 @@ Q3DStudioMainWindow::Q3DStudioMainWindow(Q3DSWindow *view, Q3DSRemoteDeploymentM
         QString fn = QFileDialog::getOpenFileName(this, tr("Open"), dir, fileFilter());
         if (!fn.isEmpty())
             view->engine()->setSource(fn);
+        if (remote)
+            remote->setState(Q3DSRemoteDeploymentManager::LocalProject);
     };
     fileMenu->addAction(tr("&Open..."), this, [=] {
         view->engine()->setFlag(Q3DSEngine::EnableProfiling, true);
@@ -76,6 +78,11 @@ Q3DStudioMainWindow::Q3DStudioMainWindow(Q3DSWindow *view, Q3DSRemoteDeploymentM
             remote->showConnectionSetup();
         });
     fileMenu->addAction(tr("&Reload"), this, [=] {
+        // Don't reload if on the ConnectionInfo screen
+        if (remote &&
+            remote->state() != Q3DSRemoteDeploymentManager::LocalProject &&
+            remote->state() != Q3DSRemoteDeploymentManager::RemoteProject)
+            return;
         view->engine()->setSource(view->engine()->source());
     }, QKeySequence::Refresh);
     fileMenu->addAction(tr("E&xit"), this, &QWidget::close);
