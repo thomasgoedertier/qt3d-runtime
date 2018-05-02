@@ -427,7 +427,7 @@ void Q3DSStudio3DItem::geometryChanged(const QRectF &newGeometry, const QRectF &
 {
     QQuickItem::geometryChanged(newGeometry, oldGeometry);
 
-    if (!newGeometry.isEmpty() && m_engine) {
+    if (!newGeometry.isEmpty() && m_engine && newGeometry.size() != oldGeometry.size()) {
         const QSize sz = newGeometry.size().toSize();
         m_engine->resize(sz);
         sendResizeToQt3D(sz);
