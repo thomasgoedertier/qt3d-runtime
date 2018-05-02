@@ -1060,6 +1060,9 @@ void Q3DSEngine::prepareForReload()
         for (UipPresentation &pres : m_uipPresentations)
             delete pres.sceneManager;
         m_uipPresentations.clear();
+        for (QmlPresentation &pres : m_qmlPresentations)
+            delete pres.qmlDocument;
+        m_qmlPresentations.clear();
     } else {
         Q3DSSceneManager::prepareEngineResetGlobal();
     }
