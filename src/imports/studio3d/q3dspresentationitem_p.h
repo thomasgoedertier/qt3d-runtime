@@ -30,6 +30,17 @@
 #ifndef Q3DSPRESENTATIONITEM_P_H
 #define Q3DSPRESENTATIONITEM_P_H
 
+//
+//  W A R N I N G
+//  -------------
+//
+// This file is not part of the Qt API.  It exists purely as an
+// implementation detail.  This header file may change from version to
+// version without notice, or even be removed.
+//
+// We mean it.
+//
+
 #include <Qt3DStudioRuntime2/q3dspresentation.h>
 #include <QtQml/qqmllist.h>
 

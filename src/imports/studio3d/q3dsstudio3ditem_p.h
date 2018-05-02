@@ -49,6 +49,7 @@ QT_BEGIN_NAMESPACE
 class Q3DSStudio3DRenderer;
 class Q3DSEngine;
 class Q3DSPresentationItem;
+class Q3DSViewerSettings;
 
 class Q3DSStudio3DItem : public QQuickItem, public Q3DSPresentationController
 {
@@ -119,6 +120,7 @@ private:
     void releaseEngineAndRenderer();
 
     Q3DSPresentationItem *m_presentation = nullptr;
+    Q3DSViewerSettings *m_viewerSettings = nullptr;
     Q3DSStudio3DRenderer *m_renderer = nullptr;
     Q3DSEngine *m_engine = nullptr;
     QUrl m_source;

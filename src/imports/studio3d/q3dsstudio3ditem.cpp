@@ -31,6 +31,7 @@
 #include "q3dsstudio3drenderer_p.h"
 #include "q3dsstudio3dnode_p.h"
 #include "q3dspresentationitem_p.h"
+#include "q3dsviewersettings_p.h"
 #include <QSGNode>
 #include <QLoggingCategory>
 #include <QThread>
@@ -133,6 +134,16 @@ void Q3DSStudio3DItem::componentComplete()
                 qWarning("Studio3D: Duplicate Presentation");
             else
                 m_presentation = presentation;
+        } else if (Q3DSViewerSettings *viewerSettings = qobject_cast<Q3DSViewerSettings *>(child)) {
+            if (m_viewerSettings) {
+                qWarning("Studio3D: Duplicate ViewerSettings");
+            } else {
+                m_viewerSettings = viewerSettings;
+                connect(m_viewerSettings, &Q3DSViewerSettings::showRenderStatsChanged, m_viewerSettings, [this] {
+                    if (m_engine)
+                        m_engine->setProfileUiVisible(m_viewerSettings->isShowRenderStats());
+                });
+            }
         }
     }
 
@@ -228,6 +239,8 @@ void Q3DSStudio3DItem::createEngine()
         qCDebug(lcStudio3D, "created engine %p", m_engine);
 
         connect(m_engine, &Q3DSEngine::presentationLoaded, this, [this]() {
+            if (m_viewerSettings && m_viewerSettings->isShowRenderStats())
+                m_engine->setProfileUiVisible(true);
             m_presentation->studio3DPresentationLoaded();
             if (!m_running) {
                 m_running = true;
