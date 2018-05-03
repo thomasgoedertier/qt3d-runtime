@@ -195,6 +195,10 @@ bool convertToFloat(const QStringRef &value, float *v, const char *desc, QXmlStr
     }
     bool ok = false;
     *v = value.toFloat(&ok);
+    // Adjust values that are "almost" zero values to 0.0, as we don't really expect values with
+    // more then 3-4 decimal points (note that qFuzzyIsNull does allow slightly higher resolution though).
+    if (ok && qFuzzyIsNull(*v))
+        *v = 0.0f;
     if (!ok && reader)
         reader->raiseError(QObject::tr("Invalid %1 \"%2\"").arg(QString::fromUtf8(desc)).arg(value.toString()));
     return ok;
