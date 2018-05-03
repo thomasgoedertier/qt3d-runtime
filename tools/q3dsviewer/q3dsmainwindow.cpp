@@ -50,8 +50,12 @@ QString Q3DStudioMainWindow::fileFilter()
 Q3DStudioMainWindow::Q3DStudioMainWindow(Q3DSWindow *view, Q3DSRemoteDeploymentManager *remote, QWidget *parent)
     : QMainWindow(parent)
 {
+    static const bool enableDebugMenu = qEnvironmentVariableIntValue("Q3DS_DEBUG") >= 1;
+
     QWidget *wrapper = QWidget::createWindowContainer(view);
     setCentralWidget(wrapper);
+
+    const QSize designSize = view->size(); // because Q3DSWindow::setSource() set this already
 
     QMenu *fileMenu = menuBar()->addMenu(tr("&File"));
     auto open = [=]() {
@@ -88,19 +92,20 @@ Q3DStudioMainWindow::Q3DStudioMainWindow(Q3DSWindow *view, Q3DSRemoteDeploymentM
     fileMenu->addAction(tr("E&xit"), this, &QWidget::close);
 
     QMenu *viewMenu = menuBar()->addMenu(tr("&View"));
-    QAction *forcePresSize = viewMenu->addAction(tr("&Force design size"));
-    forcePresSize->setCheckable(true);
-    forcePresSize->setChecked(false);
-    const QSize designSize = view->size(); // because Q3DSWindow::setSource() set this already
-    connect(forcePresSize, &QAction::toggled, [=]() {
-        if (forcePresSize->isChecked()) {
-            wrapper->setMinimumSize(designSize);
-            wrapper->setMaximumSize(designSize);
-        } else {
-            wrapper->setMinimumSize(1, 1);
-            wrapper->setMaximumSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX);
-        }
-    });
+    if (enableDebugMenu) {
+        QAction *forcePresSize = viewMenu->addAction(tr("&Force design size"));
+        forcePresSize->setCheckable(true);
+        forcePresSize->setChecked(false);
+        connect(forcePresSize, &QAction::toggled, [=]() {
+            if (forcePresSize->isChecked()) {
+                wrapper->setMinimumSize(designSize);
+                wrapper->setMaximumSize(designSize);
+            } else {
+                wrapper->setMinimumSize(1, 1);
+                wrapper->setMaximumSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX);
+            }
+        });
+    }
 
     viewMenu->addAction(tr("Toggle fullscree&n"), this, [this] {
         Qt::WindowStates s = windowState();
@@ -123,7 +128,6 @@ Q3DStudioMainWindow::Q3DStudioMainWindow(Q3DSWindow *view, Q3DSRemoteDeploymentM
     }, QKeySequence(QLatin1String("Alt+F10")));
     viewMenu->addMenu(profileSubMenu);
 
-    static const bool enableDebugMenu = qEnvironmentVariableIntValue("Q3DS_DEBUG") >= 1;
     if (enableDebugMenu) {
         QMenu *debugMenu = menuBar()->addMenu(tr("&Debug"));
         debugMenu->addAction(tr("&Object graph..."), [=]() {
