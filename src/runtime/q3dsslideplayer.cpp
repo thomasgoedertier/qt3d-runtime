@@ -546,24 +546,19 @@ void Q3DSSlidePlayer::handleCurrentSlideChanged(Q3DSSlide *slide,
     qCDebug(lcSlidePlayer, "Handling current slide change: from slide \"%s\", to slide \"%s\"",
             qPrintable(getSlideName(previousSlide)), qPrintable(getSlideName(slide)));
 
-    // Disconnect monitors from the old slide
     if (previousSlide && slideDidChange) {
         if (parentChanged)
             setSlideTime(static_cast<Q3DSSlide *>(previousSlide->parent()), -1.0f);
         setSlideTime(previousSlide, -1.0f);
         Q3DSSlideAttached *data = previousSlide->attached<Q3DSSlideAttached>();
         if (data && data->animator) {
-            Qt3DAnimation::QClipAnimator *animator = data->animator;
             // TODO: We probably want to be a bit less brute.
             if (slide) Q_ASSERT(previousSlide->parent() == slide->parent());
-            animator->clearPropertyTrackings();
-            animator->disconnect();
             updateAnimators(previousSlide, false, true, 1.0f);
             m_animationManager->clearAnimations(previousSlide, (m_mode == PlayerMode::Editor));
         }
     }
 
-    // Connect to monitors to the new slide
     if (slide && slideDidChange && isSlideVisible(slide)) {
         m_sceneManager->handleSlideChange(previousSlide, slide);
         m_animationManager->updateAnimations(slide, (m_mode == PlayerMode::Editor));
