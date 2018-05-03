@@ -99,7 +99,7 @@ private:
     QColor m_matteColor = Qt::black;
     bool m_showRenderStats = false;
     ShadeMode m_shadeMode = ShadeModeShaded;
-    ScaleMode m_scaleMode = ScaleModeFit;
+    ScaleMode m_scaleMode = ScaleModeFill;
 
     Q_DISABLE_COPY(Q3DSViewerSettings)
 };
