@@ -27,14 +27,14 @@
 **
 ****************************************************************************/
 
-#ifndef Q3DSWIDGET_P_H
-#define Q3DSWIDGET_P_H
+#ifndef Q3DSVIEWERSETTINGS_P_H
+#define Q3DSVIEWERSETTINGS_P_H
 
 //
 //  W A R N I N G
 //  -------------
 //
-// This file is not part of the QtStudio3D API.  It exists purely as an
+// This file is not part of the Qt API.  It exists purely as an
 // implementation detail.  This header file may change from version to
 // version without notice, or even be removed.
 //
@@ -42,53 +42,24 @@
 //
 
 #include <private/q3dsruntimeglobal_p.h>
-#include "q3dswidget.h"
-#include "q3dspresentation_p.h"
 #include "q3dsviewersettings.h"
-#include <QTimer>
+#include <private/qobject_p.h>
 
 QT_BEGIN_NAMESPACE
 
-class Q3DSEngine;
-
-namespace Qt3DRender {
-class QRenderAspect;
-}
-
-class Q3DSV_PRIVATE_EXPORT Q3DSWidgetPrivate : public Q3DSPresentationController
+class Q3DSV_PRIVATE_EXPORT Q3DSViewerSettingsPrivate : public QObjectPrivate
 {
-    Q_DECLARE_PUBLIC(Q3DSWidget)
+    Q_DECLARE_PUBLIC(Q3DSViewerSettings)
 
 public:
-    Q3DSWidgetPrivate(Q3DSWidget *q);
-    ~Q3DSWidgetPrivate();
+    static Q3DSViewerSettingsPrivate *get(Q3DSViewerSettings *p) { return p->d_func(); }
 
-    static Q3DSWidgetPrivate *get(Q3DSWidget *w) { return w->d_func(); }
-
-    void createEngine();
-    void destroyEngine();
-    void sendResizeToQt3D(const QSize &size);
-
-    void handlePresentationSource(const QUrl &source,
-                                  SourceFlags flags,
-                                  const QVector<Q3DSInlineQmlSubPresentation *> &inlineSubPres) override;
-    void handlePresentationReload() override;
-
-    Q3DSWidget *q_ptr;
-    Q3DSPresentation *presentation;
-    Q3DSViewerSettings *viewerSettings;
-    Q3DSEngine *engine = nullptr;
-    QUrl source;
-    SourceFlags sourceFlags;
-    QVector<Q3DSInlineQmlSubPresentation *> inlineQmlSubPresentations;
-    bool sourceLoaded = false;
-    QString error;
-    Qt3DRender::QRenderAspect *renderAspect = nullptr;
-    bool needsInit = false;
-    int updateInterval = 0; // enable automatic updates by default
-    QTimer updateTimer;
+    QColor matteColor = Qt::black;
+    bool showRenderStats = false;
+    Q3DSViewerSettings::ShadeMode shadeMode = Q3DSViewerSettings::ShadeModeShaded;
+    Q3DSViewerSettings::ScaleMode scaleMode = Q3DSViewerSettings::ScaleModeFill;
 };
 
 QT_END_NAMESPACE
 
-#endif // Q3DSWIDGET_P_H
+#endif // Q3DSVIEWERSETTINGS_P_H

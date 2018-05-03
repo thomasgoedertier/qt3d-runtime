@@ -33,7 +33,12 @@
 QT_BEGIN_NAMESPACE
 
 Q3DSViewerSettings::Q3DSViewerSettings(QObject *parent)
-    : QObject(parent)
+    : QObject(*new Q3DSViewerSettingsPrivate, parent)
+{
+}
+
+Q3DSViewerSettings::Q3DSViewerSettings(Q3DSViewerSettingsPrivate &dd, QObject *parent)
+    : QObject(dd, parent)
 {
 }
 
@@ -43,55 +48,63 @@ Q3DSViewerSettings::~Q3DSViewerSettings()
 
 QColor Q3DSViewerSettings::matteColor() const
 {
-    return m_matteColor;
+    Q_D(const Q3DSViewerSettings);
+    return d->matteColor;
 }
 
-bool Q3DSViewerSettings::isShowRenderStats() const
+bool Q3DSViewerSettings::isShowingRenderStats() const
 {
-    return m_showRenderStats;
+    Q_D(const Q3DSViewerSettings);
+    return d->showRenderStats;
 }
 
 Q3DSViewerSettings::ShadeMode Q3DSViewerSettings::shadeMode() const
 {
-    return m_shadeMode;
+    Q_D(const Q3DSViewerSettings);
+    return d->shadeMode;
 }
 
 Q3DSViewerSettings::ScaleMode Q3DSViewerSettings::scaleMode() const
 {
-    return m_scaleMode;
+    Q_D(const Q3DSViewerSettings);
+    return d->scaleMode;
 }
 
 void Q3DSViewerSettings::setMatteColor(const QColor &color)
 {
-    if (m_matteColor != color) {
+    Q_D(Q3DSViewerSettings);
+    if (d->matteColor != color) {
         qWarning() << Q_FUNC_INFO << "not implemented";
-        m_matteColor = color;
+        d->matteColor = color;
         emit matteColorChanged();
     }
 }
 
 void Q3DSViewerSettings::setShowRenderStats(bool show)
 {
-    if (m_showRenderStats != show) {
-        m_showRenderStats = show;
+    Q_D(Q3DSViewerSettings);
+    if (d->showRenderStats != show) {
+        d->showRenderStats = show;
         emit showRenderStatsChanged();
     }
 }
 
 void Q3DSViewerSettings::setShadeMode(Q3DSViewerSettings::ShadeMode mode)
 {
-    if (m_shadeMode != mode) {
+    Q_D(Q3DSViewerSettings);
+    if (d->shadeMode != mode) {
         qWarning() << Q_FUNC_INFO << "not implemented";
-        m_shadeMode = mode;
+        d->shadeMode = mode;
         emit shadeModeChanged();
     }
 }
 
 void Q3DSViewerSettings::setScaleMode(Q3DSViewerSettings::ScaleMode mode)
 {
-    if (m_scaleMode != mode) {
+    Q_D(Q3DSViewerSettings);
+    if (d->scaleMode != mode) {
         qWarning() << Q_FUNC_INFO << "not implemented";
-        m_scaleMode = mode;
+        d->scaleMode = mode;
         emit scaleModeChanged();
     }
 }

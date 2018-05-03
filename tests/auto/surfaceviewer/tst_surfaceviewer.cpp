@@ -107,6 +107,7 @@ void tst_SurfaceViewer::testWindow()
     QSignalSpy presLoadedSpy(&viewer, SIGNAL(presentationLoaded()));
     QSignalSpy frameSpy(&viewer, SIGNAL(frameUpdate()));
 
+    QVERIFY(viewer.settings());
     QCOMPARE(viewer.isRunning(), false);
     const QUrl source = QUrl(QLatin1String("qrc:/data/primitives.uip"));
     viewer.presentation()->setSource(source);

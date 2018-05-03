@@ -31,7 +31,6 @@
 #include "q3dsstudio3drenderer_p.h"
 #include "q3dsstudio3dnode_p.h"
 #include "q3dspresentationitem_p.h"
-#include "q3dsviewersettings_p.h"
 #include <QSGNode>
 #include <QLoggingCategory>
 #include <QThread>
@@ -43,6 +42,7 @@
 #include <QQmlEngine>
 #include <QQmlContext>
 #include <QGuiApplication>
+#include <q3dsviewersettings.h>
 #include <private/q3dsengine_p.h>
 #include <private/q3dsutils_p.h>
 #include <Qt3DCore/QEntity>
@@ -141,7 +141,7 @@ void Q3DSStudio3DItem::componentComplete()
                 m_viewerSettings = viewerSettings;
                 connect(m_viewerSettings, &Q3DSViewerSettings::showRenderStatsChanged, m_viewerSettings, [this] {
                     if (m_engine)
-                        m_engine->setProfileUiVisible(m_viewerSettings->isShowRenderStats());
+                        m_engine->setProfileUiVisible(m_viewerSettings->isShowingRenderStats());
                 });
             }
         }
@@ -239,7 +239,7 @@ void Q3DSStudio3DItem::createEngine()
         qCDebug(lcStudio3D, "created engine %p", m_engine);
 
         connect(m_engine, &Q3DSEngine::presentationLoaded, this, [this]() {
-            if (m_viewerSettings && m_viewerSettings->isShowRenderStats())
+            if (m_viewerSettings && m_viewerSettings->isShowingRenderStats())
                 m_engine->setProfileUiVisible(true);
             m_presentation->studio3DPresentationLoaded();
             if (!m_running) {

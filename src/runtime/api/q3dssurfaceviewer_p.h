@@ -44,6 +44,7 @@
 #include <private/q3dsruntimeglobal_p.h>
 #include "q3dssurfaceviewer.h"
 #include "q3dspresentation_p.h"
+#include "q3dsviewersettings.h"
 #include <private/qobject_p.h>
 #include <QUrl>
 #include <QTimer>
@@ -91,6 +92,7 @@ public:
     void sendResizeToQt3D(const QSize &size);
 
     Q3DSPresentation *presentation;
+    Q3DSViewerSettings *viewerSettings;
     uint fbo = 0;
     QSurface *surface = nullptr;
     QObject *windowOrOffscreenSurface = nullptr;

@@ -33,11 +33,11 @@
 #include "q3dsstudio3ditem_p.h"
 #include "q3dspresentationitem_p.h"
 #include "q3dssubpresentationsettings_p.h"
-#include "q3dsviewersettings_p.h"
 
 #include "q3dsdatainput.h"
 #include "q3dselement.h"
 #include "q3dssceneelement.h"
+#include "q3dsviewersettings.h"
 #include <private/q3dsinlineqmlsubpresentation_p.h>
 
 static void initResources()
@@ -66,6 +66,7 @@ public:
         qmlRegisterType<Q3DSDataInput>(uri, 2, 0, "DataInput");
         qmlRegisterType<Q3DSElement>(uri, 2, 0, "Element");
         qmlRegisterType<Q3DSSceneElement>(uri, 2, 0, "SceneElement");
+        qmlRegisterType<Q3DSViewerSettings>(uri, 2, 0, "ViewerSettings");
         qmlRegisterType<Q3DSInlineQmlSubPresentation>(uri, 2, 0, "QmlStream");
     }
 };

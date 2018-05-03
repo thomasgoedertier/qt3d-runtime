@@ -27,30 +27,22 @@
 **
 ****************************************************************************/
 
-#ifndef Q3DSVIEWERSETTINGS_P_H
-#define Q3DSVIEWERSETTINGS_P_H
+#ifndef Q3DSVIEWERSETTINGS_H
+#define Q3DSVIEWERSETTINGS_H
 
-//
-//  W A R N I N G
-//  -------------
-//
-// This file is not part of the Qt API.  It exists purely as an
-// implementation detail.  This header file may change from version to
-// version without notice, or even be removed.
-//
-// We mean it.
-//
-
+#include <Qt3DStudioRuntime2/q3dsruntimeglobal.h>
 #include <QObject>
 #include <QColor>
 
 QT_BEGIN_NAMESPACE
 
-class Q3DSViewerSettings : public QObject
+class Q3DSViewerSettingsPrivate;
+
+class Q3DSV_EXPORT Q3DSViewerSettings : public QObject
 {
     Q_OBJECT
     Q_PROPERTY(QColor matteColor READ matteColor WRITE setMatteColor NOTIFY matteColorChanged)
-    Q_PROPERTY(bool showRenderStats READ isShowRenderStats WRITE setShowRenderStats NOTIFY showRenderStatsChanged)
+    Q_PROPERTY(bool showRenderStats READ isShowingRenderStats WRITE setShowRenderStats NOTIFY showRenderStatsChanged)
     Q_PROPERTY(ShadeMode shadeMode READ shadeMode WRITE setShadeMode NOTIFY shadeModeChanged)
     Q_PROPERTY(ScaleMode scaleMode READ scaleMode WRITE setScaleMode NOTIFY scaleModeChanged)
 
@@ -72,7 +64,7 @@ public:
     ~Q3DSViewerSettings();
 
     QColor matteColor() const;
-    bool isShowRenderStats() const;
+    bool isShowingRenderStats() const;
     ShadeMode shadeMode() const;
     ScaleMode scaleMode() const;
 
@@ -95,15 +87,14 @@ Q_SIGNALS:
     void shadeModeChanged();
     void scaleModeChanged();
 
-private:
-    QColor m_matteColor = Qt::black;
-    bool m_showRenderStats = false;
-    ShadeMode m_shadeMode = ShadeModeShaded;
-    ScaleMode m_scaleMode = ScaleModeFill;
+protected:
+    Q3DSViewerSettings(Q3DSViewerSettingsPrivate &dd, QObject *parent);
 
+private:
     Q_DISABLE_COPY(Q3DSViewerSettings)
+    Q_DECLARE_PRIVATE(Q3DSViewerSettings)
 };
 
 QT_END_NAMESPACE
 
-#endif // Q3DSVIEWERSETTINGS_P_H
+#endif // Q3DSVIEWERSETTINGS_H

@@ -37,6 +37,7 @@ QT_BEGIN_NAMESPACE
 
 class Q3DSWidgetPrivate;
 class Q3DSPresentation;
+class Q3DSViewerSettings;
 
 class Q3DSV_EXPORT Q3DSWidget : public QOpenGLWidget
 {
@@ -51,6 +52,7 @@ public:
     ~Q3DSWidget();
 
     Q3DSPresentation *presentation() const;
+    Q3DSViewerSettings *settings() const;
 
     QString error() const;
     bool isRunning() const;

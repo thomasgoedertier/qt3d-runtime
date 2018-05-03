@@ -121,6 +121,12 @@ Q3DSPresentation *Q3DSSurfaceViewer::presentation() const
     return d->presentation;
 }
 
+Q3DSViewerSettings *Q3DSSurfaceViewer::settings() const
+{
+    Q_D(const Q3DSSurfaceViewer);
+    return d->viewerSettings;
+}
+
 QString Q3DSSurfaceViewer::error() const
 {
     Q_D(const Q3DSSurfaceViewer);
@@ -286,13 +292,20 @@ QImage Q3DSSurfaceViewer::grab(const QRect &rect)
 }
 
 Q3DSSurfaceViewerPrivate::Q3DSSurfaceViewerPrivate()
-    : presentation(new Q3DSPresentation)
+    : presentation(new Q3DSPresentation),
+      viewerSettings(new Q3DSViewerSettings)
 {
     Q3DSPresentationPrivate::get(presentation)->setController(this);
+
+    QObject::connect(viewerSettings, &Q3DSViewerSettings::showRenderStatsChanged, viewerSettings, [this] {
+        if (engine)
+            engine->setProfileUiVisible(viewerSettings->isShowingRenderStats());
+    });
 }
 
 Q3DSSurfaceViewerPrivate::~Q3DSSurfaceViewerPrivate()
 {
+    delete viewerSettings;
     delete presentation;
 }
 
@@ -340,7 +353,12 @@ bool Q3DSSurfaceViewerPrivate::createEngine()
             engine->resize(actualSize);
     }
 
-    QObject::connect(engine, &Q3DSEngine::presentationLoaded, q, &Q3DSSurfaceViewer::presentationLoaded);
+    QObject::connect(engine, &Q3DSEngine::presentationLoaded, engine, [this] {
+        Q_Q(Q3DSSurfaceViewer);
+        if (viewerSettings->isShowingRenderStats())
+            engine->setProfileUiVisible(true);
+        emit q->presentationLoaded();
+    });
 
     QString err;
     sourceLoaded = engine->setSource(fn, &err, inlineQmlSubPresentations);

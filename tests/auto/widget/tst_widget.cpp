@@ -75,6 +75,7 @@ void tst_Widget::testSimple()
     QSignalSpy frameSpy(&w, SIGNAL(frameUpdate()));
     QSignalSpy presLoadedSpy(&w, SIGNAL(presentationLoaded()));
 
+    QVERIFY(w.settings());
     w.presentation()->setSource(QUrl(QLatin1String("qrc:/data/primitives.uip")));
     QCOMPARE(w.isRunning(), false);
 

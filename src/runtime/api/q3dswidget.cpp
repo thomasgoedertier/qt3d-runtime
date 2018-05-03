@@ -62,6 +62,12 @@ Q3DSPresentation *Q3DSWidget::presentation() const
     return d->presentation;
 }
 
+Q3DSViewerSettings *Q3DSWidget::settings() const
+{
+    Q_D(const Q3DSWidget);
+    return d->viewerSettings;
+}
+
 QString Q3DSWidget::error() const
 {
     Q_D(const Q3DSWidget);
@@ -202,9 +208,15 @@ void Q3DSWidget::paintGL()
 
 Q3DSWidgetPrivate::Q3DSWidgetPrivate(Q3DSWidget *q)
     : q_ptr(q),
-      presentation(new Q3DSPresentation)
+      presentation(new Q3DSPresentation),
+      viewerSettings(new Q3DSViewerSettings)
 {
     Q3DSPresentationPrivate::get(presentation)->setController(this);
+
+    QObject::connect(viewerSettings, &Q3DSViewerSettings::showRenderStatsChanged, viewerSettings, [this] {
+        if (engine)
+            engine->setProfileUiVisible(viewerSettings->isShowingRenderStats());
+    });
 
     typedef void (QWidget::*QWidgetVoidSlot)();
     QObject::connect(&updateTimer, &QTimer::timeout, q, static_cast<QWidgetVoidSlot>(&QWidget::update));
@@ -215,13 +227,12 @@ Q3DSWidgetPrivate::Q3DSWidgetPrivate(Q3DSWidget *q)
 Q3DSWidgetPrivate::~Q3DSWidgetPrivate()
 {
     destroyEngine();
+    delete viewerSettings;
     delete presentation;
 }
 
 void Q3DSWidgetPrivate::createEngine()
 {
-    Q_Q(Q3DSWidget);
-
     engine = new Q3DSEngine;
 
     Q3DSEngine::Flags flags = Q3DSEngine::WithoutRenderAspect;
@@ -242,7 +253,11 @@ void Q3DSWidgetPrivate::createEngine()
     if (!sz.isEmpty())
         engine->resize(sz);
 
-    QObject::connect(engine, &Q3DSEngine::presentationLoaded, q, &Q3DSWidget::presentationLoaded);
+    QObject::connect(engine, &Q3DSEngine::presentationLoaded, engine, [this] {
+        if (viewerSettings->isShowingRenderStats())
+            engine->setProfileUiVisible(true);
+        emit q_ptr->presentationLoaded();
+    });
 
     QString err;
     sourceLoaded = engine->setSource(fn, &err, inlineQmlSubPresentations);
