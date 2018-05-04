@@ -31,6 +31,7 @@
 #include "q3dsdatamodelparser_p.h"
 #include "q3dsscenemanager_p.h"
 #include "q3dsslideplayer_p.h"
+#include "q3dslogging_p.h"
 
 #include <QLoggingCategory>
 
@@ -44,8 +45,6 @@
 #include <Qt3DAnimation/qclock.h>
 
 QT_BEGIN_NAMESPACE
-
-Q_DECLARE_LOGGING_CATEGORY(lcScene)
 
 static struct AnimatableExtraMeta {
     QString type3DS;
@@ -263,7 +262,7 @@ void Q3DSAnimationManager::updateAnimationHelper(const AnimationTrackListMap<T *
         static const auto initAnimator = [](Q3DSGraphObjectAttached *data, Q3DSSlide *slide) {
             static const bool animDebug = qEnvironmentVariableIntValue("Q3DS_DEBUG") >= 2;
             if (animDebug)
-                qCDebug(lcScene) << "initAnimator@:" << data << "animationData:" << data->animationDataMap[slide]
+                qCDebug(lcAnim) << "initAnimator@:" << data << "animationData:" << data->animationDataMap[slide]
                                     << "slide:" << slide->name();
 
             Q_ASSERT(data->entity);
@@ -279,7 +278,7 @@ void Q3DSAnimationManager::updateAnimationHelper(const AnimationTrackListMap<T *
             Q3DSSlideAttached *slideAttached = static_cast<Q3DSSlideAttached *>(slide->attached());
             slideAttached->animators.append(animator);
             if (animDebug)
-                qCDebug(lcScene) << "\tnew Clip Animator: " << animator << "slideAttached: "
+                qCDebug(lcAnim) << "\tnew Clip Animator: " << animator << "slideAttached: "
                                  << slideAttached << "new list: " << slideAttached->animators;
 
             return animator;
@@ -394,7 +393,7 @@ void Q3DSAnimationManager::updateAnimationHelper(const AnimationTrackListMap<T *
                                                     AnimatableTab *animatables,
                                                     Q3DSGraphObject *target,
                                                     const QStringList &prop) {
-            qCDebug(lcScene, "Building dynamic key-frame for %s's property %s", target->id().constData(), qPrintable(prop[0]));
+            qCDebug(lcAnim, "Building dynamic key-frame for %s's property %s", target->id().constData(), qPrintable(prop[0]));
             if (prop.count() == 1) {
                 const float value = animatables->value(prop[0]).getter(target, QString::fromLatin1("")).toFloat();
                 keyFrame.value = value;
@@ -541,7 +540,7 @@ private:
 
 void Q3DSAnimationManager::clearAnimations(Q3DSSlide *slide, bool editorMode)
 {
-    qCDebug(lcScene, "Clearing animations for slide (%s)", qPrintable(slide->name()));
+    qCDebug(lcAnim, "Clearing animations for slide (%s)", qPrintable(slide->name()));
 
     // Clear the old slide animator
     static const auto clearSlideAnimator = [](Q3DSSlide *slide) {
@@ -693,7 +692,7 @@ void Q3DSAnimationManager::updateAnimations(Q3DSSlide *slide, bool editorMode)
 {
     Q_ASSERT(slide);
 
-    qCDebug(lcScene, "Updating animations for slide (%s)", qPrintable(slide->name()));
+    qCDebug(lcAnim, "Updating animations for slide (%s)", qPrintable(slide->name()));
 
     buildClipAnimator(slide);
 
@@ -809,7 +808,7 @@ void Q3DSAnimationManager::updateAnimations(Q3DSSlide *slide, bool editorMode)
     buildTrackListMap(masterSlide, false);
     buildTrackListMap(slide, true);
 
-    qCDebug(lcScene, "Slide %s has %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d animated objects", slide->id().constData(),
+    qCDebug(lcAnim, "Slide %s has %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d animated objects", slide->id().constData(),
             defMatAnims.count(), customMatAnims.count(), effectAnims.count(), camAnims.count(), lightAnims.count(), modelAnims.count(), groupAnims.count(),
             compAnims.count(), textAnims.count(), imageAnims.count(), layerAnims.count(), aliasAnims.count());
 

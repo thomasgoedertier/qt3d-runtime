@@ -29,12 +29,10 @@
 
 #include "q3dsuiaparser_p.h"
 #include "q3dsutils_p.h"
+#include "q3dslogging_p.h"
 #include <QLoggingCategory>
 
 QT_BEGIN_NAMESPACE
-
-Q_DECLARE_LOGGING_CATEGORY(lcUip)
-Q_DECLARE_LOGGING_CATEGORY(lcPerf)
 
 Q3DSUiaParser::Uia Q3DSUiaParser::parse(const QString &filename)
 {

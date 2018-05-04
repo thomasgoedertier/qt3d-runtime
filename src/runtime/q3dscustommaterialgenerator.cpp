@@ -42,12 +42,11 @@
 #include <QtCore/QLoggingCategory>
 
 #include "q3dsutils_p.h"
+#include "q3dslogging_p.h"
 
 #include "shadergenerator/q3dsshadermanager_p.h"
 
 QT_BEGIN_NAMESPACE
-
-Q_DECLARE_LOGGING_CATEGORY(lcScene)
 
 Qt3DRender::QMaterial *Q3DSCustomMaterialGenerator::generateMaterial(Q3DSCustomMaterialInstance *customMaterial, Q3DSReferencedMaterial *referencedMaterial, const QVector<Qt3DRender::QParameter *> &params, const QVector<Q3DSLightNode *> &lights, Q3DSLayerNode *layer3DS, const Q3DSMaterial::Pass &pass)
 {

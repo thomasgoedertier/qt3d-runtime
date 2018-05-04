@@ -30,6 +30,7 @@
 #include "q3dsimagemanager_p.h"
 #include "q3dsimageloaders_p.h"
 #include "q3dsprofiler_p.h"
+#include "q3dslogging_p.h"
 #include <qmath.h>
 #include <QFileInfo>
 #include <QElapsedTimer>
@@ -39,9 +40,6 @@
 #include <Qt3DRender/QTexture>
 
 QT_BEGIN_NAMESPACE
-
-Q_DECLARE_LOGGING_CATEGORY(lcScene)
-Q_DECLARE_LOGGING_CATEGORY(lcPerf)
 
 Q3DSImageManager &Q3DSImageManager::instance()
 {

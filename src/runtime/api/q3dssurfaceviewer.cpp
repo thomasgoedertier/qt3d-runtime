@@ -28,7 +28,8 @@
 ****************************************************************************/
 
 #include "q3dssurfaceviewer_p.h"
-#include "q3dsengine_p.h"
+#include <private/q3dsengine_p.h>
+#include <private/q3dslogging_p.h>
 #include <QLoggingCategory>
 #include <QWindow>
 #include <QOffscreenSurface>
@@ -43,8 +44,6 @@
 #include <QtQml/QQmlFile>
 
 QT_BEGIN_NAMESPACE
-
-Q_LOGGING_CATEGORY(lc3DSSurface, "q3ds.surface")
 
 Q3DSSurfaceViewer::Q3DSSurfaceViewer(QObject *parent)
     : QObject(*new Q3DSSurfaceViewerPrivate, parent)

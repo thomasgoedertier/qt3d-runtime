@@ -31,6 +31,7 @@
 #include "q3dsuiaparser_p.h"
 #include "q3dsuipparser_p.h"
 #include "q3dsutils_p.h"
+#include "q3dslogging_p.h"
 #include "q3dsinputmanager_p.h"
 #include "q3dsinlineqmlsubpresentation_p.h"
 
@@ -84,9 +85,6 @@ static void initResources()
 }
 
 QT_BEGIN_NAMESPACE
-
-Q_DECLARE_LOGGING_CATEGORY(lcUip)
-Q_DECLARE_LOGGING_CATEGORY(lcPerf)
 
 static const int MAX_LOG_MESSAGE_LENGTH = 1000;
 static const int MAX_LOG_LENGTH = 10000;

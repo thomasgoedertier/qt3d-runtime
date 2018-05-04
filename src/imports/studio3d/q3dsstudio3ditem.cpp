@@ -45,13 +45,12 @@
 #include <q3dsviewersettings.h>
 #include <private/q3dsengine_p.h>
 #include <private/q3dsutils_p.h>
+#include <private/q3dslogging_p.h>
 #include <Qt3DCore/QEntity>
 #include <Qt3DRender/QRenderSurfaceSelector>
 #include <Qt3DRender/private/qrendersurfaceselector_p.h>
 
 QT_BEGIN_NAMESPACE
-
-Q_LOGGING_CATEGORY(lcStudio3D, "q3ds.studio3d")
 
 static bool engineCleanerRegistered = false;
 static QSet<Q3DSEngine *> engineTracker;

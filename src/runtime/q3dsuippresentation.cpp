@@ -33,6 +33,7 @@
 #include "q3dsuipparser_p.h"
 #include "q3dsscenemanager_p.h"
 #include "q3dsutils_p.h"
+#include "q3dslogging_p.h"
 #include <QXmlStreamReader>
 #include <QLoggingCategory>
 #include <functional>
@@ -40,10 +41,6 @@
 #include <QImage>
 
 QT_BEGIN_NAMESPACE
-
-Q_DECLARE_LOGGING_CATEGORY(lcUip)
-Q_DECLARE_LOGGING_CATEGORY(lcUipProp)
-Q_DECLARE_LOGGING_CATEGORY(lcPerf)
 
 namespace Q3DS {
 

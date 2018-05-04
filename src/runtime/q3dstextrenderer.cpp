@@ -29,6 +29,7 @@
 
 #include "q3dstextrenderer_p.h"
 #include "q3dsuippresentation_p.h"
+#include "q3dslogging_p.h"
 
 #include <QDir>
 #include <QFile>
@@ -41,8 +42,6 @@
 #include <qmath.h>
 
 QT_BEGIN_NAMESPACE
-
-Q_DECLARE_LOGGING_CATEGORY(lcScene)
 
 void Q3DSTextRenderer::registerFonts(const QStringList &dirs)
 {

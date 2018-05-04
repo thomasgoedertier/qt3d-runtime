@@ -33,6 +33,7 @@
 #include <QtCore/qloggingcategory.h>
 #include "q3dsscenemanager_p.h"
 #include "q3dsanimationmanager_p.h"
+#include "q3dslogging_p.h"
 
 #include <Qt3DAnimation/qclipanimator.h>
 #include <Qt3DAnimation/qclock.h>
@@ -42,9 +43,6 @@
 #include <Qt3DRender/QLayer>
 
 QT_BEGIN_NAMESPACE
-
-Q_DECLARE_LOGGING_CATEGORY(lcSlidePlayer)
-Q_LOGGING_CATEGORY(lcSlidePlayer, "q3ds.slideplayer")
 
 // NOTE: We assume that the properties for the layer has been applied before this is called
 // if it hasn't it will either return the previous value or the odl value

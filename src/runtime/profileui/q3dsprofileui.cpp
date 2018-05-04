@@ -35,6 +35,7 @@
 #include "q3dsenummaps_p.h"
 #include "q3dsimagemanager_p.h"
 #include "q3dsgraphicslimits_p.h"
+#include "q3dslogging_p.h"
 #include <QLoggingCategory>
 #include <QGuiApplication>
 #include <QMetaObject>
@@ -54,8 +55,6 @@
 #include "q3dsconsole_p.h"
 
 QT_BEGIN_NAMESPACE
-
-Q_LOGGING_CATEGORY(lcProf, "q3ds.profileui")
 
 static const int MAX_FRAME_DELTA_COUNT = 1000; // plot the last 1000 frame deltas at most
 static const int MAX_LOG_FILTER_ENTRIES = 20;
@@ -105,7 +104,7 @@ private:
     int m_currentPresentationIndex = 0;
     int m_currentVariantTypeIdx = 0;
     bool m_logFilterWindowOpen = false;
-    const char *m_logFilterPrefixes[MAX_LOG_FILTER_ENTRIES];
+    QByteArray m_logFilterPrefixes[MAX_LOG_FILTER_ENTRIES];
     bool m_logFilterEnabled[MAX_LOG_FILTER_ENTRIES];
     bool m_dataInputWindowOpen = false;
     bool m_frameGraphWindowOpen = false;
@@ -122,37 +121,15 @@ Q3DSProfileView::Q3DSProfileView(Q3DSProfiler *profiler, Q3DSProfileUi::ConsoleI
       m_consoleInitFunc(consoleInitFunc)
 {
     int i = 0;
-    m_logFilterPrefixes[i] = "q3ds.perf";
+    for (const QByteArray &name : Q3DS::loggingCategoryNames()) {
+        m_logFilterPrefixes[i] = name;
+        m_logFilterEnabled[i] = true;
+        ++i;
+    }
+    m_logFilterPrefixes[i] = QByteArrayLiteral("qml");
     m_logFilterEnabled[i] = true;
     ++i;
-    m_logFilterPrefixes[i] = "q3ds.uip";
-    m_logFilterEnabled[i] = true;
-    ++i;
-    m_logFilterPrefixes[i] = "q3ds.uipprop";
-    m_logFilterEnabled[i] = true;
-    ++i;
-    m_logFilterPrefixes[i] = "q3ds.scene";
-    m_logFilterEnabled[i] = true;
-    ++i;
-    m_logFilterPrefixes[i] = "q3ds.slideplayer";
-    m_logFilterEnabled[i] = true;
-    ++i;
-    m_logFilterPrefixes[i] = "q3ds.profileui";
-    m_logFilterEnabled[i] = true;
-    ++i;
-    m_logFilterPrefixes[i] = "q3ds.studio3d";
-    m_logFilterEnabled[i] = true;
-    ++i;
-    m_logFilterPrefixes[i] = "q3ds.surface";
-    m_logFilterEnabled[i] = true;
-    ++i;
-    m_logFilterPrefixes[i] = "q3ds.widget";
-    m_logFilterEnabled[i] = true;
-    ++i;
-    m_logFilterPrefixes[i] = "qml";
-    m_logFilterEnabled[i] = true;
-    ++i;
-    m_logFilterPrefixes[i] = nullptr;
+    m_logFilterPrefixes[i] = QByteArray();
 }
 
 Q3DSProfileView::~Q3DSProfileView()
@@ -195,7 +172,7 @@ Q3DSProfiler *Q3DSProfileView::selectedProfiler() const
 bool Q3DSProfileView::isFiltered(const QString &s) const
 {
     for (int i = 0; i < MAX_LOG_FILTER_ENTRIES; ++i) {
-        if (!m_logFilterPrefixes[i])
+        if (m_logFilterPrefixes[i].isEmpty())
             break;
         if (!m_logFilterEnabled[i] && s.startsWith(QString::fromLatin1(m_logFilterPrefixes[i])))
             return true;
@@ -748,9 +725,9 @@ void Q3DSProfileView::addLogWindow()
         ImGui::Text("Select which log entries to show");
         ImGui::Separator();
         for (int i = 0; i < MAX_LOG_FILTER_ENTRIES; ++i) {
-            if (!m_logFilterPrefixes[i])
+            if (m_logFilterPrefixes[i].isEmpty())
                 break;
-            ImGui::Selectable(m_logFilterPrefixes[i], &m_logFilterEnabled[i]);
+            ImGui::Selectable(m_logFilterPrefixes[i].constData(), &m_logFilterEnabled[i]);
         }
         ImGui::Separator();
         ImGui::End();

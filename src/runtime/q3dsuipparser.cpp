@@ -30,14 +30,11 @@
 #include "q3dsuipparser_p.h"
 #include "q3dspresentationcommon_p.h"
 #include "q3dsutils_p.h"
+#include "q3dslogging_p.h"
 #include "q3dsenummaps_p.h"
 #include <QLoggingCategory>
 
 QT_BEGIN_NAMESPACE
-
-Q_LOGGING_CATEGORY(lcUip, "q3ds.uip")
-Q_LOGGING_CATEGORY(lcUipProp, "q3ds.uipprop")
-Q_DECLARE_LOGGING_CATEGORY(lcPerf)
 
 /*
  Basic structure:

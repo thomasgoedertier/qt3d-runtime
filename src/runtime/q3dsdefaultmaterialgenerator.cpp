@@ -40,13 +40,12 @@
 
 #include "q3dsdefaultmaterialgenerator_p.h"
 #include "q3dsutils_p.h"
+#include "q3dslogging_p.h"
 #include "q3dsgraphicslimits_p.h"
 
 #include "shadergenerator/q3dsshadermanager_p.h"
 
 QT_BEGIN_NAMESPACE
-
-Q_DECLARE_LOGGING_CATEGORY(lcScene)
 
 // List of Qt3D builtin Uniforms: (from RenderView)
 //

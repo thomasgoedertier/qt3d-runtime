@@ -30,6 +30,7 @@
 #include "q3dsstudio3drenderer_p.h"
 #include "q3dsstudio3ditem_p.h"
 #include "q3dsstudio3dnode_p.h"
+#include <private/q3dslogging_p.h>
 #include <QQuickWindow>
 #include <QOpenGLContext>
 #include <QLoggingCategory>
@@ -37,8 +38,6 @@
 #include <Qt3DRender/private/qrenderaspect_p.h>
 
 QT_BEGIN_NAMESPACE
-
-Q_DECLARE_LOGGING_CATEGORY(lcStudio3D)
 
 class ContextSaver
 {

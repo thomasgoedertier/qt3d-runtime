@@ -29,6 +29,7 @@
 
 #include "q3dswidget_p.h"
 #include <private/q3dsengine_p.h>
+#include <private/q3dslogging_p.h>
 #include <QLoggingCategory>
 #include <QScopedValueRollback>
 #include <Qt3DCore/QEntity>
@@ -40,8 +41,6 @@
 #include <QtQml/QQmlFile>
 
 QT_BEGIN_NAMESPACE
-
-Q_LOGGING_CATEGORY(lc3DSWidget, "q3ds.widget")
 
 Q3DSWidget::Q3DSWidget(QWidget *parent)
     : QOpenGLWidget(parent),

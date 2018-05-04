@@ -38,6 +38,7 @@
 #include "shadergenerator/q3dsshadermanager_p.h"
 #include "q3dsslideplayer_p.h"
 #include "q3dsimagemanager_p.h"
+#include "q3dslogging_p.h"
 #if QT_CONFIG(q3ds_profileui)
 #include "profileui/q3dsprofileui_p.h"
 #include "q3dsconsolecommands_p.h"
@@ -99,10 +100,6 @@
 #include <Qt3DLogic/QFrameAction>
 
 QT_BEGIN_NAMESPACE
-
-Q_LOGGING_CATEGORY(lcScene, "q3ds.scene")
-Q_LOGGING_CATEGORY(lcPerf, "q3ds.perf")
-Q_DECLARE_LOGGING_CATEGORY(lcUipProp)
 
 static const int LAYER_CACHING_THRESHOLD = 4;
 
