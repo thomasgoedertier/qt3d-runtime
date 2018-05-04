@@ -364,11 +364,6 @@ int Q3DSImageManager::blockSizeForFormat(QOpenGLTexture::TextureFormat format)
     return 0;
 }
 
-static inline int wrapMod(int a, int base)
-{
-    return (a >= 0) ? a % base : (a % base) + base;
-}
-
 static inline void getWrappedCoords(int &sX, int &sY, int width, int height)
 {
     if (sY < 0) {
@@ -379,7 +374,7 @@ static inline void getWrappedCoords(int &sX, int &sY, int width, int height)
         sX += width >> 1;
         sY = height - sY;
     }
-    sX = wrapMod(sX, width);
+    sX = qAbs(sX) % width;
 }
 
 static inline void decodeToFloat(const void *inPtr, int byteOfs, float *outPtr,
