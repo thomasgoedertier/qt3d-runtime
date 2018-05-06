@@ -53,7 +53,7 @@ public:
     Q3DSAnimationManager(Q3DSSlidePlayer *slidePlayer) : m_slidePlayer(slidePlayer) {}
 
     void updateAnimations(Q3DSSlide *slide, bool editorMode = false);
-    void clearAnimations(Q3DSSlide *slide, bool editorMode = false);
+    void clearAnimations(Q3DSSlide *slide);
     void applyChanges();
     void clearPendingChanges();
     void objectAboutToBeRemovedFromScene(Q3DSGraphObject *obj);

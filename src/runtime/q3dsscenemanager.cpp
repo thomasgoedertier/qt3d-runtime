@@ -6598,13 +6598,13 @@ void Q3DSSceneManager::handleSlideChange(Q3DSSlide *prevSlide,
 
     // Find properties on targets that has dynamic properties.
     // TODO: Find a better solution (e.g., there can be duplicate updates for e.g., xyz here).
-    QHash<Q3DSGraphObject *, Q3DSPropertyChangeList *> propertyChanges;
+    QHash<Q3DSGraphObject *, Q3DSPropertyChangeList *> dynamicPropertyChanges;
     QVector<Q3DSPropertyChangeList *> ephemeralObjects;
     const auto &tracks = currentSlide->animations();
-    std::find_if(tracks.cbegin(), tracks.cend(), [&propertyChanges, &ephemeralObjects](const Q3DSAnimationTrack &track) {
+    std::find_if(tracks.cbegin(), tracks.cend(), [&dynamicPropertyChanges, &ephemeralObjects](const Q3DSAnimationTrack &track) {
         if (track.isDynamic()) {
-            auto foundIt = propertyChanges.find(track.target());
-            const bool propertyFound = (foundIt != propertyChanges.end());
+            auto foundIt = dynamicPropertyChanges.find(track.target());
+            const bool propertyFound = (foundIt != dynamicPropertyChanges.end());
             Q3DSPropertyChangeList *changesList = propertyFound
                     ? *foundIt
                     : new Q3DSPropertyChangeList;
@@ -6615,16 +6615,35 @@ void Q3DSSceneManager::handleSlideChange(Q3DSSlide *prevSlide,
             const auto value = track.target()->propertyValue(property);
             changesList->append(Q3DSPropertyChange::fromVariant(property, value));
 
-            if (foundIt == propertyChanges.end())
-                propertyChanges.insert(track.target(), changesList);
+            if (foundIt == dynamicPropertyChanges.end())
+                dynamicPropertyChanges.insert(track.target(), changesList);
         }
         return false;
     });
 
-    m_presentation->applySlidePropertyChanges(currentSlide);
-    // Now re-apply the original values for those dynamic keyframes.
+    const auto &propertyChanges = currentSlide->propertyChanges();
+
+    // Filter out properties that we needs to be marked dirty, i.e., eyeball changes.
+    QHash<Q3DSGraphObject *, Q3DSPropertyChangeList *> notifyPropertyChanges;
+    for (auto it = propertyChanges.cbegin(); it != propertyChanges.cend(); ++it) {
+        std::find_if((*it)->cbegin(), (*it)->cend(), [it, &notifyPropertyChanges, &ephemeralObjects](const Q3DSPropertyChange &propChange) {
+            if (propChange.name() == QLatin1String("eyeball")) {
+                Q3DSPropertyChangeList *propChangeList = new Q3DSPropertyChangeList;
+                propChangeList->append(propChange);
+                ephemeralObjects.push_back(propChangeList);
+                notifyPropertyChanges[it.key()] = propChangeList;
+                return true;
+            }
+            return false;
+        });
+    }
+    // We avoid triggering notifications (i.e., setting dirty flags) just yet, as we
+    // want to defer that until we're ready.
     m_presentation->applyPropertyChanges(propertyChanges);
-    m_presentation->notifyPropertyChanges(propertyChanges);
+    // notify about visibility changes.
+    m_presentation->notifyPropertyChanges(notifyPropertyChanges);
+    // Now re-apply the original values for those dynamic keyframes.
+    m_presentation->applyPropertyChanges(dynamicPropertyChanges);
     // Now clean-up the objects we created.
     qDeleteAll(ephemeralObjects);
 }

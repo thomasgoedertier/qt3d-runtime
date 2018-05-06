@@ -554,8 +554,8 @@ void Q3DSSlidePlayer::handleCurrentSlideChanged(Q3DSSlide *slide,
         if (data && data->animator) {
             // TODO: We probably want to be a bit less brute.
             if (slide) Q_ASSERT(previousSlide->parent() == slide->parent());
-            updateAnimators(previousSlide, false, true, 1.0f);
-            m_animationManager->clearAnimations(previousSlide, (m_mode == PlayerMode::Editor));
+            updateAnimators(previousSlide, false, false, 1.0f);
+            m_animationManager->clearAnimations(previousSlide);
         }
     }
 

@@ -538,7 +538,7 @@ private:
     Q3DSSlidePlayer *m_slidePlayer;
 };
 
-void Q3DSAnimationManager::clearAnimations(Q3DSSlide *slide, bool editorMode)
+void Q3DSAnimationManager::clearAnimations(Q3DSSlide *slide)
 {
     qCDebug(lcAnim, "Clearing animations for slide (%s)", qPrintable(slide->name()));
 
@@ -566,8 +566,7 @@ void Q3DSAnimationManager::clearAnimations(Q3DSSlide *slide, bool editorMode)
     if (!hasAnimationData)
         return;
 
-    const auto clearAndRollback = [this, editorMode](const QVector<Q3DSAnimationTrack> &anims, Q3DSSlide *slide) {
-        // Rollback properties
+    const auto cleanUpAnimationData = [this](const QVector<Q3DSAnimationTrack> &anims, Q3DSSlide *slide) {
         for (const Q3DSAnimationTrack &track : anims) {
             if (!m_activeTargets.contains(track.target()))
                 continue;
@@ -575,23 +574,6 @@ void Q3DSAnimationManager::clearAnimations(Q3DSSlide *slide, bool editorMode)
             Q3DSGraphObjectAttached *data = track.target()->attached();
             Q3DSGraphObjectAttached::AnimationData *animationData = data->animationDataMap.value(slide);
             if (animationData) {
-                // Properties that were animated before have to be reset to their
-                // original value, otherwise things will flicker when switching between
-                // slides since the animations we build may not update the first value
-                // in time for the next frame.
-                if ((!track.isDynamic() || editorMode) && !data->animationRollbacks.isEmpty()) {
-                    for (const auto &rd : qAsConst(data->animationRollbacks)) {
-                        Q3DSAnimationManager::AnimationValueChange change;
-                        change.value = rd.value;
-                        change.name = rd.name;
-                        change.setter = rd.setter;
-                        queueChange(rd.obj, change);
-                    }
-                    // Set the values right away, do not wait until the next frame.
-                    // This is important since updateAnimations() may query some of the
-                    // now-restored values from the object.
-                    applyChanges();
-                }
                 // Cleanup previous animation callbacks
                 qDeleteAll(animationData->animationCallbacks);
                 animationData->animationCallbacks.clear();
@@ -614,18 +596,8 @@ void Q3DSAnimationManager::clearAnimations(Q3DSSlide *slide, bool editorMode)
         Q_ASSERT(slideAttached->animators.isEmpty());
     };
 
-    // Handle unlinked properties (this is similart to the buildTrackListMap() pair in updateAnimations()).
-    // TODO: Make this more efficient
-    QVector<Q3DSAnimationTrack> tracks = masterSlide->animations();
-    for (const auto &track : slide->animations()) {
-        auto foundIt = std::find_if(tracks.begin(), tracks.end(), [&track](const Q3DSAnimationTrack &t) { return (t.target() == track.target()) && (t.property() == track.property()); });
-        if (foundIt != tracks.end())
-            *foundIt = track;
-        else
-            tracks.push_back(track);
-    }
-
-    clearAndRollback(tracks, slide);
+    cleanUpAnimationData(masterSlide->animations(), slide);
+    cleanUpAnimationData(slide->animations(), slide);
 }
 
 // Dummy animator for keeping track of the time line for the current slide
@@ -724,6 +696,25 @@ void Q3DSAnimationManager::updateAnimations(Q3DSSlide *slide, bool editorMode)
         const QVector<Q3DSAnimationTrack> &anims = slide->animations();
         for (const Q3DSAnimationTrack &animTrack : anims) {
             Q3DSGraphObject *target = animTrack.target();
+            Q3DSGraphObjectAttached *data = target->attached();
+            // Properties that were animated before have to be reset to their
+            // original value, otherwise things will flicker when switching between
+            // slides since the animations we build may not update the first value
+            // in time for the next frame.
+            if ((!animTrack.isDynamic() || editorMode) && !data->animationRollbacks.isEmpty()) {
+                for (const auto &rd : qAsConst(data->animationRollbacks)) {
+                    Q3DSAnimationManager::AnimationValueChange change;
+                    change.value = rd.value;
+                    change.name = rd.name;
+                    change.setter = rd.setter;
+                    queueChange(rd.obj, change);
+                }
+                // Set the values right away, do not wait until the next frame.
+                // This is important since updateAnimations() may query some of the
+                // now-restored values from the object.
+                applyChanges();
+            }
+
             switch (target->type()) {
             case Q3DSGraphObject::DefaultMaterial:
             {
