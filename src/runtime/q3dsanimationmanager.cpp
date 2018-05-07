@@ -496,16 +496,6 @@ void Q3DSAnimationManager::updateAnimationHelper(const AnimationTrackListMap<T *
             data->animationDataMap[slide]->animationCallbacks.append(cb);
             mapping->setCallback(type, cb, 0);
             mapper->addMapping(mapping.take());
-
-            // Save the current value of the animated property.
-            if (chIt->meta.getter && (!chIt->dynamic || data->animationRollbacks.isEmpty())) {
-                Q3DSGraphObjectAttached::AnimatedValueRollbackData rd;
-                rd.obj = target;
-                rd.name = chIt->meta.name;
-                rd.value = chIt->meta.getter(target, chIt->meta.name);
-                rd.setter = chIt->meta.setter;
-                data->animationRollbacks.append(rd);
-            }
         }
 
         Q_ASSERT(animator);
@@ -696,24 +686,6 @@ void Q3DSAnimationManager::updateAnimations(Q3DSSlide *slide, bool editorMode)
         const QVector<Q3DSAnimationTrack> &anims = slide->animations();
         for (const Q3DSAnimationTrack &animTrack : anims) {
             Q3DSGraphObject *target = animTrack.target();
-            Q3DSGraphObjectAttached *data = target->attached();
-            // Properties that were animated before have to be reset to their
-            // original value, otherwise things will flicker when switching between
-            // slides since the animations we build may not update the first value
-            // in time for the next frame.
-            if ((!animTrack.isDynamic() || editorMode) && !data->animationRollbacks.isEmpty()) {
-                for (const auto &rd : qAsConst(data->animationRollbacks)) {
-                    Q3DSAnimationManager::AnimationValueChange change;
-                    change.value = rd.value;
-                    change.name = rd.name;
-                    change.setter = rd.setter;
-                    queueChange(rd.obj, change);
-                }
-                // Set the values right away, do not wait until the next frame.
-                // This is important since updateAnimations() may query some of the
-                // now-restored values from the object.
-                applyChanges();
-            }
 
             switch (target->type()) {
             case Q3DSGraphObject::DefaultMaterial:

@@ -184,14 +184,6 @@ public:
     Qt3DCore::QEntity *entity = nullptr;
     Q3DSComponentNode *component = nullptr;
 
-    struct AnimatedValueRollbackData {
-        Q3DSGraphObject *obj;
-        QString name;
-        QVariant value;
-        Qt3DAnimation::SetterFunc setter;
-    };
-    QVector<AnimatedValueRollbackData> animationRollbacks;
-
     enum FrameDirtyFlag {
         GroupDirty = 0x01,
         LightDirty = 0x02,
