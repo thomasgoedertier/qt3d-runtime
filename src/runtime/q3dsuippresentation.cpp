@@ -4081,6 +4081,12 @@ void Q3DSUipPresentation::removeDataInputTarget(Q3DSGraphObject *obj)
     }
 }
 
+void Q3DSUipPresentation::notifyPropertyChanges(const QHash<Q3DSGraphObject *, Q3DSPropertyChangeList *> &changeList) const
+{
+    for (auto it = changeList.cbegin(), ite = changeList.cend(); it != ite; ++it)
+        it.key()->notifyPropertyChanges(*it.value());
+}
+
 void Q3DSUipPresentation::applyPropertyChanges(const QHash<Q3DSGraphObject *, Q3DSPropertyChangeList *> &changeList) const
 {
     for (auto it = changeList.cbegin(), ite = changeList.cend(); it != ite; ++it) {
@@ -4089,9 +4095,6 @@ void Q3DSUipPresentation::applyPropertyChanges(const QHash<Q3DSGraphObject *, Q3
 
         it.key()->applyPropertyChanges(*it.value());
     }
-
-    for (auto it = changeList.cbegin(), ite = changeList.cend(); it != ite; ++it)
-        it.key()->notifyPropertyChanges(*it.value());
 }
 
 void Q3DSUipPresentation::applySlidePropertyChanges(Q3DSSlide *slide) const
@@ -4099,6 +4102,7 @@ void Q3DSUipPresentation::applySlidePropertyChanges(Q3DSSlide *slide) const
     const auto &changeList = slide->propertyChanges();
     qCDebug(lcUip, "Applying %d property changes from slide %s", changeList.count(), slide->id().constData());
     applyPropertyChanges(changeList);
+    notifyPropertyChanges(changeList);
 }
 
 static void forAllObjectsInSubTree_helper(Q3DSGraphObject *obj,

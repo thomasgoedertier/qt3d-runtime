@@ -6624,6 +6624,7 @@ void Q3DSSceneManager::handleSlideChange(Q3DSSlide *prevSlide,
     m_presentation->applySlidePropertyChanges(currentSlide);
     // Now re-apply the original values for those dynamic keyframes.
     m_presentation->applyPropertyChanges(propertyChanges);
+    m_presentation->notifyPropertyChanges(propertyChanges);
     // Now clean-up the objects we created.
     qDeleteAll(ephemeralObjects);
 }
