@@ -93,6 +93,7 @@ void Q3DSRemoteDeploymentManager::stopServer()
 
 void Q3DSRemoteDeploymentManager::showConnectionSetup()
 {
+    startServer();
     setupConnectionScene();
 }
 
