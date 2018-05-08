@@ -6599,13 +6599,17 @@ void Q3DSSceneManager::handleSlideChange(Q3DSSlide *prevSlide,
     // Find properties on targets that has dynamic properties.
     // TODO: Find a better solution (e.g., there can be duplicate updates for e.g., xyz here).
     QHash<Q3DSGraphObject *, Q3DSPropertyChangeList *> propertyChanges;
+    QVector<Q3DSPropertyChangeList *> ephemeralObjects;
     const auto &tracks = currentSlide->animations();
-    std::find_if(tracks.cbegin(), tracks.cend(), [&propertyChanges](const Q3DSAnimationTrack &track) {
+    std::find_if(tracks.cbegin(), tracks.cend(), [&propertyChanges, &ephemeralObjects](const Q3DSAnimationTrack &track) {
         if (track.isDynamic()) {
             auto foundIt = propertyChanges.find(track.target());
-            Q3DSPropertyChangeList *changesList = (foundIt != propertyChanges.end())
+            const bool propertyFound = (foundIt != propertyChanges.end());
+            Q3DSPropertyChangeList *changesList = propertyFound
                     ? *foundIt
                     : new Q3DSPropertyChangeList;
+            if (!propertyFound)
+                ephemeralObjects.push_back(changesList);
 
             const QString property = track.property().split('.')[0];
             const auto value = track.target()->propertyValue(property);
@@ -6620,6 +6624,8 @@ void Q3DSSceneManager::handleSlideChange(Q3DSSlide *prevSlide,
     m_presentation->applySlidePropertyChanges(currentSlide);
     // Now re-apply the original values for those dynamic keyframes.
     m_presentation->applyPropertyChanges(propertyChanges);
+    // Now clean-up the objects we created.
+    qDeleteAll(ephemeralObjects);
 }
 
 void Q3DSSceneManager::prepareNextFrame()
