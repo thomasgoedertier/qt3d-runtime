@@ -651,6 +651,9 @@ void Q3DSEngine::finalizePresentations()
     else
         m_aspectEngine->setRootEntity(Qt3DCore::QEntityPtr(m_uipPresentations[0].q3dscene.rootEntity));
 
+    m_uipPresentations[0].q3dscene.renderSettings->setRenderPolicy(m_onDemandRendering ?
+        Qt3DRender::QRenderSettings::OnDemand : Qt3DRender::QRenderSettings::Always);
+
     if (m_autoStart) {
         for (const UipPresentation &pres : m_uipPresentations)
             pres.sceneManager->prepareAnimators();
@@ -1121,6 +1124,9 @@ Qt3DCore::QEntity *Q3DSEngine::rootEntity() const
 
 void Q3DSEngine::setOnDemandRendering(bool enabled)
 {
+    if (m_onDemandRendering == enabled)
+        return;
+    m_onDemandRendering = enabled;
     m_uipPresentations[0].q3dscene.renderSettings->setRenderPolicy(enabled ?
         Qt3DRender::QRenderSettings::OnDemand : Qt3DRender::QRenderSettings::Always);
 }

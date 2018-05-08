@@ -278,6 +278,8 @@ private:
     QQmlEngine *m_behaviorQmlEngine = nullptr;
     bool m_ownsBehaviorQmlEngine = false;
     BehaviorMap m_behaviorHandles;
+
+    bool m_onDemandRendering = false;
 };
 
 Q_DECLARE_OPERATORS_FOR_FLAGS(Q3DSEngine::Flags)
