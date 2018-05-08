@@ -150,6 +150,11 @@ Q3DSEngine::Q3DSEngine()
         // (since we want to see qCDebugs in release builds etc.) but there's
         // no need since that's the default since our category names do not
         // start with qt.*
+
+        // q3ds.uipprop (data input value changes for ex.) is enabled only when
+        // Q3DS_DEBUG is set to 1 or higher.
+        const bool logValueChanges = qEnvironmentVariableIntValue("Q3DS_DEBUG") >= 1;
+        const_cast<QLoggingCategory &>(lcUipProp()).setEnabled(QtDebugMsg, logValueChanges);
     }
 }
 
