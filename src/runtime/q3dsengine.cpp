@@ -1214,8 +1214,6 @@ void Q3DSEngine::handleKeyReleaseEvent(QKeyEvent *e)
 
 void Q3DSEngine::handleMousePressEvent(QMouseEvent *e)
 {
-    m_lastMousePressPos = e->pos();
-
     if (isProfileUiVisible()) {
         QCoreApplication::sendEvent(&m_profileUiEventSource, e);
         return;
@@ -1244,8 +1242,6 @@ void Q3DSEngine::handleMouseMoveEvent(QMouseEvent *e)
 
 void Q3DSEngine::handleMouseReleaseEvent(QMouseEvent *e)
 {
-    m_lastMousePressPos = e->pos();
-
     if (isProfileUiVisible()) {
         QCoreApplication::sendEvent(&m_profileUiEventSource, e);
         return;

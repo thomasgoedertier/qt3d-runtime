@@ -260,62 +260,6 @@ void Q3DSBehaviorObject::unregisterForEvent(const QString &handle, const QString
     }
 }
 
-QVector2D Q3DSBehaviorObject::getMousePosition()
-{
-    const QPoint p = m_engine->lastMousePressPos();
-    return QVector2D(p.x(), p.y());
-}
-
-QMatrix4x4 Q3DSBehaviorObject::calculateGlobalTransform()
-{
-    return calculateGlobalTransform(QString());
-}
-
-QMatrix4x4 Q3DSBehaviorObject::calculateGlobalTransform(const QString &handle)
-{
-    Q3DSGraphObject *obj = m_engine->findObjectByHashIdOrNameOrPath(m_behaviorInstance->parent(), m_presentation, handle);
-    if (!obj || !obj->isNode()) {
-        qWarning("calculateGlobalTransform: Invalid node reference %s", qPrintable(handle));
-        return QMatrix4x4();
-    }
-
-    auto d = obj->attached<Q3DSNodeAttached>();
-    if (!d)
-        return QMatrix4x4();
-
-    return d->globalTransform;
-}
-
-QVector3D Q3DSBehaviorObject::lookAt(const QVector3D &target)
-{
-    const float mag = qSqrt(target.x() * target.x() + target.z() * target.z());
-    const float pitch = -qAtan2(target.y(), mag);
-    const float yaw = qAtan2(target.x(), target.z());
-    return QVector3D(pitch, yaw, 0);
-}
-
-QVector3D Q3DSBehaviorObject::matrixToEuler(const QMatrix4x4 &matrix)
-{
-    // ### check if this gives results comparable to what 3DS1 does
-    const float *p = matrix.constData();
-    const float rowMajor3x3[] = { p[0], p[4], p[8],
-                                  p[1], p[5], p[9],
-                                  p[2], p[6], p[10] };
-    return QQuaternion::fromRotationMatrix(QMatrix3x3(rowMajor3x3)).toEulerAngles();
-}
-
-QString Q3DSBehaviorObject::getParent()
-{
-    return getParent(QString());
-}
-
-QString Q3DSBehaviorObject::getParent(const QString &handle)
-{
-    // highly sophisticated implementation. this function should not exist.
-    const QString parentStr = QLatin1String("parent");
-    return handle.isEmpty() ? parentStr : handle + QLatin1Char('.') + parentStr;
-}
-
 void Q3DSBehaviorObject::setDataInputValue(const QString &name, const QVariant &value)
 {
     m_engine->setDataInputValue(name, value);

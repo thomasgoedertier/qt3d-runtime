@@ -178,8 +178,6 @@ public:
     void unloadBehaviorInstance(Q3DSBehaviorInstance *behaviorInstance);
     const BehaviorMap &behaviorHandles() const { return m_behaviorHandles; }
 
-    QPoint lastMousePressPos() const { return m_lastMousePressPos; }
-
     // These two functions are the only place where the elementPath concept is
     // present in the engine (so that mappings can be made for the 3DS1-style
     // APIs). Proper objects must be used everywhere else.
@@ -274,8 +272,6 @@ private:
     QQmlEngine *m_behaviorQmlEngine = nullptr;
     bool m_ownsBehaviorQmlEngine = false;
     BehaviorMap m_behaviorHandles;
-
-    QPoint m_lastMousePressPos;
 };
 
 Q_DECLARE_OPERATORS_FOR_FLAGS(Q3DSEngine::Flags)
