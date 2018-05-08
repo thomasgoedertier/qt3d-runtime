@@ -63,10 +63,10 @@ public Q_SLOTS:
     void goToTime(float timeSeconds);
 
 Q_SIGNALS:
-    void currentSlideIndexChanged();
-    void previousSlideIndexChanged();
-    void currentSlideNameChanged();
-    void previousSlideNameChanged();
+    void currentSlideIndexChanged(int currentSlideIndex);
+    void previousSlideIndexChanged(int previousSlideIndex);
+    void currentSlideNameChanged(const QString &currentSlideName);
+    void previousSlideNameChanged(const QString &previousSlideName);
 
 protected:
     Q3DSSceneElement(Q3DSSceneElementPrivate &dd, QObject *parent);
