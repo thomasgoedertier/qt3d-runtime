@@ -1,5 +1,5 @@
 TEMPLATE = app
-
+CONFIG += console
 QT += 3dstudioruntime2
 
 SOURCES += \
