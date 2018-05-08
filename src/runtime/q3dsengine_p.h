@@ -56,6 +56,8 @@ QT_BEGIN_NAMESPACE
 class QKeyEvent;
 class QMouseEvent;
 class QWheelEvent;
+class QTouchEvent;
+class QTabletEvent;
 class QQmlEngine;
 class QQmlComponent;
 class Q3DSInlineQmlSubPresentation;
@@ -161,6 +163,10 @@ public:
     void handleMouseDoubleClickEvent(QMouseEvent *e);
 #if QT_CONFIG(wheelevent)
     void handleWheelEvent(QWheelEvent *e);
+#endif
+    void handleTouchEvent(QTouchEvent *e);
+#if QT_CONFIG(tabletevent)
+    void handleTabletEvent(QTabletEvent *e);
 #endif
 
     void setAutoToggleProfileUi(bool enabled) { m_autoToggleProfileUi = enabled; }

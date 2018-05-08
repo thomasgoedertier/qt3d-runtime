@@ -248,6 +248,22 @@ void Q3DSPresentation::wheelEvent(QWheelEvent *e)
 }
 #endif
 
+void Q3DSPresentation::touchEvent(QTouchEvent *e)
+{
+    Q_D(Q3DSPresentation);
+    if (d->controller && !d->source.isEmpty())
+        d->controller->handlePresentationTouchEvent(e);
+}
+
+#if QT_CONFIG(tabletevent)
+void Q3DSPresentation::tabletEvent(QTabletEvent *e)
+{
+    Q_D(Q3DSPresentation);
+    if (d->controller && !d->source.isEmpty())
+        d->controller->handlePresentationTabletEvent(e);
+}
+#endif
+
 void Q3DSPresentationPrivate::setController(Q3DSPresentationController *c)
 {
     if (controller == c)

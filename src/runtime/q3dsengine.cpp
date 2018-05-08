@@ -1288,6 +1288,20 @@ void Q3DSEngine::handleWheelEvent(QWheelEvent *e)
 }
 #endif
 
+void Q3DSEngine::handleTouchEvent(QTouchEvent *e)
+{
+    Q_UNUSED(e);
+    // not much to do now, the touch-to-mouse synthesization of QtGui is good enough
+    // but will become relevant when multi-touch etc.
+}
+
+#if QT_CONFIG(tabletevent)
+void Q3DSEngine::handleTabletEvent(QTabletEvent *e)
+{
+    Q_UNUSED(e);
+}
+#endif
+
 void Q3DSEngine::requestGrab()
 {
     if (m_capture) {

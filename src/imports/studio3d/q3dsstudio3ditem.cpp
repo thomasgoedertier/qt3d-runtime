@@ -508,4 +508,10 @@ void Q3DSStudio3DItem::hoverMoveEvent(QHoverEvent *event)
     m_engine->handleMouseMoveEvent(&e);
 }
 
+void Q3DSStudio3DItem::touchEvent(QTouchEvent *event)
+{
+    if (!m_eventIgnoreFlags.testFlag(IgnoreMouseEvents) && m_engine)
+        m_engine->handleTouchEvent(event);
+}
+
 QT_END_NAMESPACE

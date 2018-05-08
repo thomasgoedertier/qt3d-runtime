@@ -106,6 +106,20 @@ void Q3DSPresentationController::handlePresentationWheelEvent(QWheelEvent *e)
 }
 #endif
 
+void Q3DSPresentationController::handlePresentationTouchEvent(QTouchEvent *e)
+{
+    if (m_pcEngine)
+        m_pcEngine->handleTouchEvent(e);
+}
+
+#if QT_CONFIG(tabletevent)
+void Q3DSPresentationController::handlePresentationTabletEvent(QTabletEvent *e)
+{
+    if (m_pcEngine)
+        m_pcEngine->handleTabletEvent(e);
+}
+#endif
+
 void Q3DSPresentationController::handleDataInputValue(const QString &name, const QVariant &value)
 {
     if (m_pcEngine)
