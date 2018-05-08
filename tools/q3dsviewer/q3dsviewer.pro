@@ -1,6 +1,6 @@
 QT += 3dstudioruntime2-private
 
-qtHaveModule(widgets) {
+qtHaveModule(widgets):!boot2qt {
     QT += widgets
     DEFINES += Q3DSVIEWER_WIDGETS
     SOURCES += q3dsmainwindow.cpp
