@@ -39,6 +39,11 @@ class Q3DSWidgetPrivate;
 class Q3DSPresentation;
 class Q3DSViewerSettings;
 
+// hack. no clue why Cpp.ignoretokens does not work.
+#ifdef Q_CLANG_QDOC
+#define Q3DSV_EXPORT
+#endif
+
 class Q3DSV_EXPORT Q3DSWidget : public QOpenGLWidget
 {
     Q_OBJECT

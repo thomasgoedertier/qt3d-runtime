@@ -1,0 +1,55 @@
+project                 = Qt3DStudioRuntime2
+description             = Qt 3D Studio Runtime Reference Manual
+version                 = $QT_VERSION
+
+sourcedirs              += ./src
+imagedirs               += ./src/images
+
+sourcedirs              += ../runtime/api
+headerdirs              += ../runtime/api
+
+sourcedirs              += ../imports/studio3d
+headerdirs              += ../imports/studio3d
+
+depends = qtcore qtgui qtwidgets qtqml qtquick qtdoc qt3dcore qt3drender qt3dlogic qt3danimation
+
+qhp.projects            = 3dstudioruntime2
+
+qhp.3dstudioruntime2.file                = Qt3DStudioRuntime2.qhp
+qhp.3dstudioruntime2.namespace           = io.qt.qt3dstudioruntime2.$QT_VERSION_TAG
+qhp.3dstudioruntime2.virtualFolder       = Qt3DStudioRuntime2
+qhp.3dstudioruntime2.indexTitle          = Qt 3D Studio Runtime
+qhp.3dstudioruntime2.indexRoot           =
+
+qhp.3dstudioruntime2.filterAttributes    = Qt3DStudioRuntime2 $QT_VERSION
+qhp.3dstudioruntime2.customFilters.Qt.name = Qt3DStudioRuntime2 $QT_VERSION
+qhp.3dstudioruntime2.customFilters.Qt.filterAttributes = Qt3DStudioRuntime2 $QT_VERSION
+
+qhp.3dstudioruntime2.subprojects         = manual qmltypes classes
+
+qhp.3dstudioruntime2.subprojects.manual.title = Qt 3D Studio Runtime
+qhp.3dstudioruntime2.subprojects.manual.indexTitle = Qt 3D Studio Runtime TOC
+qhp.3dstudioruntime2.subprojects.manual.type = manual
+
+qhp.3dstudioruntime2.subprojects.qmltypes.title = QML Types
+qhp.3dstudioruntime2.subprojects.qmltypes.indexTitle = Qt 3D Studio Runtime QML Types
+qhp.3dstudioruntime2.subprojects.qmltypes.selectors = qmltype
+qhp.3dstudioruntime2.subprojects.qmltypes.sortPages = true
+
+qhp.3dstudioruntime2.subprojects.classes.title      = C++ Classes
+qhp.3dstudioruntime2.subprojects.classes.indexTitle = Qt 3D Studio Runtime C++ Classes
+qhp.3dstudioruntime2.subprojects.classes.selectors  = class fake:headerfile
+qhp.3dstudioruntime2.subprojects.classes.sortPages  = true
+
+# Add an .html file with sidebar content, used in the online style
+HTML.stylesheets             += style/qt5-sidebar.html
+
+navigation.homepage            = Qt 3D Studio Runtime
+navigation.cppclassespage      = Qt 3D Studio Runtime C++ Classes
+navigation.qmltypespage        = Qt 3D Studio Runtime QML Types
+buildversion                   = "Qt 3D Studio Runtime $QT_VER Manual"
+
+examplesinstallpath     = 3dstudioruntime2
+exampledirs             += ../../examples/3dstudioruntime2
+
+Cpp.ignoretokens     += Q3DSV_EXPORT

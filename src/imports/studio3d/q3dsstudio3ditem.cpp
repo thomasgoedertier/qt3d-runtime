@@ -52,6 +52,17 @@
 
 QT_BEGIN_NAMESPACE
 
+/*!
+    \qmltype Studio3D
+    \instantiates Q3DSStudio3DItem
+    \inqmlmodule QtStudio3D
+    \ingroup 3dstudioruntime2
+    \inherits Item
+    \brief blah
+
+    blah
+*/
+
 static bool engineCleanerRegistered = false;
 static QSet<Q3DSEngine *> engineTracker;
 static void engineCleaner()

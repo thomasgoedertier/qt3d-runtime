@@ -38,6 +38,11 @@ QT_BEGIN_NAMESPACE
 
 class Q3DSViewerSettingsPrivate;
 
+// hack. no clue why Cpp.ignoretokens does not work.
+#ifdef Q_CLANG_QDOC
+#define Q3DSV_EXPORT
+#endif
+
 class Q3DSV_EXPORT Q3DSViewerSettings : public QObject
 {
     Q_OBJECT
