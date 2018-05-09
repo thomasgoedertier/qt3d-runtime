@@ -7233,6 +7233,9 @@ void Q3DSSceneManager::goToTime(Q3DSGraphObject *sceneOrComponent, float millise
         slidePlayer->pause();
 
     slidePlayer->seek(milliseconds);
+
+    if (!pause)
+        slidePlayer->play();
 }
 
 void Q3DSSceneManager::setDataInputValue(const QString &dataInputName, const QVariant &value)
