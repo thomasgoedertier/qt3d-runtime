@@ -47,14 +47,14 @@ Q3DSInputManager::Q3DSInputManager(Q3DSSceneManager *sceneManager, QObject *pare
 void Q3DSInputManager::handleMousePressEvent(QMouseEvent *e)
 {
     m_currentState.mousePressed = true;
-    PickRequest req(e->pos(), m_currentState);
+    PickRequest req(e->pos() * m_sceneManager->m_guiData.outputDpr, m_currentState);
     m_pickRequests.append(req);
 }
 
 void Q3DSInputManager::handleMouseReleaseEvent(QMouseEvent *e)
 {
     m_currentState.mousePressed = false;
-    PickRequest req(e->pos(), m_currentState);
+    PickRequest req(e->pos() * m_sceneManager->m_guiData.outputDpr, m_currentState);
     m_pickRequests.append(req);
 }
 
@@ -63,7 +63,7 @@ void Q3DSInputManager::handleMouseMoveEvent(QMouseEvent *e)
     if (!m_isHoverEnabled && !m_currentState.mousePressed)
         return;
 
-    PickRequest req(e->pos(), m_currentState);
+    PickRequest req(e->pos() * m_sceneManager->m_guiData.outputDpr, m_currentState);
     m_pickRequests.append(req);
 }
 
