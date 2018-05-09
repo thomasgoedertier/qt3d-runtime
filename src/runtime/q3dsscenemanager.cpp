@@ -6610,20 +6610,20 @@ void Q3DSSceneManager::handleSlideChange(Q3DSSlide *prevSlide,
     const auto &tracks = currentSlide->animations();
     std::find_if(tracks.cbegin(), tracks.cend(), [&dynamicPropertyChanges, &ephemeralObjects](const Q3DSAnimationTrack &track) {
         if (track.isDynamic()) {
-            auto foundIt = dynamicPropertyChanges.find(track.target());
-            const bool propertyFound = (foundIt != dynamicPropertyChanges.end());
+            const auto foundIt = dynamicPropertyChanges.constFind(track.target());
+            const bool propertyFound = (foundIt != dynamicPropertyChanges.constEnd());
             Q3DSPropertyChangeList *changesList = propertyFound
                     ? *foundIt
                     : new Q3DSPropertyChangeList;
-            if (!propertyFound)
-                ephemeralObjects.push_back(changesList);
 
             const QString property = track.property().split('.')[0];
             const auto value = track.target()->propertyValue(property);
             changesList->append(Q3DSPropertyChange::fromVariant(property, value));
 
-            if (foundIt == dynamicPropertyChanges.end())
+            if (!propertyFound) {
+                ephemeralObjects.push_back(changesList);
                 dynamicPropertyChanges.insert(track.target(), changesList);
+            }
         }
         return false;
     });
