@@ -1650,13 +1650,18 @@ namespace  {
     }
 }
 
-bool Q3DSImage::hasTransparency()
+bool Q3DSImage::hasTransparency(Q3DSUipPresentation *presentation)
 {
     if (m_scannedForTransparency)
         return m_hasTransparency;
 
     // Do a pre-load of the texture to check for transparency
-    m_hasTransparency = scanForTransparency(sourcePath());
+    if (presentation->imageTransparencyHash().contains(sourcePath())) {
+        m_hasTransparency = presentation->imageTransparencyHash()[sourcePath()];
+    } else {
+        m_hasTransparency = scanForTransparency(sourcePath());
+        presentation->imageTransparencyHash()[sourcePath()] = m_hasTransparency;
+    }
     m_scannedForTransparency = true;
     return m_hasTransparency;
 }
@@ -3866,6 +3871,11 @@ void Q3DSUipPresentation::resolveAliases()
         cloneStates(alias, rootSlides, clonedObjects, this);
     }
 
+}
+
+QHash<QString, bool> &Q3DSUipPresentation::imageTransparencyHash()
+{
+    return m_imageTransparencyHash;
 }
 
 /*!

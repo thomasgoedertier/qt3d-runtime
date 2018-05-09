@@ -4451,9 +4451,9 @@ void Q3DSSceneManager::retagSubMeshes(Q3DSModelNode *model3DS)
             auto defaultMaterial = static_cast<Q3DSDefaultMaterial *>(sm.resolvedMaterial);
             opacity *= defaultMaterial->opacity() / 100.0f;
             // Check maps for transparency as well
-            hasTransparency = ((defaultMaterial->diffuseMap() && defaultMaterial->diffuseMap()->hasTransparency()) ||
-                               (defaultMaterial->diffuseMap2() && defaultMaterial->diffuseMap2()->hasTransparency()) ||
-                               (defaultMaterial->diffuseMap3() && defaultMaterial->diffuseMap3()->hasTransparency()) ||
+            hasTransparency = ((defaultMaterial->diffuseMap() && defaultMaterial->diffuseMap()->hasTransparency(m_presentation)) ||
+                               (defaultMaterial->diffuseMap2() && defaultMaterial->diffuseMap2()->hasTransparency(m_presentation)) ||
+                               (defaultMaterial->diffuseMap3() && defaultMaterial->diffuseMap3()->hasTransparency(m_presentation)) ||
                                defaultMaterial->opacityMap() ||
                                defaultMaterial->translucencyMap() ||
                                defaultMaterial->displacementmap() ||

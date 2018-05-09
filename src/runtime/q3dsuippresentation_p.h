@@ -719,7 +719,7 @@ public:
     void calculateTextureTransform();
     const QMatrix4x4 &textureTransform() const { return m_textureTransform; }
 
-    bool hasTransparency();
+    bool hasTransparency(Q3DSUipPresentation *presentation);
 
     // Properties
     QString sourcePath() const { return m_sourcePath; } // already adjusted, can be opened as-is
@@ -2025,6 +2025,7 @@ public:
             obj->parent()->removeChildNode(obj);
     }
     void resolveAliases();
+    QHash<QString, bool> &imageTransparencyHash();
 
 private:
     Q_DISABLE_COPY(Q3DSUipPresentation)
@@ -2037,6 +2038,7 @@ private:
     Q3DSGraphObject *getObjectByName(const QString &name) const;
 
     QScopedPointer<Q3DSUipPresentationData> d;
+    QHash<QString, bool> m_imageTransparencyHash;
     friend class Q3DSUipParser;
 };
 
