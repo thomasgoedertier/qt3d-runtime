@@ -522,6 +522,7 @@ class Q3DSCustomMaterialAttached : public Q3DSMaterialAttached
 {
 public:
     QHash<QString, Q3DSCustomPropertyParameter> params;
+    Qt3DRender::QParameter *objectOpacityParam = nullptr;
     // Lightmaps
     Q3DSTextureParameters lightmapIndirectParams;
     Q3DSTextureParameters lightmapRadiosityParams;

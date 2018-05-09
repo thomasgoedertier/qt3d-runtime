@@ -417,6 +417,7 @@ struct ShaderGenerator : public Q3DSCustomMaterialShaderGenerator
             fragmentShader.append("\trgba = mix( vec4(0.0, 1.0, 0.0, 1.0), rgba, mixVal);");
         }
 
+        fragmentShader << "  rgba.a *= object_opacity;\n";
         fragmentShader << "  fragColor = rgba;\n";
     }
 
@@ -550,7 +551,7 @@ void Q3DSCustomMaterialVertexPipeline::beginFragmentGeneration()
     // Add "customMaterial.glsllib" because we dont apply it on load
     // like Qt3DStudio does.
     fragment().addInclude("customMaterial.glsllib");
-
+    fragment().addUniform("object_opacity", "float");
     fragment() << "void main()" << "\n" << "{" << "\n";
 }
 

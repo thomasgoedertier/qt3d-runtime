@@ -4462,7 +4462,7 @@ void Q3DSSceneManager::retagSubMeshes(Q3DSModelNode *model3DS)
         } else if (sm.resolvedMaterial->type() == Q3DSGraphObject::CustomMaterial) {
             auto customMaterial = static_cast<Q3DSCustomMaterialInstance *>(sm.resolvedMaterial);
             const Q3DSCustomMaterial *matDesc = customMaterial->material();
-            sm.hasTransparency = matDesc->materialHasTransparency() || matDesc->materialHasRefraction();
+            sm.hasTransparency = opacity < 1.0f || matDesc->materialHasTransparency() || matDesc->materialHasRefraction();
         }
 
         Qt3DRender::QLayer *newTag = sm.hasTransparency ? layerData->transparentTag : layerData->opaqueTag;
@@ -5040,6 +5040,11 @@ QVector<Qt3DRender::QParameter *> Q3DSSceneManager::prepareCustomMaterial(Q3DSCu
         data->params.insert(propKey, Q3DSCustomPropertyParameter(param, v, propMeta));
     });
 
+
+    data->objectOpacityParam = new Qt3DRender::QParameter;
+    data->objectOpacityParam->setName(QLatin1String("object_opacity"));
+    paramList.append(data->objectOpacityParam);
+
     // Lightmaps
     // check for referencedMaterial Overrides
     Q3DSImage *lightmapIndirect = nullptr;
@@ -5128,6 +5133,8 @@ void Q3DSSceneManager::updateCustomMaterial(Q3DSCustomMaterialInstance *m, Q3DSR
             break;
         }
     });
+
+    data->objectOpacityParam->setValue(data->opacity);
 
     // Lightmaps
     Q3DSImage *lightmapIndirect = nullptr;
