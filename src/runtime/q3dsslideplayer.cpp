@@ -713,7 +713,9 @@ bool Q3DSSlidePlayer::isSlideVisible(Q3DSSlide *slide)
     if (slide) {
         Q3DSSlidePlayer *player = slide->attached<Q3DSSlideAttached>()->slidePlayer;
         Q3DSSlideDeck *slideDeck = player->slideDeck();
-        if (slideDeck->currentSlide() == slide) {
+        const bool isMasterSlide = (slideDeck->masterSlide() == slide);
+        const bool isCurrentSlide = (slideDeck->currentSlide() == slide);
+        if (isCurrentSlide || isMasterSlide) {
             Q3DSSlide *parentSlide = slideDeck->parentSlide();
             if (parentSlide) {
                 // We're a component and current, continue up the ladder...
