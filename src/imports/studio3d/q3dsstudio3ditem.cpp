@@ -52,6 +52,17 @@
 
 QT_BEGIN_NAMESPACE
 
+/*!
+    \qmltype Studio3D
+    \instantiates Q3DSStudio3DItem
+    \inqmlmodule QtStudio3D
+    \ingroup 3dstudioruntime2
+    \inherits Item
+    \brief blah
+
+    blah
+*/
+
 static bool engineCleanerRegistered = false;
 static QSet<Q3DSEngine *> engineTracker;
 static void engineCleaner()
@@ -506,6 +517,12 @@ void Q3DSStudio3DItem::hoverMoveEvent(QHoverEvent *event)
     QMouseEvent e(QEvent::MouseMove, event->pos(), event->pos() + sceneOffset, event->pos() + globalOffset,
                   Qt::NoButton, Qt::NoButton, QGuiApplication::keyboardModifiers());
     m_engine->handleMouseMoveEvent(&e);
+}
+
+void Q3DSStudio3DItem::touchEvent(QTouchEvent *event)
+{
+    if (!m_eventIgnoreFlags.testFlag(IgnoreMouseEvents) && m_engine)
+        m_engine->handleTouchEvent(event);
 }
 
 QT_END_NAMESPACE

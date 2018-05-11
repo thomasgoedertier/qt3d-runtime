@@ -56,6 +56,8 @@ QT_BEGIN_NAMESPACE
 class QKeyEvent;
 class QMouseEvent;
 class QWheelEvent;
+class QTouchEvent;
+class QTabletEvent;
 class QQmlEngine;
 class QQmlComponent;
 class Q3DSInlineQmlSubPresentation;
@@ -162,6 +164,10 @@ public:
 #if QT_CONFIG(wheelevent)
     void handleWheelEvent(QWheelEvent *e);
 #endif
+    void handleTouchEvent(QTouchEvent *e);
+#if QT_CONFIG(tabletevent)
+    void handleTabletEvent(QTabletEvent *e);
+#endif
 
     void setAutoToggleProfileUi(bool enabled) { m_autoToggleProfileUi = enabled; }
     void setProfileUiVisible(bool visible);
@@ -177,8 +183,6 @@ public:
                               BehaviorLoadedCallback callback = nullptr);
     void unloadBehaviorInstance(Q3DSBehaviorInstance *behaviorInstance);
     const BehaviorMap &behaviorHandles() const { return m_behaviorHandles; }
-
-    QPoint lastMousePressPos() const { return m_lastMousePressPos; }
 
     // These two functions are the only place where the elementPath concept is
     // present in the engine (so that mappings can be made for the 3DS1-style
@@ -275,7 +279,7 @@ private:
     bool m_ownsBehaviorQmlEngine = false;
     BehaviorMap m_behaviorHandles;
 
-    QPoint m_lastMousePressPos;
+    bool m_onDemandRendering = false;
 };
 
 Q_DECLARE_OPERATORS_FOR_FLAGS(Q3DSEngine::Flags)

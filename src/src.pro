@@ -1,7 +1,8 @@
 TEMPLATE = subdirs
 
 SUBDIRS += \
-    runtime
+    runtime \
+    doc
 
 qtHaveModule(quick) {
     SUBDIRS += imports

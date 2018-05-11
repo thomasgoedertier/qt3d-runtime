@@ -29,6 +29,7 @@
 
 #include "q3dsbehavior_p.h"
 #include "q3dsutils_p.h"
+#include "q3dslogging_p.h"
 #include "q3dsabstractxmlparser_p.h"
 #include <QFile>
 
@@ -130,7 +131,6 @@ Q3DSBehavior Q3DSBehaviorParser::parse(const QString &filename, bool *ok)
         return Q3DSBehavior();
 
     Q3DSBehavior behavior;
-    behavior.m_qmlCode = contents;
     behavior.m_qmlSourceUrl = QUrl::fromLocalFile(filename);
 
     // Find the metadata looking like this:
@@ -156,6 +156,20 @@ Q3DSBehavior Q3DSBehaviorParser::parse(const QString &filename, bool *ok)
             }
         }
     }
+
+    if (contents.indexOf(QLatin1String("\nimport QtQuick 2.")) < 0) {
+        // As a workaround for not getting QtQuick imported implicitly (unlike in
+        // 3DS1), insert "import QtQuick 2.0" before the first import (which is likely
+        // to be QtStudio3D.Behavior)
+        const QString quickImport = QLatin1String("import QtQuick 2.0\n");
+        const int firstImportIdx = contents.indexOf(QLatin1String("\nimport "));
+        if (firstImportIdx >= 0) {
+            qCDebug(lcUip, "Inserting import QtQuick 2.0 statement into %s", qPrintable(filename));
+            contents.insert(firstImportIdx + 1, quickImport);
+        }
+    }
+
+    behavior.m_qmlCode = contents;
 
     if (ok)
         *ok = true;

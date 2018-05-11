@@ -195,6 +195,10 @@ bool convertToFloat(const QStringRef &value, float *v, const char *desc, QXmlStr
     }
     bool ok = false;
     *v = value.toFloat(&ok);
+    // Adjust values that are "almost" zero values to 0.0, as we don't really expect values with
+    // more then 3-4 decimal points (note that qFuzzyIsNull does allow slightly higher resolution though).
+    if (ok && qFuzzyIsNull(*v))
+        *v = 0.0f;
     if (!ok && reader)
         reader->raiseError(QObject::tr("Invalid %1 \"%2\"").arg(QString::fromUtf8(desc)).arg(value.toString()));
     return ok;
@@ -1646,13 +1650,18 @@ namespace  {
     }
 }
 
-bool Q3DSImage::hasTransparency()
+bool Q3DSImage::hasTransparency(Q3DSUipPresentation *presentation)
 {
     if (m_scannedForTransparency)
         return m_hasTransparency;
 
     // Do a pre-load of the texture to check for transparency
-    m_hasTransparency = scanForTransparency(sourcePath());
+    if (presentation->imageTransparencyHash().contains(sourcePath())) {
+        m_hasTransparency = presentation->imageTransparencyHash()[sourcePath()];
+    } else {
+        m_hasTransparency = scanForTransparency(sourcePath());
+        presentation->imageTransparencyHash()[sourcePath()] = m_hasTransparency;
+    }
     m_scannedForTransparency = true;
     return m_hasTransparency;
 }
@@ -1748,6 +1757,8 @@ void Q3DSDefaultMaterial::setProps(const V &attrs, PropSetFlags flags)
 
     parseProperty(attrs, flags, typeName, QStringLiteral("shaderlighting"), &m_shaderLighting);
     parseProperty(attrs, flags, typeName, QStringLiteral("blendmode"), &m_blendMode);
+
+    parseProperty(attrs, flags, typeName, QStringLiteral("vertexcolors"), &m_vertexColors);
     parseProperty(attrs, flags, typeName, QStringLiteral("diffuse"), &m_diffuse);
 
     parseImageProperty(attrs, flags, typeName, QStringLiteral("diffusemap"), &m_diffuseMap_unresolved);
@@ -1846,7 +1857,7 @@ int Q3DSDefaultMaterial::mapChangeFlags(const Q3DSPropertyChangeList &changeList
 QStringList Q3DSDefaultMaterial::propertyNames() const
 {
     QStringList s = Q3DSGraphObject::propertyNames();
-    s << QLatin1String("shaderlighting") << QLatin1String("blendmode") << QLatin1String("diffuse")
+    s << QLatin1String("shaderlighting") << QLatin1String("blendmode") << QLatin1String("vertexcolors") << QLatin1String("diffuse")
       << QLatin1String("diffusemap") << QLatin1String("diffusemap2") << QLatin1String("diffusemap3")
       << QLatin1String("specularreflection") << QLatin1String("speculartint") << QLatin1String("specularamount")
       << QLatin1String("specularmap") << QLatin1String("specularmodel")
@@ -1863,7 +1874,7 @@ QStringList Q3DSDefaultMaterial::propertyNames() const
 QVariantList Q3DSDefaultMaterial::propertyValues() const
 {
     QVariantList s = Q3DSGraphObject::propertyValues();
-    s << m_shaderLighting << m_blendMode << m_diffuse << m_diffuseMap_unresolved << m_diffuseMap2_unresolved << m_diffuseMap3_unresolved
+    s << m_shaderLighting << m_blendMode << m_vertexColors << m_diffuse << m_diffuseMap_unresolved << m_diffuseMap2_unresolved << m_diffuseMap3_unresolved
       << m_specularReflection_unresolved << m_specularTint << m_specularAmount << m_specularMap_unresolved << m_specularModel
       << m_specularRoughness << m_roughnessMap_unresolved << m_fresnelPower << m_ior << m_bumpMap_unresolved << m_normalMap_unresolved << m_bumpAmount << m_displacementMap_unresolved
       << m_displaceAmount << m_opacity << m_opacityMap_unresolved << m_emissiveColor << m_emissivePower << m_emissiveMap_unresolved << m_emissiveMap2_unresolved
@@ -3862,6 +3873,11 @@ void Q3DSUipPresentation::resolveAliases()
 
 }
 
+QHash<QString, bool> &Q3DSUipPresentation::imageTransparencyHash()
+{
+    return m_imageTransparencyHash;
+}
+
 /*!
     Maps a raw XML filename ref like ".\Headphones\meshes\Headphones.mesh#1"
     onto a fully qualified filename that can be opened as-is (even if the uip
@@ -4077,6 +4093,12 @@ void Q3DSUipPresentation::removeDataInputTarget(Q3DSGraphObject *obj)
     }
 }
 
+void Q3DSUipPresentation::notifyPropertyChanges(const QHash<Q3DSGraphObject *, Q3DSPropertyChangeList *> &changeList) const
+{
+    for (auto it = changeList.cbegin(), ite = changeList.cend(); it != ite; ++it)
+        it.key()->notifyPropertyChanges(*it.value());
+}
+
 void Q3DSUipPresentation::applyPropertyChanges(const QHash<Q3DSGraphObject *, Q3DSPropertyChangeList *> &changeList) const
 {
     for (auto it = changeList.cbegin(), ite = changeList.cend(); it != ite; ++it) {
@@ -4085,9 +4107,6 @@ void Q3DSUipPresentation::applyPropertyChanges(const QHash<Q3DSGraphObject *, Q3
 
         it.key()->applyPropertyChanges(*it.value());
     }
-
-    for (auto it = changeList.cbegin(), ite = changeList.cend(); it != ite; ++it)
-        it.key()->notifyPropertyChanges(*it.value());
 }
 
 void Q3DSUipPresentation::applySlidePropertyChanges(Q3DSSlide *slide) const
@@ -4095,6 +4114,7 @@ void Q3DSUipPresentation::applySlidePropertyChanges(Q3DSSlide *slide) const
     const auto &changeList = slide->propertyChanges();
     qCDebug(lcUip, "Applying %d property changes from slide %s", changeList.count(), slide->id().constData());
     applyPropertyChanges(changeList);
+    notifyPropertyChanges(changeList);
 }
 
 static void forAllObjectsInSubTree_helper(Q3DSGraphObject *obj,

@@ -42,6 +42,16 @@
 
 QT_BEGIN_NAMESPACE
 
+/*!
+    \class Q3DSWidget
+
+    \inmodule 3dstudioruntime2
+
+    \brief Widget
+
+    blah
+*/
+
 Q3DSWidget::Q3DSWidget(QWidget *parent)
     : QOpenGLWidget(parent),
       d_ptr(new Q3DSWidgetPrivate(this))

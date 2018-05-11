@@ -375,6 +375,7 @@ static const char *getTexTanAttrName() { return "attr_textan"; }
 //static const char *getTexBinormalAttrName() { return "attr_binormal"; }
 //static const char *getWeightAttrName() { return "attr_weight"; }
 //static const char *getBoneIndexAttrName() { return "attr_boneid"; }
+static const char *getColorAttrName() { return "attr_color"; }
 
 struct MeshDataHeader
 {
@@ -692,6 +693,19 @@ MeshList loadMeshData(const QByteArray &meshData, quint32 flags, bool useQt3DAtt
                                                                 tangentEntry.m_FirstItemOffset,
                                                                 stride);
             attributes.append(tangentsAttribute);
+        }
+
+        // Vertex Color
+        if (entryBufferMap.contains(QString::fromLocal8Bit(getColorAttrName()))) {
+            auto vertexColorEntry = entryBufferMap[QString::fromLocal8Bit(getColorAttrName())];
+            auto colorAttribute = new Qt3DRender::QAttribute(vertexBuffer,
+                                                             Qt3DRender::QAttribute::defaultColorAttributeName(),
+                                                             convertRenderComponentToVertexBaseType(vertexColorEntry.m_ComponentType),
+                                                             vertexColorEntry.m_NumComponents,
+                                                             vertexCount,
+                                                             vertexColorEntry.m_FirstItemOffset,
+                                                             stride);
+            attributes.append(colorAttribute);
         }
     }
     // Index Buffer

@@ -153,13 +153,13 @@ void Q3DSSceneElementPrivate::_q_onSlideEntered(const QString &contextElemPath, 
     currentSlideName = name;
 
     if (notifyPrevious) {
-        emit q->previousSlideIndexChanged();
-        emit q->previousSlideNameChanged();
+        emit q->previousSlideIndexChanged(previousSlideIndex);
+        emit q->previousSlideNameChanged(previousSlideName);
     }
 
     if (notifyCurrent) {
-        emit q->currentSlideIndexChanged();
-        emit q->currentSlideNameChanged();
+        emit q->currentSlideIndexChanged(currentSlideIndex);
+        emit q->currentSlideNameChanged(currentSlideName);
     }
 }
 

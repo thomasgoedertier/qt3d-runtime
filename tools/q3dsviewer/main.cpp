@@ -132,6 +132,7 @@ int main(int argc, char *argv[])
             view->showFullScreen();
         else
             view->show();
+        engine->setOnDemandRendering(true);
     } else {
 #ifdef Q3DSVIEWER_WIDGETS
         mw = new Q3DStudioMainWindow(view.take(), remote.data());

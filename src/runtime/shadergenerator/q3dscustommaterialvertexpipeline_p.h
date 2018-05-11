@@ -66,6 +66,7 @@ public:
     void doGenerateObjectNormal() override;
     void doGenerateWorldPosition() override;
     void doGenerateVarTangentAndBinormal() override;
+    void doGenerateVertexColor() override;
 };
 
 class Q3DSCustomMaterialShaderGenerator : public Q3DSAbstractMaterialGenerator

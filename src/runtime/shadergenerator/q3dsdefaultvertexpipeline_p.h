@@ -114,6 +114,7 @@ public:
     virtual void generateObjectNormal() = 0; // object_normal in both vert and frag shader
     virtual void generateWorldPosition() = 0; // model_world_position in both vert and frag shader
     virtual void generateVarTangentAndBinormal() = 0;
+    virtual void generateVertexColor() = 0;
 
     virtual bool hasActiveWireframe() = 0; // varEdgeDistance is a valid entity
 
@@ -145,6 +146,7 @@ struct Q3DSVertexPipelineImpl : public Q3DSDefaultVertexPipeline
             WorldPosition = 1 << 5,
             TangentBinormal = 1 << 6,
             UVCoords1 = 1 << 7,
+            VertexColor = 1 << 8,
         };
     };
 
@@ -204,6 +206,7 @@ struct Q3DSVertexPipelineImpl : public Q3DSDefaultVertexPipeline
 
     void generateVarTangentAndBinormal() override;
 
+    void generateVertexColor() override;
 
     bool hasActiveWireframe() override;
 
@@ -241,6 +244,7 @@ struct Q3DSVertexPipelineImpl : public Q3DSDefaultVertexPipeline
     virtual void doGenerateObjectNormal() = 0;
     virtual void doGenerateWorldPosition() = 0;
     virtual void doGenerateVarTangentAndBinormal() = 0;
+    virtual void doGenerateVertexColor() = 0;
 };
 
 QT_END_NAMESPACE

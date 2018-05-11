@@ -520,7 +520,7 @@ public:
             return QStringLiteral("varying");
         return QStringLiteral("in");
     }
-    void addShaderOutgoingMap()
+    void addShaderOutgoingMap() override
     {
         // Do nothing
     }

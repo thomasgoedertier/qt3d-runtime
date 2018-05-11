@@ -342,6 +342,12 @@ void Q3DSSubsetMaterialVertexPipeline::doGenerateVarTangentAndBinormal()
     }
 }
 
+void Q3DSSubsetMaterialVertexPipeline::doGenerateVertexColor()
+{
+    vertex().addIncoming("attr_color", "vec3");
+    vertex().append("\tvarColor = attr_color;");
+}
+
 void Q3DSSubsetMaterialVertexPipeline::endVertexGeneration()
 {
 

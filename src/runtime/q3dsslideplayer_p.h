@@ -134,7 +134,7 @@ private:
     void reset();
     void setInternalState(PlayerState state);
     void onDurationChanged(float duration);
-    Q_INVOKABLE void onSlideFinished(void *slide);
+    void onSlideFinished(Q3DSSlide *slide);
 
     void handleCurrentSlideChanged(Q3DSSlide *slide,
                                    Q3DSSlide *previousSlide,

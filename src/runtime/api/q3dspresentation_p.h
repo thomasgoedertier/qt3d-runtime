@@ -77,6 +77,10 @@ public:
 #if QT_CONFIG(wheelevent)
     virtual void handlePresentationWheelEvent(QWheelEvent *e);
 #endif
+    virtual void handlePresentationTouchEvent(QTouchEvent *e);
+#if QT_CONFIG(tabletevent)
+    virtual void handlePresentationTabletEvent(QTabletEvent *e);
+#endif
 
     virtual void handleDataInputValue(const QString &name, const QVariant &value);
     virtual void handleFireEvent(const QString &elementPath, const QString &eventName);

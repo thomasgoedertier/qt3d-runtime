@@ -546,24 +546,19 @@ void Q3DSSlidePlayer::handleCurrentSlideChanged(Q3DSSlide *slide,
     qCDebug(lcSlidePlayer, "Handling current slide change: from slide \"%s\", to slide \"%s\"",
             qPrintable(getSlideName(previousSlide)), qPrintable(getSlideName(slide)));
 
-    // Disconnect monitors from the old slide
     if (previousSlide && slideDidChange) {
         if (parentChanged)
             setSlideTime(static_cast<Q3DSSlide *>(previousSlide->parent()), -1.0f);
         setSlideTime(previousSlide, -1.0f);
         Q3DSSlideAttached *data = previousSlide->attached<Q3DSSlideAttached>();
         if (data && data->animator) {
-            Qt3DAnimation::QClipAnimator *animator = data->animator;
             // TODO: We probably want to be a bit less brute.
             if (slide) Q_ASSERT(previousSlide->parent() == slide->parent());
-            animator->clearPropertyTrackings();
-            animator->disconnect();
-            updateAnimators(previousSlide, false, true, 1.0f);
-            m_animationManager->clearAnimations(previousSlide, (m_mode == PlayerMode::Editor));
+            updateAnimators(previousSlide, false, false, 1.0f);
+            m_animationManager->clearAnimations(previousSlide);
         }
     }
 
-    // Connect to monitors to the new slide
     if (slide && slideDidChange && isSlideVisible(slide)) {
         m_sceneManager->handleSlideChange(previousSlide, slide);
         m_animationManager->updateAnimations(slide, (m_mode == PlayerMode::Editor));
@@ -696,7 +691,7 @@ void Q3DSSlidePlayer::sendPositionChanged(Q3DSSlide *slide, float pos)
                 || (m_data.position == duration() && m_data.playbackRate > 0.0f));
 
     if (onEOS)
-        QMetaObject::invokeMethod(this, "onSlideFinished", Qt::QueuedConnection, Q_ARG(void *, slide));
+        onSlideFinished(slide);
 }
 
 void Q3DSSlidePlayer::updateNodeVisibility(Q3DSNode *node, bool shouldBeVisible)
@@ -745,22 +740,11 @@ void Q3DSSlidePlayer::onDurationChanged(float duration)
     Q_EMIT durationChanged(duration);
 }
 
-void Q3DSSlidePlayer::onSlideFinished(void *slide)
+void Q3DSSlidePlayer::onSlideFinished(Q3DSSlide *slide)
 {
     Q_ASSERT(m_data.slideDeck);
-
-    // The call to onSlideFinished is queued to avoid re-entrance issues, so make sure
-    // we're still operating and that the slide that finish is still current!
-    if (m_data.state != PlayerState::Playing)
-        return;
-
-    Q3DSSlide *currentSlide = m_data.slideDeck->currentSlide();
-    if (currentSlide != slide) {
-        qCDebug(lcSlidePlayer, "onSlideFinished called for \"%s\", but slide has already changed to \"%s!",
-                qPrintable(getSlideName(static_cast<Q3DSSlide *>(slide))), qPrintable(getSlideName(currentSlide)));
-        return;
-    }
-
+    Q_ASSERT(m_data.state == PlayerState::Playing);
+    Q_ASSERT(slide == m_data.slideDeck->currentSlide());
 
     // We don't change slides automatically in Editor mode
     if (m_mode == PlayerMode::Editor) {
@@ -769,7 +753,7 @@ void Q3DSSlidePlayer::onSlideFinished(void *slide)
     }
 
     // Get the slide's play mode
-    const auto playMode = currentSlide->playMode();
+    const auto playMode = slide->playMode();
 
     PlayerState state = PlayerState::Stopped;
 
@@ -779,12 +763,12 @@ void Q3DSSlidePlayer::onSlideFinished(void *slide)
         break;
     case Q3DSSlide::PlayThroughTo:
     {
-        if (currentSlide->playThrough() == Q3DSSlide::Next) {
+        if (slide->playThrough() == Q3DSSlide::Next) {
             m_data.slideDeck->nextSlide();
-        } else if (currentSlide->playThrough() == Q3DSSlide::Previous) {
+        } else if (slide->playThrough() == Q3DSSlide::Previous) {
             m_data.slideDeck->previousSlide();
-        } else if (currentSlide->playThrough() == Q3DSSlide::Value) {
-            const auto value = currentSlide->playThroughValue();
+        } else if (slide->playThrough() == Q3DSSlide::Value) {
+            const auto value = slide->playThroughValue();
             if (value.type() == QVariant::Int) { // Assume this is a fixed index value
                 m_data.slideDeck->setCurrentIndex(value.toInt());
             } else if (value.type() == QVariant::String) { // Reference to a slide?

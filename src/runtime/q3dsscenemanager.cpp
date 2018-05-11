@@ -4451,9 +4451,9 @@ void Q3DSSceneManager::retagSubMeshes(Q3DSModelNode *model3DS)
             auto defaultMaterial = static_cast<Q3DSDefaultMaterial *>(sm.resolvedMaterial);
             opacity *= defaultMaterial->opacity() / 100.0f;
             // Check maps for transparency as well
-            hasTransparency = ((defaultMaterial->diffuseMap() && defaultMaterial->diffuseMap()->hasTransparency()) ||
-                               (defaultMaterial->diffuseMap2() && defaultMaterial->diffuseMap2()->hasTransparency()) ||
-                               (defaultMaterial->diffuseMap3() && defaultMaterial->diffuseMap3()->hasTransparency()) ||
+            hasTransparency = ((defaultMaterial->diffuseMap() && defaultMaterial->diffuseMap()->hasTransparency(m_presentation)) ||
+                               (defaultMaterial->diffuseMap2() && defaultMaterial->diffuseMap2()->hasTransparency(m_presentation)) ||
+                               (defaultMaterial->diffuseMap3() && defaultMaterial->diffuseMap3()->hasTransparency(m_presentation)) ||
                                defaultMaterial->opacityMap() ||
                                defaultMaterial->translucencyMap() ||
                                defaultMaterial->displacementmap() ||
@@ -4462,7 +4462,7 @@ void Q3DSSceneManager::retagSubMeshes(Q3DSModelNode *model3DS)
         } else if (sm.resolvedMaterial->type() == Q3DSGraphObject::CustomMaterial) {
             auto customMaterial = static_cast<Q3DSCustomMaterialInstance *>(sm.resolvedMaterial);
             const Q3DSCustomMaterial *matDesc = customMaterial->material();
-            sm.hasTransparency = matDesc->materialHasTransparency() || matDesc->materialHasRefraction();
+            sm.hasTransparency = opacity < 1.0f || matDesc->materialHasTransparency() || matDesc->materialHasRefraction();
         }
 
         Qt3DRender::QLayer *newTag = sm.hasTransparency ? layerData->transparentTag : layerData->opaqueTag;
@@ -5040,6 +5040,11 @@ QVector<Qt3DRender::QParameter *> Q3DSSceneManager::prepareCustomMaterial(Q3DSCu
         data->params.insert(propKey, Q3DSCustomPropertyParameter(param, v, propMeta));
     });
 
+
+    data->objectOpacityParam = new Qt3DRender::QParameter;
+    data->objectOpacityParam->setName(QLatin1String("object_opacity"));
+    paramList.append(data->objectOpacityParam);
+
     // Lightmaps
     // check for referencedMaterial Overrides
     Q3DSImage *lightmapIndirect = nullptr;
@@ -5128,6 +5133,8 @@ void Q3DSSceneManager::updateCustomMaterial(Q3DSCustomMaterialInstance *m, Q3DSR
             break;
         }
     });
+
+    data->objectOpacityParam->setValue(data->opacity);
 
     // Lightmaps
     Q3DSImage *lightmapIndirect = nullptr;
@@ -6598,28 +6605,54 @@ void Q3DSSceneManager::handleSlideChange(Q3DSSlide *prevSlide,
 
     // Find properties on targets that has dynamic properties.
     // TODO: Find a better solution (e.g., there can be duplicate updates for e.g., xyz here).
-    QHash<Q3DSGraphObject *, Q3DSPropertyChangeList *> propertyChanges;
+    QHash<Q3DSGraphObject *, Q3DSPropertyChangeList *> dynamicPropertyChanges;
+    QVector<Q3DSPropertyChangeList *> ephemeralObjects;
     const auto &tracks = currentSlide->animations();
-    std::find_if(tracks.cbegin(), tracks.cend(), [&propertyChanges](const Q3DSAnimationTrack &track) {
+    std::find_if(tracks.cbegin(), tracks.cend(), [&dynamicPropertyChanges, &ephemeralObjects](const Q3DSAnimationTrack &track) {
         if (track.isDynamic()) {
-            auto foundIt = propertyChanges.find(track.target());
-            Q3DSPropertyChangeList *changesList = (foundIt != propertyChanges.end())
+            auto foundIt = dynamicPropertyChanges.find(track.target());
+            const bool propertyFound = (foundIt != dynamicPropertyChanges.end());
+            Q3DSPropertyChangeList *changesList = propertyFound
                     ? *foundIt
                     : new Q3DSPropertyChangeList;
+            if (!propertyFound)
+                ephemeralObjects.push_back(changesList);
 
             const QString property = track.property().split('.')[0];
             const auto value = track.target()->propertyValue(property);
             changesList->append(Q3DSPropertyChange::fromVariant(property, value));
 
-            if (foundIt == propertyChanges.end())
-                propertyChanges.insert(track.target(), changesList);
+            if (foundIt == dynamicPropertyChanges.end())
+                dynamicPropertyChanges.insert(track.target(), changesList);
         }
         return false;
     });
 
-    m_presentation->applySlidePropertyChanges(currentSlide);
-    // Now re-apply the original values for those dynamic keyframes.
+    const auto &propertyChanges = currentSlide->propertyChanges();
+
+    // Filter out properties that we needs to be marked dirty, i.e., eyeball changes.
+    QHash<Q3DSGraphObject *, Q3DSPropertyChangeList *> notifyPropertyChanges;
+    for (auto it = propertyChanges.cbegin(); it != propertyChanges.cend(); ++it) {
+        std::find_if((*it)->cbegin(), (*it)->cend(), [it, &notifyPropertyChanges, &ephemeralObjects](const Q3DSPropertyChange &propChange) {
+            if (propChange.name() == QLatin1String("eyeball")) {
+                Q3DSPropertyChangeList *propChangeList = new Q3DSPropertyChangeList;
+                propChangeList->append(propChange);
+                ephemeralObjects.push_back(propChangeList);
+                notifyPropertyChanges[it.key()] = propChangeList;
+                return true;
+            }
+            return false;
+        });
+    }
+    // We avoid triggering notifications (i.e., setting dirty flags) just yet, as we
+    // want to defer that until we're ready.
     m_presentation->applyPropertyChanges(propertyChanges);
+    // notify about visibility changes.
+    m_presentation->notifyPropertyChanges(notifyPropertyChanges);
+    // Now re-apply the original values for those dynamic keyframes.
+    m_presentation->applyPropertyChanges(dynamicPropertyChanges);
+    // Now clean-up the objects we created.
+    qDeleteAll(ephemeralObjects);
 }
 
 void Q3DSSceneManager::prepareNextFrame()
@@ -7207,6 +7240,9 @@ void Q3DSSceneManager::goToTime(Q3DSGraphObject *sceneOrComponent, float millise
         slidePlayer->pause();
 
     slidePlayer->seek(milliseconds);
+
+    if (!pause)
+        slidePlayer->play();
 }
 
 void Q3DSSceneManager::setDataInputValue(const QString &dataInputName, const QVariant &value)

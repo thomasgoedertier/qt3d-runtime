@@ -41,6 +41,13 @@ class Q3DSPresentationPrivate;
 class QKeyEvent;
 class QMouseEvent;
 class QWheelEvent;
+class QTouchEvent;
+class QTabletEvent;
+
+// hack. no clue why Cpp.ignoretokens does not work.
+#ifdef Q_CLANG_QDOC
+#define Q3DSV_EXPORT
+#endif
 
 class Q3DSV_EXPORT Q3DSPresentation : public QObject
 {
@@ -88,6 +95,10 @@ public:
     void mouseDoubleClickEvent(QMouseEvent *e);
 #if QT_CONFIG(wheelevent)
     void wheelEvent(QWheelEvent *e);
+#endif
+    void touchEvent(QTouchEvent *e);
+#if QT_CONFIG(tabletevent)
+    void tabletEvent(QTabletEvent *e);
 #endif
 
 Q_SIGNALS:

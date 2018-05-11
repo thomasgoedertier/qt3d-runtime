@@ -79,13 +79,6 @@ public:
                                       const QJSValue &function);
     Q_INVOKABLE void unregisterForEvent(const QString &event);
     Q_INVOKABLE void unregisterForEvent(const QString &handle, const QString &event);
-    Q_INVOKABLE QVector2D getMousePosition();
-    Q_REVISION(2) Q_INVOKABLE QMatrix4x4 calculateGlobalTransform();
-    Q_INVOKABLE QMatrix4x4 calculateGlobalTransform(const QString &handle);
-    Q_INVOKABLE QVector3D lookAt(const QVector3D &target);
-    Q_INVOKABLE QVector3D matrixToEuler(const QMatrix4x4 &matrix);
-    Q_REVISION(2) Q_INVOKABLE QString getParent();
-    Q_INVOKABLE QString getParent(const QString &handle);
     Q_REVISION(1) Q_INVOKABLE void setDataInputValue(const QString &name, const QVariant &value);
 
 signals:

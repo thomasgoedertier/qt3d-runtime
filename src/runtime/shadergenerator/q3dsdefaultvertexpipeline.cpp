@@ -522,6 +522,7 @@ struct ShaderGenerator : public Q3DSDefaultMaterialShaderGenerator
     {
         bool specularEnabled = m_CurrentMaterial->specularAmount() > 0.01f;
         bool fresnelEnabled = m_CurrentMaterial->fresnelPower() > 0.0f;
+        bool vertexColorsEnabled = m_CurrentMaterial->vertexColors();
         bool hasLighting = m_CurrentMaterial->shaderLighting() != Q3DSDefaultMaterial::NoShaderLighting;
         bool hasLightmaps = false;
 
@@ -646,6 +647,11 @@ struct ShaderGenerator : public Q3DSDefaultMaterialShaderGenerator
 
         if (includeSSAOSSDOVars || specularEnabled || hasIblProbe)
             vertexShader.generateVarTangentAndBinormal();
+
+        if (vertexColorsEnabled)
+            vertexShader.generateVertexColor();
+        else
+            fragmentShader.append("\tvec3 vertColor = vec3(1.0);");
 
         if (includeSSAOSSDOVars) {
             // You do bump or normal mapping but not both
@@ -1099,7 +1105,7 @@ struct ShaderGenerator : public Q3DSDefaultMaterialShaderGenerator
             fragmentShader.append("\tglobal_diffuse_light.rgb += global_emission.rgb;");
 
         // Ensure the rgb colors are in range.
-        fragmentShader.append("\tfragOutput = vec4( clamp( global_diffuse_light.xyz + "
+        fragmentShader.append("\tfragOutput = vec4( clamp( vertColor * global_diffuse_light.xyz + "
                               "global_specular_light.xyz, 0.0, 65519.0 ), global_diffuse_light.a "
                               ");");
 
@@ -1410,6 +1416,15 @@ void Q3DSVertexPipelineImpl::generateVarTangentAndBinormal()
     doGenerateVarTangentAndBinormal();
     fragment() << "\tvec3 tangent = normalize(varTangent);" << "\n"
                << "\tvec3 binormal = normalize(varBinormal);" << "\n";
+}
+
+void Q3DSVertexPipelineImpl::generateVertexColor()
+{
+    if (setCode(GenerationFlagValues::VertexColor))
+        return;
+    addInterpolationParameter("varColor", "vec3");
+    doGenerateVertexColor();
+    fragment().append("\tvec3 vertColor = varColor;");
 }
 
 bool Q3DSVertexPipelineImpl::hasActiveWireframe()

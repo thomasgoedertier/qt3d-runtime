@@ -184,14 +184,6 @@ public:
     Qt3DCore::QEntity *entity = nullptr;
     Q3DSComponentNode *component = nullptr;
 
-    struct AnimatedValueRollbackData {
-        Q3DSGraphObject *obj;
-        QString name;
-        QVariant value;
-        Qt3DAnimation::SetterFunc setter;
-    };
-    QVector<AnimatedValueRollbackData> animationRollbacks;
-
     enum FrameDirtyFlag {
         GroupDirty = 0x01,
         LightDirty = 0x02,
@@ -727,7 +719,7 @@ public:
     void calculateTextureTransform();
     const QMatrix4x4 &textureTransform() const { return m_textureTransform; }
 
-    bool hasTransparency();
+    bool hasTransparency(Q3DSUipPresentation *presentation);
 
     // Properties
     QString sourcePath() const { return m_sourcePath; } // already adjusted, can be opened as-is
@@ -1562,6 +1554,7 @@ public:
     // Properties
     ShaderLighting shaderLighting() const { return m_shaderLighting; }
     BlendMode blendMode() const { return m_blendMode; }
+    bool vertexColors() const { return m_vertexColors; }
     QColor diffuse() const { return m_diffuse; }
     Q3DSImage *diffuseMap() const { return m_diffuseMap; }
     Q3DSImage *diffuseMap2() const { return m_diffuseMap2; }
@@ -1637,6 +1630,7 @@ private:
 
     ShaderLighting m_shaderLighting = PixelShaderLighting;
     BlendMode m_blendMode = Normal;
+    bool m_vertexColors = false;
     QColor m_diffuse = Qt::white;
     QString m_diffuseMap_unresolved;
     Q3DSImage *m_diffuseMap = nullptr;
@@ -2000,6 +1994,7 @@ public:
     static void forAllModels(Q3DSGraphObject *obj, std::function<void(Q3DSModelNode *)> f, bool includeHidden = false);
     void forAllImages(std::function<void(Q3DSImage *)> f);
 
+    void notifyPropertyChanges(const QHash<Q3DSGraphObject *, Q3DSPropertyChangeList *> &changeList) const;
     void applyPropertyChanges(const QHash<Q3DSGraphObject *, Q3DSPropertyChangeList *> &changeList) const;
     void applySlidePropertyChanges(Q3DSSlide *slide) const;
 
@@ -2030,6 +2025,7 @@ public:
             obj->parent()->removeChildNode(obj);
     }
     void resolveAliases();
+    QHash<QString, bool> &imageTransparencyHash();
 
 private:
     Q_DISABLE_COPY(Q3DSUipPresentation)
@@ -2042,6 +2038,7 @@ private:
     Q3DSGraphObject *getObjectByName(const QString &name) const;
 
     QScopedPointer<Q3DSUipPresentationData> d;
+    QHash<QString, bool> m_imageTransparencyHash;
     friend class Q3DSUipParser;
 };
 

@@ -113,6 +113,7 @@ private:
     void wheelEvent(QWheelEvent *event) override;
 #endif
     void hoverMoveEvent(QHoverEvent *event) override;
+    void touchEvent(QTouchEvent *event) override;
 
     void updateEventMasks();
     void createEngine();

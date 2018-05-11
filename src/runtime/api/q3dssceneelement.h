@@ -37,6 +37,11 @@ QT_BEGIN_NAMESPACE
 
 class Q3DSSceneElementPrivate;
 
+// hack. no clue why Cpp.ignoretokens does not work.
+#ifdef Q_CLANG_QDOC
+#define Q3DSV_EXPORT
+#endif
+
 class Q3DSV_EXPORT Q3DSSceneElement : public Q3DSElement
 {
     Q_OBJECT
@@ -63,10 +68,10 @@ public Q_SLOTS:
     void goToTime(float timeSeconds);
 
 Q_SIGNALS:
-    void currentSlideIndexChanged();
-    void previousSlideIndexChanged();
-    void currentSlideNameChanged();
-    void previousSlideNameChanged();
+    void currentSlideIndexChanged(int currentSlideIndex);
+    void previousSlideIndexChanged(int previousSlideIndex);
+    void currentSlideNameChanged(const QString &currentSlideName);
+    void previousSlideNameChanged(const QString &previousSlideName);
 
 protected:
     Q3DSSceneElement(Q3DSSceneElementPrivate &dd, QObject *parent);

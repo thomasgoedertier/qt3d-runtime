@@ -150,6 +150,11 @@ Q3DSEngine::Q3DSEngine()
         // (since we want to see qCDebugs in release builds etc.) but there's
         // no need since that's the default since our category names do not
         // start with qt.*
+
+        // q3ds.uipprop (data input value changes for ex.) is enabled only when
+        // Q3DS_DEBUG is set to 1 or higher.
+        const bool logValueChanges = qEnvironmentVariableIntValue("Q3DS_DEBUG") >= 1;
+        const_cast<QLoggingCategory &>(lcUipProp()).setEnabled(QtDebugMsg, logValueChanges);
     }
 }
 
@@ -646,6 +651,9 @@ void Q3DSEngine::finalizePresentations()
     else
         m_aspectEngine->setRootEntity(Qt3DCore::QEntityPtr(m_uipPresentations[0].q3dscene.rootEntity));
 
+    m_uipPresentations[0].q3dscene.renderSettings->setRenderPolicy(m_onDemandRendering ?
+        Qt3DRender::QRenderSettings::OnDemand : Qt3DRender::QRenderSettings::Always);
+
     if (m_autoStart) {
         for (const UipPresentation &pres : m_uipPresentations)
             pres.sceneManager->prepareAnimators();
@@ -1116,6 +1124,9 @@ Qt3DCore::QEntity *Q3DSEngine::rootEntity() const
 
 void Q3DSEngine::setOnDemandRendering(bool enabled)
 {
+    if (m_onDemandRendering == enabled)
+        return;
+    m_onDemandRendering = enabled;
     m_uipPresentations[0].q3dscene.renderSettings->setRenderPolicy(enabled ?
         Qt3DRender::QRenderSettings::OnDemand : Qt3DRender::QRenderSettings::Always);
 }
@@ -1214,8 +1225,6 @@ void Q3DSEngine::handleKeyReleaseEvent(QKeyEvent *e)
 
 void Q3DSEngine::handleMousePressEvent(QMouseEvent *e)
 {
-    m_lastMousePressPos = e->pos();
-
     if (isProfileUiVisible()) {
         QCoreApplication::sendEvent(&m_profileUiEventSource, e);
         return;
@@ -1244,8 +1253,6 @@ void Q3DSEngine::handleMouseMoveEvent(QMouseEvent *e)
 
 void Q3DSEngine::handleMouseReleaseEvent(QMouseEvent *e)
 {
-    m_lastMousePressPos = e->pos();
-
     if (isProfileUiVisible()) {
         QCoreApplication::sendEvent(&m_profileUiEventSource, e);
         return;
@@ -1289,6 +1296,20 @@ void Q3DSEngine::handleWheelEvent(QWheelEvent *e)
 {
     if (isProfileUiVisible())
         QCoreApplication::sendEvent(&m_profileUiEventSource, e);
+}
+#endif
+
+void Q3DSEngine::handleTouchEvent(QTouchEvent *e)
+{
+    Q_UNUSED(e);
+    // not much to do now, the touch-to-mouse synthesization of QtGui is good enough
+    // but will become relevant when multi-touch etc.
+}
+
+#if QT_CONFIG(tabletevent)
+void Q3DSEngine::handleTabletEvent(QTabletEvent *e)
+{
+    Q_UNUSED(e);
 }
 #endif
 
