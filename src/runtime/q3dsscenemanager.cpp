@@ -7296,10 +7296,19 @@ void Q3DSSceneManager::setDataInputValue(const QString &dataInputName, const QVa
                         // timeline length and map the incoming value on it (just because 3DS1
                         // does it). If min-max is not specified, interpret value directly as
                         // timeline point in milliseconds
-                        const float seekTimeMs = meta.hasMinMax()
-                                ? ((value.toFloat() - meta.minValue) /
-                                  (meta.maxValue - meta.minValue))* obj->endTime()
-                                : value.toFloat();
+                        float seekTimeMs = 0.0f;
+                        if (meta.hasMinMax()) {
+                            Q_ASSERT(!qFuzzyIsNull(meta.maxValue));
+                            const float normalized = qBound(0.0f, (value.toFloat() / (meta.maxValue - meta.minValue)), 1.0f);
+                            Q3DSSlide *slide = (obj->type() == Q3DSGraphObject::Component) ? static_cast<Q3DSComponentNode *>(obj)->currentSlide()
+                                                                                           : m_currentSlide;
+                            qint32 startTime = 0;
+                            qint32 endTime = 0;
+                            Q3DSSlideUtils::getStartAndEndTime(slide, &startTime, &endTime);
+                            seekTimeMs = normalized * (endTime - startTime);
+                        } else {
+                            seekTimeMs = value.toFloat();
+                        }
                         goToTime(obj, seekTimeMs);
                     } else {
                         qWarning("Object %s with timeline data input is not Scene or Component", obj->id().constData());
