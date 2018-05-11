@@ -575,7 +575,7 @@ void Q3DSSceneManager::prepareEngineResetGlobal()
     Q3DSShaderManager::instance().invalidate();
 }
 
-/*!
+/*
     Builds and "runs" a Qt 3D scene. To be called once per SceneManager instance.
 
     Ownership of the generated Qt 3D objects is managed primarily via parenting
@@ -796,7 +796,7 @@ Q3DSSceneManager::Scene Q3DSSceneManager::buildScene(Q3DSUipPresentation *presen
     return sc;
 }
 
-/*!
+/*
     To be called on the scenemanager corresponding to the main presentation
     once after all subpresentation buildScene() calls have succeeded. This is
     where the association of textures and subpresentation layers happens. That

@@ -1,5 +1,6 @@
 /****************************************************************************
 **
+** Copyright (C) 1993-2009 NVIDIA Corporation.
 ** Copyright (C) 2018 The Qt Company Ltd.
 ** Contact: https://www.qt.io/licensing/
 **
@@ -25,9 +26,17 @@
 **
 ****************************************************************************/
 
-/*!
-    \page qt3d-runtime-embedded.html
-    \title Using the Runtime on Embedded Devices
+// This is a wrapper for getting script-generated
+// content in attributenames.html into qdoc.
+// (note: hand edited for 2.0)
 
-    embedded stuff (eglfs etc.)
+/*!
+    \page qt3d-runtime-attribute-names.html
+    \title Attribute Names
+    \keyword Attributes
+
+    Below is a list of the attributes that can be set on the various scene
+    objects via Q3DSPresentation::setAttribute() or Q3DSElement::setAttribute():
+
+    \include attributenames.html
 */

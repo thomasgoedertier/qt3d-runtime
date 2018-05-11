@@ -26,22 +26,15 @@
 ****************************************************************************/
 
 /*!
-\keyword Qt 3D Studio Runtime
-\title Qt 3D Studio Runtime Index
-\page index.html
+\contentspage {Qt 3D Studio Runtime}
+\page qt3d-runtime-toc.html
+\title Qt 3D Studio Runtime TOC
 
-\section1 Table of Contents
+\omit
+This file is used for generating a TOC in a .qch file.
+\endomit
 
 \list
-    \li \l {Getting Started}
-    \li \l {Qt 3D Studio Runtime C++ Classes}
-    \li \l {Qt 3D Studio Runtime QML Types}
-    \li \l {Using the Runtime on Android/iOS Devices}
-    \li \l {Using the Runtime on Embedded Devices}
-    \li \l {Examples}
-    \li \l {Copyright Notices}
+    \li \l {index.html}{Overview}
 \endlist
-
-blah blah blah
-
 */

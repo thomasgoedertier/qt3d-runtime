@@ -45,6 +45,56 @@
 
 QT_BEGIN_NAMESPACE
 
+/*!
+    \class Q3DSSurfaceViewer
+    \inmodule 3dstudioruntime2
+    \since Qt 3D Studio 2.0
+
+    \brief Renders a Qt 3D Studio presentation on a QWindow or an offscreen
+    render target using OpenGL.
+
+    Q3DSSurfaceViewer is used to render Qt 3D Studio presentations onto a
+    QSurface. In practice this means two types of uses: rendering to an
+    on-screen QWindow, or rendering to an offscreen render target (typically an
+    OpenGL texture via a framebuffer object and a QOffscreenSurface).
+
+    \section2 Example Usage
+
+    \code
+    int main(int argc, char *argv[])
+    {
+        QGuiApplication app(argc, argv);
+
+        QOpenGLContext context;
+        context.create();
+
+        QWindow window;
+        window.setSurfaceType(QSurface::OpenGLSurface);
+        window.setFormat(context.format());
+        window.create();
+
+        Q3DSSurfaceViewer viewer;
+        viewer.presentation()->setSource(QUrl(QStringLiteral("qrc:/my_presentation.uip")));
+        viewer.setUpdateInterval(0); // enable automatic updates
+
+        // Register a scene object for slide management (optional)
+        Q3DSSceneElement scene(viewer.presentation(), QStringLiteral("Scene"));
+
+        // Register an element object for attribute setting (optional)
+        Q3DSElement element(viewer.presentation(), QStringLiteral("myCarModel"));
+
+        viewer.create(&window, &context);
+
+        w.resize(1024, 768);
+        w.show();
+
+        return app.exec();
+    }
+    \endcode
+
+    \sa Q3DSWidget
+ */
+
 Q3DSSurfaceViewer::Q3DSSurfaceViewer(QObject *parent)
     : QObject(*new Q3DSSurfaceViewerPrivate, parent)
 {
@@ -67,12 +117,35 @@ Q3DSSurfaceViewer::~Q3DSSurfaceViewer()
 // "use this custom FBO as-is". Changing to int would be wrong too since the ID
 // is a GLuint in practice.
 
+/*!
+    Initializes Q3DSSurfaceViewer to render the presentation to the given
+    \a surface using the \a context.
+
+    The source property of the attached presentation must be set before the
+    viewer can be initialized.
+
+    Returns whether the initialization succeeded.
+
+    \sa running, Q3DSPresentation::source, presentation()
+*/
 bool Q3DSSurfaceViewer::create(QSurface *surface, QOpenGLContext *context)
 {
     Q_D(Q3DSSurfaceViewer);
     return d->doCreate(surface, context, 0, false);
 }
 
+/*!
+    Initializes Q3DSSurfaceViewer to render the presentation to the given
+    \a surface using the \a context and optional framebuffer id (\a fboId). If
+    \a fboId is omitted, it defaults to zero.
+
+    The source property of the attached presentation must be set before the
+    viewer can be initialized.
+
+    Returns whether the initialization succeeded.
+
+    \sa running, Q3DSPresentation::source, presentation()
+*/
 bool Q3DSSurfaceViewer::create(QSurface *surface, QOpenGLContext *context, uint fboId)
 {
     Q_D(Q3DSSurfaceViewer);
@@ -114,12 +187,18 @@ void Q3DSSurfaceViewer::destroy()
     d->fbo = 0;
 }
 
+/*!
+    Returns the presentation object used by the Q3DSSurfaceViewer.
+*/
 Q3DSPresentation *Q3DSSurfaceViewer::presentation() const
 {
     Q_D(const Q3DSSurfaceViewer);
     return d->presentation;
 }
 
+/*!
+    Returns the settings object used by the Q3DSSurfaceViewer.
+*/
 Q3DSViewerSettings *Q3DSSurfaceViewer::settings() const
 {
     Q_D(const Q3DSSurfaceViewer);
@@ -132,6 +211,14 @@ QString Q3DSSurfaceViewer::error() const
     return d->error;
 }
 
+/*!
+    \property Q3DSSurfaceViewer::running
+
+    The value of this property is \c true when the viewer has been initialized
+    and the presentation is running.
+
+    This property is read-only.
+*/
 bool Q3DSSurfaceViewer::isRunning() const
 {
     Q_D(const Q3DSSurfaceViewer);
@@ -153,6 +240,22 @@ void Q3DSSurfaceViewer::setSize(const QSize &size)
     }
 }
 
+/*!
+    \property Q3DSSurfaceViewer::autoSize
+
+    Specifies whether the viewer should change the size of the presentation
+    automatically to match the surface size when surface size changes. The
+    \l{Q3DSSurfaceViewer::size}{size} property is updated automatically
+    whenever the viewer is \l{Q3DSSurfaceViewer::update()}{updated} if this
+    property value is \c{true}.
+
+    When rendering offscreen, via a QOffscreenSurface, this property must be
+    set to \c{false} by the application since it is then up to the application
+    to provide a QOpenGLFramebufferObject with the desired size. The size of
+    the Q3DSSurfaceViewer must be set to the same value.
+
+    The default value is \c{true}.
+*/
 bool Q3DSSurfaceViewer::autoSize() const
 {
     Q_D(const Q3DSSurfaceViewer);
@@ -168,6 +271,17 @@ void Q3DSSurfaceViewer::setAutoSize(bool autoSize)
     }
 }
 
+/*!
+    \property Q3DSSurfaceViewer::updateInterval
+
+    Holds the viewer update interval in milliseconds. If the value is negative,
+    the viewer doesn't update the presentation automatically.
+
+    The default value is -1, meaning there are no automatic updates and
+    update() must be called manually.
+
+    \sa update()
+*/
 int Q3DSSurfaceViewer::updateInterval() const
 {
     Q_D(const Q3DSSurfaceViewer);
@@ -190,18 +304,33 @@ void Q3DSSurfaceViewer::setUpdateInterval(int interval)
     }
 }
 
+/*!
+    Returns the framebuffer id given in initialization.
+
+    \sa create()
+*/
 uint Q3DSSurfaceViewer::fboId() const
 {
     Q_D(const Q3DSSurfaceViewer);
     return d->fbo;
 }
 
+/*!
+    Returns the surface given in initialization.
+
+    \sa create()
+*/
 QSurface *Q3DSSurfaceViewer::surface() const
 {
     Q_D(const Q3DSSurfaceViewer);
     return d->surface;
 }
 
+/*!
+    Returns the context given in initialization.
+
+    \sa create()
+*/
 QOpenGLContext *Q3DSSurfaceViewer::context() const
 {
     Q_D(const Q3DSSurfaceViewer);
@@ -210,6 +339,9 @@ QOpenGLContext *Q3DSSurfaceViewer::context() const
 
 extern Q_GUI_EXPORT QImage qt_gl_read_framebuffer(const QSize &size, bool alpha_format, bool include_alpha);
 
+/*!
+    Updates the surface viewer with a new frame.
+*/
 void Q3DSSurfaceViewer::update()
 {
     Q_D(Q3DSSurfaceViewer);
@@ -272,6 +404,13 @@ void Q3DSSurfaceViewer::update()
     emit frameUpdate();
 }
 
+/*!
+    Grabs the data rendered to the framebuffer into an image using the given \a
+    rect. The \a rect parameter is optional. If it is omitted, the whole
+    framebuffer is captured.
+
+    \note This is a potentially expensive operation.
+*/
 QImage Q3DSSurfaceViewer::grab(const QRect &rect)
 {
     Q_D(Q3DSSurfaceViewer);

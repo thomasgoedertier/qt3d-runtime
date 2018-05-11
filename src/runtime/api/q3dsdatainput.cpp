@@ -32,18 +32,31 @@
 
 QT_BEGIN_NAMESPACE
 
+/*!
+    \class Q3DSDataInput
+    \inmodule 3dstudioruntime2
+    \since Qt 3D Studio 2.0
+
+    \brief Controls a data input entry in a Qt 3D Studio presentation.
+
+    This class is a convenience class for controlling a data input in a presentation.
+
+    \sa Q3DSPresentation
+*/
+
+/*!
+    \internal
+ */
 Q3DSDataInput::Q3DSDataInput(QObject *parent)
     : QObject(*new Q3DSDataInputPrivate, parent)
 {
 }
 
-Q3DSDataInput::Q3DSDataInput(const QString &name, QObject *parent)
-    : QObject(*new Q3DSDataInputPrivate, parent)
-{
-    Q_D(Q3DSDataInput);
-    d->name = name;
-}
-
+/*!
+    Constructs a Q3DSDataInput instance and initializes the \a name. The
+    constructed instance is automatically associated with the specified \a
+    presentation. An optional \a parent object can be specified.
+ */
 Q3DSDataInput::Q3DSDataInput(Q3DSPresentation *presentation, const QString &name, QObject *parent)
     : QObject(*new Q3DSDataInputPrivate, parent)
 {
@@ -52,15 +65,29 @@ Q3DSDataInput::Q3DSDataInput(Q3DSPresentation *presentation, const QString &name
     d->presentation = presentation;
 }
 
+/*!
+    \internal
+ */
 Q3DSDataInput::Q3DSDataInput(Q3DSDataInputPrivate &dd, QObject *parent)
     : QObject(dd, parent)
 {
 }
 
+/*!
+    Destructor.
+ */
 Q3DSDataInput::~Q3DSDataInput()
 {
 }
 
+/*!
+    \property Q3DSDataInput::name
+
+    Specifies the name of the controlled data input element in the
+    presentation. This property must be set before setting the value property.
+    The initial value is provided via the constructor in practice, but the name
+    can also be changed later on, if desired.
+ */
 QString Q3DSDataInput::name() const
 {
     Q_D(const Q3DSDataInput);
@@ -76,6 +103,19 @@ void Q3DSDataInput::setName(const QString &name)
     }
 }
 
+/*!
+    \property Q3DSDataInput::value
+
+    Specifies the value of the controlled data input element in the
+    presentation.
+
+    The value of this property only accounts for changes done via the same
+    Q3DSDataInput instance. If the value of the same data input in the
+    presentation is changed elsewhere, for example via presentation scripting,
+    those changes are not reflected in the value of this property. Due to this
+    uncertainty, this property treats all value sets as changes even if the
+    newly set value is the same value as the previous value.
+*/
 QVariant Q3DSDataInput::value() const
 {
     Q_D(const Q3DSDataInput);
@@ -103,5 +143,38 @@ void Q3DSDataInputPrivate::sendValue()
 
     presentation->setDataInputValue(name, value);
 }
+
+/*!
+    \qmltype DataInput
+    \instantiates Q3DSDataInput
+    \inqmlmodule QtStudio3D
+    \ingroup 3dstudioruntime2
+    \brief Control type for data inputs in a Qt 3D Studio presentation.
+
+    This type is a convenience type for controlling a data input in a presentation.
+
+    \sa Studio3D, Presentation
+*/
+
+/*!
+    \qmlproperty string DataInput::name
+
+    Specifies the name of the controlled data input element in the presentation.
+    This property must be set as part of DataInput declaration.
+*/
+
+/*!
+    \qmlproperty variant DataInput::value
+
+    Specifies the value of the controlled data input element in the presentation.
+    The changes to the value property are queued and handled asynchronously before the
+    next frame is displayed.
+
+    The value of this property only accounts for changes done via the same DataInput instance.
+    If the value of the same data input in the presentation is changed elsewhere,
+    for example via presentation scripting, those changes are not reflected in
+    the value of this property. Due to this uncertainty, this property treats all value sets as
+    changes even if the newly set value is the same value as the previous value.
+*/
 
 QT_END_NAMESPACE

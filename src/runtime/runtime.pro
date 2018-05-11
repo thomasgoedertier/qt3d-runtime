@@ -96,4 +96,6 @@ include(shadergenerator/shadergenerator.pri)
 
 qtConfig(q3ds-profileui): include(profileui/profileui.pri)
 
+include(doc/doc.pri)
+
 load(qt_module)

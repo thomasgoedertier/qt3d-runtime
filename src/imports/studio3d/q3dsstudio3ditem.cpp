@@ -58,9 +58,67 @@ QT_BEGIN_NAMESPACE
     \inqmlmodule QtStudio3D
     \ingroup 3dstudioruntime2
     \inherits Item
-    \brief blah
 
-    blah
+    \brief Qt 3D Studio presentation viewer.
+
+    This type enables developers to embed Qt 3D Studio presentations in Qt
+    Quick.
+
+    \section2 Example usage
+
+    \qml
+    Studio3D {
+        id: studio3D
+        Presentation {
+            source: "qrc:///presentation.uia"
+            SceneElement {
+                id: scene
+                elementPath: "Scene"
+                currentSlideIndex: 2
+            }
+            Element {
+                id: textLabel
+                elementPath: "Scene.Layer.myLabel"
+            }
+        }
+        ViewerSettings {
+            showRenderStats: true
+        }
+        onRunningChanged: {
+            console.log("Presentation ready!");
+        }
+    }
+    \endqml
+*/
+
+/*!
+    \qmlsignal Studio3D::frameUpdate()
+
+    This signal is emitted each time a frame has been updated regardless of
+    visibility. This allows a hidden Studio3D element to still process
+    information every frame, even though the renderer is not rendering.
+
+    The corresponding handler is \c onFrameUpdate.
+
+    To prevent expensive handlers from being processed when hidden, add an
+    early return to the top like:
+
+    \qml
+         onFrameUpdate: {
+             if (!visible) return;
+             ...
+         }
+    \endqml
+*/
+
+/*!
+    \qmlsignal Studio3D::presentationReady()
+
+    This signal is emitted when the viewer has been initialized and the
+    presentation is ready to be shown. The difference to \c running property is
+    that the viewer has to be visible for \c running to get \c{true}. This
+    signal is useful for displaying splash screen while viewer is getting
+    initialized.
 */
 
 static bool engineCleanerRegistered = false;
@@ -94,10 +152,29 @@ Q3DSStudio3DItem::~Q3DSStudio3DItem()
 {
 }
 
+/*!
+    \qmlproperty Presentation Studio3D::presentation
+
+    Accessor for the presentation. Applications are expected to create a single
+    Presentation child object for Studio3D. If this is omitted, a presentation
+    is created automatically.
+
+    This property is read-only.
+*/
+
 Q3DSPresentationItem *Q3DSStudio3DItem::presentation() const
 {
     return m_presentation;
 }
+
+/*!
+    \qmlproperty bool Studio3D::running
+
+    The value of this property is \c true when the viewer has been initialized
+    and the presentation is running.
+
+    This property is read-only.
+*/
 
 bool Q3DSStudio3DItem::isRunning() const
 {

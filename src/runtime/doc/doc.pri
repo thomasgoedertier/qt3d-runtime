@@ -1,5 +1,3 @@
-TEMPLATE = aux
-
 build_online_docs: \
     QMAKE_DOCS = $$PWD/online/Qt3DStudioRuntime2.qdocconf
 else: \

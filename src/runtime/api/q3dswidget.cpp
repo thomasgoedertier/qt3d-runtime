@@ -44,12 +44,35 @@ QT_BEGIN_NAMESPACE
 
 /*!
     \class Q3DSWidget
-
     \inmodule 3dstudioruntime2
+    \since Qt 3D Studio 2.0
+    \inherits QOpenGLWidget
 
-    \brief Widget
+    \brief A widget that renders Qt 3D Studio presentations using OpenGL.
 
-    blah
+    Q3DSWidget is a widget that can be used to embed Qt 3D Studio presentations
+    into QWidget-based applications.
+
+    Q3DSWidget is used to specify a render widget for Qt 3D Studio
+    presentation. It subclasses QOpenGLWidget, which means all considerations
+    that should be taken when working with QOpenGLWidget apply to Q3DSWidget as
+    well. Refer to the QOpenGLWidget documentation for details.
+
+    \section2 Example Usage
+
+    \code
+    Q3DSWidget *viewer = new Q3DSWidget(parentWidget);
+    viewer->presentation()->setSource(QUrl(QStringLiteral("qrc:/my_presentation.uip")));
+    viewer->setUpdateInterval(0);
+
+    // Register a scene element object for slide management (optional)
+    Q3DSSceneElement scene(viewer->presentation(), QStringLiteral("Scene"));
+
+    // Register an element object for attribute setting (optional)
+    Q3DSElement element(viewer->presentation(), QStringLiteral("myCarModel"));
+    \endcode
+
+    \sa Q3DSSurfaceViewer
 */
 
 Q3DSWidget::Q3DSWidget(QWidget *parent)
@@ -65,12 +88,18 @@ Q3DSWidget::~Q3DSWidget()
     delete d_ptr;
 }
 
+/*!
+    Returns the presentation object used by the Q3DSWidget.
+ */
 Q3DSPresentation *Q3DSWidget::presentation() const
 {
     Q_D(const Q3DSWidget);
     return d->presentation;
 }
 
+/*!
+    Returns the settings object used by the Q3DSWidget.
+ */
 Q3DSViewerSettings *Q3DSWidget::settings() const
 {
     Q_D(const Q3DSWidget);
@@ -83,12 +112,30 @@ QString Q3DSWidget::error() const
     return d->error;
 }
 
+/*!
+    \property Q3DSWidget::running
+
+    The value of this property is \c true when the viewer has been initialized
+    and the presentation is running.
+
+    This property is read-only.
+*/
 bool Q3DSWidget::isRunning() const
 {
     Q_D(const Q3DSWidget);
     return d->engine && d->sourceLoaded;
 }
 
+/*!
+    \property Q3DSWidget::updateInterval
+
+    Holds the viewer update interval in milliseconds. If the value is negative,
+    the viewer doesn't update the presentation automatically.
+
+    The default value is 0, meaning automatic updates are enabled.
+
+    \sa QWidget::update()
+*/
 int Q3DSWidget::updateInterval() const
 {
     Q_D(const Q3DSWidget);

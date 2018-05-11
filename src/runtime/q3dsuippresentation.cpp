@@ -3878,8 +3878,8 @@ QHash<QString, bool> &Q3DSUipPresentation::imageTransparencyHash()
     return m_imageTransparencyHash;
 }
 
-/*!
-    Maps a raw XML filename ref like ".\Headphones\meshes\Headphones.mesh#1"
+/*
+    Maps a raw XML filename ref like "./Headphones/meshes/Headphones.mesh#1"
     onto a fully qualified filename that can be opened as-is (even if the uip
     is in qrc etc.), and also decodes the optional part index.
  */
