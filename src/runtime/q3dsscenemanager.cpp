@@ -514,7 +514,6 @@ void Q3DSSceneManager::setCurrentSlide(Q3DSSlide *newSlide, bool fromSlidePlayer
     m_currentSlide = newSlide;
 }
 
-// TODO: Only called from the slide test, but we keep it working for now...
 void Q3DSSceneManager::setComponentCurrentSlide(Q3DSComponentNode *component, Q3DSSlide *newSlide)
 {
     Q3DSSlideAttached *data = component->masterSlide()->attached<Q3DSSlideAttached>();
@@ -537,11 +536,7 @@ void Q3DSSceneManager::setLayerCaching(bool enabled)
 
 void Q3DSSceneManager::prepareAnimators()
 {
-    auto slideDeck = m_slidePlayer->slideDeck();
-    if ((m_slidePlayer->mode() == Q3DSSlidePlayer::PlayerMode::Viewer)
-            && (slideDeck->currentSlide()->initialPlayState() == Q3DSSlide::Play)) {
-        m_slidePlayer->play();
-    }
+    m_slidePlayer->sceneReady();
 }
 
 QDebug operator<<(QDebug dbg, const Q3DSSceneManager::SceneBuilderParams &p)
@@ -7196,10 +7191,14 @@ void Q3DSSceneManager::changeSlideByName(Q3DSGraphObject *sceneOrComponent, cons
     });
 
     if (targetSlide) {
-        if (component)
-            component->setCurrentSlide(targetSlide);
-        else
+        if (component) {
+            if (m_currentSlide->objects().contains(component) || m_masterSlide->objects().contains(component))
+                setComponentCurrentSlide(component, targetSlide);
+            else
+                component->setCurrentSlide(targetSlide);
+        } else {
             setCurrentSlide(targetSlide);
+        }
     } else {
         qWarning("changeSlideByName: Slide %s not found on %s", qPrintable(name), sceneOrComponent->id().constData());
     }

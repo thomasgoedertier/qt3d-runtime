@@ -95,6 +95,7 @@ public:
 
     Q3DSSlideDeck *slideDeck() const;
     void advanceFrame();
+    void sceneReady();
 
     float duration() const;
     float position() const;
