@@ -79,6 +79,16 @@ void Q3DSSlideUtils::getStartAndEndTime(Q3DSSlide *slide, qint32 *startTime, qin
             eTime = obj->endTime();
     }
 
+    // If we don't have an endtime, then there was no layer, so look at the nodes instead.
+    if (eTime == -1) {
+        for (const auto obj : slide->objects()) {
+            if (!obj->isNode())
+                continue;
+            if (obj->endTime() > eTime)
+                eTime = obj->endTime();
+        }
+    }
+
     if (startTime)
         *startTime = slide->startTime();
     if (endTime)
