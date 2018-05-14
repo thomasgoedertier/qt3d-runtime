@@ -6,7 +6,6 @@
 		</ProjectSettings>
 		<Graph >
 			<Scene id="Scene" >
-				<Layer id="splayer" />
 				<Layer id="Layer" >
 					<Camera id="Camera" />
 					<Light id="Light" />
@@ -28,7 +27,6 @@
 				<Add ref="#Camera" />
 				<Add ref="#Light" />
 				<State id="Scene-Slide1" name="Slide1" playmode="Looping" >
-                                        <Add ref="#splayer" name="splayer" height="30" sourcepath="embeddedQmlScene" top="50" width="30" />
 					<Add ref="#Barrel" name="Barrel" position="0 -42 -483" rotation="90 0 0" scale="100 100 100" sourcepath=".\barrel\meshes\Barrel.mesh#1" >
 						<AnimationTrack property="opacity" type="EaseInOut" />
 						<AnimationTrack property="rotation.x" type="EaseInOut" >0 90 100 100 5 64 100 100 10 90 100 100</AnimationTrack>
