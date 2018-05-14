@@ -44,55 +44,63 @@
 
 QT_BEGIN_NAMESPACE
 
-// NOTE: We assume that the properties for the layer has been applied before this is called
-// if it hasn't it will either return the previous value or the odl value
 void Q3DSSlideUtils::getStartAndEndTime(Q3DSSlide *slide, qint32 *startTime, qint32 *endTime)
 {
     Q_ASSERT(startTime != nullptr || endTime != nullptr);
 
-    qint32 eTime = -1;
+    qint32 layerEndTime = -1;
+    qint32 nodesEndtime = -1;
 
-    // First go through the slide's parent (master slide) and look for layers which have
-    // endtime explicitly set by this slide's property changes
+    // Check if there are nodes  from the parent slide that has property changes on this slide.
     if (Q3DSSlide *p = static_cast<Q3DSSlide *>(slide->parent())) {
         for (auto *obj : p->objects()) {
-            if (obj->type() != Q3DSGraphObject::Layer)
-                continue;
-
-            const QHash<Q3DSGraphObject *, Q3DSPropertyChangeList *> props =
-                slide->propertyChanges();
-            const QHash<Q3DSGraphObject *, Q3DSPropertyChangeList *>::const_iterator it =
-                props.find(obj);
-            if (it == props.constEnd())
-                continue;
-            if ((*it)->keys().contains(QStringLiteral("endtime")) && obj->endTime() > eTime)
-                eTime = obj->endTime();
-        }
-    }
-
-    // Now look for the endtime from the slides explicit layer objects
-    for (const auto obj : slide->objects()) {
-        if (obj->type() != Q3DSGraphObject::Layer)
-            continue;
-
-        if (obj->endTime() > eTime)
-            eTime = obj->endTime();
-    }
-
-    // If we don't have an endtime, then there was no layer, so look at the nodes instead.
-    if (eTime == -1) {
-        for (const auto obj : slide->objects()) {
             if (!obj->isNode())
                 continue;
-            if (obj->endTime() > eTime)
-                eTime = obj->endTime();
+
+            // Look for property updates on "this" slide.
+            const auto &props = slide->propertyChanges();
+            const auto foundIt = props.constFind(obj);
+            if (foundIt == props.constEnd())
+                continue;
+
+            // If there are property changes for the object, check if it has a new endtime.
+            std::find_if(foundIt.value()->cbegin(), foundIt.value()->cend(), [&layerEndTime, &nodesEndtime, obj](const Q3DSPropertyChange &propChange) {
+                if (propChange.name() == QLatin1String("endtime")) {
+                    bool ok = false;
+                    const qint32 value = propChange.value().toInt(&ok);
+                    if (ok) {
+                        if (obj->type() == Q3DSGraphObject::Layer && (value > layerEndTime))
+                            layerEndTime = value;
+                        else if (value > nodesEndtime)
+                            nodesEndtime = value;
+                    }
+                }
+                return false;
+            });
         }
     }
+
+    // Now look for the endtime on nodes on this slide.
+    for (const auto obj : slide->objects()) {
+        // Skip non-node types.
+        if (!obj->isNode())
+            continue;
+
+        // We collect both layer endtimes (if any) and object endtimes in one go.
+        if (obj->type() == Q3DSGraphObject::Layer && (obj->endTime() > layerEndTime))
+            layerEndTime = obj->endTime();
+        else if (obj->endTime() > nodesEndtime)
+            nodesEndtime = obj->endTime();
+    }
+
+    // Final fallback, if neither was found use the value set by the slide.
+    if (layerEndTime == -1 && nodesEndtime == -1)
+        nodesEndtime = slide->endTime();
 
     if (startTime)
         *startTime = slide->startTime();
     if (endTime)
-        *endTime = eTime != -1 ? eTime : slide->endTime();
+        *endTime = layerEndTime != -1 ? layerEndTime : nodesEndtime;
 }
 
 static QString getSlideName(Q3DSSlide *slide)
