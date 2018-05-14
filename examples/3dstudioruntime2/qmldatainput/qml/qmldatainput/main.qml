@@ -83,14 +83,14 @@ Item {
             property: "inputScaleVec3"
             duration: 12000
             from: Qt.vector3d(0.3, 0.5, 0.5)
-            to: Qt.vector3d(1.0, 1.0, 1.0)
+            to: Qt.vector3d(4.0, 4.0, 1.0)
             loops: Animation.Infinite
             running: true
         }
         Vector3dAnimation {
             target: studio3D
             property: "inputColorVec3"
-            duration: 2000
+            duration: 6000
             from: Qt.vector3d(0.1, 0.1, 0.3)
             to: Qt.vector3d(1.0, 0.5, 1.0)
             loops: Animation.Infinite
