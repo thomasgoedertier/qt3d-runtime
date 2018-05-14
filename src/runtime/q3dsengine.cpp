@@ -90,6 +90,8 @@ static const int MAX_LOG_MESSAGE_LENGTH = 1000;
 static const int MAX_LOG_LENGTH = 10000;
 
 static Q3DSGraphicsLimits gfxLimits;
+static bool surfaceFormatAdopted = false;
+static QSurfaceFormat adoptedSurfaceFormat;
 
 static QMutex q3ds_msg_mutex;
 static QStringList q3ds_msg_buf;
@@ -303,7 +305,7 @@ static QSurfaceFormat findIdealGLESVersion()
     return fmt;
 }
 
-QSurfaceFormat Q3DSEngine::surfaceFormat()
+static QSurfaceFormat idealSurfaceFormat()
 {
     static const QSurfaceFormat f = [] {
         QSurfaceFormat fmt;
@@ -321,14 +323,33 @@ QSurfaceFormat Q3DSEngine::surfaceFormat()
 }
 
 namespace Q3DS {
+void adoptSurfaceFormat(const QSurfaceFormat &format)
+{
+    QSurfaceFormat adjustedFormat = format;
+    adjustedFormat.setDepthBufferSize(24);
+    adjustedFormat.setStencilBufferSize(8);
+    QOpenGLContext ctx;
+    ctx.setFormat(adjustedFormat);
+    if (ctx.create()) {
+        initGraphicsLimits(&ctx);
+        adoptedSurfaceFormat = adjustedFormat;
+        surfaceFormatAdopted = true;
+    } else {
+        qWarning() << "Failed to create OpenGL context with adopted surface format" << adjustedFormat;
+    }
+}
+
 QSurfaceFormat surfaceFormat()
 {
-    return Q3DSEngine::surfaceFormat();
+    return surfaceFormatAdopted ? adoptedSurfaceFormat : idealSurfaceFormat();
 }
 
 Q3DSGraphicsLimits graphicsLimits()
 {
-    Q3DSEngine::surfaceFormat();
+    if (!surfaceFormatAdopted) {
+        // make sure gfxLimits is filled in
+        idealSurfaceFormat();
+    }
     return gfxLimits;
 }
 }

@@ -291,6 +291,13 @@ void Q3DSStudio3DItem::createEngine()
             return;
         }
 
+        const QSurfaceFormat wformat = w->format();
+        const QSurfaceFormat eformat = Q3DS::surfaceFormat();
+        if (wformat.version() != eformat.version() || wformat.profile() != eformat.profile()) {
+            qCDebug(lcStudio3D) << "Adopting surface format from QQuickWindow:" << wformat;
+            Q3DS::adoptSurfaceFormat(wformat);
+        }
+
         m_engine = new Q3DSEngine;
         engineTracker.insert(m_engine);
 

@@ -150,7 +150,7 @@ int main(int argc, char *argv[])
     qSetGlobalQHashSeed(0);
 
     QGuiApplication a(argc, argv);
-    QSurfaceFormat::setDefaultFormat(Q3DSEngine::surfaceFormat());
+    QSurfaceFormat::setDefaultFormat(Q3DS::surfaceFormat());
 
     Q3DSUtils::setDialogsEnabled(false);
 

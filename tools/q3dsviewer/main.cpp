@@ -60,7 +60,7 @@ int main(int argc, char *argv[])
 #else
     QGuiApplication app(argc, argv);
 #endif
-    QSurfaceFormat::setDefaultFormat(Q3DSEngine::surfaceFormat());
+    QSurfaceFormat::setDefaultFormat(Q3DS::surfaceFormat());
 
     QCommandLineParser cmdLineParser;
     cmdLineParser.addHelpOption();

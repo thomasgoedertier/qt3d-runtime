@@ -96,7 +96,6 @@ public:
     };
     Q_DECLARE_FLAGS(Flags, Flag)
 
-    static QSurfaceFormat surfaceFormat();
     static void clearLog();
 
     Flags flags() const { return m_flags; }

@@ -69,7 +69,7 @@ void tst_Q3DSBehaviors::initTestCase()
     if (!isOpenGLGoodEnough())
         QSKIP("This platform does not support OpenGL proper");
 
-    QSurfaceFormat::setDefaultFormat(Q3DSEngine::surfaceFormat());
+    QSurfaceFormat::setDefaultFormat(Q3DS::surfaceFormat());
     m_engine = new Q3DSEngine;
     m_view = new Q3DSWindow;
     m_view->setEngine(m_engine);

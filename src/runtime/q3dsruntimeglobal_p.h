@@ -48,6 +48,10 @@
 
 QT_BEGIN_NAMESPACE
 
+namespace Q3DS {
+Q3DSV_PRIVATE_EXPORT void adoptSurfaceFormat(const QSurfaceFormat &format);
+}
+
 QT_END_NAMESPACE
 
 #endif // Q3DSRUNTIMEGLOBAL_P_H
