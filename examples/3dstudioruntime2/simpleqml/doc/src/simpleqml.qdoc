@@ -3,7 +3,7 @@
 ** Copyright (C) 2018 The Qt Company Ltd.
 ** Contact: https://www.qt.io/licensing/
 **
-** This file is part of Qt 3D Studio.
+** This file is part of the Qt 3D Studio.
 **
 ** $QT_BEGIN_LICENSE:FDL$
 ** Commercial License Usage
@@ -26,32 +26,26 @@
 ****************************************************************************/
 
 /*!
-    \title Examples
-    \ingroup examples
-    \page qt3d-runtime-examples.html
-    \noautolist
+    \example simpleqml
+    \title Qt 3D Studio Runtime: Simple QML Example
+    \ingroup qt3dstudioruntime2-examples-qml
+    \brief Demonstrates using the Studio3D element in a Qt Quick application
 
-    Included in Qt 3D Studio Runtime you will find a set of examples. These are
-    located in the \c {examples} folder in the installation folder.
+    \image simpleqml.png
 
-    \section1 QML Examples
+    \e {This example demonstrates basic usage of the Studio3D element in Qt Quick applications}
 
-    \list
-    \li \l {Qt 3D Studio Runtime: Simple QML Example}
-    \li \l {Qt 3D Studio Runtime: QML DataInput Example}
-    \endlist
+    \include examples-run.qdocinc
 
-    \section1 C++ Examples
+    \section1 Description
 
-    \list
-    \li \l {Qt 3D Studio Runtime: Simple Window Example}
-    \li \l {Qt 3D Studio Runtime: Simple Widget Example}
-    \li \l {Qt 3D Studio Runtime: Simple Offscreen Example}
-    \endlist
+    This example consists of a simple C++ main() function that sets up
+    a QQuickView and a QML scene demonstrating the usage of the \l
+    Studio3D, \l Presentation, \l DataInput, \l SceneElement, and \l
+    Element QML types.
 
-    \section1 More Examples
-
-    You can find more examples from
-    \l{https://git.qt.io/public-demos/qt3dstudio}, these examples are more
-    visually appealing and suitable to use as demos for example.
+    Besides displaying the presentation designed in the Qt 3D Studio
+    application, a few simple cases of interacting with the scene
+    (such as, changing 3D object properties via data input, changing
+    slides, controlling the timeline) are also demonstrated.
 */
