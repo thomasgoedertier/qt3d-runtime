@@ -515,16 +515,22 @@ public:
     void valueChanged(const QVariant &value) override {
         Q_ASSERT(m_slide);
 
+        const float newValue = value.toFloat();
+        if (qFuzzyCompare(m_previousValue, newValue))
+            return;
+
         Q3DSSlidePlayer *slidePlayer = m_slide->attached<Q3DSSlideAttached>()->slidePlayer;
         // TODO: See QT3DS-1302
         if (!slidePlayer)
             return;
 
-        slidePlayer->setSlideTime(m_slide, value.toFloat() * 1000.0f);
+        slidePlayer->setSlideTime(m_slide, newValue * 1000.0f);
+        m_previousValue = newValue;
     }
 
 private:
     Q3DSSlide *m_slide;
+    float m_previousValue = -1.0f;
 };
 
 void Q3DSAnimationManager::clearAnimations(Q3DSSlide *slide)
