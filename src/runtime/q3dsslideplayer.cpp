@@ -186,7 +186,7 @@ Q3DSSlidePlayer::Q3DSSlidePlayer(Q3DSSceneManager *sceneManager,
                                  QObject *parent)
     : QObject(parent)
     , m_sceneManager(sceneManager)
-    , m_animationManager(new Q3DSAnimationManager(this))
+    , m_animationManager(new Q3DSAnimationManager)
 {
 }
 

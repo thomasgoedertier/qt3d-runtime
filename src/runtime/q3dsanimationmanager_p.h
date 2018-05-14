@@ -50,8 +50,6 @@ QT_BEGIN_NAMESPACE
 class Q3DSAnimationManager
 {
 public:
-    Q3DSAnimationManager(Q3DSSlidePlayer *slidePlayer) : m_slidePlayer(slidePlayer) {}
-
     void updateAnimations(Q3DSSlide *slide, bool editorMode = false);
     void clearAnimations(Q3DSSlide *slide);
     void applyChanges();
@@ -106,7 +104,6 @@ private:
 
     QMultiHash<Q3DSGraphObject *, AnimationValueChange> m_changes;
 
-    Q3DSSlidePlayer *m_slidePlayer;
     QSet<Q3DSGraphObject *> m_activeTargets;
 
     friend class Q3DSAnimationCallback;

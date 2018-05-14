@@ -509,23 +509,22 @@ void Q3DSAnimationManager::updateAnimationHelper(const AnimationTrackListMap<T *
 class DummyCallback : public Qt3DAnimation::QAnimationCallback
 {
 public:
-    DummyCallback(Q3DSSlide *slide, Q3DSSlidePlayer* slidePlayer)
-        : m_slide(slide), m_slidePlayer(slidePlayer) {}
+    DummyCallback(Q3DSSlide *slide)
+        : m_slide(slide) {}
 
     void valueChanged(const QVariant &value) override {
         Q_ASSERT(m_slide);
-        Q_ASSERT(m_slidePlayer);
 
+        Q3DSSlidePlayer *slidePlayer = m_slide->attached<Q3DSSlideAttached>()->slidePlayer;
         // TODO: See QT3DS-1302
-        if (m_slidePlayer != m_slide->attached<Q3DSSlideAttached>()->slidePlayer)
+        if (!slidePlayer)
             return;
 
-        m_slidePlayer->setSlideTime(m_slide, value.toFloat() * 1000.0f);
+        slidePlayer->setSlideTime(m_slide, value.toFloat() * 1000.0f);
     }
 
 private:
     Q3DSSlide *m_slide;
-    Q3DSSlidePlayer *m_slidePlayer;
 };
 
 void Q3DSAnimationManager::clearAnimations(Q3DSSlide *slide)
@@ -613,7 +612,7 @@ void Q3DSAnimationManager::buildClipAnimator(Q3DSSlide *slide)
     QChannelMapper *mapper = new QChannelMapper;
     QCallbackMapping *mapping = new QCallbackMapping;
     mapping->setChannelName(channelName);
-    mapping->setCallback(QMetaType::Float, new DummyCallback(slide, m_slidePlayer));
+    mapping->setCallback(QMetaType::Float, new DummyCallback(slide));
     mapper->addMapping(mapping);
     animator->setChannelMapper(mapper);
     // TODO: We could just use this to get the time values directly...
