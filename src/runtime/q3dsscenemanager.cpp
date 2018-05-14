@@ -1214,9 +1214,13 @@ void Q3DSSceneManager::buildSubPresentationLayer(Q3DSLayerNode *layer3DS, const 
             // Resize the offscreen subpresentation buffers
             it->colorTex->setWidth(layerPixelSize.width());
             it->colorTex->setHeight(layerPixelSize.height());
-            if (it->dsTex) {
-                it->dsTex->setWidth(layerPixelSize.width());
-                it->dsTex->setHeight(layerPixelSize.height());
+            if (it->depthOrDepthStencilTex) {
+                it->depthOrDepthStencilTex->setWidth(layerPixelSize.width());
+                it->depthOrDepthStencilTex->setHeight(layerPixelSize.height());
+            }
+            if (it->stencilTex) {
+                it->stencilTex->setWidth(layerPixelSize.width());
+                it->stencilTex->setHeight(layerPixelSize.height());
             }
             // and communicate the new size to the subpresentation's renderer
             // (viewport, camera, etc. need to adapt), just like a window would

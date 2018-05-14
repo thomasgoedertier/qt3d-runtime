@@ -190,6 +190,25 @@ static void initGraphicsLimits(QOpenGLContext *ctx)
     gfxLimits.multisampleTextureSupported = QOpenGLTexture::hasFeature(QOpenGLTexture::TextureMultisample);
     qDebug("  multisample textures: %s", gfxLimits.multisampleTextureSupported ? "true" : "false");
 
+    auto extensions = ctx->extensions();
+    if (!extensions.isEmpty()) {
+        gfxLimits.extensions = extensions;
+
+        if (ctx->isOpenGLES() && ctx->format().majorVersion() == 2) {
+            gfxLimits.shaderTextureLodSupported = false;
+            gfxLimits.shaderUniformBufferSupported = false;
+            gfxLimits.packedDepthStencilBufferSupported = false;
+        }
+        if (extensions.contains("GL_EXT_shader_texture_lod"))
+            gfxLimits.shaderTextureLodSupported = true;
+        qDebug("  texture lod: %s", gfxLimits.shaderTextureLodSupported ? "true" : "false");
+
+        if (extensions.contains("GL_EXT_packed_depth_stencil"))
+            gfxLimits.packedDepthStencilBufferSupported = true;
+        qDebug("  packed depth-stencil: %s", gfxLimits.packedDepthStencilBufferSupported ? "true" : "false");
+    }
+    qDebug() << "  extensions: " << extensions;
+
     // version string bonanza for the profiler
     const char *rendererStr = reinterpret_cast<const char *>(f->glGetString(GL_RENDERER));
     if (rendererStr) {
@@ -205,22 +224,6 @@ static void initGraphicsLimits(QOpenGLContext *ctx)
     if (versionStr) {
         gfxLimits.version = versionStr;
         qDebug("  version: %s", versionStr);
-    }
-
-    auto extensions = ctx->extensions();
-    if (!extensions.isEmpty()) {
-        gfxLimits.extensions = extensions;
-        qDebug() << "  extensions: " << extensions;
-
-        if (ctx->isOpenGLES() && ctx->format().majorVersion() == 2) {
-            gfxLimits.shaderTextureLodSupported = false;
-            gfxLimits.shaderUniformBufferSupported = false;
-            gfxLimits.packedDepthStencilBufferSupported = false;
-        }
-        if (extensions.contains("GL_EXT_shader_texture_lod"))
-            gfxLimits.shaderTextureLodSupported = true;
-        if (extensions.contains("GL_EXT_packed_depth_stencil"))
-            gfxLimits.packedDepthStencilBufferSupported = true;
     }
 
     gfxLimits.format = ctx->format();
@@ -790,19 +793,41 @@ bool Q3DSEngine::buildSubUipPresentationScene(UipPresentation *pres)
     pres->subPres.colorTex->setMinificationFilter(Qt3DRender::QAbstractTexture::Linear);
     pres->subPres.colorTex->setMagnificationFilter(Qt3DRender::QAbstractTexture::Linear);
     color->setTexture(pres->subPres.colorTex);
-
-    Qt3DRender::QRenderTargetOutput *ds = new Qt3DRender::QRenderTargetOutput;
-    ds->setAttachmentPoint(Qt3DRender::QRenderTargetOutput::DepthStencil);
-    pres->subPres.dsTex = new Qt3DRender::QTexture2D(entityParent);
-    pres->subPres.dsTex->setFormat(Qt3DRender::QAbstractTexture::D24S8);
-    pres->subPres.dsTex->setWidth(pres3DS->presentationWidth());
-    pres->subPres.dsTex->setHeight(pres3DS->presentationHeight());
-    pres->subPres.dsTex->setMinificationFilter(Qt3DRender::QAbstractTexture::Linear);
-    pres->subPres.dsTex->setMagnificationFilter(Qt3DRender::QAbstractTexture::Linear);
-    ds->setTexture(pres->subPres.dsTex);
-
     rt->addOutput(color);
-    rt->addOutput(ds);
+
+    if (gfxLimits.packedDepthStencilBufferSupported) {
+        Qt3DRender::QRenderTargetOutput *ds = new Qt3DRender::QRenderTargetOutput;
+        ds->setAttachmentPoint(Qt3DRender::QRenderTargetOutput::DepthStencil);
+        pres->subPres.depthOrDepthStencilTex = new Qt3DRender::QTexture2D(entityParent);
+        pres->subPres.depthOrDepthStencilTex->setFormat(Qt3DRender::QAbstractTexture::D24S8);
+        pres->subPres.depthOrDepthStencilTex->setWidth(pres3DS->presentationWidth());
+        pres->subPres.depthOrDepthStencilTex->setHeight(pres3DS->presentationHeight());
+        pres->subPres.depthOrDepthStencilTex->setMinificationFilter(Qt3DRender::QAbstractTexture::Linear);
+        pres->subPres.depthOrDepthStencilTex->setMagnificationFilter(Qt3DRender::QAbstractTexture::Linear);
+        ds->setTexture(pres->subPres.depthOrDepthStencilTex);
+        rt->addOutput(ds);
+    } else {
+        Qt3DRender::QRenderTargetOutput *depth = new Qt3DRender::QRenderTargetOutput;
+        depth->setAttachmentPoint(Qt3DRender::QRenderTargetOutput::Depth);
+        pres->subPres.depthOrDepthStencilTex = new Qt3DRender::QTexture2D(entityParent);
+        pres->subPres.depthOrDepthStencilTex->setFormat(Qt3DRender::QAbstractTexture::D16);
+        pres->subPres.depthOrDepthStencilTex->setWidth(pres3DS->presentationWidth());
+        pres->subPres.depthOrDepthStencilTex->setHeight(pres3DS->presentationHeight());
+        pres->subPres.depthOrDepthStencilTex->setMinificationFilter(Qt3DRender::QAbstractTexture::Linear);
+        pres->subPres.depthOrDepthStencilTex->setMagnificationFilter(Qt3DRender::QAbstractTexture::Linear);
+        depth->setTexture(pres->subPres.depthOrDepthStencilTex);
+        rt->addOutput(depth);
+        Qt3DRender::QRenderTargetOutput *stencil = new Qt3DRender::QRenderTargetOutput;
+        stencil->setAttachmentPoint(Qt3DRender::QRenderTargetOutput::Stencil);
+        pres->subPres.stencilTex = new Qt3DRender::QTexture2D(entityParent);
+        pres->subPres.stencilTex->setFormat(Qt3DRender::QAbstractTexture::TextureFormat(0x1901)); // GL_STENCIL_INDEX
+        pres->subPres.stencilTex->setWidth(pres3DS->presentationWidth());
+        pres->subPres.stencilTex->setHeight(pres3DS->presentationHeight());
+        pres->subPres.stencilTex->setMinificationFilter(Qt3DRender::QAbstractTexture::Linear);
+        pres->subPres.stencilTex->setMagnificationFilter(Qt3DRender::QAbstractTexture::Linear);
+        stencil->setTexture(pres->subPres.stencilTex);
+        rt->addOutput(stencil);
+    }
 
     rtSel->setTarget(rt);
     params.frameGraphRoot = rtSel;

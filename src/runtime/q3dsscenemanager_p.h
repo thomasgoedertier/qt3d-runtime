@@ -592,7 +592,8 @@ struct Q3DSSubPresentation
     QString id;
     Q3DSSceneManager *sceneManager = nullptr;
     Qt3DRender::QAbstractTexture *colorTex = nullptr;
-    Qt3DRender::QAbstractTexture *dsTex = nullptr;
+    Qt3DRender::QAbstractTexture *depthOrDepthStencilTex = nullptr;
+    Qt3DRender::QAbstractTexture *stencilTex = nullptr;
 };
 
 struct Q3DSGuiData
