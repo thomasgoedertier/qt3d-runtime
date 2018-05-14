@@ -150,12 +150,11 @@ static void updateAnimators(Q3DSSlide *slide, bool running, bool restart, float 
             // NOTE!!!: This is a bit funky, but it means we can avoid tracking the normalized values in the
             // frontend node. This of course assumes that the limit in the fuzzy compare doesn't change!
             animator->setNormalizedTime(qFuzzyCompare(animator->normalizedTime(), 0.0f) ? (0.0f + (1.0f / 100000.0f)) : 0.0f);
-            // NOTE: The running value might not have been updated in the frontend node yet,
-            // so force update this one as well!
-            if (animator->isRunning())
-                animator->setRunning(false);
         }
         animator->clock()->setPlaybackRate(double(rate));
+        // NOTE: The running value might not have been updated in the frontend node yet,
+        // so force update if the values are the same...
+        animator->setRunning(!running);
         animator->setRunning(running);
     };
     const auto updateAnimators = [&updateAnimator](const QVector<Qt3DAnimation::QClipAnimator *> &animators) {
