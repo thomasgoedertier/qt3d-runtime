@@ -6,45 +6,26 @@
 <td class='formal'>Name</td>
 <td class='scripting'>name</td>
 <td class='type'>string</td>
-<td class='note'>
-always <code>"Scene"</code>
-</td>
-</tr>
-<tr>
-<td class='formal'></td>
-<td class='scripting'>path</td>
-<td class='type'>string</td>
-<td class='note'>
-always <code>"Scene"</code>
-</td>
 </tr>
 <tr>
 <td class='formal'>Enable Background Color</td>
 <td class='scripting'>bgcolorenable</td>
 <td class='type'>boolean</td>
-<td class='note'>
-</td>
 </tr>
 <tr>
 <td class='formal'>Background Color R</td>
 <td class='scripting'>backgroundcolor.r</td>
 <td class='type'>number</td>
-<td class='note'>
-</td>
 </tr>
 <tr>
 <td class='formal'>Background Color G</td>
 <td class='scripting'>backgroundcolor.g</td>
 <td class='type'>number</td>
-<td class='note'>
-</td>
 </tr>
 <tr>
 <td class='formal'>Background Color B</td>
 <td class='scripting'>backgroundcolor.b</td>
 <td class='type'>number</td>
-<td class='note'>
-</td>
 </tr>
 <tbody></tbody>
 <tr><th colspan="4">Elements other than Scenes</td></tr>
@@ -52,31 +33,18 @@ always <code>"Scene"</code>
 <td class='formal'>Element Name</td>
 <td class='scripting'>name</td>
 <td class='type'>string</td>
-<td class='note'>
-always available
-</td>
-</tr>
-<tr>
-<td class='formal'></td>
-<td class='scripting'>path</td>
-<td class='type'>string</td>
-<td class='note'>
-full path to the element
-</td>
 </tr>
 <tr>
 <td class='formal'>(Eyeball)</td>
 <td class='scripting'>eyeball</td>
 <td class='type'>boolean</td>
-<td class='note'>
-</td>
 </tr>
 <tr>
 <td class='formal'>Timebar Start</td>
 <td class='scripting'>starttime</td>
 <td class='type'>number</td>
 <td class='note'>
-in integer milliseconds; always available
+in integer milliseconds
 </td>
 </tr>
 <tr>
@@ -84,7 +52,7 @@ in integer milliseconds; always available
 <td class='scripting'>endtime</td>
 <td class='type'>number</td>
 <td class='note'>
-in integer milliseconds; always available
+in integer milliseconds
 </td>
 </tr>
 <tbody></tbody>
@@ -93,8 +61,6 @@ in integer milliseconds; always available
 <td class='formal'>Disable Depth Test</td>
 <td class='scripting'>disabledepthtest</td>
 <td class='type'>boolean</td>
-<td class='note'>
-</td>
 </tr>
 <tr>
 <td class='formal'>Progressive AA</td>
@@ -116,8 +82,6 @@ values: <code>'None'</code>, <code>'2x'</code>, <code>'4x'</code>
 <td class='formal'>Temporal AA</td>
 <td class='scripting'>temporalaa</td>
 <td class='type'>boolean</td>
-<td class='note'>
-</td>
 </tr>
 <tr>
 <td class='formal'>Layer Background</td>
@@ -131,21 +95,23 @@ values: <code>'Transparent'</code>, <code>'Unspecified'</code>, <code>'SolidColo
 <td class='formal'>Background Color R</td>
 <td class='scripting'>backgroundcolor.r</td>
 <td class='type'>number</td>
-<td class='note'>
-</td>
 </tr>
 <tr>
 <td class='formal'>Background Color G</td>
 <td class='scripting'>backgroundcolor.g</td>
 <td class='type'>number</td>
-<td class='note'>
-</td>
 </tr>
 <tr>
 <td class='formal'>Background Color B</td>
 <td class='scripting'>backgroundcolor.b</td>
 <td class='type'>number</td>
+</tr>
+<tr>
+<td class='formal'>Blend Type</td>
+<td class='scripting'>blendtype</td>
+<td class='type'>string</td>
 <td class='note'>
+values: <code>'Normal'</code>, <code>'Screen'</code>, <code>'Multiply'</code>, <code>'Add'</code>, <code>'*Overlay'</code>, <code>'*ColorBurn'</code>, <code>'*ColorDodge'</code>
 </td>
 </tr>
 <tr>
@@ -160,8 +126,6 @@ values: <code>'Left/Width'</code>, <code>'Left/Right'</code>, <code>'Width/Right
 <td class='formal'>Left</td>
 <td class='scripting'>left</td>
 <td class='type'>number</td>
-<td class='note'>
-</td>
 </tr>
 <tr>
 <td class='formal'>Left Units</td>
@@ -175,8 +139,6 @@ values: <code>'pixels'</code>, <code>'percent'</code>
 <td class='formal'>Width</td>
 <td class='scripting'>width</td>
 <td class='type'>number</td>
-<td class='note'>
-</td>
 </tr>
 <tr>
 <td class='formal'>Width Units</td>
@@ -190,8 +152,6 @@ values: <code>'pixels'</code>, <code>'percent'</code>
 <td class='formal'>Right</td>
 <td class='scripting'>right</td>
 <td class='type'>number</td>
-<td class='note'>
-</td>
 </tr>
 <tr>
 <td class='formal'>Right Units</td>
@@ -213,8 +173,6 @@ values: <code>'Top/Height'</code>, <code>'Top/Bottom'</code>, <code>'Height/Bott
 <td class='formal'>Top</td>
 <td class='scripting'>top</td>
 <td class='type'>number</td>
-<td class='note'>
-</td>
 </tr>
 <tr>
 <td class='formal'>Top Units</td>
@@ -228,8 +186,6 @@ values: <code>'pixels'</code>, <code>'percent'</code>
 <td class='formal'>Height</td>
 <td class='scripting'>height</td>
 <td class='type'>number</td>
-<td class='note'>
-</td>
 </tr>
 <tr>
 <td class='formal'>Height Units</td>
@@ -243,8 +199,6 @@ values: <code>'pixels'</code>, <code>'percent'</code>
 <td class='formal'>Bottom</td>
 <td class='scripting'>bottom</td>
 <td class='type'>number</td>
-<td class='note'>
-</td>
 </tr>
 <tr>
 <td class='formal'>Bottom Units</td>
@@ -266,71 +220,51 @@ values between 0 and 100
 <td class='formal'>AO Distance</td>
 <td class='scripting'>aodistance</td>
 <td class='type'>number</td>
-<td class='note'>
-</td>
 </tr>
 <tr>
 <td class='formal'>AO Softness</td>
 <td class='scripting'>aosoftness</td>
 <td class='type'>number</td>
-<td class='note'>
-</td>
 </tr>
 <tr>
 <td class='formal'>AO Threshold</td>
 <td class='scripting'>aobias</td>
 <td class='type'>number</td>
-<td class='note'>
-</td>
 </tr>
 <tr>
 <td class='formal'>AO Sampling Rate</td>
 <td class='scripting'>aosamplerate</td>
 <td class='type'>number</td>
-<td class='note'>
-</td>
 </tr>
 <tr>
 <td class='formal'>AO Dithering</td>
 <td class='scripting'>aodither</td>
 <td class='type'>boolean</td>
-<td class='note'>
-</td>
 </tr>
 <tr>
 <td class='formal'>Shadow Strength</td>
 <td class='scripting'>shadowstrength</td>
 <td class='type'>number</td>
-<td class='note'>
-</td>
 </tr>
 <tr>
 <td class='formal'>Shadow Distance</td>
 <td class='scripting'>shadowdist</td>
 <td class='type'>number</td>
-<td class='note'>
-</td>
 </tr>
 <tr>
 <td class='formal'>Shadow Softness</td>
 <td class='scripting'>shadowsoftness</td>
 <td class='type'>number</td>
-<td class='note'>
-</td>
 </tr>
 <tr>
 <td class='formal'>Shadow Threshold</td>
 <td class='scripting'>shadowbias</td>
 <td class='type'>number</td>
-<td class='note'>
-</td>
 </tr>
 <tr>
 <td class='formal'>Light Probe</td>
 <td class='scripting'>lightprobe</td>
 <td class='type'>image element</td>
-<td class='note'>
-</td>
 </tr>
 <tr>
 <td class='formal'>IBL Horizon Cutoff</td>
@@ -354,92 +288,66 @@ id of the sub-presentation to display
 <td class='formal'>Position X</td>
 <td class='scripting'>position.x</td>
 <td class='type'>number</td>
-<td class='note'>
-</td>
 </tr>
 <tr>
 <td class='formal'>Position Y</td>
 <td class='scripting'>position.y</td>
 <td class='type'>number</td>
-<td class='note'>
-</td>
 </tr>
 <tr>
 <td class='formal'>Position Z</td>
 <td class='scripting'>position.z</td>
 <td class='type'>number</td>
-<td class='note'>
-</td>
 </tr>
 <tr>
 <td class='formal'>Rotation X</td>
 <td class='scripting'>rotation.x</td>
 <td class='type'>number</td>
-<td class='note'>
-</td>
 </tr>
 <tr>
 <td class='formal'>Rotation Y</td>
 <td class='scripting'>rotation.y</td>
 <td class='type'>number</td>
-<td class='note'>
-</td>
 </tr>
 <tr>
 <td class='formal'>Rotation Z</td>
 <td class='scripting'>rotation.z</td>
 <td class='type'>number</td>
-<td class='note'>
-</td>
 </tr>
 <tr>
 <td class='formal'>Scale X</td>
 <td class='scripting'>scale.x</td>
 <td class='type'>number</td>
-<td class='note'>
-</td>
 </tr>
 <tr>
 <td class='formal'>Scale Y</td>
 <td class='scripting'>scale.y</td>
 <td class='type'>number</td>
-<td class='note'>
-</td>
 </tr>
 <tr>
 <td class='formal'>Scale Z</td>
 <td class='scripting'>scale.z</td>
 <td class='type'>number</td>
-<td class='note'>
-</td>
 </tr>
 <tr>
 <td class='formal'>Pivot X</td>
 <td class='scripting'>pivot.x</td>
 <td class='type'>number</td>
-<td class='note'>
-</td>
 </tr>
 <tr>
 <td class='formal'>Pivot Y</td>
 <td class='scripting'>pivot.y</td>
 <td class='type'>number</td>
-<td class='note'>
-</td>
 </tr>
 <tr>
 <td class='formal'>Pivot Z</td>
 <td class='scripting'>pivot.z</td>
 <td class='type'>number</td>
-<td class='note'>
-</td>
 </tr>
 <tr>
 <td class='formal'>Opacity</td>
 <td class='scripting'>opacity</td>
 <td class='type'>number</td>
-<td class='note'>
-</td>
 </tr>
 <tr>
 <td class='formal'></td>
@@ -462,7 +370,7 @@ values: <code>'XYZ'</code>, <code>'YZX'</code>, <code>'ZXY'</code>, <code>'XZY'<
 <td class='scripting'>ignoresparent</td>
 <td class='type'>boolean</td>
 <td class='note'>
-prevents parent transformation from being applied
+prevents parent transformation from being applied [ignored as of 2.0]
 </td>
 </tr>
 <tbody></tbody>
@@ -481,29 +389,21 @@ relative or absolute element path
 <td class='formal'>Orthographic</td>
 <td class='scripting'>orthographic</td>
 <td class='type'>boolean</td>
-<td class='note'>
-</td>
 </tr>
 <tr>
 <td class='formal'>Field of View</td>
 <td class='scripting'>fov</td>
 <td class='type'>number</td>
-<td class='note'>
-</td>
 </tr>
 <tr>
 <td class='formal'>Clipping Start</td>
 <td class='scripting'>clipnear</td>
 <td class='type'>number</td>
-<td class='note'>
-</td>
 </tr>
 <tr>
 <td class='formal'>Clipping End</td>
 <td class='scripting'>clipfar</td>
 <td class='type'>number</td>
-<td class='note'>
-</td>
 </tr>
 <tr>
 <td class='formal'>Runtime Scale Mode</td>
@@ -543,64 +443,46 @@ values: <code>'Directional'</code>, <code>'Point'</code>, <code>'Area'</code>
 <td class='formal'>Light Color R</td>
 <td class='scripting'>lightdiffuse.r</td>
 <td class='type'>number</td>
-<td class='note'>
-</td>
 </tr>
 <tr>
 <td class='formal'>Light Color G</td>
 <td class='scripting'>lightdiffuse.g</td>
 <td class='type'>number</td>
-<td class='note'>
-</td>
 </tr>
 <tr>
 <td class='formal'>Light Color B</td>
 <td class='scripting'>lightdiffuse.b</td>
 <td class='type'>number</td>
-<td class='note'>
-</td>
 </tr>
 <tr>
 <td class='formal'>Specular Color R</td>
 <td class='scripting'>lightspecular.r</td>
 <td class='type'>number</td>
-<td class='note'>
-</td>
 </tr>
 <tr>
 <td class='formal'>Specular Color G</td>
 <td class='scripting'>lightspecular.g</td>
 <td class='type'>number</td>
-<td class='note'>
-</td>
 </tr>
 <tr>
 <td class='formal'>Specular Color B</td>
 <td class='scripting'>lightspecular.b</td>
 <td class='type'>number</td>
-<td class='note'>
-</td>
 </tr>
 <tr>
 <td class='formal'>Ambient Color R</td>
 <td class='scripting'>lightambient.r</td>
 <td class='type'>number</td>
-<td class='note'>
-</td>
 </tr>
 <tr>
 <td class='formal'>Ambient Color G</td>
 <td class='scripting'>lightambient.g</td>
 <td class='type'>number</td>
-<td class='note'>
-</td>
 </tr>
 <tr>
 <td class='formal'>Ambient Color B</td>
 <td class='scripting'>lightambient.b</td>
 <td class='type'>number</td>
-<td class='note'>
-</td>
 </tr>
 <tr>
 <td class='formal'>Brightness</td>
@@ -630,22 +512,16 @@ only applies to point lights
 <td class='formal'>Cast Shadows?</td>
 <td class='scripting'>castshadow</td>
 <td class='type'>boolean</td>
-<td class='note'>
-</td>
 </tr>
 <tr>
 <td class='formal'>Shadow Darkness</td>
 <td class='scripting'>shdwfactor</td>
 <td class='type'>number</td>
-<td class='note'>
-</td>
 </tr>
 <tr>
 <td class='formal'>Shadow Softness</td>
 <td class='scripting'>shdwfilter</td>
 <td class='type'>number</td>
-<td class='note'>
-</td>
 </tr>
 <tr>
 <td class='formal'>Shadow Resolution</td>
@@ -659,21 +535,15 @@ values: <code>'256'</code>, <code>'512'</code>, <code>'1024'</code>, <code>'2048
 <td class='formal'>Shadow Depth Bias</td>
 <td class='scripting'>shdwbias</td>
 <td class='type'>number</td>
-<td class='note'>
-</td>
 </tr>
 <tr>
 <td class='formal'>Shadow Far Clip</td>
 <td class='scripting'>shdwmapfar</td>
 <td class='type'>number</td>
-<td class='note'>
-</td>
 <tr>
 <td class='formal'>Shadow Field of View</td>
 <td class='scripting'>shdwmapfov</td>
 <td class='type'>number</td>
-<td class='note'>
-</td>
 </tr>
 <tbody></tbody>
 <tr><th colspan="4">Groups</td></tr>
@@ -681,8 +551,6 @@ values: <code>'256'</code>, <code>'512'</code>, <code>'1024'</code>, <code>'2048
 <td class='formal'>Import</td>
 <td class='scripting'>sourcepath</td>
 <td class='type'>string</td>
-<td class='note'>
-</td>
 </tr>
 <tbody></tbody>
 <tr><th colspan="4">Text</td></tr>
@@ -690,43 +558,31 @@ values: <code>'256'</code>, <code>'512'</code>, <code>'1024'</code>, <code>'2048
 <td class='formal'>Text String</td>
 <td class='scripting'>textstring</td>
 <td class='type'>string</td>
-<td class='note'>
-</td>
 </tr>
 <tr>
 <td class='formal'>Text Color R</td>
 <td class='scripting'>textcolor.r</td>
 <td class='type'>number</td>
-<td class='note'>
-</td>
 </tr>
 <tr>
 <td class='formal'>Text Color G</td>
 <td class='scripting'>textcolor.g</td>
 <td class='type'>number</td>
-<td class='note'>
-</td>
 </tr>
 <tr>
 <td class='formal'>Text Color B</td>
 <td class='scripting'>textcolor.b</td>
 <td class='type'>number</td>
-<td class='note'>
-</td>
 </tr>
 <tr>
 <td class='formal'>Font</td>
 <td class='scripting'>font</td>
 <td class='type'>string</td>
-<td class='note'>
-</td>
 </tr>
 <tr>
 <td class='formal'>Font Size</td>
 <td class='scripting'>size</td>
 <td class='type'>number</td>
-<td class='note'>
-</td>
 </tr>
 <tr>
 <td class='formal'>Horizontal Alignment</td>
@@ -748,15 +604,11 @@ values: <code>'Top'</code>, <code>'Middle'</code>, <code>'Bottom'</code>
 <td class='formal'>Leading</td>
 <td class='scripting'>leading</td>
 <td class='type'>number</td>
-<td class='note'>
-</td>
 </tr>
 <tr>
 <td class='formal'>Tracking</td>
 <td class='scripting'>tracking</td>
 <td class='type'>number</td>
-<td class='note'>
-</td>
 </tr>
 <tbody></tbody>
 <tr><th colspan="4">Models</td></tr>
@@ -764,15 +616,13 @@ values: <code>'Top'</code>, <code>'Middle'</code>, <code>'Bottom'</code>
 <td class='formal'>Mesh</td>
 <td class='scripting'>sourcepath</td>
 <td class='type'>string</td>
-<td class='note'>
-</td>
 </tr>
 <tr>
 <td class='formal'>Tessellation Mode</td>
 <td class='scripting'>tessellation</td>
 <td class='type'>string</td>
 <td class='note'>
-values: <code>'None'</code>, <code>'Linear'</code>, <code>'Phong'</code>, <code>'NPatch'</code>
+values: <code>'None'</code>, <code>'Linear'</code>, <code>'Phong'</code>, <code>'NPatch'</code> [ignored as of 2.0]
 </td>
 </tr>
 <tr>
@@ -780,6 +630,7 @@ values: <code>'None'</code>, <code>'Linear'</code>, <code>'Phong'</code>, <code>
 <td class='scripting'>edgetess</td>
 <td class='type'>number</td>
 <td class='note'>
+[ignored as of 2.0]
 </td>
 </tr>
 <tr>
@@ -787,6 +638,7 @@ values: <code>'None'</code>, <code>'Linear'</code>, <code>'Phong'</code>, <code>
 <td class='scripting'>innertess</td>
 <td class='type'>number</td>
 <td class='note'>
+[ignored as of 2.0]
 </td>
 </tr>
 <tbody></tbody>
@@ -811,22 +663,16 @@ values: <code>'Normal'</code>, <code>'Screen'</code>, <code>'Multiply'</code>
 <td class='formal'>Diffuse Color R</td>
 <td class='scripting'>diffuse.r</td>
 <td class='type'>number</td>
-<td class='note'>
-</td>
 </tr>
 <tr>
 <td class='formal'>Diffuse Color G</td>
 <td class='scripting'>diffuse.g</td>
 <td class='type'>number</td>
-<td class='note'>
-</td>
 </tr>
 <tr>
 <td class='formal'>Diffuse Color B</td>
 <td class='scripting'>diffuse.b</td>
 <td class='type'>number</td>
-<td class='note'>
-</td>
 </tr>
 <tr>
 <td class='formal'>Diffuse Map</td>
@@ -864,29 +710,21 @@ to change the image set the <code>sourcepath</code> attribute on the image eleme
 <td class='formal'>Specular Tint R</td>
 <td class='scripting'>speculartint.r</td>
 <td class='type'>number</td>
-<td class='note'>
-</td>
 </tr>
 <tr>
 <td class='formal'>Specular Tint G</td>
 <td class='scripting'>speculartint.g</td>
 <td class='type'>number</td>
-<td class='note'>
-</td>
 </tr>
 <tr>
 <td class='formal'>Specular Tint B</td>
 <td class='scripting'>speculartint.b</td>
 <td class='type'>number</td>
-<td class='note'>
-</td>
 </tr>
 <tr>
 <td class='formal'>Specular Amount</td>
 <td class='scripting'>specularamount</td>
 <td class='type'>number</td>
-<td class='note'>
-</td>
 </tr>
 <tr>
 <td class='formal'>Specular Map</td>
@@ -908,22 +746,16 @@ values: <code>'Default'</code>, <code>'KGGX'</code>, <code>'KWard'</code>
 <td class='formal'>Fresnel Power</td>
 <td class='scripting'>fresnelPower</td>
 <td class='type'>number</td>
-<td class='note'>
-</td>
 </tr>
 <tr>
 <td class='formal'>Index of Refraction</td>
 <td class='scripting'>ior</td>
 <td class='type'>number</td>
-<td class='note'>
-</td>
 </tr>
 <tr>
 <td class='formal'>Specular Roughness</td>
 <td class='scripting'>specularroughness</td>
 <td class='type'>number</td>
-<td class='note'>
-</td>
 </tr>
 <tr>
 <td class='formal'>Bump Map</td>
@@ -961,15 +793,11 @@ to change the image set the <code>sourcepath</code> attribute on the image eleme
 <td class='formal'>Displacement Amount</td>
 <td class='scripting'>displaceamount</td>
 <td class='type'>number</td>
-<td class='note'>
-</td>
 </tr>
 <tr>
 <td class='formal'>Opacity</td>
 <td class='scripting'>opacity</td>
 <td class='type'>number</td>
-<td class='note'>
-</td>
 </tr>
 <tr>
 <td class='formal'>Opacity Map</td>
@@ -983,8 +811,6 @@ to change the image set the <code>sourcepath</code> attribute on the image eleme
 <td class='formal'>Emissive Power</td>
 <td class='scripting'>emissivepower</td>
 <td class='type'>number</td>
-<td class='note'>
-</td>
 </tr>
 <tr>
 <td class='formal'>Emissive Map</td>
@@ -1010,15 +836,11 @@ relative or absolute element path
 <td class='formal'>U Repeat</td>
 <td class='scripting'>scaleu</td>
 <td class='type'>number</td>
-<td class='note'>
-</td>
 </tr>
 <tr>
 <td class='formal'>V Repeat</td>
 <td class='scripting'>scalev</td>
 <td class='type'>number</td>
-<td class='note'>
-</td>
 </tr>
 <tr>
 <td class='formal'>Texture Mapping</td>
@@ -1048,36 +870,26 @@ values: <code>'Tiled'</code>, <code>'Mirrored'</code>, <code>'No Tiling'</code>
 <td class='formal'>UV Rotation</td>
 <td class='scripting'>rotationuv</td>
 <td class='type'>number</td>
-<td class='note'>
-</td>
 </tr>
 <tr>
 <td class='formal'>U Position</td>
 <td class='scripting'>positionu</td>
 <td class='type'>number</td>
-<td class='note'>
-</td>
 </tr>
 <tr>
 <td class='formal'>V Position</td>
 <td class='scripting'>positionv</td>
 <td class='type'>number</td>
-<td class='note'>
-</td>
 </tr>
 <tr>
 <td class='formal'>U Pivot</td>
 <td class='scripting'>pivotu</td>
 <td class='type'>number</td>
-<td class='note'>
-</td>
 </tr>
 <tr>
 <td class='formal'>V Pivot</td>
 <td class='scripting'>pivotv</td>
 <td class='type'>number</td>
-<td class='note'>
-</td>
 </tr>
 <tr>
 <td class='formal'>Sub-Presentation</td>

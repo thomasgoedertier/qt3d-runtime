@@ -1,4 +1,4 @@
-/****************************************************************************
+!/****************************************************************************
 **
 ** Copyright (C) 1993-2009 NVIDIA Corporation.
 ** Copyright (C) 2018 The Qt Company Ltd.
@@ -26,9 +26,8 @@
 **
 ****************************************************************************/
 
-// This is a wrapper for getting script-generated
-// content in attributenames.html into qdoc.
-// (note: hand edited for 2.0)
+// Pull in attributenames.html into qdoc. Note that attributenames.html is
+// manually maintained since 2.0 and is not auto-generated.
 
 /*!
     \page qt3d-runtime-attribute-names.html
@@ -36,7 +35,29 @@
     \keyword Attributes
 
     Below is a list of the attributes that can be set on the various scene
-    objects via Q3DSPresentation::setAttribute() or Q3DSElement::setAttribute():
+    objects via Q3DSPresentation::setAttribute() or Q3DSElement::setAttribute().
+
+    \note vector (e.g. a group's or model's \c rotation) and color (e.g. a
+    material's \c diffuse) attributes allow setting/getting all components in
+    one operation, and are mapped to QVector3D and QColor, respectively.
+
+    \note As of Qt 3D Studio 2.0 not all properties can be changed on the fly at
+    run time. As a general rule attributes that are animatable in the Qt 3D
+    Studio application are freely changeable by the applications during run time
+    as well.
 
     \include attributenames.html
+
+    Custom materials and effects have their custom set of properties that are
+    defined in the \c{.material} or \c{.effect} file. For example, an instances
+    of an effect with the following metadata will have an attribute \c HBlurBias
+    with the type \c number that can be set and queried as if it was a built-in
+    attribute.
+
+    \badcode
+    <Effect>
+        <MetaData>
+            <Property name="HBlurBias" formalName="Horizontal Blur" min="0" max="10" default="2" description="Amount of corona horizontally."/>
+            ...
+    \endcode
 */
