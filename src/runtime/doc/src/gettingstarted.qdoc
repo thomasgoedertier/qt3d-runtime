@@ -34,9 +34,37 @@
     is used in combination with the Qt 3D Studio application during the design
     phase.
 
+    Below is an example scene in the Qt 3D Studio application.
+
+    \image intro-editor.png
+
+    During the design phase, the standalone viewer is typically launched from
+    the editor several times to check and verify the presentation in the
+    runtime.
+
+    \image intro-viewer.png
+
     Once the design is done and the \c{.uia}, \c{.uip}, and other asset files
     are available, these can be loaded, rendered, and manipulated in Qt
-    applications.
+    applications. This is done via the APIs provided in the \c 3dstudioruntime2
+    module and the \c QtStudio3D QML plugin.
+
+    Below is the same scene loaded into a simple Qt Quick application
+    (the \l{Qt 3D Studio Runtime: Simple QML Example}{simpleqml
+    example}) that composes the 3D content with the other Qt Quick
+    items, for example the ones provided by \l{Qt Quick Controls
+    2}. In addition to displaying the presentation, the application
+    can also control many aspects of it (slides, timeline, object
+    properties) and can react on certain conditions, such as when a 3D
+    object is clicked on (picked) by mouse or touch input.
+
+    \image intro-app.png
+
+    To profile, debug, and tune the presentation, the runtime provides a
+    built-in, in-scene debug pane that can be toggled both from the viewer and,
+    optionally, from applications as well.
+
+    \image intro-viewer-profile.png
 
     \section1 Rendering Scenes
 
@@ -45,10 +73,10 @@
     \list
 
     \li Qt Quick: here applications import QtStudio3D 2.0 which provides the
-    Studio3D QML type, a Qt Quick item that can be added to Qt Quick scenes.
-    Under the hood this is similar to adding a Scene3D (when working directly
-    with the lower level Qt 3D framework) or a custom
-    QQuickFramebufferObject-based item into the scene.
+    \l Studio3D QML type, a Qt Quick item that can be added to Qt Quick scenes.
+    Under the hood this is similar to adding a \l Scene3D (when working
+    directly with the lower level Qt 3D framework) or a custom item based on
+    \l QQuickFramebufferObject into the scene.
 
     \li Widgets: Q3DSWidget is a QOpenGLWidget subclass that displays Qt 3D
     Studio scenes.
@@ -65,10 +93,11 @@
     Rendering Qt 3D Studio scenes is only part of the story since many scenes
     are not static and will not just display all their contents as they were
     done by designers in the Qt 3D Studio application. Rather, properties of
-    scene objects (for example, the rotation of a 3D model or the diffuse color
-    of the material associated with such a model) may need to be changed
-    dynamically, at run time. The timeline or the current slide may also need
-    to be adjusted based on the user's actions or other application state.
+    scene objects (for example, the rotation property of a 3D model, or the
+    diffuse color of the material associated with such a model) may need to be
+    changed dynamically, at run time. The timeline or the current slide may
+    also need to be adjusted based on the user's actions or other application
+    state.
 
     As of Qt 3D Studio 2.0 such functionality is exposed via the
     Q3DSPresentation (\l Presentation) objects, Q3DSElement (\l Element),
