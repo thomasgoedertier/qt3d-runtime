@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<UIP version="3" >
+	<Project >
+		<ProjectSettings author="" company="" presentationWidth="800" presentationHeight="800" maintainAspect="True" >
+			<CustomColors count="16" >#ff5500 #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff</CustomColors>
+		</ProjectSettings>
+		<Classes >
+			<CustomMaterial id="simple_glass" name="simple_glass" sourcepath="materials/simple_glass.material" />
+		</Classes>
+		<Graph >
+			<Scene id="Scene" >
+				<Layer id="Layer2" >
+					<Camera id="Camera_001" />
+					<Light id="Light_001" />
+					<Model id="NeedleSpeed_001" name="NeedleSpeed" importid="NeedleSpeed" orientation="Right Handed" position="0 0 -0" rotation="0 -0 0" rotationorder="XYZr" scale="1 1 1" sourcepath="models/Speedometer/meshes/NeedleSpeed.mesh" >
+						<Material id="NeedleBlack_002" name="NeedleBlack" blendmode="Normal" diffuse="0 0 0" emissivepower="0" importid="NeedleBlack" opacity="100" specularamount="0" specularroughness="9.41177" />
+						<Material id="NeedleWhite_002" />
+					</Model>
+				</Layer>
+				<Layer id="Layer" >
+					<Camera id="Camera" />
+					<Light id="Light" />
+					<Group id="Speedometer" importid="__import__root__" >
+						<Group id="Group_Speedometer_Master" name="Group_Speedometer_Master" importid="Group_Speedometer_Master" orientation="Right Handed" position="0 0 -0" rotation="0 -0 0" rotationorder="XYZr" scale="1 1 1" >
+							<Model id="Speedometer_001" name="Speedometer" importid="Speedometer" orientation="Right Handed" position="0 0 -0" rotation="0 -0 0" rotationorder="XYZr" scale="1 1 1" sourcepath="models/Speedometer/meshes/Speedometer.mesh" >
+								<CustomMaterial id="BaseMetal" class="#simple_glass" />
+								<ReferencedMaterial id="HighLight" />
+								<Material id="NeedleWhite_001" name="NeedleWhite" blendmode="Normal" diffuse="0.8 0.8 0.8" emissivepower="0" importid="NeedleWhite_0005" opacity="100" specularamount="0" specularroughness="27.451" />
+								<Material id="BlackMetalRing" name="BlackMetalRing" blendmode="Normal" diffuse="0.0578313 0.0578313 0.0578313" emissivepower="0" importid="BlackMetalRing" opacity="100" specularamount="0" specularroughness="99.8039" />
+								<Material id="NeedleBlack_001" name="NeedleBlack" blendmode="Normal" diffuse="0 0 0" emissivepower="0" importid="NeedleBlack_0006" opacity="100" specularamount="0" specularroughness="9.41177" />
+								<Material id="SpeedometerBg" name="SpeedometerBg" blendmode="Normal" diffuse="1 1 1" diffusemap="#SpeedometerBg_diffusemap" emissivepower="0" importid="SpeedometerBg" opacity="100" specularamount="0" specularroughness="9.41177" >
+									<Image id="SpeedometerBg_diffusemap" name="SpeedometerBg_diffusemap" importid="SpeedometerBg_diffusemap" sourcepath="models/Speedometer/maps/Speed.png" />
+								</Material>
+							</Model>
+						</Group>
+					</Group>
+				</Layer>
+			</Scene>
+		</Graph>
+		<Logic >
+			<State name="Master Slide" component="#Scene" >
+				<Add ref="#Layer" multisampleaa="SSAA" probebright="500" />
+				<Add ref="#Camera" fov="30" position="0 0 -400" />
+				<Add ref="#Light" brightness="200" lightdiffuse="1 1 1" lightspecular="0 0.666667 1" lighttype="Point" pivot="100 0 0" position="0 0 -50" >
+					<AnimationTrack property="rotation.x" type="EaseInOut" >0 0 100 100 5 0 100 100</AnimationTrack>
+					<AnimationTrack property="rotation.y" type="EaseInOut" >0 0 100 100 5 0 100 100</AnimationTrack>
+					<AnimationTrack property="rotation.z" type="EaseInOut" >0 45 100 100 5 -225 100 100</AnimationTrack>
+				</Add>
+				<State id="Scene-Slide1" name="Slide1" playmode="PingPong" playthroughto="Next" >
+					<Set ref="#Layer" endtime="5000" />
+					<Set ref="#Camera" endtime="5000" />
+					<Set ref="#Light" endtime="5000" />
+					<Add ref="#Layer2" name="Layer2" endtime="5000" multisampleaa="None" progressiveaa="8x" />
+					<Add ref="#Camera_001" endtime="5000" fov="30" position="0 0 -600" />
+					<Add ref="#Light_001" endtime="5000" />
+					<Add ref="#NeedleSpeed_001" name="NeedleSpeed" endtime="5000" importfile="models/Speedometer/Speedometer.import" pivot="5 5 0" >
+						<AnimationTrack property="rotation.x" type="EaseInOut" >0 0 100 100 2.13 0 0 0 5 0 100 100</AnimationTrack>
+						<AnimationTrack property="rotation.y" type="EaseInOut" >0 0 100 100 2.13 0 0 0 5 0 100 100</AnimationTrack>
+						<AnimationTrack property="rotation.z" type="EaseInOut" >0 0 100 100 2.13 -105.249 0 0 5 -270 100 100</AnimationTrack>
+					</Add>
+					<Add ref="#NeedleBlack_002" diffuse="0 0.333333 1" importfile="models/Speedometer/Speedometer.import" />
+					<Add ref="#NeedleWhite_002" name="NeedleWhite" diffuse="1 1 1" specularamount="0" />
+					<Add ref="#Speedometer" name="Speedometer" endtime="5000" importfile="models/Speedometer/Speedometer.import" position="0 0 0" scale="0.7 0.7 0.7" sourcepath="models/Speedometer/Speedometer.import" />
+					<Add ref="#Group_Speedometer_Master" endtime="5000" importfile="models/Speedometer/Speedometer.import" />
+					<Add ref="#Speedometer_001" endtime="5000" importfile="models/Speedometer/Speedometer.import" />
+					<Add ref="#BaseMetal" name="BaseMetal" glass_color="0 0.333333 1" />
+					<Add ref="#HighLight" name="HighLight" endtime="5000" referencedmaterial="#BaseMetal" />
+					<Add ref="#NeedleWhite_001" importfile="models/Speedometer/Speedometer.import" />
+					<Add ref="#BlackMetalRing" diffuse="0 0.0862745 0.596078" importfile="models/Speedometer/Speedometer.import" specularamount="0" />
+					<Add ref="#NeedleBlack_001" importfile="models/Speedometer/Speedometer.import" />
+					<Add ref="#SpeedometerBg" diffuse="0.270588 0.501961 1" importfile="models/Speedometer/Speedometer.import" specularamount="0.1" specularroughness="1" speculartint="0.529412 0.772549 1" />
+					<Add ref="#SpeedometerBg_diffusemap" importfile="models/Speedometer/Speedometer.import" />
+				</State>
+			</State>
+		</Logic>
+	</Project>
+</UIP>

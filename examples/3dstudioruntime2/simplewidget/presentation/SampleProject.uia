@@ -1,9 +1,9 @@
-<?xml version="1.0" encoding="UTF-8" ?>
-<application>
-	<assets initial="barrel">
-		<dataInput name="di_text" type="String"/>
-		<presentation id="barrel" src="barrel.uip"/>
+<?xml version="1.0" encoding="UTF-8"?>
+<application xmlns="http://qt.io/qt3dstudio/uia">
+	<assets initial="SampleProject">
+		<presentation id="SampleProject"	src="SampleProject.uip"/>
 	</assets>
+
 	<statemachine ref="#logic">
 		<visual-states>
 			<state ref="Initial">

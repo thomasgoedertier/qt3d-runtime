@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<UIP Version="1" >
+	<Project Revision="1" >
+		<Graph >
+			<Group id="__import__root__" >
+				<Group id="Group_Speedometer_Master" name="Group_Speedometer_Master" orientation="Right Handed" position="0 0 -0" rotation="0 -0 0" rotationorder="XYZr" scale="1 1 1" >
+					<Model id="NeedleSpeed" name="NeedleSpeed" orientation="Right Handed" position="0 0 -0" rotation="0 -0 0" rotationorder="XYZr" scale="1 1 1" sourcepath="meshes/NeedleSpeed.mesh" >
+						<Material id="NeedleBlack" name="NeedleBlack" blendmode="Normal" diffuse="0 0 0" emissivepower="0" opacity="100" specularamount="0" specularroughness="9.41177" />
+						<Material id="NeedleWhite" name="NeedleWhite" blendmode="Normal" diffuse="0.8 0.8 0.8" emissivepower="0" opacity="100" specularamount="0" specularroughness="27.451" />
+					</Model>
+					<Model id="Speedometer" name="Speedometer" orientation="Right Handed" position="0 0 -0" rotation="0 -0 0" rotationorder="XYZr" scale="1 1 1" sourcepath="meshes/Speedometer.mesh" >
+						<Material id="BaseMetal" name="BaseMetal" blendmode="Normal" diffuse="0.01728 0.01728 0.01728" emissivepower="0" opacity="100" specularamount="0" specularroughness="11.3725" />
+						<Material id="HighLight" name="HighLight" blendmode="Normal" diffuse="0.298 0.54088 0.8" emissivepower="0" opacity="66.8675" specularamount="0" specularroughness="100" />
+						<Material id="NeedleWhite_0005" name="NeedleWhite" blendmode="Normal" diffuse="0.8 0.8 0.8" emissivepower="0" opacity="100" specularamount="0" specularroughness="27.451" />
+						<Material id="BlackMetalRing" name="BlackMetalRing" blendmode="Normal" diffuse="0.0578313 0.0578313 0.0578313" emissivepower="0" opacity="100" specularamount="0" specularroughness="99.8039" />
+						<Material id="NeedleBlack_0006" name="NeedleBlack" blendmode="Normal" diffuse="0 0 0" emissivepower="0" opacity="100" specularamount="0" specularroughness="9.41177" />
+						<Material id="SpeedometerBg" name="SpeedometerBg" blendmode="Normal" diffuse="1 1 1" diffusemap="SpeedometerBg_diffusemap" emissivepower="0" opacity="100" specularamount="0" specularroughness="9.41177" >
+							<Image id="SpeedometerBg_diffusemap" name="SpeedometerBg_diffusemap" sourcepath="maps/Speed.png" />
+						</Material>
+					</Model>
+				</Group>
+			</Group>
+		</Graph>
+		<Import SrcFile="" ImageDir="Images" MeshDir="Meshes" >
+			<Image >
+				<Source >Speed.png</Source>
+				<Dest >maps/Speed.png</Dest>
+			</Image>
+			<Mesh >
+				<Source >Speedometer</Source>
+				<Dest >meshes/Speedometer.mesh</Dest>
+			</Mesh>
+			<Mesh >
+				<Source >NeedleSpeed</Source>
+				<Dest >meshes/NeedleSpeed.mesh</Dest>
+			</Mesh>
+		</Import>
+	</Project>
+</UIP>
