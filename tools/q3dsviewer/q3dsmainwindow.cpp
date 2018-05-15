@@ -89,7 +89,7 @@ Q3DStudioMainWindow::Q3DStudioMainWindow(Q3DSWindow *view, Q3DSRemoteDeploymentM
             return;
         view->engine()->setSource(view->engine()->source());
     }, QKeySequence::Refresh);
-    fileMenu->addAction(tr("E&xit"), this, &QWidget::close);
+    fileMenu->addAction(tr("E&xit"), this, &QWidget::close, QKeySequence::Quit);
 
     QMenu *viewMenu = menuBar()->addMenu(tr("&View"));
     if (enableDebugMenu) {
