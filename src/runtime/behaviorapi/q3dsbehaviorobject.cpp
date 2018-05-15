@@ -145,47 +145,45 @@ void Q3DSBehaviorObject::setAttribute(const QString &handle, const QString &attr
         const QStringList vecCompRef = attribute.split(QLatin1Char('.'), QString::SkipEmptyParts);
         if (vecCompRef.count() == 2) {
             QVariant newValue = obj->propertyValue(vecCompRef[0]);
-            if (!newValue.isNull()) {
-                switch (newValue.type()) {
-                case QVariant::Vector2D:
-                {
-                    QVector2D v = newValue.value<QVector2D>();
-                    if (vecCompRef[1] == QStringLiteral("x"))
-                        v.setX(value.toFloat());
-                    else if (vecCompRef[1] == QStringLiteral("y"))
-                        v.setY(value.toFloat());
-                    newValue = v;
-                }
-                    break;
-                case QVariant::Vector3D:
-                {
-                    QVector3D v = newValue.value<QVector3D>();
-                    if (vecCompRef[1] == QStringLiteral("x"))
-                        v.setX(value.toFloat());
-                    else if (vecCompRef[1] == QStringLiteral("y"))
-                        v.setY(value.toFloat());
-                    else if (vecCompRef[1] == QStringLiteral("z"))
-                        v.setZ(value.toFloat());
-                    newValue = v;
-                }
-                    break;
-                case QVariant::Color:
-                {
-                    QColor v = newValue.value<QColor>();
-                    if (vecCompRef[1] == QStringLiteral("x") || vecCompRef[1] == QStringLiteral("r"))
-                        v.setRedF(value.toFloat());
-                    else if (vecCompRef[1] == QStringLiteral("y") || vecCompRef[1] == QStringLiteral("g"))
-                        v.setGreenF(value.toFloat());
-                    else if (vecCompRef[1] == QStringLiteral("z") || vecCompRef[1] == QStringLiteral("b"))
-                        v.setBlueF(value.toFloat());
-                    newValue = v;
-                }
-                    break;
-                default:
-                    break;
-                }
-                cl.append(Q3DSPropertyChange::fromVariant(vecCompRef[0], newValue));
+            switch (newValue.type()) {
+            case QVariant::Vector2D:
+            {
+                QVector2D v = newValue.value<QVector2D>();
+                if (vecCompRef[1] == QStringLiteral("x"))
+                    v.setX(value.toFloat());
+                else if (vecCompRef[1] == QStringLiteral("y"))
+                    v.setY(value.toFloat());
+                newValue = v;
             }
+                break;
+            case QVariant::Vector3D:
+            {
+                QVector3D v = newValue.value<QVector3D>();
+                if (vecCompRef[1] == QStringLiteral("x"))
+                    v.setX(value.toFloat());
+                else if (vecCompRef[1] == QStringLiteral("y"))
+                    v.setY(value.toFloat());
+                else if (vecCompRef[1] == QStringLiteral("z"))
+                    v.setZ(value.toFloat());
+                newValue = v;
+            }
+                break;
+            case QVariant::Color:
+            {
+                QColor v = newValue.value<QColor>();
+                if (vecCompRef[1] == QStringLiteral("x") || vecCompRef[1] == QStringLiteral("r"))
+                    v.setRedF(value.toFloat());
+                else if (vecCompRef[1] == QStringLiteral("y") || vecCompRef[1] == QStringLiteral("g"))
+                    v.setGreenF(value.toFloat());
+                else if (vecCompRef[1] == QStringLiteral("z") || vecCompRef[1] == QStringLiteral("b"))
+                    v.setBlueF(value.toFloat());
+                newValue = v;
+            }
+                break;
+            default:
+                break;
+            }
+            cl.append(Q3DSPropertyChange::fromVariant(vecCompRef[0], newValue));
         }
     } else {
         // for example, setAttribute("rotation", "0 45 0")
@@ -263,6 +261,35 @@ void Q3DSBehaviorObject::unregisterForEvent(const QString &handle, const QString
 void Q3DSBehaviorObject::setDataInputValue(const QString &name, const QVariant &value)
 {
     m_engine->setDataInputValue(name, value);
+}
+
+QMatrix4x4 Q3DSBehaviorObject::calculateGlobalTransform(const QString &handle)
+{
+    Q3DSGraphObject *obj = m_engine->findObjectByHashIdOrNameOrPath(m_behaviorInstance->parent(), m_presentation, handle);
+    if (!obj) {
+        qWarning("calculateGlobalTransform: Invalid object reference %s", qPrintable(handle));
+        return QMatrix4x4();
+    }
+
+    if (obj->isNode()) {
+        Q3DSNodeAttached *attached = static_cast<Q3DSNodeAttached *>(obj->attached());
+        const float *m = attached->globalTransform.constData();
+        QMatrix4x4 correctedMatrix(m[0], m[1], -m[2], m[3],
+                                   m[4], m[5], -m[6], m[7],
+                                   -m[8], -m[9], m[10], m[11],
+                                   m[12], m[13], -m[14], m[15]);
+        return correctedMatrix;
+    }
+    return QMatrix4x4();
+}
+
+QVector3D Q3DSBehaviorObject::lookAt(const QVector3D &target)
+{
+    float mag = qSqrt(target.x() * target.x() + target.z() * target.z());
+    float pitch = -qAtan2(target.y(), mag);
+    float yaw = qAtan2(target.x(), target.z());
+
+    return QVector3D(qRadiansToDegrees(pitch), qRadiansToDegrees(yaw), 0.0f);
 }
 
 /*!
@@ -391,6 +418,18 @@ Behavior {
 
     Sets the \a value of the data input identified with the \a name.
  */
+
+/*!
+    \qmlmethod matrix4x4 Behavior::calculateGlobalTransform(string handle)
+
+    Returns the transformation matrix of the object identified with the \a handle.
+*/
+
+/*!
+    \qmlmethod vector3d Behavior::lookAt(vector3d target)
+
+    Returns the euler angles for looking at the \a target.
+*/
 
 /*!
     \qmlsignal void Behavior::onInitialize()
