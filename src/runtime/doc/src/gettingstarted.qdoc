@@ -100,8 +100,8 @@
     state.
 
     As of Qt 3D Studio 2.0 such functionality is exposed via the
-    Q3DSPresentation (\l Presentation) objects, Q3DSElement (\l Element),
-    Q3DSSceneElement (\l SceneElement), and Q3DSDataInput (\l DataInput). Advanced
-    scene manipulation (for instance dynamically spawning and removing objects
-    in the 3D scene) will be introduced in future versions.
+    Q3DSPresentation (\l Presentation), Q3DSElement (\l Element),
+    Q3DSSceneElement (\l SceneElement), and Q3DSDataInput (\l DataInput)
+    objects. Advanced scene manipulation (for instance dynamically spawning and
+    removing objects in the 3D scene) will be introduced in future versions.
 */
