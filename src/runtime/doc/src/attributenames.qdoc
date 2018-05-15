@@ -46,6 +46,14 @@
     Studio application are freely changeable by the applications during run time
     as well.
 
+    \note When possible, applications are recommended to rely on the \c{data
+    input} functionality of Qt 3D Studio instead.  This avoids the need to refer
+    to hard-coded attribute names, and instead allows the designers to expose
+    the interesting attributes with arbitrary data input names to the
+    application developers, thus offering a fixed, well-known interface from the
+    3D presentation to the application code. See \l Q3DSDataInput and
+    \l DataInput for more information.
+
     \include attributenames.html
 
     Custom materials and effects have their custom set of properties that are

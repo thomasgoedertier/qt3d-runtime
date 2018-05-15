@@ -34,6 +34,7 @@
 
 \list
     \li \l {Getting Started}
+    \li \l {System and Application Requirements}
     \li \l {Using the Runtime on Android/iOS Devices}
     \li \l {Using the Runtime on Embedded Devices}
     \li \l {Qt 3D Studio Runtime C++ Classes}
