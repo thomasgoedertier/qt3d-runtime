@@ -133,6 +133,9 @@ int main(int argc, char *argv[])
         else
             view->show();
         engine->setOnDemandRendering(true);
+        // in QWindow mode let F10 and double double clicks activate the
+        // profileui via the engine
+        engine->setAutoToggleProfileUi(true);
     } else {
 #ifdef Q3DSVIEWER_WIDGETS
         mw = new Q3DStudioMainWindow(view.take(), remote.data());
@@ -140,6 +143,9 @@ int main(int argc, char *argv[])
             mw->showFullScreen();
         else
             mw->show();
+        // with widgets the engine's built-in profileui activation is not
+        // desirable since we have menu items with the same shortcuts (F10)
+        engine->setAutoToggleProfileUi(false);
 #endif
     }
 
