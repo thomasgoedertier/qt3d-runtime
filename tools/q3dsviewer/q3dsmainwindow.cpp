@@ -73,7 +73,7 @@ Q3DStudioMainWindow::Q3DStudioMainWindow(Q3DSWindow *view, Q3DSRemoteDeploymentM
         view->engine()->setFlag(Q3DSEngine::EnableProfiling, true);
         open();
     } , QKeySequence::Open);
-    fileMenu->addAction(tr("Open without &profiling..."), this, [=] {
+    fileMenu->addAction(tr("Open Without &Profiling..."), this, [=] {
         view->engine()->setFlag(Q3DSEngine::EnableProfiling, false);
         open();
     });
@@ -107,13 +107,13 @@ Q3DStudioMainWindow::Q3DStudioMainWindow(Q3DSWindow *view, Q3DSRemoteDeploymentM
         });
     }
 
-    viewMenu->addAction(tr("Toggle fullscree&n"), this, [this] {
+    viewMenu->addAction(tr("Toggle Full Scree&n"), this, [this] {
         Qt::WindowStates s = windowState();
         s.setFlag(Qt::WindowFullScreen, !s.testFlag(Qt::WindowFullScreen));
         setWindowState(s);
     }, QKeySequence::FullScreen);
 
-    QMenu *profileSubMenu = new QMenu(tr("&Profile and debug"));
+    QMenu *profileSubMenu = new QMenu(tr("&Profile and Debug"));
     profileSubMenu->addAction(tr("Toggle in-scene &debug view"), this, [view] {
         Q3DSEngine *engine = view->engine();
         engine->setProfileUiVisible(!engine->isProfileUiVisible());
