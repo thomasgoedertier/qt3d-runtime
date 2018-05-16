@@ -7021,19 +7021,6 @@ void Q3DSSceneManager::updateNodeFromChangeFlags(Q3DSNode *node, Qt3DCore::QTran
     }
 
     if (changeFlags & Q3DSNode::EyeballChanges) {
-        // Special case: objects on master slide that get an eyeball change in
-        // a subslide. These must be tracked so that obj->masterRollbackList()
-        // can be applied since otherwise there's nothing ensuring the
-        // visibility is reset when moving to another slide afterwards.
-        auto nodeData = static_cast<Q3DSNodeAttached*>(node->attached());
-        auto currentSlide = nodeData->component ? nodeData->component->currentSlide() : m_currentSlide;
-        auto masterSlide = nodeData->component ? nodeData->component->masterSlide() : m_masterSlide;
-        if (currentSlide && masterSlide->objects().contains(node)) {
-            Q3DSSlideAttached *data = static_cast<Q3DSSlideAttached *>(currentSlide->attached());
-            Q_ASSERT(data);
-            data->needsMasterRollback.insert(node);
-        }
-
         if (node->type() == Q3DSGraphObject::Light) {
             Q3DSLightAttached *lightData = static_cast<Q3DSLightAttached *>(node->attached());
             Q3DSGraphObject *rootObject = lightData->layer3DS;

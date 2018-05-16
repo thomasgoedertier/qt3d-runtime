@@ -597,7 +597,7 @@ void Q3DSSlidePlayer::handleCurrentSlideChanged(Q3DSSlide *slide,
     }
 
     if (slide && slideDidChange && isSlideVisible(slide)) {
-        processPropertyChanges(slide, previousSlide);
+        processPropertyChanges(slide);
         m_animationManager->updateAnimations(slide, (m_mode == PlayerMode::Editor));
         if (parentChanged)
             setSlideTime(static_cast<Q3DSSlide *>(slide->parent()), 0.0f);
@@ -768,24 +768,9 @@ bool Q3DSSlidePlayer::isSlideVisible(Q3DSSlide *slide)
     return  visible;
 }
 
-void Q3DSSlidePlayer::processPropertyChanges(Q3DSSlide *currentSlide,
-                                             Q3DSSlide *previousSlide)
+void Q3DSSlidePlayer::processPropertyChanges(Q3DSSlide *currentSlide)
 {
     Q_ASSERT(currentSlide->attached());
-
-    if (previousSlide) {
-        auto slideData = static_cast<Q3DSSlideAttached *>(previousSlide->attached());
-        for (Q3DSNode *node : qAsConst(slideData->needsMasterRollback)) {
-            const Q3DSPropertyChangeList *changeList = node->masterRollbackList();
-            if (changeList) {
-                qCDebug(lcScene, "Rolling back %d changes to master for %s", changeList->count(), node->id().constData());
-                node->applyPropertyChanges(*changeList);
-                node->notifyPropertyChanges(*changeList);
-                m_sceneManager->updateSubTreeRecursive(node);
-            }
-        }
-        slideData->needsMasterRollback.clear();
-    }
 
     // Find properties on targets that has dynamic properties.
     // TODO: Find a better solution (e.g., there can be duplicate updates for e.g., xyz here).
@@ -793,7 +778,7 @@ void Q3DSSlidePlayer::processPropertyChanges(Q3DSSlide *currentSlide,
     const auto &tracks = currentSlide->animations();
     std::find_if(tracks.cbegin(), tracks.cend(), [&dynamicPropertyChanges](const Q3DSAnimationTrack &track) {
         if (track.isDynamic()) {
-            auto foundIt = dynamicPropertyChanges.constFind(track.target());
+            const auto foundIt = dynamicPropertyChanges.constFind(track.target());
             Q3DSPropertyChangeList changeList;
             if (foundIt != dynamicPropertyChanges.constEnd())
                 changeList = *foundIt;
@@ -804,6 +789,28 @@ void Q3DSSlidePlayer::processPropertyChanges(Q3DSSlide *currentSlide,
         }
         return false;
     });
+
+    // Rollback master slide properties
+    if (currentSlide->parent()) {
+        Q3DSSlide *parent = static_cast<Q3DSSlide *>(currentSlide->parent());
+        const auto &objects = parent->objects();
+        std::find_if(objects.constBegin(), objects.constEnd(), [](Q3DSGraphObject *object){
+            if (!object->isNode())
+                return false;
+
+            Q3DSNode *node = static_cast<Q3DSNode *>(object);
+            const Q3DSPropertyChangeList *masterRollbackList = node->masterRollbackList();
+            if (!masterRollbackList)
+                return false;
+
+            if (masterRollbackList->isEmpty())
+                return false;
+
+            node->applyPropertyChanges(*node->masterRollbackList());
+            node->notifyPropertyChanges(*node->masterRollbackList());
+            return false;
+        });
+    }
 
     // Filter out properties that we needs to be marked dirty, i.e., eyeball changes.
     const auto &propertyChanges = currentSlide->propertyChanges();

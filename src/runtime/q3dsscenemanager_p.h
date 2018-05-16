@@ -581,7 +581,6 @@ public:
     Q3DSSlidePlayer *slidePlayer = nullptr;
     Qt3DAnimation::QClipAnimator *animator = nullptr;
     QVector<Qt3DAnimation::QClipAnimator *> animators;
-    QSet<Q3DSNode *> needsMasterRollback;
 };
 
 class Q3DSImageAttached : public Q3DSGraphObjectAttached

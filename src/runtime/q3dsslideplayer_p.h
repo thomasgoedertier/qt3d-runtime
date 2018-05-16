@@ -146,8 +146,7 @@ private:
     void sendPositionChanged(Q3DSSlide *slide, float pos);
     void updateNodeVisibility(Q3DSNode *node, bool visible);
     bool isSlideVisible(Q3DSSlide *slide);
-    void processPropertyChanges(Q3DSSlide *currentSlide,
-                                Q3DSSlide *previousSlide);
+    void processPropertyChanges(Q3DSSlide *currentSlide);
 
     struct Data {
         Q3DSSlideDeck *slideDeck = nullptr;
