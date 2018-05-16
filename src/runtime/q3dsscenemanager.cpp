@@ -6811,6 +6811,7 @@ void Q3DSSceneManager::updateSubTreeRecursive(Q3DSGraphObject *obj)
             Q3DSModelAttached *modelData = static_cast<Q3DSModelAttached *>(data->model3DS->attached());
             data->opacity = modelData->globalOpacity * (mat3DS->opacity() / 100.0f);
             updateDefaultMaterial(mat3DS);
+            retagSubMeshes(data->model3DS);
             m_wasDirty = true;
             markLayerForObjectDirty(mat3DS);
             if (data->frameChangeFlags & Q3DSDefaultMaterial::BlendModeChanges)
@@ -6826,6 +6827,7 @@ void Q3DSSceneManager::updateSubTreeRecursive(Q3DSGraphObject *obj)
             Q3DSModelAttached *modelData = static_cast<Q3DSModelAttached *>(data->model3DS->attached());
             data->opacity = modelData->globalOpacity;
             updateCustomMaterial(mat3DS);
+            retagSubMeshes(data->model3DS);
             m_wasDirty = true;
             markLayerForObjectDirty(mat3DS);
         }
