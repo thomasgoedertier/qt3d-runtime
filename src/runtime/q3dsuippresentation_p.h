@@ -596,6 +596,8 @@ public:
         Value
     };
 
+    using PropertyChanges = QHash<Q3DSGraphObject *, Q3DSPropertyChangeList *>;
+
     Q3DSSlide();
     ~Q3DSSlide();
 
@@ -607,7 +609,7 @@ public:
     void addObject(Q3DSGraphObject *obj);
     void removeObject(Q3DSGraphObject *obj);
 
-    const QHash<Q3DSGraphObject *, Q3DSPropertyChangeList *> &propertyChanges() const { return m_propChanges; }
+    const PropertyChanges &propertyChanges() const { return m_propChanges; }
     void addPropertyChanges(Q3DSGraphObject *target, Q3DSPropertyChangeList *changeList); // changeList ownership transferred
     void removePropertyChanges(Q3DSGraphObject *target);
     Q3DSPropertyChangeList *takePropertyChanges(Q3DSGraphObject *target);
@@ -679,7 +681,7 @@ private:
     PlayThrough m_playThrough = Next;
     QVariant m_playThroughValue;
     QSet<Q3DSGraphObject *> m_objects;
-    QHash<Q3DSGraphObject *, Q3DSPropertyChangeList *> m_propChanges;
+    PropertyChanges m_propChanges;
     QVector<Q3DSAnimationTrack> m_anims;
     QVector<Q3DSAction> m_actions;
     QVector<SlideGraphChangeCallback> m_slideGraphChangeCallbacks; // master only
@@ -1994,8 +1996,8 @@ public:
     static void forAllModels(Q3DSGraphObject *obj, std::function<void(Q3DSModelNode *)> f, bool includeHidden = false);
     void forAllImages(std::function<void(Q3DSImage *)> f);
 
-    void notifyPropertyChanges(const QHash<Q3DSGraphObject *, Q3DSPropertyChangeList *> &changeList) const;
-    void applyPropertyChanges(const QHash<Q3DSGraphObject *, Q3DSPropertyChangeList *> &changeList) const;
+    void notifyPropertyChanges(const Q3DSSlide::PropertyChanges &changeList) const;
+    void applyPropertyChanges(const Q3DSSlide::PropertyChanges &changeList) const;
     void applySlidePropertyChanges(Q3DSSlide *slide) const;
 
     qint64 loadTimeMsecs() const;

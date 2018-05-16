@@ -820,8 +820,6 @@ private:
     void prepareNextFrame();
 
     bool isComponentVisible(Q3DSComponentNode *component);
-    void handleSlideChange(Q3DSSlide *previousSlide,
-                           Q3DSSlide *currentSlide);
     void setNodeVisibility(Q3DSNode *node, bool visible);
 
     void handleSceneChange(Q3DSScene *scene, Q3DSGraphObject::DirtyFlag change, Q3DSGraphObject *obj);

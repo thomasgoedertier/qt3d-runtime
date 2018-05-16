@@ -4093,13 +4093,13 @@ void Q3DSUipPresentation::removeDataInputTarget(Q3DSGraphObject *obj)
     }
 }
 
-void Q3DSUipPresentation::notifyPropertyChanges(const QHash<Q3DSGraphObject *, Q3DSPropertyChangeList *> &changeList) const
+void Q3DSUipPresentation::notifyPropertyChanges(const Q3DSSlide::PropertyChanges &changeList) const
 {
     for (auto it = changeList.cbegin(), ite = changeList.cend(); it != ite; ++it)
         it.key()->notifyPropertyChanges(*it.value());
 }
 
-void Q3DSUipPresentation::applyPropertyChanges(const QHash<Q3DSGraphObject *, Q3DSPropertyChangeList *> &changeList) const
+void Q3DSUipPresentation::applyPropertyChanges(const Q3DSSlide::PropertyChanges &changeList) const
 {
     for (auto it = changeList.cbegin(), ite = changeList.cend(); it != ite; ++it) {
         for (auto change = it.value()->begin(); change != it.value()->end(); change++)
