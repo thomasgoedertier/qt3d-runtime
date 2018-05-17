@@ -213,6 +213,43 @@ struct ShaderGenerator : public Q3DSCustomMaterialShaderGenerator
         vertexGenerator().beginVertexGeneration(nullptr);
     }
 
+    void addProperties(Q3DSAbstractShaderStageGenerator &fragmentShader)
+    {
+        // Add Uniforms from material properties
+        for (auto property : m_currentMaterial->properties()) {
+            switch (property.type) {
+            case Q3DS::Boolean:
+                fragmentShader.addUniform(property.name.toLocal8Bit(), "bool");
+                break;
+            case Q3DS::Long:
+                fragmentShader.addUniform(property.name.toLocal8Bit(), "int");
+                break;
+            case Q3DS::FloatRange:
+            case Q3DS::Float:
+            case Q3DS::FontSize:
+                fragmentShader.addUniform(property.name.toLocal8Bit(), "float");
+                break;
+            case Q3DS::Float2:
+                fragmentShader.addUniform(property.name.toLocal8Bit(), "vec2");
+                break;
+            case Q3DS::Vector:
+            case Q3DS::Scale:
+            case Q3DS::Rotation:
+            case Q3DS::Color:
+                fragmentShader.addUniform(property.name.toLocal8Bit(), "vec3");
+                break;
+            case Q3DS::Texture:
+                fragmentShader.addUniform(property.name.toLocal8Bit(), "sampler2D");
+                break;
+            case Q3DS::StringList:
+                fragmentShader.addUniform(property.name.toLocal8Bit(), "int");
+                break;
+            default:
+                break;
+            }
+        }
+    }
+
     void generateFragmentShader(const QString &shaderName)
     {
         // Get the shader source from the Q3DSCustomMaterial based
@@ -290,6 +327,7 @@ struct ShaderGenerator : public Q3DSCustomMaterialShaderGenerator
             vertexShader.generateWorldPosition();
 
             vertexShader.generateViewVector();
+            addProperties(fragmentShader);
             return;
         }
 
@@ -331,40 +369,7 @@ struct ShaderGenerator : public Q3DSCustomMaterialShaderGenerator
             fragmentShader << "}\n\n";
         }
 
-        // Add Uniforms from material properties
-        for (auto property : m_currentMaterial->properties()) {
-            switch (property.type) {
-            case Q3DS::Boolean:
-                fragmentShader.addUniform(property.name.toLocal8Bit(), "bool");
-                break;
-            case Q3DS::Long:
-                fragmentShader.addUniform(property.name.toLocal8Bit(), "int");
-                break;
-            case Q3DS::FloatRange:
-            case Q3DS::Float:
-            case Q3DS::FontSize:
-                fragmentShader.addUniform(property.name.toLocal8Bit(), "float");
-                break;
-            case Q3DS::Float2:
-                fragmentShader.addUniform(property.name.toLocal8Bit(), "vec2");
-                break;
-            case Q3DS::Vector:
-            case Q3DS::Scale:
-            case Q3DS::Rotation:
-            case Q3DS::Color:
-                fragmentShader.addUniform(property.name.toLocal8Bit(), "vec3");
-                break;
-            case Q3DS::Texture:
-                fragmentShader.addUniform(property.name.toLocal8Bit(), "sampler2D");
-                break;
-            case Q3DS::StringList:
-                fragmentShader.addUniform(property.name.toLocal8Bit(), "int");
-                break;
-            default:
-                break;
-            }
-        }
-
+        addProperties(fragmentShader);
 
         // setup main
         vertexGenerator().beginFragmentGeneration();
