@@ -3714,7 +3714,11 @@ QMatrix4x4 generateRotationMatrix(const QVector3D &nodeRotation, Q3DSNode::Rotat
 
 float clampOpacity(float f)
 {
-    return qBound(0.0f, f, 1.0f);
+    f = qBound(0.0f, f, 1.0f);
+    // make sure 1 is 1 so we won't end up with opacity < 1 == false
+    if (qFuzzyCompare(f, 1.0f))
+        f = 1.0f;
+    return f;
 }
 }
 
