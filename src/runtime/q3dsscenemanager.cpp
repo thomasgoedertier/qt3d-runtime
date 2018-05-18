@@ -1644,16 +1644,21 @@ void Q3DSSceneManager::setLayerProperties(Q3DSLayerNode *layer3DS)
         data->iblProbeData.lightProbeProperties = new Qt3DRender::QParameter;
         data->iblProbeData.lightProbeProperties->setName(QLatin1String("light_probe_props"));
     }
+    data->iblProbeData.lightProbeProperties->setValue(QVector4D(0.0f, 0.0f, layer3DS->probehorizon(), layer3DS->probebright() * 0.01f));
+
     if (!data->iblProbeData.lightProbe2Properties) {
         data->iblProbeData.lightProbe2Properties = new Qt3DRender::QParameter;
         data->iblProbeData.lightProbe2Properties->setName(QLatin1String("light_probe2_props"));
     }
+    data->iblProbeData.lightProbe2Properties->setValue(QVector4D(0.0f, 0.0f, 0.0f, 0.0f));
+
     if (!data->iblProbeData.lightProbeOptions) {
         data->iblProbeData.lightProbeOptions = new Qt3DRender::QParameter;
         data->iblProbeData.lightProbeOptions->setName(QLatin1String("light_probe_opts"));
 
     }
     data->iblProbeData.lightProbeOptions->setValue(QVector4D(0.01745329251994329547f * layer3DS->probefov(), 0.0f, 0.0f, 0.0f));
+
     if (layer3DS->lightProbe()) {
         // initialize light probe parameters if necessary
         if (!data->iblProbeData.lightProbeTexture) {
@@ -1746,12 +1751,6 @@ void Q3DSSceneManager::setLayerProperties(Q3DSLayerNode *layer3DS)
             data->iblProbeData.lightProbe2Properties->setValue(QVector4D(0.0f, 0.0f, 0.0f, 0.0f));
             data->iblProbeData.lightProbeProperties->setValue(QVector4D(0.0f, 0.0f, layer3DS->probehorizon(), layer3DS->probebright() * 0.01f));
         }
-    } else {
-        // No light probes set
-        // Still need to setup some defaults since light probes can be set on
-        // individual materials
-        data->iblProbeData.lightProbeProperties->setValue(QVector4D(0.0f, 0.0f, -1.0f, 0.0f));
-        data->iblProbeData.lightProbe2Properties->setValue(QVector4D(0.0f, 0.0f, 0.0f, 0.0f));
     }
 }
 
@@ -4326,6 +4325,10 @@ void Q3DSSceneManager::buildModelMaterial(Q3DSModelNode *model3DS)
                         params.append(layerData->iblProbeData.lightProbeSampler);
                         params.append(layerData->iblProbeData.lightProbeOffset);
                         params.append(layerData->iblProbeData.lightProbeRotation);
+                    } else {
+                        params.append(defMatData->lightProbeSampler);
+                        params.append(defMatData->lightProbeOffset);
+                        params.append(defMatData->lightProbeRotation);
                     }
 
                     if (modelData->layer3DS->lightProbe2()) {
@@ -4402,6 +4405,10 @@ void Q3DSSceneManager::buildModelMaterial(Q3DSModelNode *model3DS)
                         params.append(layerData->iblProbeData.lightProbeSampler);
                         params.append(layerData->iblProbeData.lightProbeOffset);
                         params.append(layerData->iblProbeData.lightProbeRotation);
+                    } else {
+                        params.append(custMatData->lightProbeSampler);
+                        params.append(custMatData->lightProbeOffset);
+                        params.append(custMatData->lightProbeRotation);
                     }
 
                     if (modelData->layer3DS->lightProbe2()) {
