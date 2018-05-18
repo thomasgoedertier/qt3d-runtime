@@ -3711,6 +3711,11 @@ QMatrix4x4 generateRotationMatrix(const QVector3D &nodeRotation, Q3DSNode::Rotat
     }
     return rotationMatrix;
 }
+
+float clampOpacity(float f)
+{
+    return qBound(0.0f, f, 1.0f);
+}
 }
 
 void Q3DSSceneManager::setNodeProperties(Q3DSNode *node, Qt3DCore::QEntity *entity,
@@ -3781,13 +3786,13 @@ void Q3DSSceneManager::updateGlobals(Q3DSNode *node, UpdateGlobalFlags flags)
             globalTransform = parentData->globalTransform * data->transform->matrix();
         }
         // update the global, inherited opacity
-        globalOpacity = parentData->globalOpacity * (node->localOpacity() / 100.0f);
+        globalOpacity = clampOpacity(parentData->globalOpacity * (node->localOpacity() / 100.0f));
         // update inherited visibility
         globalVisibility = node->flags().testFlag(Q3DSNode::Active) && parentData->globalVisibility;
     } else {
         if (!flags.testFlag(UpdateGlobalsSkipTransform))
             globalTransform = data->transform->matrix();
-        globalOpacity = node->localOpacity() / 100.0f;
+        globalOpacity = clampOpacity(node->localOpacity() / 100.0f);
         globalVisibility = node->flags().testFlag(Q3DSNode::Active);
     }
 
@@ -4257,7 +4262,7 @@ void Q3DSSceneManager::buildModelMaterial(Q3DSModelNode *model3DS)
                 QVector<Qt3DRender::QParameter *> params = prepareDefaultMaterial(defaultMaterial, sm.referencedMaterial, model3DS);
                 // Update parameter values.
                 Q3DSDefaultMaterialAttached *defMatData = static_cast<Q3DSDefaultMaterialAttached *>(defaultMaterial->attached());
-                defMatData->opacity = modelData->globalOpacity * (defaultMaterial->opacity() / 100.0f);
+                defMatData->opacity = clampOpacity(modelData->globalOpacity * (defaultMaterial->opacity() / 100.0f));
                 updateDefaultMaterial(defaultMaterial, sm.referencedMaterial);
 
                 // Setup camera properties
@@ -4448,7 +4453,7 @@ void Q3DSSceneManager::retagSubMeshes(Q3DSModelNode *model3DS)
         // not yet be created. This is not a problem in practice.
         if (sm.resolvedMaterial->type() == Q3DSGraphObject::DefaultMaterial) {
             auto defaultMaterial = static_cast<Q3DSDefaultMaterial *>(sm.resolvedMaterial);
-            opacity *= defaultMaterial->opacity() / 100.0f;
+            opacity = clampOpacity(opacity * defaultMaterial->opacity() / 100.0f);
             // Check maps for transparency as well
             hasTransparency = ((defaultMaterial->diffuseMap() && defaultMaterial->diffuseMap()->hasTransparency(m_presentation)) ||
                                (defaultMaterial->diffuseMap2() && defaultMaterial->diffuseMap2()->hasTransparency(m_presentation)) ||
@@ -6372,7 +6377,7 @@ void Q3DSSceneManager::updateModel(Q3DSModelNode *model3DS)
                 auto m = static_cast<Q3DSDefaultMaterial *>(sm.resolvedMaterial);
                 auto d = static_cast<Q3DSDefaultMaterialAttached *>(m->attached());
                 if (d && d->materialDiffuseParam) {
-                    const float opacity = data->globalOpacity * (m->opacity() / 100.0f);
+                    const float opacity = clampOpacity(data->globalOpacity * (m->opacity() / 100.0f));
                     QVector4D c = d->materialDiffuseParam->value().value<QVector4D>();
                     c.setW(opacity);
                     d->materialDiffuseParam->setValue(c);
@@ -6809,7 +6814,7 @@ void Q3DSSceneManager::updateSubTreeRecursive(Q3DSGraphObject *obj)
         Q3DSDefaultMaterialAttached *data = static_cast<Q3DSDefaultMaterialAttached *>(mat3DS->attached());
         if (data && (data->frameDirty & Q3DSGraphObjectAttached::DefaultMaterialDirty)) {
             Q3DSModelAttached *modelData = static_cast<Q3DSModelAttached *>(data->model3DS->attached());
-            data->opacity = modelData->globalOpacity * (mat3DS->opacity() / 100.0f);
+            data->opacity = clampOpacity(modelData->globalOpacity * (mat3DS->opacity() / 100.0f));
             updateDefaultMaterial(mat3DS);
             retagSubMeshes(data->model3DS);
             m_wasDirty = true;
