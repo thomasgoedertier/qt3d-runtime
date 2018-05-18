@@ -2532,9 +2532,7 @@ void Q3DSNode::setProperties(const QXmlStreamAttributes &attrs, PropSetFlags fla
 
     // If this is on the master slide, store some rollback info.
     if (flags.testFlag(PropSetOnMaster)) {
-        if (m_masterRollbackList.isNull())
-            m_masterRollbackList.reset(new Q3DSPropertyChangeList);
-        m_masterRollbackList->append(Q3DSPropertyChange(QLatin1String("eyeball"),
+        m_masterRollbackList.append(Q3DSPropertyChange(QLatin1String("eyeball"),
                                      m_flags.testFlag(Q3DSNode::Active)
                                      ? QLatin1String("True") : QLatin1String("False")));
 

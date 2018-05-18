@@ -799,15 +799,12 @@ void Q3DSSlidePlayer::processPropertyChanges(Q3DSSlide *currentSlide)
                 return false;
 
             Q3DSNode *node = static_cast<Q3DSNode *>(object);
-            const Q3DSPropertyChangeList *masterRollbackList = node->masterRollbackList();
-            if (!masterRollbackList)
+            const Q3DSPropertyChangeList &masterRollbackList = node->masterRollbackList();
+            if (masterRollbackList.isEmpty())
                 return false;
 
-            if (masterRollbackList->isEmpty())
-                return false;
-
-            node->applyPropertyChanges(*node->masterRollbackList());
-            node->notifyPropertyChanges(*node->masterRollbackList());
+            node->applyPropertyChanges(node->masterRollbackList());
+            node->notifyPropertyChanges(node->masterRollbackList());
             return false;
         });
     }

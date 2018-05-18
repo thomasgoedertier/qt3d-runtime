@@ -834,7 +834,7 @@ public:
     void applyPropertyChanges(const Q3DSPropertyChangeList &changeList) override;
     int mapChangeFlags(const Q3DSPropertyChangeList &changeList) override;
 
-    const Q3DSPropertyChangeList *masterRollbackList() const { return m_masterRollbackList.data(); }
+    const Q3DSPropertyChangeList &masterRollbackList() const { return m_masterRollbackList; }
 
     QStringList propertyNames() const override;
     QVariantList propertyValues() const override;
@@ -870,7 +870,7 @@ protected:
     qint32 m_skeletonId = -1;
     RotationOrder m_rotationOrder = YXZ;
     Orientation m_orientation = LeftHanded;
-    QScopedPointer<Q3DSPropertyChangeList> m_masterRollbackList;
+    Q3DSPropertyChangeList m_masterRollbackList;
 
 private:
     Q_DISABLE_COPY(Q3DSNode)
