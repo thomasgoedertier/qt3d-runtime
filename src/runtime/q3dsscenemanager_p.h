@@ -592,7 +592,8 @@ struct Q3DSSubPresentation
     QString id;
     Q3DSSceneManager *sceneManager = nullptr;
     Qt3DRender::QAbstractTexture *colorTex = nullptr;
-    Qt3DRender::QAbstractTexture *dsTex = nullptr;
+    Qt3DRender::QAbstractTexture *depthOrDepthStencilTex = nullptr;
+    Qt3DRender::QAbstractTexture *stencilTex = nullptr;
 };
 
 struct Q3DSGuiData
@@ -819,8 +820,6 @@ private:
     void prepareNextFrame();
 
     bool isComponentVisible(Q3DSComponentNode *component);
-    void handleSlideChange(Q3DSSlide *previousSlide,
-                           Q3DSSlide *currentSlide);
     void setNodeVisibility(Q3DSNode *node, bool visible);
 
     void handleSceneChange(Q3DSScene *scene, Q3DSGraphObject::DirtyFlag change, Q3DSGraphObject *obj);

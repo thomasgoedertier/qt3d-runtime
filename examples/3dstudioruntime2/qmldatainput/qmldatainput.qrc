@@ -3,5 +3,6 @@
         <file>qml/qmldatainput/main.qml</file>
         <file>presentation/datainput.uia</file>
         <file>presentation/datainput.uip</file>
+        <file>presentation/Paper05.png</file>
     </qresource>
 </RCC>

@@ -26,22 +26,7 @@
 ****************************************************************************/
 
 /*!
-\keyword Qt 3D Studio Runtime
-\title Qt 3D Studio Runtime Index
-\page index.html
-
-\section1 Table of Contents
-
-\list
-    \li \l {Getting Started}
-    \li \l {Qt 3D Studio Runtime C++ Classes}
-    \li \l {Qt 3D Studio Runtime QML Types}
-    \li \l {Using the Runtime on Android/iOS Devices}
-    \li \l {Using the Runtime on Embedded Devices}
-    \li \l {Examples}
-    \li \l {Copyright Notices}
-\endlist
-
-blah blah blah
+    \page qt3d-runtime-mobile.html
+    \title Using the Runtime on Android/iOS Devices
 
 */

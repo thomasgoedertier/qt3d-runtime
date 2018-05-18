@@ -80,13 +80,13 @@ int main(int argc, char *argv[])
     });
 
     // The presentation has a data input entry "di_text" for the textstring
-    // property of one of the Text nodes. Provide a custom value.
+    // property of one of the Text nodes. Provide a custom value. Do this in a
+    // manner so that the value is set even when doing a Reload or changing the
+    // presentation object's source.
     Q3DSDataInput dataInput(viewer.presentation(), QLatin1String("di_text"));
-    // Assuming the source is never changed or reloaded, a plain setValue()
-    // call is good enough. Otherwise, we would need to connect to the
-    // presentationLoaded() signal and set the value whenever a new
-    // presentation is loaded.
-    dataInput.setValue(QLatin1String("Hello world"));
+    QObject::connect(&viewer, &Q3DSSurfaceViewer::presentationLoaded, &viewer, [&dataInput] {
+        dataInput.setValue(QLatin1String("Hello world"));
+    });
 
     viewer.presentation()->setSource(QUrl(QLatin1String("qrc:/barrel.uip")));
     viewer.create(&w, w.context());

@@ -26,8 +26,15 @@
 ****************************************************************************/
 
 /*!
-    \page qt3d-runtime-embedded.html
-    \title Using the Runtime on Embedded Devices
+\contentspage {Qt 3D Studio Runtime}
+\page qt3d-runtime-toc.html
+\title Qt 3D Studio Runtime TOC
 
-    embedded stuff (eglfs etc.)
+\omit
+This file is used for generating a TOC in a .qch file.
+\endomit
+
+\list
+    \li \l {index.html}{Overview}
+\endlist
 */

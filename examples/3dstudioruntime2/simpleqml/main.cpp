@@ -56,6 +56,10 @@ int main(int argc, char *argv[])
 {
     qputenv("QSG_INFO", "1");
     QApplication app(argc, argv);
+
+    // Use the ideal format (i.e. OpenGL version and profile) recommended by
+    // the Qt 3D Studio runtime. Without this the format set on the QQuickView
+    // would be used instead.
     QSurfaceFormat::setDefaultFormat(Q3DS::surfaceFormat());
 
     QQuickView viewer;

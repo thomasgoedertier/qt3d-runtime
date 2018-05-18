@@ -1,0 +1,61 @@
+project                 = Qt3DStudioRuntime2
+description             = Qt 3D Studio Runtime Reference Manual
+version                 = 2.0
+
+# url is relative to the parent project
+url                     = runtime
+
+sourcedirs              += ./src
+imagedirs               += ./src/images
+
+sourcedirs              += ../api
+headerdirs              += ../api
+
+sourcedirs              += ../../imports/studio3d
+headerdirs              += ../../imports/studio3d
+
+sourcedirs              += ../behaviorapi
+headerdirs              += ../behaviorapi
+
+depends = qtcore qtgui qtwidgets qtqml qtquick qtdoc qt3dcore qt3drender qt3dlogic qt3danimation
+
+qhp.projects            = Qt3DStudioRuntime2
+
+qhp.Qt3DStudioRuntime2.file              = qt3dstudioruntime2.qhp
+qhp.Qt3DStudioRuntime2.namespace         = io.qt.qt3dstudioruntime2.20
+qhp.Qt3DStudioRuntime2.virtualFolder     = qt3dstudioruntime2
+qhp.Qt3DStudioRuntime2.indexTitle        = Qt 3D Studio Runtime
+qhp.Qt3DStudioRuntime2.indexRoot         =
+
+qhp.Qt3DStudioRuntime2.filterAttributes  = qt3dstudioruntime2 2.0
+qhp.Qt3DStudioRuntime2.customFilters.Qt.name = Qt3DStudioRuntime2 2.0
+qhp.Qt3DStudioRuntime2.customFilters.Qt.filterAttributes = qt3dstudioruntime2 2.0
+
+qhp.Qt3DStudioRuntime2.subprojects       = manual qmltypes classes
+
+qhp.Qt3DStudioRuntime2.subprojects.manual.title = Qt 3D Studio Runtime
+qhp.Qt3DStudioRuntime2.subprojects.manual.indexTitle = Qt 3D Studio Runtime TOC
+qhp.Qt3DStudioRuntime2.subprojects.manual.type = manual
+
+qhp.Qt3DStudioRuntime2.subprojects.qmltypes.title = QML Types
+qhp.Qt3DStudioRuntime2.subprojects.qmltypes.indexTitle = Qt 3D Studio Runtime QML Types
+qhp.Qt3DStudioRuntime2.subprojects.qmltypes.selectors = qmltype
+qhp.Qt3DStudioRuntime2.subprojects.qmltypes.sortPages = true
+
+qhp.Qt3DStudioRuntime2.subprojects.classes.title      = C++ Classes
+qhp.Qt3DStudioRuntime2.subprojects.classes.indexTitle = Qt 3D Studio Runtime C++ Classes
+qhp.Qt3DStudioRuntime2.subprojects.classes.selectors  = class fake:headerfile
+qhp.Qt3DStudioRuntime2.subprojects.classes.sortPages  = true
+
+# Add an .html file with sidebar content, used in the online style
+HTML.stylesheets             += style/qt5-sidebar.html
+
+navigation.homepage            = Qt 3D Studio Runtime
+navigation.cppclassespage      = Qt 3D Studio Runtime C++ Classes
+navigation.qmltypespage        = Qt 3D Studio Runtime QML Types
+buildversion                   = "Qt 3D Studio Runtime 2.0 Manual"
+
+examplesinstallpath     = 3dstudioruntime2
+exampledirs             += ../../../examples/3dstudioruntime2
+
+Cpp.ignoretokens     += Q3DSV_EXPORT

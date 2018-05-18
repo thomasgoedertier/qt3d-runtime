@@ -514,7 +514,6 @@ void Q3DSSceneManager::setCurrentSlide(Q3DSSlide *newSlide, bool fromSlidePlayer
     m_currentSlide = newSlide;
 }
 
-// TODO: Only called from the slide test, but we keep it working for now...
 void Q3DSSceneManager::setComponentCurrentSlide(Q3DSComponentNode *component, Q3DSSlide *newSlide)
 {
     Q3DSSlideAttached *data = component->masterSlide()->attached<Q3DSSlideAttached>();
@@ -537,11 +536,7 @@ void Q3DSSceneManager::setLayerCaching(bool enabled)
 
 void Q3DSSceneManager::prepareAnimators()
 {
-    auto slideDeck = m_slidePlayer->slideDeck();
-    if ((m_slidePlayer->mode() == Q3DSSlidePlayer::PlayerMode::Viewer)
-            && (slideDeck->currentSlide()->initialPlayState() == Q3DSSlide::Play)) {
-        m_slidePlayer->play();
-    }
+    m_slidePlayer->sceneReady();
 }
 
 QDebug operator<<(QDebug dbg, const Q3DSSceneManager::SceneBuilderParams &p)
@@ -575,7 +570,7 @@ void Q3DSSceneManager::prepareEngineResetGlobal()
     Q3DSShaderManager::instance().invalidate();
 }
 
-/*!
+/*
     Builds and "runs" a Qt 3D scene. To be called once per SceneManager instance.
 
     Ownership of the generated Qt 3D objects is managed primarily via parenting
@@ -796,7 +791,7 @@ Q3DSSceneManager::Scene Q3DSSceneManager::buildScene(Q3DSUipPresentation *presen
     return sc;
 }
 
-/*!
+/*
     To be called on the scenemanager corresponding to the main presentation
     once after all subpresentation buildScene() calls have succeeded. This is
     where the association of textures and subpresentation layers happens. That
@@ -1214,9 +1209,13 @@ void Q3DSSceneManager::buildSubPresentationLayer(Q3DSLayerNode *layer3DS, const 
             // Resize the offscreen subpresentation buffers
             it->colorTex->setWidth(layerPixelSize.width());
             it->colorTex->setHeight(layerPixelSize.height());
-            if (it->dsTex) {
-                it->dsTex->setWidth(layerPixelSize.width());
-                it->dsTex->setHeight(layerPixelSize.height());
+            if (it->depthOrDepthStencilTex) {
+                it->depthOrDepthStencilTex->setWidth(layerPixelSize.width());
+                it->depthOrDepthStencilTex->setHeight(layerPixelSize.height());
+            }
+            if (it->stencilTex) {
+                it->stencilTex->setWidth(layerPixelSize.width());
+                it->stencilTex->setHeight(layerPixelSize.height());
             }
             // and communicate the new size to the subpresentation's renderer
             // (viewport, camera, etc. need to adapt), just like a window would
@@ -6584,77 +6583,6 @@ bool Q3DSSceneManager::isComponentVisible(Q3DSComponentNode *component)
     return visible;
 }
 
-void Q3DSSceneManager::handleSlideChange(Q3DSSlide *prevSlide,
-                                         Q3DSSlide *currentSlide)
-{
-    Q_ASSERT(currentSlide->attached());
-
-    if (prevSlide) {
-        auto slideData = static_cast<Q3DSSlideAttached *>(prevSlide->attached());
-        for (Q3DSNode *node : qAsConst(slideData->needsMasterRollback)) {
-            const Q3DSPropertyChangeList *changeList = node->masterRollbackList();
-            if (changeList) {
-                qCDebug(lcScene, "Rolling back %d changes to master for %s", changeList->count(), node->id().constData());
-                node->applyPropertyChanges(*changeList);
-                node->notifyPropertyChanges(*changeList);
-                updateSubTreeRecursive(node);
-            }
-        }
-        slideData->needsMasterRollback.clear();
-    }
-
-    // Find properties on targets that has dynamic properties.
-    // TODO: Find a better solution (e.g., there can be duplicate updates for e.g., xyz here).
-    QHash<Q3DSGraphObject *, Q3DSPropertyChangeList *> dynamicPropertyChanges;
-    QVector<Q3DSPropertyChangeList *> ephemeralObjects;
-    const auto &tracks = currentSlide->animations();
-    std::find_if(tracks.cbegin(), tracks.cend(), [&dynamicPropertyChanges, &ephemeralObjects](const Q3DSAnimationTrack &track) {
-        if (track.isDynamic()) {
-            auto foundIt = dynamicPropertyChanges.find(track.target());
-            const bool propertyFound = (foundIt != dynamicPropertyChanges.end());
-            Q3DSPropertyChangeList *changesList = propertyFound
-                    ? *foundIt
-                    : new Q3DSPropertyChangeList;
-            if (!propertyFound)
-                ephemeralObjects.push_back(changesList);
-
-            const QString property = track.property().split('.')[0];
-            const auto value = track.target()->propertyValue(property);
-            changesList->append(Q3DSPropertyChange::fromVariant(property, value));
-
-            if (foundIt == dynamicPropertyChanges.end())
-                dynamicPropertyChanges.insert(track.target(), changesList);
-        }
-        return false;
-    });
-
-    const auto &propertyChanges = currentSlide->propertyChanges();
-
-    // Filter out properties that we needs to be marked dirty, i.e., eyeball changes.
-    QHash<Q3DSGraphObject *, Q3DSPropertyChangeList *> notifyPropertyChanges;
-    for (auto it = propertyChanges.cbegin(); it != propertyChanges.cend(); ++it) {
-        std::find_if((*it)->cbegin(), (*it)->cend(), [it, &notifyPropertyChanges, &ephemeralObjects](const Q3DSPropertyChange &propChange) {
-            if (propChange.name() == QLatin1String("eyeball")) {
-                Q3DSPropertyChangeList *propChangeList = new Q3DSPropertyChangeList;
-                propChangeList->append(propChange);
-                ephemeralObjects.push_back(propChangeList);
-                notifyPropertyChanges[it.key()] = propChangeList;
-                return true;
-            }
-            return false;
-        });
-    }
-    // We avoid triggering notifications (i.e., setting dirty flags) just yet, as we
-    // want to defer that until we're ready.
-    m_presentation->applyPropertyChanges(propertyChanges);
-    // notify about visibility changes.
-    m_presentation->notifyPropertyChanges(notifyPropertyChanges);
-    // Now re-apply the original values for those dynamic keyframes.
-    m_presentation->applyPropertyChanges(dynamicPropertyChanges);
-    // Now clean-up the objects we created.
-    qDeleteAll(ephemeralObjects);
-}
-
 void Q3DSSceneManager::prepareNextFrame()
 {
     m_wasDirty = false;
@@ -6883,6 +6811,7 @@ void Q3DSSceneManager::updateSubTreeRecursive(Q3DSGraphObject *obj)
             Q3DSModelAttached *modelData = static_cast<Q3DSModelAttached *>(data->model3DS->attached());
             data->opacity = modelData->globalOpacity * (mat3DS->opacity() / 100.0f);
             updateDefaultMaterial(mat3DS);
+            retagSubMeshes(data->model3DS);
             m_wasDirty = true;
             markLayerForObjectDirty(mat3DS);
             if (data->frameChangeFlags & Q3DSDefaultMaterial::BlendModeChanges)
@@ -6898,6 +6827,7 @@ void Q3DSSceneManager::updateSubTreeRecursive(Q3DSGraphObject *obj)
             Q3DSModelAttached *modelData = static_cast<Q3DSModelAttached *>(data->model3DS->attached());
             data->opacity = modelData->globalOpacity;
             updateCustomMaterial(mat3DS);
+            retagSubMeshes(data->model3DS);
             m_wasDirty = true;
             markLayerForObjectDirty(mat3DS);
         }
@@ -7192,10 +7122,14 @@ void Q3DSSceneManager::changeSlideByName(Q3DSGraphObject *sceneOrComponent, cons
     });
 
     if (targetSlide) {
-        if (component)
-            component->setCurrentSlide(targetSlide);
-        else
+        if (component) {
+            if (m_currentSlide->objects().contains(component) || m_masterSlide->objects().contains(component))
+                setComponentCurrentSlide(component, targetSlide);
+            else
+                component->setCurrentSlide(targetSlide);
+        } else {
             setCurrentSlide(targetSlide);
+        }
     } else {
         qWarning("changeSlideByName: Slide %s not found on %s", qPrintable(name), sceneOrComponent->id().constData());
     }
@@ -7296,10 +7230,19 @@ void Q3DSSceneManager::setDataInputValue(const QString &dataInputName, const QVa
                         // timeline length and map the incoming value on it (just because 3DS1
                         // does it). If min-max is not specified, interpret value directly as
                         // timeline point in milliseconds
-                        const float seekTimeMs = meta.hasMinMax()
-                                ? ((value.toFloat() - meta.minValue) /
-                                  (meta.maxValue - meta.minValue))* obj->endTime()
-                                : value.toFloat();
+                        float seekTimeMs = 0.0f;
+                        if (meta.hasMinMax()) {
+                            Q_ASSERT(!qFuzzyIsNull(meta.maxValue));
+                            const float normalized = qBound(0.0f, (value.toFloat() / (meta.maxValue - meta.minValue)), 1.0f);
+                            Q3DSSlide *slide = (obj->type() == Q3DSGraphObject::Component) ? static_cast<Q3DSComponentNode *>(obj)->currentSlide()
+                                                                                           : m_currentSlide;
+                            qint32 startTime = 0;
+                            qint32 endTime = 0;
+                            Q3DSSlideUtils::getStartAndEndTime(slide, &startTime, &endTime);
+                            seekTimeMs = normalized * (endTime - startTime);
+                        } else {
+                            seekTimeMs = value.toFloat();
+                        }
                         goToTime(obj, seekTimeMs);
                     } else {
                         qWarning("Object %s with timeline data input is not Scene or Component", obj->id().constData());

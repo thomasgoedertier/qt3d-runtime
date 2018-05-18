@@ -1,0 +1,55 @@
+/****************************************************************************
+**
+** Copyright (C) 2018 The Qt Company Ltd.
+** Contact: https://www.qt.io/licensing/
+**
+** This file is part of the Qt 3D Studio.
+**
+** $QT_BEGIN_LICENSE:FDL$
+** Commercial License Usage
+** Licensees holding valid commercial Qt licenses may use this file in
+** accordance with the commercial license agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and The Qt Company. For licensing terms
+** and conditions see https://www.qt.io/terms-conditions. For further
+** information use the contact form at https://www.qt.io/contact-us.
+**
+** GNU Free Documentation License Usage
+** Alternatively, this file may be used under the terms of the GNU Free
+** Documentation License version 1.3 as published by the Free Software
+** Foundation and appearing in the file included in the packaging of
+** this file. Please review the following information to ensure
+** the GNU Free Documentation License version 1.3 requirements
+** will be met: https://www.gnu.org/licenses/fdl-1.3.html.
+** $QT_END_LICENSE$
+**
+****************************************************************************/
+
+/*!
+    \example qmldatainput
+    \title Qt 3D Studio Runtime: QML DataInput Example
+    \ingroup qt3dstudioruntime2-examples-qml
+    \brief Demonstrates using DataInput elements in QML
+
+    \image qmldatainput.png
+
+    \e {This example demonstrates using DataInput elements with QML in Studio}
+
+    \include examples-run.qdocinc
+
+    \section1 Description
+
+    The presentation consists of a static text element serving as a label and a rotating text
+    element for showing the input data as text. There is also a data input of type \e{Ranged Number}
+    in the presentation. This data input is used to control both the rotation animation time and
+    the text shown on the second text element.
+    The range is specified as [0 .. 360] in the presentation, where zero maps
+    to the beginning of the animation and 360 maps to the end of the animation.
+
+    The \l {qmldatainput/qml/qmldatainput/main.qml}{qml main} loads the presentation and animates
+    a number property. The value of the animated property is bound to the
+    \l{DataInput::value}{value} property of the DataInput element, making the value show up in the
+    linked text element in the presentation. The same value is used to control the animation time:
+
+    \snippet qmldatainput/qml/qmldatainput/main.qml 1
+*/

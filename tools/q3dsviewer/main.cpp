@@ -60,7 +60,7 @@ int main(int argc, char *argv[])
 #else
     QGuiApplication app(argc, argv);
 #endif
-    QSurfaceFormat::setDefaultFormat(Q3DSEngine::surfaceFormat());
+    QSurfaceFormat::setDefaultFormat(Q3DS::surfaceFormat());
 
     QCommandLineParser cmdLineParser;
     cmdLineParser.addHelpOption();
@@ -73,12 +73,10 @@ int main(int argc, char *argv[])
     cmdLineParser.addOption(msaaOption);
     QCommandLineOption noProfOption({ "p", "no-profile" }, QObject::tr("Opens presentation without profiling enabled"));
     cmdLineParser.addOption(noProfOption);
-    cmdLineParser.addOption({"connect", QObject::tr("main",
-                             "If this parameter is specified, the viewer\n"
-                             "is started in connection mode.\n"
-                             "The default value is 36000."),
-                             QObject::tr("main", "port"), QString::number(36000)});
-
+    QCommandLineOption remoteOption("port",
+                                    QObject::tr("Sets the <port> to listen on in remote connection mode. The default <port> is 36000."),
+                                    QObject::tr("port"), QLatin1String("36000"));
+    cmdLineParser.addOption(remoteOption);
     cmdLineParser.process(app);
 
 #if !defined(Q_OS_ANDROID) && !defined(Q_OS_IOS)
@@ -112,8 +110,8 @@ int main(int argc, char *argv[])
     // Setup Remote Viewer
     QScopedPointer<Q3DSRemoteDeploymentManager> remote(new Q3DSRemoteDeploymentManager(engine.data()));
     int port = 36000;
-    if (cmdLineParser.isSet(QStringLiteral("connect")))
-        port = cmdLineParser.value(QStringLiteral("connect")).toInt();
+    if (cmdLineParser.isSet(remoteOption))
+        port = cmdLineParser.value(remoteOption).toInt();
     remote->setConnectionPort(port);
     if (fn.isEmpty()) {
         remote->startServer();
@@ -133,6 +131,9 @@ int main(int argc, char *argv[])
         else
             view->show();
         engine->setOnDemandRendering(true);
+        // in QWindow mode let F10 and double double clicks activate the
+        // profileui via the engine
+        engine->setAutoToggleProfileUi(true);
     } else {
 #ifdef Q3DSVIEWER_WIDGETS
         mw = new Q3DStudioMainWindow(view.take(), remote.data());
@@ -140,6 +141,9 @@ int main(int argc, char *argv[])
             mw->showFullScreen();
         else
             mw->show();
+        // with widgets the engine's built-in profileui activation is not
+        // desirable since we have menu items with the same shortcuts (F10)
+        engine->setAutoToggleProfileUi(false);
 #endif
     }
 

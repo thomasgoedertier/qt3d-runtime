@@ -26,8 +26,32 @@
 ****************************************************************************/
 
 /*!
-    \page qt3d-runtime-gettingstarted.html
-    \title Getting Started
+    \title Examples
+    \ingroup examples
+    \page qt3d-runtime-examples.html
+    \noautolist
 
-    Basic blah blah
+    Included in Qt 3D Studio Runtime you will find a set of examples. These are
+    located in the \c {examples} folder in the installation folder.
+
+    \section1 QML Examples
+
+    \list
+    \li \l {Qt 3D Studio Runtime: Simple QML Example}
+    \li \l {Qt 3D Studio Runtime: QML DataInput Example}
+    \endlist
+
+    \section1 C++ Examples
+
+    \list
+    \li \l {Qt 3D Studio Runtime: Simple Window Example}
+    \li \l {Qt 3D Studio Runtime: Simple Widget Example}
+    \li \l {Qt 3D Studio Runtime: Simple Offscreen Example}
+    \endlist
+
+    \section1 More Examples
+
+    You can find more examples from
+    \l{https://git.qt.io/public-demos/qt3dstudio}, these examples are more
+    visually appealing and suitable to use as demos for example.
 */

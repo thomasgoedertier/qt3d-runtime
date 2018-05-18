@@ -32,6 +32,26 @@
 
 QT_BEGIN_NAMESPACE
 
+/*!
+    \class Q3DSViewerSettings
+    \inmodule 3dstudioruntime2
+    \since Qt 3D Studio 2.0
+
+    \brief Qt 3D Studio presentation viewer settings.
+
+    Q3DSViewerSettings provides properties to define presentation independent
+    viewer settings.
+
+    \note As of Qt 3D Studio 2.0 this class is provided mainly for
+    compatibility reasons. Most functions are not applicable or are not
+    currently supported and will be silently ignored.
+
+    \note This class should not be instantiated directly when working with the
+    C++ APIs. Q3DSSurfaceViewer and Q3DSWidget create a Q3DSViewerSettings
+    instance implicitly. This can be queried via Q3DSSurfaceViewer::settings()
+    or Q3DSWidget::settings().
+ */
+
 Q3DSViewerSettings::Q3DSViewerSettings(QObject *parent)
     : QObject(*new Q3DSViewerSettingsPrivate, parent)
 {
@@ -52,6 +72,17 @@ QColor Q3DSViewerSettings::matteColor() const
     return d->matteColor;
 }
 
+/*!
+    \property Q3DSViewerSettings::showRenderStats
+
+    If this property is set to \c{true}, the interactive statistics and profile
+    view is displayed in-scene, on top of the 3D content.
+
+    \note This feature can be disabled at build time, in which case this
+    property has no effect.
+
+    Default value is \c{false}.
+*/
 bool Q3DSViewerSettings::isShowingRenderStats() const
 {
     Q_D(const Q3DSViewerSettings);
@@ -128,5 +159,25 @@ void Q3DSViewerSettings::load(const QString &group,
     Q_UNUSED(application);
     qWarning() << Q_FUNC_INFO << "not implemented";
 }
+
+/*!
+    \qmltype ViewerSettings
+    \instantiates Q3DSViewerSettings
+    \inqmlmodule QtStudio3D
+    \ingroup 3dstudioruntime2
+    \brief Qt 3D Studio presentation viewer settings.
+
+    This type provides properties to define presentation independent viewer settings.
+
+    \sa Studio3D
+*/
+
+/*!
+    \qmlproperty bool ViewerSettings::showRenderStats
+
+    If this property is set to \c{true}, render statistics are displayed on the upper part
+    of the viewer.
+    Default value is \c{false}.
+*/
 
 QT_END_NAMESPACE

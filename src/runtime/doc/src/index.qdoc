@@ -26,11 +26,21 @@
 ****************************************************************************/
 
 /*!
-    \title Examples
-    \ingroup examples
-    \page qt3d-runtime-examples.html
-    \noautolist
+\title Qt 3D Studio Runtime
+\page qt3d-runtime-index.html
 
-    Included in Qt 3D Studio Runtime you will find a set of examples. These are
-    located in the \c {examples} folder in the installation folder.
+\section1 Table of Contents
+
+\list
+    \li \l {Getting Started}
+    \li \l {System and Application Requirements}
+    \li \l {Using the Runtime on Android/iOS Devices}
+    \li \l {Using the Runtime on Embedded Devices}
+    \li \l {Qt 3D Studio Runtime C++ Classes}
+    \li \l {Qt 3D Studio Runtime QML Types}
+    \li \l {Attribute Names}{Scene object attribute list}
+    \li \l {Examples}
+    \li \l {Copyright Notices}
+\endlist
+
 */

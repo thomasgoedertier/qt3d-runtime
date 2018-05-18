@@ -1,0 +1,71 @@
+!/****************************************************************************
+**
+** Copyright (C) 1993-2009 NVIDIA Corporation.
+** Copyright (C) 2018 The Qt Company Ltd.
+** Contact: https://www.qt.io/licensing/
+**
+** This file is part of Qt 3D Studio.
+**
+** $QT_BEGIN_LICENSE:FDL$
+** Commercial License Usage
+** Licensees holding valid commercial Qt licenses may use this file in
+** accordance with the commercial license agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and The Qt Company. For licensing terms
+** and conditions see https://www.qt.io/terms-conditions. For further
+** information use the contact form at https://www.qt.io/contact-us.
+**
+** GNU Free Documentation License Usage
+** Alternatively, this file may be used under the terms of the GNU Free
+** Documentation License version 1.3 as published by the Free Software
+** Foundation and appearing in the file included in the packaging of
+** this file. Please review the following information to ensure
+** the GNU Free Documentation License version 1.3 requirements
+** will be met: https://www.gnu.org/licenses/fdl-1.3.html.
+** $QT_END_LICENSE$
+**
+****************************************************************************/
+
+// Pull in attributenames.html into qdoc. Note that attributenames.html is
+// manually maintained since 2.0 and is not auto-generated.
+
+/*!
+    \page qt3d-runtime-attribute-names.html
+    \title Attribute Names
+    \keyword Attributes
+
+    Below is a list of the attributes that can be set on the various scene
+    objects via Q3DSPresentation::setAttribute() or Q3DSElement::setAttribute().
+
+    \note vector (e.g. a group's or model's \c rotation) and color (e.g. a
+    material's \c diffuse) attributes allow setting/getting all components in
+    one operation, and are mapped to QVector3D and QColor, respectively.
+
+    \note As of Qt 3D Studio 2.0 not all properties can be changed on the fly at
+    run time. As a general rule attributes that are animatable in the Qt 3D
+    Studio application are freely changeable by the applications during run time
+    as well.
+
+    \note When possible, applications are recommended to rely on the \c{data
+    input} functionality of Qt 3D Studio instead.  This avoids the need to refer
+    to hard-coded attribute names, and instead allows the designers to expose
+    the interesting attributes with arbitrary data input names to the
+    application developers, thus offering a fixed, well-known interface from the
+    3D presentation to the application code. See \l Q3DSDataInput and
+    \l DataInput for more information.
+
+    \include attributenames.html
+
+    Custom materials and effects have their custom set of properties that are
+    defined in the \c{.material} or \c{.effect} file. For example, an instances
+    of an effect with the following metadata will have an attribute \c HBlurBias
+    with the type \c number that can be set and queried as if it was a built-in
+    attribute.
+
+    \badcode
+    <Effect>
+        <MetaData>
+            <Property name="HBlurBias" formalName="Horizontal Blur" min="0" max="10" default="2" description="Amount of corona horizontally."/>
+            ...
+    \endcode
+*/

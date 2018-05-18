@@ -234,7 +234,7 @@ Q3DSGraphExplorer::Q3DSGraphExplorer(Q3DSGraphObject *root, QWidget *parent)
                 s += tr("\n%1 %2").arg((quintptr) slideObj, 0, 16).arg(QString::fromUtf8(slideObj->id()));
             if (slide->parent()) {
                 s += tr("\n\nProperty changes:");
-                const QHash<Q3DSGraphObject *, Q3DSPropertyChangeList *> &a = slide->propertyChanges();
+                const auto &a = slide->propertyChanges();
                 for (auto it = a.cbegin(), ite = a.cend(); it != ite; ++it) {
                     s += tr("\nOn object %1 %2").arg((quintptr) it.key(), 0, 16).arg(QString::fromUtf8(it.key()->id()));
                     for (auto pit = it.value()->cbegin(), pite = it.value()->cend(); pit != pite; ++pit)

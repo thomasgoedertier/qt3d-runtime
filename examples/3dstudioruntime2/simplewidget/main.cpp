@@ -59,7 +59,6 @@
 #include <q3dsruntimeglobal.h>
 #include <Q3DSWidget>
 #include <Q3DSPresentation>
-#include <Q3DSDataInput>
 
 int main(int argc, char *argv[])
 {
@@ -81,17 +80,8 @@ int main(int argc, char *argv[])
             QMessageBox::critical(&w, QLatin1String("Failed to load presentation"), msg, QLatin1String("Ok"));
     });
 
-    // The presentation has a data input entry "di_text" for the textstring
-    // property of one of the Text nodes. Provide a custom value. Do this in a
-    // manner so that the value is set even when doing a Reload or changing the
-    // presentation object's source.
-    Q3DSDataInput dataInput(w3DS->presentation(), QLatin1String("di_text"));
-    QObject::connect(w3DS, &Q3DSWidget::presentationLoaded, w3DS, [&dataInput] {
-        dataInput.setValue(QLatin1String("Hello world"));
-    });
-
     w3DS->presentation()->setProfilingEnabled(true);
-    w3DS->presentation()->setSource(QUrl(QLatin1String("qrc:/barrel.uip")));
+    w3DS->presentation()->setSource(QUrl(QLatin1String("qrc:/presentation/SampleProject.uia")));
     layout->addWidget(w3DS);
 
     QPushButton *openBtn = new QPushButton(QLatin1String("Open"));

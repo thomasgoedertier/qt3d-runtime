@@ -265,4 +265,170 @@ void Q3DSBehaviorObject::setDataInputValue(const QString &name, const QVariant &
     m_engine->setDataInputValue(name, value);
 }
 
+/*!
+    \qmltype Behavior
+    \inqmlmodule QtStudio3D
+    \ingroup 3dstudioruntime2
+
+    \brief Technology Preview Behavior Integration
+
+    This is a technology preview (API may change in upcoming version) of how
+    Qt 3D Studio could support writing custom behavior scripts using QML and
+    JavaScript. It enables interacting with the runtime using the Behavior
+    QML class exposed to each behavior script.
+
+    In QML behavior script, the integration to Qt 3D Studio is established by using
+    the metadata tag system similar to the \l {file-formats-effects.html}{effect}
+    and \l {file-formats-material.html}{material} files.
+
+    \badcode
+[[
+<Property name="somePropertyName" ... />
+
+<Handler name="someHandlerName" ... />
+
+<Event name="onSomeEvent" ... />
+...
+]]
+    \endcode
+
+    Secondly, the QML behavior script needs access to the QML module.
+    \badcode
+import QtStudio3D.Behavior 2.0
+    \endcode
+
+    Finally, the Behavior type needs to be implemented in the qml script.
+    \badcode
+Behavior {
+    id: mybehavior
+
+    function onInitialize() {
+        ...
+    }
+
+    function onActivate() {
+        ...
+    }
+
+    function onUpdate() {
+        ...
+    }
+
+    function onDeactivate() {
+        ...
+    }
+
+    function someHandlerName() {
+        ...
+        fireEvent("onSomeEvent")
+    }
+}
+    \endcode
+*/
+
+/*!
+    \qmlmethod float Behavior::getDeltaTime()
+
+    Returns the delta time between this and previous frame in milliseconds.
+*/
+
+/*!
+    \qmlmethod var Behavior::getAttribute(string attribute)
+
+    Returns the value of the given \a attribute.
+*/
+
+/*!
+    \qmlmethod var Behavior::getAttribute(string handle, string attribute)
+
+    Returns the value of the given \a attribute for a given \a handle.
+*/
+
+/*!
+    \qmlmethod void Behavior::setAttribute(string attribute, var value)
+
+    Sets the \a value of the given \a attribute.
+*/
+
+/*!
+    \qmlmethod void Behavior::setAttribute(string handle, string attribute, var value)
+
+    Sets the \a value of the given \a attribute for a given \a handle.
+*/
+
+/*!
+    \qmlmethod void Behavior::fireEvent(string event)
+
+    Fires the given \a event.
+*/
+
+/*!
+    \qmlmethod void Behavior::registerForEvent(string event, QJSValue function)
+
+    Registers the script for an \a event with the handler \a function.
+*/
+
+/*!
+    \qmlmethod void Behavior::registerForEvent(string handle, string event, QJSValue function)
+
+    Registers the script for an \a event with the handler \a function for a given \a handle.
+*/
+
+/*!
+    \qmlmethod void Behavior::unregisterForEvent(string event)
+
+    Unregisters the script from an \a event.
+*/
+
+/*!
+    \qmlmethod void Behavior::unregisterForEvent(string handle, string event)
+
+    Unregisters the script from an \a event for a given \a handle.
+*/
+
+/*!
+    \qmlmethod void Behavior::setDataInputValue(string name, variant value)
+
+    Sets the \a value of the data input identified with the \a name.
+ */
+
+/*!
+    \qmlsignal void Behavior::onInitialize()
+
+    This signal is emitted when the script becomes active the first time.
+    If multiple behaviors match this, the signal for parent elements will
+    occur before their children/descendants. \note Each behavior will
+    only have its \c{onInitialize} signaled once, even if it is deactivated and
+    later reactivated.
+ */
+
+/*!
+    \qmlsignal void Behavior::onActivate()
+
+    This signal is emitted when the script becomes active.
+    Any behaviors which were not active last frame that are active
+    this frame will have their \c{onActivate} signaled. If
+    multiple behaviors match this, the signal for parent elements will
+    occur before their descendants.
+ */
+
+/*!
+    \qmlsignal void Behavior::onDeactivate()
+
+    This signal is emitted when the script becomes inactive.
+    Any behaviors which were active last frame that are not active
+    this frame will have their \c{onDeactivate} signaled. If
+    multiple behaviors match this, the signal for parent elements will
+    occur before their descendants.
+ */
+
+/*!
+    \qmlsignal void Behavior::onUpdate()
+
+    This signal is emitted on each frame when the script is active.
+    Any behaviors that are active this frame will have their
+    \c{onUpdate} signaled. If multiple behaviors match this, the signal
+    for parent elements will occur before their descendants.
+ */
+
 QT_END_NAMESPACE

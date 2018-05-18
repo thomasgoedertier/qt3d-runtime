@@ -3,7 +3,6 @@
 	<assets initial="barrel">
 		<dataInput name="di_text" type="String"/>
 		<presentation id="barrel" src="barrel.uip"/>
-                <presentation-qml id="embeddedQmlScene" args="dummy"/>
 	</assets>
 	<statemachine ref="#logic">
 		<visual-states>

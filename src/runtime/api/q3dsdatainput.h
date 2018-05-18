@@ -52,7 +52,6 @@ class Q3DSV_EXPORT Q3DSDataInput : public QObject
 
 public:
     explicit Q3DSDataInput(QObject *parent = nullptr);
-    explicit Q3DSDataInput(const QString &name, QObject *parent = nullptr);
     Q3DSDataInput(Q3DSPresentation *presentation, const QString &name, QObject *parent = nullptr);
     ~Q3DSDataInput();
 

@@ -1,0 +1,51 @@
+/****************************************************************************
+**
+** Copyright (C) 2018 The Qt Company Ltd.
+** Contact: https://www.qt.io/licensing/
+**
+** This file is part of the Qt 3D Studio.
+**
+** $QT_BEGIN_LICENSE:FDL$
+** Commercial License Usage
+** Licensees holding valid commercial Qt licenses may use this file in
+** accordance with the commercial license agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and The Qt Company. For licensing terms
+** and conditions see https://www.qt.io/terms-conditions. For further
+** information use the contact form at https://www.qt.io/contact-us.
+**
+** GNU Free Documentation License Usage
+** Alternatively, this file may be used under the terms of the GNU Free
+** Documentation License version 1.3 as published by the Free Software
+** Foundation and appearing in the file included in the packaging of
+** this file. Please review the following information to ensure
+** the GNU Free Documentation License version 1.3 requirements
+** will be met: https://www.gnu.org/licenses/fdl-1.3.html.
+** $QT_END_LICENSE$
+**
+****************************************************************************/
+
+/*!
+    \example simplewindow
+    \title Qt 3D Studio Runtime: Simple Window Example
+    \ingroup qt3dstudioruntime2-examples-cpp
+    \brief Demonstrates using the Q3DSSurfaceViewer class in order to render in a QWindow
+
+    \image simplewindow.png
+
+    \e {This example demonstrates basic usage of the Q3DSSurfaceViewer class}
+
+    \include examples-run.qdocinc
+
+    \section1 Description
+
+    This example consists of an OpenGL-based QWindow. The contents is
+    provided by a Q3DSSurfaceViewer instance by loading up a simple Qt
+    3D Studio presentation.
+
+    When targeting a QWindow, the application can choose whether it
+    wants to be in control of updates (i.e. manually requesting the
+    next frame by calling Q3DSSurfaceViewer::update()).  By passing
+    the \c{--multi} command-line argument the example demonstrates
+    both types of usages.
+*/

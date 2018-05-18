@@ -1,0 +1,108 @@
+/****************************************************************************
+**
+** Copyright (C) 2018 The Qt Company Ltd.
+** Contact: https://www.qt.io/licensing/
+**
+** This file is part of Qt 3D Studio.
+**
+** $QT_BEGIN_LICENSE:FDL$
+** Commercial License Usage
+** Licensees holding valid commercial Qt licenses may use this file in
+** accordance with the commercial license agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and The Qt Company. For licensing terms
+** and conditions see https://www.qt.io/terms-conditions. For further
+** information use the contact form at https://www.qt.io/contact-us.
+**
+** GNU Free Documentation License Usage
+** Alternatively, this file may be used under the terms of the GNU Free
+** Documentation License version 1.3 as published by the Free Software
+** Foundation and appearing in the file included in the packaging of
+** this file. Please review the following information to ensure
+** the GNU Free Documentation License version 1.3 requirements
+** will be met: https://www.gnu.org/licenses/fdl-1.3.html.
+** $QT_END_LICENSE$
+**
+****************************************************************************/
+
+/*!
+    \page qt3d-runtime-requirements.html
+    \title System and Application Requirements
+
+    \section1 OpenGL Requirements
+
+    Qt 3D Studio requires OpenGL or OpenGL ES. The recommended minimum versions
+    are \c{3.3 core profile} and \c{3.0}, respectively.
+
+    When it comes to OpenGL ES, a limited subset of the functionality is
+    available when running on plain \c{OpenGL ES 2.0} implementations. In
+    practice this means losing shadow mapping, image based lighting, and many
+    other advanced features and is therefore not recommended. On the other hand,
+    this allows bringing up Qt 3D Studio scenes on boards like the Raspberry Pi
+    (with the original proprietary graphics stack) or the Beaglebone Black, or
+    in hypervisor-based virtualized environments where the GPU virtualization
+    only supports GLES 2.0, and can therefore still be valuable in certain
+    special situations.
+
+    Non-native implementations, like \c ANGLE or software implementations like
+    \c{Mesa's llvmpipe} may work but are not tested and can fail in unexpected
+    ways.
+
+    As of version 2.0 the Qt 3D Studio Runtime is implemented on top of Qt
+    3D. This means that most graphics API and windowing system bits are
+    abstracted and hidden from the runtime. However, there are still direct
+    OpenGL dependencies in a few places and, more importantly, the standard
+    material, custom materials, and effects all rely on GLSL. Therefore other
+    graphics APIs, such as, Vulkan or Direct 3D, cannot be supported at this
+    time.
+
+    \section1 Application Integration Notes
+
+    \section2 C++
+
+    A typical Qt C++ application using the Qt 3D Studio Runtime is expected to
+    query and honor the runtime's \c{ideal surface format}. This way the OpenGL
+    contexts will all be created with the OpenGL version and profile that best
+    match the runtime's needs:
+
+    \badcode
+        #include <Q3DSWidget> // or <q3dsruntimeglobal.h> if only Q3DS::surfaceFormat() is interesting for main()
+
+        int main(int argc, char *argv[])
+        {
+            QApplication app(argc, argv);
+
+            QSurfaceFormat::setDefaultFormat(Q3DS::surfaceFormat());
+
+            Q3DSWidget w;
+            ...
+            return app.exec();
+        }
+   \endcode
+
+   To enable using Qt 3D Studio headers and libraries in the application, add
+   the \c 3dstudioruntime2 module in the application's \c{.pro} file:
+
+   \badcode
+       QT += 3dstudioruntime2
+   \endcode
+
+   \section2 QML/Qt Quick
+
+   When no C++ classes are used, the \c 3dstudioruntime2 module can be omitted
+   in the \c{.pro}. To use the \l Studio3D element in QML code, it is enough to add the
+   corresponding import statement:
+
+   \badcode
+       import QtStudio3D 2.0
+   \endcode
+
+   It is nonetheless strongly recommended to set the the default surface format
+   as shown above. Make sure the
+   \c{QSurfaceFormat::setDefaultFormat(Q3DS::surfaceFormat())} call is made
+   after constructing QGuiApplication but before the first QQuickWindow or
+   QQuickView.  When this is not possible, for example because the QML contents
+   is hosted in an application that has no knowledge of the Qt Quick scene's 3D
+   needs, Studio3D may still be usable but this may be dependent on the OpenGL
+   implementation and the context versions it offers, and is therefore more fragile.
+*/

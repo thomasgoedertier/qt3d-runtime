@@ -1,0 +1,107 @@
+/****************************************************************************
+**
+** Copyright (C) 2018 The Qt Company Ltd.
+** Contact: https://www.qt.io/licensing/
+**
+** This file is part of Qt 3D Studio.
+**
+** $QT_BEGIN_LICENSE:FDL$
+** Commercial License Usage
+** Licensees holding valid commercial Qt licenses may use this file in
+** accordance with the commercial license agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and The Qt Company. For licensing terms
+** and conditions see https://www.qt.io/terms-conditions. For further
+** information use the contact form at https://www.qt.io/contact-us.
+**
+** GNU Free Documentation License Usage
+** Alternatively, this file may be used under the terms of the GNU Free
+** Documentation License version 1.3 as published by the Free Software
+** Foundation and appearing in the file included in the packaging of
+** this file. Please review the following information to ensure
+** the GNU Free Documentation License version 1.3 requirements
+** will be met: https://www.gnu.org/licenses/fdl-1.3.html.
+** $QT_END_LICENSE$
+**
+****************************************************************************/
+
+/*!
+    \page qt3d-runtime-gettingstarted.html
+    \title Getting Started
+
+    The Qt 3D Studio Runtime provides C++ and QML APIs for integrating Qt 3D
+    Studio scenes into Qt applications, as well as the viewer application that
+    is used in combination with the Qt 3D Studio application during the design
+    phase.
+
+    Below is an example scene in the Qt 3D Studio application.
+
+    \image intro-editor.png
+
+    During the design phase, the standalone viewer is typically launched from
+    the editor several times to check and verify the presentation in the
+    runtime.
+
+    \image intro-viewer.png
+
+    Once the design is done and the \c{.uia}, \c{.uip}, and other asset files
+    are available, these can be loaded, rendered, and manipulated in Qt
+    applications. This is done via the APIs provided in the \c 3dstudioruntime2
+    module and the \c QtStudio3D QML plugin.
+
+    Below is the same scene loaded into a simple Qt Quick application
+    (the \l{Qt 3D Studio Runtime: Simple QML Example}{simpleqml
+    example}) that composes the 3D content with the other Qt Quick
+    items, for example the ones provided by \l{Qt Quick Controls
+    2}. In addition to displaying the presentation, the application
+    can also control many aspects of it (slides, timeline, object
+    properties) and can react on certain conditions, such as when a 3D
+    object is clicked on (picked) by mouse or touch input.
+
+    \image intro-app.png
+
+    To profile, debug, and tune the presentation, the runtime provides a
+    built-in, in-scene debug pane that can be toggled both from the viewer and,
+    optionally, from applications as well.
+
+    \image intro-viewer-profile.png
+
+    \section1 Rendering Scenes
+
+    APIs are provided for the following Qt UI technologies:
+
+    \list
+
+    \li Qt Quick: here applications import QtStudio3D 2.0 which provides the
+    \l Studio3D QML type, a Qt Quick item that can be added to Qt Quick scenes.
+    Under the hood this is similar to adding a \l Scene3D (when working
+    directly with the lower level Qt 3D framework) or a custom item based on
+    \l QQuickFramebufferObject into the scene.
+
+    \li Widgets: Q3DSWidget is a QOpenGLWidget subclass that displays Qt 3D
+    Studio scenes.
+
+    \li QWindow or offscreen render targets (OpenGL texture): Q3DSSurfaceViewer
+    can be used both to render to an on-screen QWindow, as well as off-screen
+    into an OpenGL texture. The latter allows reading back and saving the
+    frames, to generate pre-rendered video sequences for example.
+
+    \endlist
+
+    \section1 Manipulating Scenes
+
+    Rendering Qt 3D Studio scenes is only part of the story since many scenes
+    are not static and will not just display all their contents as they were
+    done by designers in the Qt 3D Studio application. Rather, properties of
+    scene objects (for example, the rotation property of a 3D model, or the
+    diffuse color of the material associated with such a model) may need to be
+    changed dynamically, at run time. The timeline or the current slide may
+    also need to be adjusted based on the user's actions or other application
+    state.
+
+    As of Qt 3D Studio 2.0 such functionality is exposed via the
+    Q3DSPresentation (\l Presentation), Q3DSElement (\l Element),
+    Q3DSSceneElement (\l SceneElement), and Q3DSDataInput (\l DataInput)
+    objects. Advanced scene manipulation (for instance dynamically spawning and
+    removing objects in the 3D scene) will be introduced in future versions.
+*/
