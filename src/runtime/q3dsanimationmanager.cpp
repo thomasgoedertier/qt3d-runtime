@@ -217,6 +217,8 @@ public:
     void valueChanged(const QVariant &value) override;
 
 private:
+    QVariant stabilizeAnimatedValue(const QVariant &value, Q3DS::PropertyType type);
+
     Q3DSGraphObject *m_target;
     Q3DSAnimationManager::Animatable m_animMeta;
     Q3DSAnimationManager *m_animationManager;
@@ -229,10 +231,25 @@ void Q3DSAnimationCallback::valueChanged(const QVariant &value)
     // invoked once per frame.
 
     Q3DSAnimationManager::AnimationValueChange change;
-    change.value = value;
+    change.value = stabilizeAnimatedValue(value, m_animMeta.type);
     change.name = m_animMeta.name;
     change.setter = m_animMeta.setter;
     m_animationManager->queueChange(m_target, change);
+}
+
+QVariant Q3DSAnimationCallback::stabilizeAnimatedValue(const QVariant &value, Q3DS::PropertyType type)
+{
+    if (type == Q3DS::Color && value.type() == QVariant::Vector3D) {
+        const QVector3D v = value.value<QVector3D>();
+        // rgb is already in range [0, 1] but let's make sure the 0 and 1 are really 0 and 1.
+        // This avoids confusing QColor when qFuzzyCompare(r, 1.0f) && r > 1.0f
+        const float r = qBound(0.0f, v.x(), 1.0f);
+        const float g = qBound(0.0f, v.y(), 1.0f);
+        const float b = qBound(0.0f, v.z(), 1.0f);
+        return QVariant::fromValue(QColor::fromRgbF(qreal(r), qreal(g), qreal(b)));
+    }
+
+    return value;
 }
 
 static int componentSuffixToIndex(const QString &s)
@@ -483,11 +500,20 @@ void Q3DSAnimationManager::updateAnimationHelper(const AnimationTrackListMap<T *
             clipData.appendChannel(chIt->channel);
 
             // Figure out the QVariant/QMetaType type enum value.
-            const int type = Q3DS::animatablePropertyTypeToMetaType(chIt->meta.type);
+            int type = Q3DS::animatablePropertyTypeToMetaType(chIt->meta.type);
             if (type == QVariant::Invalid) {
                 qWarning("Cannot map channel type for animated property %s", qPrintable(channelName));
                 continue;
             }
+
+            // Workaround for QColor::fromRgbF() warning and generating invalid
+            // colors when some component is very slightly over 1.0. Due to the
+            // Qt 3D animation fw or QVariant or something else, we get
+            // sometimes such results. We can handle this in our side but we
+            // cannot let Qt 3D do the QColor creation. So pretend we have a
+            // QVector3D instead. This will be 'reversed' in stabilizeAnimatedValue().
+            if (type == QVariant::Color)
+                type = QVariant::Vector3D;
 
             // Create a mapping with a custom callback.
             QScopedPointer<Qt3DAnimation::QCallbackMapping> mapping(new Qt3DAnimation::QCallbackMapping);
