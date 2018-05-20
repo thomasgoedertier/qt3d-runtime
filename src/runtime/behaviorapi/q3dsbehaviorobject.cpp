@@ -304,6 +304,11 @@ QVector3D Q3DSBehaviorObject::lookAt(const QVector3D &target)
     JavaScript. It enables interacting with the runtime using the Behavior
     QML class exposed to each behavior script.
 
+    \note the Behavior type has its own import and is only available in
+    \c{behavior scripts} that are attached to scene objects during the design
+    phase in Qt 3D Studio. It is not usable in ordinary QML
+    application code.
+
     In QML behavior script, the integration to Qt 3D Studio is established by using
     the metadata tag system similar to the \l {file-formats-effects.html}{effect}
     and \l {file-formats-material.html}{material} files.

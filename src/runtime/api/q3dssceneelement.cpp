@@ -95,7 +95,7 @@ Q3DSSceneElement::~Q3DSSceneElement()
 
     \note If this property is set to something else than the default slide for
     the scene at the initial declaration of SceneElement, a changed signal for
-    the default slide may stil be emitted before the slide changes to the
+    the default slide may still be emitted before the slide changes to the
     desired one. This happens in order to ensure we end up with the index of
     the slide that is actually shown even if the slide specified in the initial
     declaration is invalid.
@@ -126,7 +126,7 @@ int Q3DSSceneElement::previousSlideIndex() const
 
     \note If this property is set to something else than the default slide for
     the scene at the initial declaration of SceneElement, a changed signal for
-    the default slide may stil be emitted before the slide changes to the
+    the default slide may still be emitted before the slide changes to the
     desired one. This happens in order to ensure we end up with the index of
     the slide that is actually shown even if the slide specified in the initial
     declaration is invalid.
@@ -252,13 +252,14 @@ void Q3DSSceneElementPrivate::setPresentation(Q3DSPresentation *pres)
     \inherits Element
     \inqmlmodule QtStudio3D
     \ingroup 3dstudioruntime2
-    \brief Control type for scene and component elements in a Qt 3D Studio presentation.
 
-    This type is a convenience type for managing the slides of a single
-    time context (a Scene or a Component element) of a presentation.
+    \brief Controls the special Scene or Component scene objects in a Qt 3D
+    Studio presentation.
 
-    All methods provided by this type are queued and handled asynchronously before the next
-    frame is displayed.
+    This type is a convenience for controlling the properties of Scene
+    and Component objects in the scene. These are special since they have a
+    time context, meaning they control a timline and a set of associated
+    slides.
 
     \sa Studio3D, Presentation, Element
 */
@@ -272,11 +273,12 @@ void Q3DSSceneElementPrivate::setPresentation(Q3DSPresentation *pres)
     value will not actually change until the next frame has been processed, and
     even then only if the new slide was valid.
 
-    \note If this property is set to something else than the default slide for the scene at the
-    initial declaration of SceneElement, you will still get an extra changed signal for the
-    default slide before the slide changes to the desired one. This happens in order to ensure
-    we end up with the index of the slide that is actually shown even if the slide specified in the
-    initial declaration is invalid.
+    \note If this property is set to something else than the default slide for
+    the scene at the initial declaration of SceneElement, a changed signal for
+    the default slide may still be emitted before the slide changes to the
+    desired one. This happens in order to ensure we end up with the index of
+    the slide that is actually shown even if the slide specified in the initial
+    declaration is invalid.
 */
 
 /*!
@@ -296,11 +298,12 @@ void Q3DSSceneElementPrivate::setPresentation(Q3DSPresentation *pres)
     value will not actually change until the next frame has been processed, and
     even then only if the new slide was valid.
 
-    \note If this property is set to something else than the default slide for the scene at the
-    initial declaration of SceneElement, you will still get an extra changed signal for the
-    default slide before the slide changes to the desired one. This happens in order to ensure
-    we end up with the name of the slide that is actually shown even if the slide specified in the
-    initial declaration is invalid.
+    \note If this property is set to something else than the default slide for
+    the scene at the initial declaration of SceneElement, a changed signal for
+    the default slide may still be emitted before the slide changes to the
+    desired one. This happens in order to ensure we end up with the index of
+    the slide that is actually shown even if the slide specified in the initial
+    declaration is invalid.
 */
 
 /*!
@@ -358,9 +361,10 @@ void Q3DSSceneElementPrivate::setPresentation(Q3DSPresentation *pres)
 /*!
     \qmlmethod void SceneElement::goToSlide(bool next, bool wrap)
 
-    Requests a time context (a Scene or a Component element) to change to the next or the
-    previous slide, depending on the value of \a next. If the context is already at the
-    last or first slide, \a wrap defines if change occurs to the opposite end.
+    Requests a time context (a Scene or a Component object) to change to the
+    next or previous slide, depending on the value of \a next. If the context
+    is already at the last or first slide, \a wrap defines if wrapping over to
+    the first or last slide, respectively, occurs.
 */
 
 /*!

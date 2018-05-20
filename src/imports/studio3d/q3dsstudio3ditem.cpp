@@ -89,36 +89,42 @@ QT_BEGIN_NAMESPACE
         }
     }
     \endqml
+
+    \section2 Controlling the presentation
+
+    Like the example above suggests, Studio3D and the other types under the
+    QtStudio3D import offer more than simply rendering the animated Qt 3D
+    Studio presentation. They also offer scene manipulation, including
+
+    \list
+
+    \li querying and changing scene object properties (for example, the
+    transform of a model, colors and other settings of a material, etc.) via
+    Presentation::getAttribute(), Presentation::setAttribute(), \l Element, and
+    \l DataInput,
+
+    \li changing slides (and thus starting the relevant animations and applying
+    the scene object property changes associated with the new slide) via
+    Presentation::goToSlide(), \l SceneElement, and \l DataInput,
+
+    \li and controlling the timeline (the current playback position for the
+    key-frame based animations) both on the main scene and on individual
+    Component nodes via Presentation::goToTime(), \l SceneElement, and \l DataInput.
+
+    \endlist
 */
 
 /*!
     \qmlsignal Studio3D::frameUpdate()
 
-    This signal is emitted each time a frame has been updated regardless of
-    visibility. This allows a hidden Studio3D element to still process
-    information every frame, even though the renderer is not rendering.
-
-    The corresponding handler is \c onFrameUpdate.
-
-    To prevent expensive handlers from being processed when hidden, add an
-    early return to the top like:
-
-    \qml
-         onFrameUpdate: {
-             if (!visible) return;
-             ...
-         }
-    \endqml
+    This signal is emitted each time a frame has been rendered.
 */
 
 /*!
     \qmlsignal Studio3D::presentationReady()
 
     This signal is emitted when the viewer has been initialized and the
-    presentation is ready to be shown. The difference to \c running property is
-    that the viewer has to be visible for \c running to get \c{true}. This
-    signal is useful for displaying splash screen while viewer is getting
-    initialized.
+    presentation is ready to be shown.
 */
 
 static bool engineCleanerRegistered = false;
@@ -180,6 +186,16 @@ bool Q3DSStudio3DItem::isRunning() const
 {
     return m_running;
 }
+
+/*!
+    \qmlproperty string Studio3D::error
+
+    Contains the text for the error message that was generated during the
+    loading of the presentation. When no error occurred or there is no
+    presentation loaded, the value is an empty string.
+
+    This property is read-only.
+*/
 
 QString Q3DSStudio3DItem::error() const
 {

@@ -175,9 +175,13 @@ void Q3DSViewerSettings::load(const QString &group,
 /*!
     \qmlproperty bool ViewerSettings::showRenderStats
 
-    If this property is set to \c{true}, render statistics are displayed on the upper part
-    of the viewer.
-    Default value is \c{false}.
+    If this property is set to \c true, the interactive statistics and profile
+    view is displayed in-scene, on top of the 3D content.
+
+    \note this feature can be disabled at build time, in which case this
+    property has no effect.
+
+    The default value is \c{false}.
 */
 
 QT_END_NAMESPACE

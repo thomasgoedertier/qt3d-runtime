@@ -476,12 +476,76 @@ void Q3DSPresentationPrivate::registerInlineQmlSubPresentations(const QVector<Q3
     \inqmlmodule QtStudio3D
     \ingroup 3dstudioruntime2
 
-    \brief Control type for Qt 3D Studio presentations.
+    \brief Represents a Qt 3D Studio presentation.
 
-    This type provides properties and methods for controlling a presentation.
+    This class provides properties and methods for controlling a
+    presentation.
 
-    All methods provided by this type are queued and handled asynchronously before the next
-    frame is displayed.
+    Qt 3D Studio supports multiple presentations in one project. There is
+    always a main presentation and zero or more sub-presentations. The
+    sub-presentations are composed into the main presentations either as
+    contents of Qt 3D Studio layers or as texture maps.
+
+    In the filesystem each presentation corresponds to one \c{.uip}
+    file. When present, the \c{.uia} file ties these together by
+    specifying a name for each of the (sub-)presentations and
+    specifies which one is the main one.
+
+    From the API point of view Presentation corresponds to the main
+    presentation. The source property can refer either to a \c{.uia} or
+    \c{.uip} file. When specifying a file with \c{.uip} extension and a
+    \c{.uia} is present with the same name, the \c{.uia} is loaded
+    automatically and thus sub-presentation information is available
+    regardless.
+
+    The Presentation type handles child objects of the types \l Element, \l
+    SceneElement, \l DataInput, and \l SubPresentationSettings specially. These
+    will get automatically associated with the presentation and can control
+    certain aspects of it from that point on.
+
+    \section2 Example usage
+
+    \qml
+    Studio3D {
+        Presentation {
+            id: presentation
+
+            source: "qrc:/presentation/barrel.uip"
+            profilingEnabled: true
+
+            onSlideEntered: console.log("Entered slide " + name + "(index " + index + ") on " + elementPath)
+            onSlideExited: console.log("Exited slide " + name + "(index " + index + ") on " + elementPath)
+            onCustomSignalEmitted: console.log("Got custom signal " + name)
+
+            DataInput {
+                name: "di_text"
+                value: "hello world"
+            }
+
+            SceneElement {
+                elementPath: "SomeComponentNode"
+                onCurrentSlideIndexChanged: console.log("Current slide index for component: " + currentSlideIndex)
+                onCurrentSlideNameChanged: console.log("Current slide name for component: " + currentSlideName)
+            }
+
+            SubPresentationSettings {
+                qmlStreams: [
+                    QmlStream {
+                        presentationId: "sub-presentation-id"
+                        Rectangle {
+                            width: 1024
+                            height: 1024
+                            color: "red"
+                        }
+                    }
+                ]
+            }
+        }
+    }
+    Button {
+        onClicked: presentation.setAttribute("SomeMaterial", "diffuse", "0 1 0");
+    }
+    \endqml
 
     \sa Studio3D
 */
@@ -489,22 +553,14 @@ void Q3DSPresentationPrivate::registerInlineQmlSubPresentations(const QVector<Q3
 /*!
     \qmlproperty url Presentation::source
 
-    Holds the presentation source (\c{*.uia} or \c{*.uip}) file location.
+    Holds the main presentation source (\c{*.uia} or \c{*.uip}) file location.
     May be either a file URL or a qrc URL.
-*/
-
-/*!
-    \qmlproperty SubPresentationSettings Presentation::subPresentationSettings
-
-    Holds the settings for the subpresentations in the Qt 3D Studio presentation.
-
-    This property is read-only.
 */
 
 /*!
     \qmlmethod void Presentation::goToSlide(string elementPath, string name)
 
-    Requests a time context (a Scene or a Component element) to change to a specific slide
+    Requests a time context (a Scene or a Component node) to change to a specific slide
     by \a name. If the context is already on that slide playback will start over.
 
     If \a elementPath points to a time context, that element is controlled. For
@@ -516,7 +572,7 @@ void Q3DSPresentationPrivate::registerInlineQmlSubPresentations(const QVector<Q3
 /*!
     \qmlmethod void Presentation::goToSlide(string elementPath, int index)
 
-    Requests a time context (a Scene or a Component element) to change to a specific slide by
+    Requests a time context (a Scene or a Component node) to change to a specific slide by
     index \a index. If the context is already on that slide playback will start over.
 
     If \a elementPath points to a time context, that element is controlled. For
@@ -528,7 +584,7 @@ void Q3DSPresentationPrivate::registerInlineQmlSubPresentations(const QVector<Q3
 /*!
     \qmlmethod void Presentation::goToSlide(string elementPath, bool next, bool wrap)
 
-    Requests a time context (a Scene or a Component element) to change to the next or the
+    Requests a time context (a Scene or a Component node) to change to the next or the
     previous slide, depending on the value of \a next. If the context is already at the
     last or first slide, \a wrap defines if change occurs to the opposite end.
 
@@ -541,7 +597,7 @@ void Q3DSPresentationPrivate::registerInlineQmlSubPresentations(const QVector<Q3
 /*!
     \qmlmethod void Presentation::goToTime(string elementPath, real time)
 
-    Sets a time context (a Scene or a Component element) to a specific playback \a time in seconds.
+    Sets a time context (a Scene or a Component node) to a specific playback \a time in seconds.
 
     If \a elementPath points to a time context, that element is controlled. For
     all other element types the time context owning that element is controlled instead.
@@ -564,88 +620,90 @@ void Q3DSPresentationPrivate::registerInlineQmlSubPresentations(const QVector<Q3
 */
 
 /*!
-    \qmlmethod void Presentation::setAttribute(string elementPath, string attributeName,
-                                               variant value)
+    \qmlmethod variant Presentation::getAttribute(string elementPath, string attributeName)
 
-    Sets the \a value of an attribute on an element found at \a elementPath. The \a attributeName is
-    the \l{Attribute Names}{scripting name} of the attribute.
-
-    You can target the command to a specific sub-presentation by adding "SubPresentationId:" in
-    front of the element path, for example \c{"SubPresentationOne:Scene.Mesh.Material"}.
-
-    The attribute must be preserved for scripting to be set by this function, or else it will fail.
-    An attribute is preserved if it is either \e{animated}, or
-    \e{an attribute on a master element that is unlinked and changed per-slide}.
+    Returns the value of an attribute (property) on the object specified by \a
+    elementPath. The \a attributeName is the \l{Attribute Names}{scripting
+    name} of the attribute.
 */
 
 /*!
-    \qmlmethod void Presentation::setPresentationActive(string id, bool active)
+    \qmlmethod void Presentation::setAttribute(string elementPath, string attributeName,
+                                               variant value)
 
-    Stops or starts updates to a sub-presentation based on the \a active flag. The presentation is
-    referenced to by the \a id, which is the name of the presentation without the \c{.uip}.
+    Sets the \a value of an attribute (property) on the Qt 3D Studio scene
+    object specified by \a elementPath. The \a attributeName is the
+    \l{Attribute Names}{scripting name} of the attribute.
 
-    Making a presentation inactive prevents any elements, behaviors, and animations within it from
-    updating. It also prevents any events within that presentation from being processed. It does
-    not, however, prevent the presentation from rendering. An inactive presentation will continue
-    to render using its last-updated information.
+    An element path refers to an object in the scene either by name or id. The
+    latter is rarely used in application code since the unique IDs are not
+    exposed in the Qt 3D Studio application. To refer to an object by id,
+    prepend \c{#} to the name. Applications will typically refer to objects by
+    name.
 
-    Explicitly inactivating presentations can provide a significant performance increase, depending
-    on the number and size of the presentations that are inactive. Inactive presentations are not
-    ‘paused’. When the presentation is re-activated, animations will resume at the time they should
-    be had they been running, not where they were when the presentation was made inactive.
+    Names are not necessarily unique, however. To access an object with a
+    non-unique name, the path can be specified, for example,
+    \c{Scene.Layer.Camera}. Here the right camera object gets chosen even if
+    the scene contains other layers with the default camera names (for instance
+    \c{Scene.Layer2.Camera}).
+
+    If the object is renamed to a unique name in the Qt 3D Studio application's
+    Timeline view, the path can be omitted. For example, if the camera in
+    question was renamed to \c MyCamera, applications can then simply pass \c
+    MyCamera as the element path.
+
+    To access an object in a sub-presentation, prepend the name of the
+    sub-presentation followed by a colon, for example,
+    \c{SubPresentationOne:Scene.Layer.Camera}.
 */
 
 /*!
     \qmlmethod void Presentation::fireEvent(string elementPath, string eventName)
 
-    Dispatches an event with \a eventName on a specific element found in \a elementPath. Appropriate
-    Appropriate actions created in Qt 3D Studio or callbacks registered using the registerForEvent()
-    method in attached scripts will be executed in response to the event.
-
-    You can target the command to a specific sub-presentation by adding "SubPresentationId:" in
-    front of the element path, for example \c{"SubPresentationOne:Scene.Mesh"}.
-*/
-
-/*!
-    \qmlmethod void Presentation::setGlobalAnimationTime(int64 milliseconds)
-
-    Sets the global animation time to \a milliseconds. Setting the global animation time to a
-    non-zero value will disable the automatic animation timer. Setting the value to zero
-    resumes automatic animation timer.
+    Dispatches an event with \a eventName on a specific element found in \a
+    elementPath. Appropriate actions created in Qt 3D Studio or callbacks
+    registered using the registerForEvent() method in attached \c{behavior
+    scripts} will be executed in response to the event.
 */
 
 /*!
     \qmlmethod void Presentation::setDataInputValue(string name, variant value)
-    \since QtStudio3D 1.1
 
     Sets the \a value of a data input element \a name in the presentation.
+
+    Data input provides a higher level, designer-driven alternative to
+    setAttribute or Element. Instead of exposing a large set of properties with
+    their intenal engine names, data input allows designers to decide which
+    properties should be writable by the application, and can assign custom
+    names to these data input entries, thus forming a well-defined contract
+    between the designer and the developer.
+
+    In addition, data input also allows controlling the time line and the
+    current slide for time context objects (Scene or Component). Therefore it
+    is also an alternative to the goToSlide, goToTime, and SceneElement.
+
+    As an alternative to this method, the \l DataInput type can be used. That
+    approach has the advantage of being able to use QML property bindings for
+    the value, instead of having to resort to JavaScript function calls for
+    every value change.
 */
 
 /*!
     \qmlsignal Presentation::slideEntered(string elementPath, int index, string name)
 
-    This signal is emitted when a slide is entered in the presentation.
-    The \a elementPath specifies the time context (a Scene or a Component element) owning the
-    entered slide.
-    The \a index and \a name contain the index and the name of the entered slide.
+    This signal is emitted when a slide is entered in the presentation. The \a
+    elementPath specifies the time context (a Scene or a Component element)
+    owning the entered slide. The \a index and \a name contain the index and
+    the name of the entered slide.
 */
 
 /*!
     \qmlsignal Presentation::slideExited(string elementPath, int index, string name)
 
-    This signal is emitted when a slide is exited in the presentation.
-    The \a elementPath specifies the time context (a Scene or a Component element) owning the
-    exited slide.
-    The \a index and \a name contain the index and the name of the exited slide.
-*/
-
-/*!
-    \qmlsignal Presentation::sourceChanged(url source)
-
-    This signal is emitted when the source property has changed.
-    The new value is provided in the \a source parameter.
-
-    The corresponding handler is \c onSourceChanged.
+    This signal is emitted when a slide is exited in the presentation. The \a
+    elementPath specifies the time context (a Scene or a Component element)
+    owning the exited slide. The \a index and \a name contain the index and the
+    name of the exited slide.
 */
 
 QT_END_NAMESPACE

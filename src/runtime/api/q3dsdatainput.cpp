@@ -111,10 +111,11 @@ void Q3DSDataInput::setName(const QString &name)
 
     The value of this property only accounts for changes done via the same
     Q3DSDataInput instance. If the value of the same data input in the
-    presentation is changed elsewhere, for example via presentation scripting,
-    those changes are not reflected in the value of this property. Due to this
-    uncertainty, this property treats all value sets as changes even if the
-    newly set value is the same value as the previous value.
+    presentation is changed elsewhere, for example via animations or
+    Q3DSPresentation::setAttribute(), those changes are not reflected in the
+    value of this property. Due to this uncertainty, this property treats all
+    value sets as changes even if the newly set value is the same value as the
+    previous value.
 */
 QVariant Q3DSDataInput::value() const
 {
@@ -149,9 +150,54 @@ void Q3DSDataInputPrivate::sendValue()
     \instantiates Q3DSDataInput
     \inqmlmodule QtStudio3D
     \ingroup 3dstudioruntime2
-    \brief Control type for data inputs in a Qt 3D Studio presentation.
 
-    This type is a convenience type for controlling a data input in a presentation.
+    \brief Controls a data input entry in a Qt 3D Studio presentation.
+
+    This type is a convenience for controlling a data input in a presentation.
+    Its functionality is equivalent to Presentation::setDataInputValue(),
+    however it has a big advantage of being able to use QML property bindings,
+    thus avoiding the need to having to resort to a JavaScript function call
+    for every value change.
+
+    As an example, compare the following two approaches:
+
+    \qml
+        Studio3D {
+            ...
+            Presentation {
+                id: presentation
+                ...
+            }
+        }
+
+        Button {
+            onClicked: presentation.setAttribute("SomeTextNode", "textstring", "Hello World")
+        }
+    \endqml
+
+    \qml
+        Studio3D {
+            ...
+            Presentation {
+                id: presentation
+                ...
+                property string text: ""
+                DataInput {
+                    name: "inputForSomeTextNode"
+                    value: presentation.text
+                }
+            }
+        }
+
+        Button {
+            onClicked: presentation.text = "Hello World"
+        }
+    \endqml
+
+    The latter assumes that a data input connection was made in Qt 3D Studio
+    between the \c textstring property of \c SomeTextNode and a data input name
+    \c inputForSomeTextNode. As the value is now set via a property, the full
+    set of QML property bindings techniques are available.
 
     \sa Studio3D, Presentation
 */
@@ -159,22 +205,23 @@ void Q3DSDataInputPrivate::sendValue()
 /*!
     \qmlproperty string DataInput::name
 
-    Specifies the name of the controlled data input element in the presentation.
-    This property must be set as part of DataInput declaration.
+    Specifies the name of the controlled data input element in the
+    presentation. This property must be set as part of DataInput declaration,
+    although it is changeable afterwards, if desired.
 */
 
 /*!
     \qmlproperty variant DataInput::value
 
     Specifies the value of the controlled data input element in the presentation.
-    The changes to the value property are queued and handled asynchronously before the
-    next frame is displayed.
 
-    The value of this property only accounts for changes done via the same DataInput instance.
-    If the value of the same data input in the presentation is changed elsewhere,
-    for example via presentation scripting, those changes are not reflected in
-    the value of this property. Due to this uncertainty, this property treats all value sets as
-    changes even if the newly set value is the same value as the previous value.
+    The value of this property only accounts for changes done via the same
+    DataInput instance. If the value of the underlying attribute in the
+    presentation is changed elsewhere, for example via animations or
+    Presentation::setAttribute(), those changes are not reflected in the value
+    of this property. Due to this uncertainty, this property treats all value
+    sets as changes even if the newly set value is the same value as the
+    previous value.
 */
 
 QT_END_NAMESPACE

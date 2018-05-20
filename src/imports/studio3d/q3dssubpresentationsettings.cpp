@@ -83,6 +83,27 @@ QQmlListProperty<Q3DSInlineQmlSubPresentation> Q3DSSubPresentationSettings::qmlS
         }
     }
     \endqml
+
+    \section2 Linking to the Presentation via presentationId
+
+    In Qt 3D Studio presentations QML sub-presentations are specified in the \e
+    assets element of the presentation's \c{.uia} file. This is important also
+    when using SubPresentationSettings and QmlStream.
+
+    \badcode
+    <assets ...>
+        <presentation-qml id="presentation-id" args="preview-presentation.qml" />
+    </assets>
+    \endcode
+
+    \note the Qt 3D Studio application takes care of generating the \c{.uia}
+    file based on what the designers have set in the Sub-presentations dialog.
+
+    The \c presentation-id attribute must contain a unique ID for the
+    sub-presentation. The corresponding \l QmlStream must provide the same
+    value in its presentationId property. The \c args attribute may contain an
+    optional preview version of the item, which is only used in the Viewer
+    application.
  */
 
 /*!
@@ -97,36 +118,27 @@ QQmlListProperty<Q3DSInlineQmlSubPresentation> Q3DSSubPresentationSettings::qmlS
     \ingroup 3dstudioruntime2
     \brief QML stream.
 
-    This type allows attaching QML sub-presentation with a quick item. The item is rendered to a
-    texture and used as a part of a Qt 3D Studio presentation.
+    This type allows specifying the contents of a QML sub-presentation within
+    the Studio3D item. QmlStream must be used in combination with
+    \l SubPresentationSettings.
 
-    The sub-presentation element must be specified in the \e assets element of the presentation
-    .uia file:
-
-     \badcode
-     <assets ...>
-         <presentation-qml id="presentation-id" args="preview-presentation.qml" />
-     </assets>
-     \endcode
-
-    The \c presentation-id attribute must contain a unique ID of the sub-presentation.
-    The \c args attribute may contain an optional preview version of the item, which is only
-    used in the Viewer application.
+    \sa SubPresentationSettings
  */
 
 /*!
     \qmlproperty string QmlStream::presentationId
 
-    Holds the string ID of the sub-presentation the item is attached to. The id must be one of
-    the \c presentation-qml IDs specified in the .uia file.
+    Holds the string ID of the sub-presentation the contents of which is
+    specified by \l item. The id must be one of the \c presentation-qml IDs
+    specified in the \c{.uia} file.
  */
 
 /*!
     \qmlproperty Item QmlStream::item
 
-    Holds the item attached to the sub-presentation. The item size is used as the the size of the
-    texture the item is rendered to. Default values \c{(256, 256)} are used if the item doesn't
-    specify a size.
+    Holds the item attached to the sub-presentation. The item size is used as
+    the the size of the texture the item is rendered to. A default value of
+    \c{(128, 128)} is used when the item does not specify a size.
  */
 
 QT_END_NAMESPACE
