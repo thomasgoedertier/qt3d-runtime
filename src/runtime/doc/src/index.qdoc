@@ -36,7 +36,8 @@
     \li \l {System and Application Requirements}
     \li \l {Qt 3D Studio Runtime C++ Classes}
     \li \l {Qt 3D Studio Runtime QML Types}
-    \li \l {Attribute Names}{Scene object attribute list}
+    \li \l {Attribute Names}{Scene Object Attribute List}
+    \li \l {Using the In-Scene Debug and Profile views}
     \li \l {Examples}
     \li \l {Copyright Notices}
 \endlist
