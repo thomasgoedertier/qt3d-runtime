@@ -4482,11 +4482,13 @@ void Q3DSSceneManager::retagSubMeshes(Q3DSModelNode *model3DS)
             sm.hasTransparency = opacity < 1.0f || matDesc->materialHasTransparency() || matDesc->materialHasRefraction();
         }
 
-        Qt3DRender::QLayer *newTag = sm.hasTransparency ? layerData->transparentTag : layerData->opaqueTag;
-        if (!sm.entity->components().contains(newTag)) {
-            Qt3DRender::QLayer *prevTag = newTag == layerData->transparentTag ? layerData->opaqueTag : layerData->transparentTag;
-            sm.entity->removeComponent(prevTag);
-            sm.entity->addComponent(newTag);
+        if (data->globalVisibility) {
+            Qt3DRender::QLayer *newTag = sm.hasTransparency ? layerData->transparentTag : layerData->opaqueTag;
+            if (!sm.entity->components().contains(newTag)) {
+                Qt3DRender::QLayer *prevTag = newTag == layerData->transparentTag ? layerData->opaqueTag : layerData->transparentTag;
+                sm.entity->removeComponent(prevTag);
+                sm.entity->addComponent(newTag);
+            }
         }
 
         profData.needsBlending = sm.hasTransparency;
@@ -7078,10 +7080,12 @@ void Q3DSSceneManager::setNodeVisibility(Q3DSNode *node, bool visible)
         Q3DSModelAttached *mdata = static_cast<Q3DSModelAttached *>(node->attached());
         for (Q3DSModelAttached::SubMesh &sm : mdata->subMeshes) {
             Qt3DRender::QLayer *tag = sm.hasTransparency ? layerData->transparentTag : layerData->opaqueTag;
-            if (!visible)
-                sm.entity->removeComponent(tag);
-            else
+            if (!visible) {
+                sm.entity->removeComponent(layerData->opaqueTag);
+                sm.entity->removeComponent(layerData->transparentTag);
+            } else {
                 sm.entity->addComponent(tag);
+            }
         }
     }
 
