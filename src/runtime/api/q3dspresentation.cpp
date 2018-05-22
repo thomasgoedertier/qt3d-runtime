@@ -128,6 +128,25 @@ void Q3DSPresentation::setSource(const QUrl &source)
     emit sourceChanged();
 }
 
+/*!
+    \property Q3DSPresentation::profilingEnabled
+
+    When enabled, Qt 3D objects managed by the runtime get tracked,
+    and various statistics get collected internally. These are then
+    exposed in the views that can be toggled by profileUiVisible.
+
+    The default value is \c false.
+
+    \note Changing the value after the presentation has been loaded
+    has no effect for the already loaded presentation. Therefore the
+    changing of this property must happen before calling setSource().
+
+    \note In the Qt 3D Studio Viewer application presentations are
+    opened with profiling enabled by default. Therefore, applications
+    wishing to have an experience comparable to the Viewer, when it
+    comes to the debug and profile views, should set this property to
+    \c true.
+*/
 bool Q3DSPresentation::isProfilingEnabled() const
 {
     Q_D(const Q3DSPresentation);
@@ -149,6 +168,17 @@ void Q3DSPresentation::setProfilingEnabled(bool enable)
     }
 }
 
+/*!
+    \property Q3DSPresentation::profileUiVisible
+
+    When this property is \c{true}, the interactive statistics and profile
+    view is displayed in-scene, on top of the 3D content.
+
+    \note This feature can be disabled at build time, in which case this
+    property has no effect.
+
+    Default value is \c{false}.
+*/
 bool Q3DSPresentation::isProfileUiVisible() const
 {
     Q_D(const Q3DSPresentation);
@@ -166,6 +196,13 @@ void Q3DSPresentation::setProfileUiVisible(bool visible)
     }
 }
 
+/*!
+    \property Q3DSPresentation::profileUiScale
+
+    Controls the scale factor of the in-scene debug and profile views.
+
+    The default value is 1.0.
+*/
 float Q3DSPresentation::profileUiScale() const
 {
     Q_D(const Q3DSPresentation);
@@ -216,10 +253,11 @@ void Q3DSPresentation::setDataInputValue(const QString &name, const QVariant &va
 }
 
 /*!
-    Dispatches an event with \a eventName on a specific element found in \a
-    elementPath. Appropriate actions created in Qt 3D Studio or callbacks
-    registered using the registerForEvent() method in attached (behavior)
-    scripts will be executed in response to the event.
+    Dispatches a Qt 3D Studio presentation event with \a eventName on
+    scene object specified by \a elementPath. These events provide a
+    way to communicate with the \c .qml based \c{behavior scripts}
+    attached to scene objects since they can register to be notified
+    via Behavior::registerForEvent().
 
     See setAttribute() for a description of \a elementPath.
  */
@@ -371,10 +409,54 @@ void Q3DSPresentation::setAttribute(const QString &elementPath, const QString &a
         d->controller->handleSetAttribute(elementPath, attributeName, value);
 }
 
+/*!
+    \fn void Q3DSPresentation::customSignalEmitted(const QString &elementPath, const QString &name)
+
+    This signal is emitted when an action with the \c{Emit Signal}
+    handler is executed in the Qt 3D Studio presentation. \a
+    elementPath specifies the scene object on which the (Qt 3D Studio)
+    "signal" \a name was triggered.
+
+    Connecting to this signal offers a way of reacting upon certain
+    events in the Qt 3D Studio presentation.
+
+    \image customsignal.png
+
+    In this example, pressing or tapping on the Cluster object will result in
+    emitting \c{customSignalEmitted("Cluster", "clusterPressed")}.
+*/
+
+/*!
+    \fn Q3DSPresentation::slideEntered(const QString &elementPath, int index, const QString &name)
+
+    This signal is emitted when a slide is entered in the presentation. The \a
+    elementPath specifies the time context (a Scene or a Component element)
+    owning the entered slide. The \a index and \a name contain the index and
+    the name of the entered slide.
+*/
+
+/*!
+    \fn Q3DSPresentation::slideExited(const QString &elementPath, int index, const QString &name)
+
+    This signal is emitted when a slide is exited in the presentation. The \a
+    elementPath specifies the time context (a Scene or a Component element)
+    owning the exited slide. The \a index and \a name contain the index and the
+    name of the exited slide.
+*/
+
 // These event forwarders are not stricly needed, Studio3D et al are fine
 // without them. However, they are there in 3DS1 and can become handy to feed
 // arbitrary, application-generated events into the engine.
 
+/*!
+    Passes a key press event \a e to the presentation.
+
+    \note The event forwarders in Q3DSPresentation are not normally
+    needed since Q3DSWidget and Studio3D both pass mouse, keyboard and
+    touch input on to the Qt 3D Studio engine. They may become useful
+    however with Q3DSSurfaceViewer, or in special situations, in order
+    to inject input events.
+*/
 void Q3DSPresentation::keyPressEvent(QKeyEvent *e)
 {
     Q_D(Q3DSPresentation);
@@ -382,6 +464,15 @@ void Q3DSPresentation::keyPressEvent(QKeyEvent *e)
         d->controller->handlePresentationKeyPressEvent(e);
 }
 
+/*!
+    Passes a key release event \a e to the presentation.
+
+    \note The event forwarders in Q3DSPresentation are not normally
+    needed since Q3DSWidget and Studio3D both pass mouse, keyboard and
+    touch input on to the Qt 3D Studio engine. They may become useful
+    however with Q3DSSurfaceViewer, or in special situations, in order
+    to inject input events.
+*/
 void Q3DSPresentation::keyReleaseEvent(QKeyEvent *e)
 {
     Q_D(Q3DSPresentation);
@@ -389,6 +480,15 @@ void Q3DSPresentation::keyReleaseEvent(QKeyEvent *e)
         d->controller->handlePresentationKeyReleaseEvent(e);
 }
 
+/*!
+    Passes a mouse press event \a e to the presentation.
+
+    \note The event forwarders in Q3DSPresentation are not normally
+    needed since Q3DSWidget and Studio3D both pass mouse, keyboard and
+    touch input on to the Qt 3D Studio engine. They may become useful
+    however with Q3DSSurfaceViewer, or in special situations, in order
+    to inject input events.
+*/
 void Q3DSPresentation::mousePressEvent(QMouseEvent *e)
 {
     Q_D(Q3DSPresentation);
@@ -396,6 +496,15 @@ void Q3DSPresentation::mousePressEvent(QMouseEvent *e)
         d->controller->handlePresentationMousePressEvent(e);
 }
 
+/*!
+    Passes a mouse move event \a e to the presentation.
+
+    \note The event forwarders in Q3DSPresentation are not normally
+    needed since Q3DSWidget and Studio3D both pass mouse, keyboard and
+    touch input on to the Qt 3D Studio engine. They may become useful
+    however with Q3DSSurfaceViewer, or in special situations, in order
+    to inject input events.
+*/
 void Q3DSPresentation::mouseMoveEvent(QMouseEvent *e)
 {
     Q_D(Q3DSPresentation);
@@ -403,6 +512,15 @@ void Q3DSPresentation::mouseMoveEvent(QMouseEvent *e)
         d->controller->handlePresentationMouseMoveEvent(e);
 }
 
+/*!
+    Passes a mouse release event \a e to the presentation.
+
+    \note The event forwarders in Q3DSPresentation are not normally
+    needed since Q3DSWidget and Studio3D both pass mouse, keyboard and
+    touch input on to the Qt 3D Studio engine. They may become useful
+    however with Q3DSSurfaceViewer, or in special situations, in order
+    to inject input events.
+*/
 void Q3DSPresentation::mouseReleaseEvent(QMouseEvent *e)
 {
     Q_D(Q3DSPresentation);
@@ -410,6 +528,15 @@ void Q3DSPresentation::mouseReleaseEvent(QMouseEvent *e)
         d->controller->handlePresentationMouseReleaseEvent(e);
 }
 
+/*!
+    Passes a mouse double click event \a e to the presentation.
+
+    \note The event forwarders in Q3DSPresentation are not normally
+    needed since Q3DSWidget and Studio3D both pass mouse, keyboard and
+    touch input on to the Qt 3D Studio engine. They may become useful
+    however with Q3DSSurfaceViewer, or in special situations, in order
+    to inject input events.
+*/
 void Q3DSPresentation::mouseDoubleClickEvent(QMouseEvent *e)
 {
     Q_D(Q3DSPresentation);
@@ -418,6 +545,15 @@ void Q3DSPresentation::mouseDoubleClickEvent(QMouseEvent *e)
 }
 
 #if QT_CONFIG(wheelevent)
+/*!
+    Passes a mouse wheel event \a e to the presentation.
+
+    \note The event forwarders in Q3DSPresentation are not normally
+    needed since Q3DSWidget and Studio3D both pass mouse, keyboard and
+    touch input on to the Qt 3D Studio engine. They may become useful
+    however with Q3DSSurfaceViewer, or in special situations, in order
+    to inject input events.
+*/
 void Q3DSPresentation::wheelEvent(QWheelEvent *e)
 {
     Q_D(Q3DSPresentation);
@@ -426,6 +562,15 @@ void Q3DSPresentation::wheelEvent(QWheelEvent *e)
 }
 #endif
 
+/*!
+    Passes a touch event \a e to the presentation.
+
+    \note The event forwarders in Q3DSPresentation are not normally
+    needed since Q3DSWidget and Studio3D both pass mouse, keyboard and
+    touch input on to the Qt 3D Studio engine. They may become useful
+    however with Q3DSSurfaceViewer, or in special situations, in order
+    to inject input events.
+*/
 void Q3DSPresentation::touchEvent(QTouchEvent *e)
 {
     Q_D(Q3DSPresentation);
@@ -434,6 +579,15 @@ void Q3DSPresentation::touchEvent(QTouchEvent *e)
 }
 
 #if QT_CONFIG(tabletevent)
+/*!
+    Passes a tablet (pen) event \a e to the presentation.
+
+    \note The event forwarders in Q3DSPresentation are not normally
+    needed since Q3DSWidget and Studio3D both pass mouse, keyboard and
+    touch input on to the Qt 3D Studio engine. They may become useful
+    however with Q3DSSurfaceViewer, or in special situations, in order
+    to inject input events.
+*/
 void Q3DSPresentation::tabletEvent(QTabletEvent *e)
 {
     Q_D(Q3DSPresentation);
@@ -558,6 +712,45 @@ void Q3DSPresentationPrivate::registerInlineQmlSubPresentations(const QVector<Q3
 */
 
 /*!
+    \qmlproperty bool Presentation::profilingEnabled
+
+    When enabled, Qt 3D objects managed by the runtime get tracked,
+    and various statistics get collected internally. These are then
+    exposed in the views that can be toggled by profileUiVisible.
+
+    The default value is \c false.
+
+    \note Changing the value after the presentation has been loaded
+    has no effect for the already loaded presentation.
+
+    \note In the Qt 3D Studio Viewer application presentations are
+    opened with profiling enabled by default. Therefore, applications
+    wishing to have an experience comparable to the Viewer, when it
+    comes to the debug and profile views, should set this property to
+    \c true.
+*/
+
+/*!
+    \qmlproperty bool Presentation::profileUiVisible
+
+    When this property is \c{true}, the interactive statistics and profile
+    view is displayed in-scene, on top of the 3D content.
+
+    \note This feature can be disabled at build time, in which case this
+    property has no effect.
+
+    Default value is \c{false}.
+*/
+
+/*!
+    \qmlproperty real Presentation::profileUiScale
+
+    Controls the scale factor of the in-scene debug and profile views.
+
+    The default value is 1.0.
+*/
+
+/*!
     \qmlmethod void Presentation::goToSlide(string elementPath, string name)
 
     Requests a time context (a Scene or a Component node) to change to a specific slide
@@ -660,10 +853,11 @@ void Q3DSPresentationPrivate::registerInlineQmlSubPresentations(const QVector<Q3
 /*!
     \qmlmethod void Presentation::fireEvent(string elementPath, string eventName)
 
-    Dispatches an event with \a eventName on a specific element found in \a
-    elementPath. Appropriate actions created in Qt 3D Studio or callbacks
-    registered using the registerForEvent() method in attached \c{behavior
-    scripts} will be executed in response to the event.
+    Dispatches a Qt 3D Studio presentation event with \a eventName on
+    scene object specified by \a elementPath. These events provide a
+    way to communicate with the \c .qml based \c{behavior scripts}
+    attached to scene objects since they can register to be notified
+    via Behavior::registerForEvent().
 */
 
 /*!
@@ -686,6 +880,23 @@ void Q3DSPresentationPrivate::registerInlineQmlSubPresentations(const QVector<Q3
     approach has the advantage of being able to use QML property bindings for
     the value, instead of having to resort to JavaScript function calls for
     every value change.
+*/
+
+/*!
+    \qmlsignal Presentation::customSignalEmitted(string elementPath, string name)
+
+    This signal is emitted when an action with the \c{Emit Signal}
+    handler is executed in the Qt 3D Studio presentation. \a
+    elementPath specifies the scene object on which the (Qt 3D Studio)
+    "signal" \a name was triggered.
+
+    Connecting to this signal offers a way of reacting upon certain
+    events in the Qt 3D Studio presentation.
+
+    \image customsignal.png
+
+    In this example, pressing or tapping on the Cluster object will result in
+    emitting \c{customSignalEmitted("Cluster", "clusterPressed")}.
 */
 
 /*!

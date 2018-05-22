@@ -66,6 +66,32 @@ Q3DSViewerSettings::~Q3DSViewerSettings()
 {
 }
 
+/*!
+    \enum Q3DSViewerSettings::ShadeMode
+
+    This enumeration specifies the possible shading modes.
+
+    \value ShadeModeShaded The objects in the presentation are shaded normally.
+    \value ShadeModeShadedWireframe The objects in the presentation are shaded
+    with a super-imposed wireframe on top of the normal shading. Only objects that specify
+    a tesselation mode will display this wireframe.
+*/
+
+/*!
+    \enum Q3DSViewerSettings::ScaleMode
+
+    This enumeration specifies the possible scaling modes.
+
+    \value ScaleModeFit Scales the presentation to fit the viewer.
+    \value ScaleModeFill Scales the presentation to fill the viewer.
+    \value ScaleModeCenter Centers the presentation into the viewer without scaling it.
+*/
+
+/*!
+    \property Q3DSViewerSettings::matteColor
+
+    \note This property is currently ignored.
+ */
 QColor Q3DSViewerSettings::matteColor() const
 {
     Q_D(const Q3DSViewerSettings);
@@ -75,7 +101,7 @@ QColor Q3DSViewerSettings::matteColor() const
 /*!
     \property Q3DSViewerSettings::showRenderStats
 
-    If this property is set to \c{true}, the interactive statistics and profile
+    When this property is \c{true}, the interactive statistics and profile
     view is displayed in-scene, on top of the 3D content.
 
     \note This feature can be disabled at build time, in which case this
@@ -89,12 +115,22 @@ bool Q3DSViewerSettings::isShowingRenderStats() const
     return d->showRenderStats;
 }
 
+/*!
+    \property Q3DSViewerSettings::shadeMode
+
+    \note This property is currently ignored.
+ */
 Q3DSViewerSettings::ShadeMode Q3DSViewerSettings::shadeMode() const
 {
     Q_D(const Q3DSViewerSettings);
     return d->shadeMode;
 }
 
+/*!
+    \property Q3DSViewerSettings::scaleMode
+
+    \note This property is currently ignored.
+ */
 Q3DSViewerSettings::ScaleMode Q3DSViewerSettings::scaleMode() const
 {
     Q_D(const Q3DSViewerSettings);
@@ -140,6 +176,12 @@ void Q3DSViewerSettings::setScaleMode(Q3DSViewerSettings::ScaleMode mode)
     }
 }
 
+/*!
+    Persistently saves the viewer \l{QSettings}{settings} using \a group, \a organization and
+    \a application.
+
+    \note This function is not currently implemented.
+ */
 void Q3DSViewerSettings::save(const QString &group,
                               const QString &organization,
                               const QString &application)
@@ -150,6 +192,12 @@ void Q3DSViewerSettings::save(const QString &group,
     qWarning() << Q_FUNC_INFO << "not implemented";
 }
 
+/*!
+    Loads previously saved viewer \l{QSettings}{settings} using \a group, \a organization and
+    \a application.
+
+    \note This function is not currently implemented.
+ */
 void Q3DSViewerSettings::load(const QString &group,
                               const QString &organization,
                               const QString &application)

@@ -176,6 +176,11 @@ bool Q3DSSurfaceViewerPrivate::doCreate(QSurface *s, QOpenGLContext *c, uint id,
     return createEngine();
 }
 
+/*!
+    Releases the presentation and all related resources.
+
+    The Q3DSSurfaceViewer instance can be reused by calling create() again.
+ */
 void Q3DSSurfaceViewer::destroy()
 {
     Q_D(Q3DSSurfaceViewer);
@@ -186,6 +191,19 @@ void Q3DSSurfaceViewer::destroy()
     d->context = nullptr;
     d->fbo = 0;
 }
+
+/*!
+    \fn Q3DSSurfaceViewer::frameUpdate()
+
+    This signal is emitted each time a frame has been rendered.
+*/
+
+/*!
+    \fn Q3DSSurfaceViewer::presentationLoaded()
+
+    This signal is emitted when the viewer has been initialized and the
+    presentation is ready to be shown.
+*/
 
 /*!
     Returns the presentation object used by the Q3DSSurfaceViewer.
@@ -205,6 +223,15 @@ Q3DSViewerSettings *Q3DSSurfaceViewer::settings() const
     return d->viewerSettings;
 }
 
+/*!
+    \property Q3DSSurfaceViewer::error
+
+    Contains the text for the error message that was generated during the
+    loading of the presentation. When no error occurred or there is no
+    presentation loaded, the value is an empty string.
+
+    This property is read-only.
+ */
 QString Q3DSSurfaceViewer::error() const
 {
     Q_D(const Q3DSSurfaceViewer);
@@ -225,6 +252,14 @@ bool Q3DSSurfaceViewer::isRunning() const
     return d->engine && d->sourceLoaded;
 }
 
+/*!
+    \property Q3DSSurfaceViewer::size
+
+    Holds the desired size of the presentation. Relevant only when
+    autoSize is set to \c false.
+
+    \sa autoSize
+*/
 QSize Q3DSSurfaceViewer::size() const
 {
     Q_D(const Q3DSSurfaceViewer);

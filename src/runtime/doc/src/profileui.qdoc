@@ -45,8 +45,8 @@
 
     In applications these views have no built-in shortcuts. It is up to the
     application to toggle visibility. From C++ this is done via \l
-    Q3DSPresentation::profileUiVisible() or \l
-    Q3DSViewerSettings::showRenderStats(). From QML the corresponding properties
+    Q3DSPresentation::profileUiVisible or \l
+    Q3DSViewerSettings::showRenderStats. From QML the corresponding properties
     are \l Presentation::profileUiVisible and \l ViewerSettings::showRenderStats.
 
     In order to enable all features in the debug and profile views, presentations
