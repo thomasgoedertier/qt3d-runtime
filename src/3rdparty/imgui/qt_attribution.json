@@ -2,7 +2,7 @@
     {
         "Id": "imgui",
         "Name": "Dear ImGui",
-        "QDocModule": "Qt3DStudioRuntime2",
+        "QDocModule": "qt3dstudioruntime2",
         "Description": "Dear ImGui",
         "QtUsage": "Bloat-free GUI library for in-scene visualization of profiling and debugging data",
 
