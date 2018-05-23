@@ -55,8 +55,8 @@ float calculateRoughness( in vec3 N, in float roughnessU, in float roughnessV, i
     float cosPhi = dot( po, minorAxis );
 
     // determine the polar coordinate of viewDir, take that radius as the roughness
-    float excentricitySquare = 1.0f - square( b / a );
-    roughness = b / sqrt( 1.0f - excentricitySquare * square( cosPhi ) );
+    float excentricitySquare = 1.0 - square( b / a );
+    roughness = b / sqrt( 1.0 - excentricitySquare * square( cosPhi ) );
   }
   return( roughness );
 }

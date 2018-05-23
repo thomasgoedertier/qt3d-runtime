@@ -168,7 +168,7 @@ vec4 sampleAreaDiffuseTransmissive( in mat3 tanFrame, in vec3 pos, in int lightI
               arealights[lightIdx].up, arealights[lightIdx].right, pos, finalDir );
     intensity *= clamp( dot(finalDir, -tanFrame[2]), 0.0, 1.0 );
 
-    float l = 0.2126f * transmissiveColor.r + 0.7152f * transmissiveColor.g + 0.0722f * transmissiveColor.b;
+    float l = 0.2126 * transmissiveColor.r + 0.7152 * transmissiveColor.g + 0.0722 * transmissiveColor.b;
 
     float I = max( 0.0, ((dot(finalDir, -tanFrame[2]) + lightWrap)/ (1.0 + lightWrap)) );
     float translucent_thickness =  l * l;

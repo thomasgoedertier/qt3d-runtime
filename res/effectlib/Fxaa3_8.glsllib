@@ -1370,7 +1370,7 @@ float4 FxaaPixelShader(
     float2 posP = posN;
     float2 offNP = horzSpan ?
         FxaaFloat2(rcpFrame.x, 0.0) :
-        FxaaFloat2(0.0f, rcpFrame.y);
+        FxaaFloat2(0.0, rcpFrame.y);
     float lumaEndN;
     float lumaEndP;
     bool doneN = false;

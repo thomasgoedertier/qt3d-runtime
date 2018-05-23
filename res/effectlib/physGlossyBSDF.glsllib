@@ -66,7 +66,7 @@ vec4 kggxGlossyBSDF( in mat3 tanFrame, in vec3 L, in vec3 V, in vec3 lightSpecul
     float NdotL = dot(tanFrame[2], L);
     float HdotL = clamp(dot(H, L), 0.0, 1.0);
 
- //   if (0.0f < NdotL)
+ //   if (0.0 < NdotL)
  //   {
         vec3 Haf = L + V;
 
@@ -123,7 +123,7 @@ vec4 wardGlossyBSDF( in mat3 tanFrame, in vec3 L, in vec3 V, in vec3 lightSpecul
     float NdotL = dot(tanFrame[2], L);
     float HdotL = clamp(dot(H, L), 0.0, 1.0);
 
-//    if (0.0f < NdotL)
+//    if (0.0 < NdotL)
 //    {
         vec3 Haf = L + V;
 

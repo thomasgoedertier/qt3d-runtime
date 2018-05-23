@@ -59,7 +59,7 @@ void sampleLight(in LightSource light,
                  out vec3 opSpecular)
 {
   float att = 1.0;
-  if (light.position.w == 0.0f)  // directional light
+  if (light.position.w == 0.0)  // directional light
   {
     wi = normalize(light.position.xyz);
 #if QT3DS_ENABLE_SSM
@@ -67,7 +67,7 @@ void sampleLight(in LightSource light,
       att *= sampleOrthographic( shadowMaps[light.shadowIdx], light.shadowControls, light.shadowView, pos, vec2(1.0, light.shadowControls.z) );
 #endif
   }
-  else if (light.width > 0.01f && light.height > 0.01f) // area light
+  else if (light.width > 0.01 && light.height > 0.01) // area light
   {
       // This approach is based on the 1994 Tech Report by James Arvo --
       // The Irradiance Jacobian for Partially Occluded Polyhedral Sources
@@ -106,12 +106,12 @@ void sampleLight(in LightSource light,
     wi = light.position.xyz - pos;
     float dist = length(wi);
     wi = wi / dist;  // == normalize(wi);
-    att = 1.0f / (light.constantAttenuation + (light.linearAttenuation + light.quadraticAttenuation * dist) * dist);
+    att = 1.0 / (light.constantAttenuation + (light.linearAttenuation + light.quadraticAttenuation * dist) * dist);
   /*
-    if (light.spotCutoff < 180.0f) // spot light
+    if (light.spotCutoff < 180.0) // spot light
     {
-      float spot = max(0.0f, dot(wi, -light.direction.xyz));
-      att *= (spot >= cos(light.spotCutoff * PI / 180.0f)) ? pow(spot, light.spotExponent) : 0.0f;
+      float spot = max(0.0, dot(wi, -light.direction.xyz));
+      att *= (spot >= cos(light.spotCutoff * PI / 180.0)) ? pow(spot, light.spotExponent) : 0.0;
     }
   */
 #if QT3DS_ENABLE_SSM

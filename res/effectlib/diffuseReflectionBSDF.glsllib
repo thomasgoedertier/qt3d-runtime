@@ -35,14 +35,14 @@ vec4 lambertReflectionBSDF( in vec3 N, in vec3 L, in vec3 lightDiffuse )
 {
   // If we're not going to use the roughness on the diffuse, there's no point
   // in wasting the cycles for the branching.
-  float cosThetaI = max( 0.0f, dot( N, L ) );
-  return vec4( cosThetaI * lightDiffuse, 1.0f );
+  float cosThetaI = max( 0.0, dot( N, L ) );
+  return vec4( cosThetaI * lightDiffuse, 1.0 );
 }
 
 
 vec4 diffuseReflectionBSDFEnvironment( in vec3 N, in float roughness )
 {
-  return( vec4( 0.0f, 0.0f, 0.0f, 1.0f ) );
+  return( vec4( 0.0, 0.0, 0.0, 1.0 ) );
 }
 
 // RNM radiosity normal maps

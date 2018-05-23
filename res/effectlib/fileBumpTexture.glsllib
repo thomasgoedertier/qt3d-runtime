@@ -83,7 +83,7 @@ vec3 fileBumpTexture( in sampler2D sampler, in float factor, in int bumpSource
     // currently no lod supported    we use 3.3 GL
     //float lod = textureQueryLod( sampler, uvw.position.xy ).x;
     vec2 size = mix( vec2( textureSize( sampler, int( floor( lod ) ) ) ), vec2( textureSize( sampler, int( ceil( lod ) ) ) ), fract( lod ) );
-    vec2 unitStep = 1.0f / size;
+    vec2 unitStep = 1.0 / size;
 
     // Add an inveres scale to keep the original gradient values
     // this makes the bumps a lot smoother.

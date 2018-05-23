@@ -30,7 +30,7 @@
 
 vec4 miNoise( in vec3 xyz )
 {
-  const float div = 1.0f / 256.0f;
+  const float div = 1.0 / 256.0;
 
   ivec3 itmp = ivec3( xyz );
   ivec3 ixyz[3] = ivec3[]( itmp & 0xFF, itmp+1 & 0xFF, itmp+2 & 0xFF );
@@ -38,19 +38,19 @@ vec4 miNoise( in vec3 xyz )
 
   vec3 dux, ux;
   dux.z = fxyz.x * div;
-  dux.y = div - 2.0f * dux.z;
+  dux.y = div - 2.0 * dux.z;
   dux.x = dux.z - div;
-  ux.z = 0.5f * fxyz.x * dux.z;
-  ux.y = dux.z + 0.5f * ( div - fxyz.x * dux.z );
-  ux.x = ux.z - dux.z + 0.5f * div;
+  ux.z = 0.5 * fxyz.x * dux.z;
+  ux.y = dux.z + 0.5 * ( div - fxyz.x * dux.z );
+  ux.x = ux.z - dux.z + 0.5 * div;
 
   vec3 duy, uy;
   duy.z = fxyz.y;
-  duy.y = 1.0f - 2.0f * duy.z;
-  duy.x = duy.z - 1.0f;
-  uy.z = 0.5f * square( duy.z );
-  uy.y = duy.z + 0.5f - square( duy.z );
-  uy.x = uy.z - duy.z + 0.5f;
+  duy.y = 1.0 - 2.0 * duy.z;
+  duy.x = duy.z - 1.0;
+  uy.z = 0.5 * square( duy.z );
+  uy.y = duy.z + 0.5 - square( duy.z );
+  uy.x = uy.z - duy.z + 0.5;
 
   float duz[3] = float[]( fxyz.z - 1.0, 1.0 - 2.0 * fxyz.z, fxyz.z );
   float uz[3]  = float[]( 0.5 * square( fxyz.z ) - fxyz.z + 0.5, fxyz.z + 0.5 - square( fxyz.z ), 0.5 * square( fxyz.z ) );
@@ -83,7 +83,7 @@ vec4 miNoise( in vec3 xyz )
   int ixyzzz = ixyz[0].z ^ ixyz[1].z;
 
 
-  vec4 ret = vec4( 0.0f, 0.0f, 0.0f, 0.0f );
+  vec4 ret = vec4( 0.0, 0.0, 0.0, 0.0 );
 
   for ( int i=0 ; i<3 ; i++ )
   {

@@ -39,7 +39,7 @@ float hypot( in float x, in float y )
   float t = min( x, y );
   x = max( x, y );
   t = t/x;
-  return( x * sqrt( 1.0f + ( t * t ) ) );
+  return( x * sqrt( 1.0 + ( t * t ) ) );
 }
 
 float gradientGetPosition( in int gradientMode, in vec2 xy )
@@ -55,22 +55,22 @@ float gradientGetPosition( in int gradientMode, in vec2 xy )
       return( tex.x * tex.x );
     case gradient_box :
       // gradient is based on the distance from the center
-      return( max( abs( tex.x - 0.5f ), abs( tex.y - 0.5f ) ) );
+      return( max( abs( tex.x - 0.5 ), abs( tex.y - 0.5 ) ) );
     case gradient_diagonal :
       // gradient is based on the distance from the diagonal
-      return( sqrt(2.0f) * abs( tex.x - tex.y ) );
+      return( sqrt(2.0) * abs( tex.x - tex.y ) );
     case gradient_90_degree :
       // Need to check
-      return( 0.0f );
+      return( 0.0 );
     case gradient_symmetric_90_degree :
        // Need to check
-      return( 0.0f );
+      return( 0.0 );
     case gradient_radial :
       // Distance from center
-      return( 2.0f * hypot( tex.x - 0.5f, tex.y - 0.5f ) );
+      return( 2.0 * hypot( tex.x - 0.5, tex.y - 0.5 ) );
     case gradient_360_degree :
       // fall through need to check
     default :
-      return( 0.0f );
+      return( 0.0 );
   }
 }
