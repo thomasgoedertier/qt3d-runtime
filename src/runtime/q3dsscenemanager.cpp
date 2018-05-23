@@ -866,7 +866,7 @@ static Qt3DRender::QAbstractTexture *newColorBuffer(const QSize &layerPixelSize,
     return colorTex;
 }
 
-static Qt3DRender::QAbstractTexture *newDepthStencilBuffer(const QSize &layerPixelSize, int msaaSampleCount, Qt3DRender::QAbstractTexture::TextureFormat format = Qt3DRender::QAbstractTexture::D24S8)
+static Qt3DRender::QAbstractTexture *newDepthStencilBuffer(const QSize &layerPixelSize, int msaaSampleCount, Qt3DRender::QAbstractTexture::TextureFormat format)
 {
     // GLES <= 3.1 does not have glFramebufferTexture and support for combined
     // depth-stencil textures. Here we rely on the fact the Qt3D will
@@ -876,9 +876,10 @@ static Qt3DRender::QAbstractTexture *newDepthStencilBuffer(const QSize &layerPix
     //
     // The internal difference (renderbuffer vs. texture) won't matter as long
     // as a custom material or other thing does not need the depth texture.
-    // When that happens, we will be in trouble when running on GLES < 3.2 ...
-    // An option then would be to get rid of stencil since plain depth textures
-    // work in GLES >= 3.0.
+    // When that happens, we will be in trouble when running on GLES < 3.2.
+    //
+    // Therefore, on GLES 2.0, 3.0 and 3.1 we expect to get called with D16 (or
+    // D24 or D32) and no stencil. (whereas GLES 3.2 or desktop GL will use D24S8)
 
     Qt3DRender::QAbstractTexture *dsTexOrRb;
     if (msaaSampleCount > 1) {
@@ -912,28 +913,25 @@ Qt3DRender::QRenderTarget *Q3DSSceneManager::newLayerRenderTarget(const QSize &l
     rt->addOutput(color);
 
     Qt3DRender::QRenderTargetOutput *ds = new Qt3DRender::QRenderTargetOutput;
-    if (m_gfxLimits.packedDepthStencilBufferSupported) {
-        ds->setAttachmentPoint(Qt3DRender::QRenderTargetOutput::DepthStencil);
-        if (!existingDS) {
-            *dsTexOrRb = newDepthStencilBuffer(layerPixelSize, msaaSampleCount);
-            m_profiler->trackNewObject(*dsTexOrRb, Q3DSProfiler::Texture2DObject,
-                                       "Depth-stencil buffer for layer %s", layer3DS->id().constData());
-            (*dsTexOrRb)->setParent(textureParentNode);
-        } else {
-            *dsTexOrRb = existingDS;
-        }
+    bool noStencil = !m_gfxLimits.packedDepthStencilBufferSupported; // GLES 2.0
+    // see newDepthStencilBuffer for a detailed description of this mess
+    noStencil |= m_gfxLimits.format.renderableType() == QSurfaceFormat::OpenGLES
+            && Q3DS::graphicsLimits().format.version() <= qMakePair(3, 1);
+    Qt3DRender::QAbstractTexture::TextureFormat textureFormat =
+            noStencil ? Qt3DRender::QAbstractTexture::D16 : Qt3DRender::QAbstractTexture::D24S8;
+    ds->setAttachmentPoint(noStencil ? Qt3DRender::QRenderTargetOutput::Depth
+                                     : Qt3DRender::QRenderTargetOutput::DepthStencil);
+    if (!existingDS) {
+        if (noStencil)
+            qCDebug(lcScene, "Render target depth-stencil attachment uses D16 (no stencil)");
+        else
+            qCDebug(lcScene, "Render target depth-stencil attachment uses D24S8");
+        *dsTexOrRb = newDepthStencilBuffer(layerPixelSize, msaaSampleCount, textureFormat);
+        m_profiler->trackNewObject(*dsTexOrRb, Q3DSProfiler::Texture2DObject,
+                                   "Depth-stencil buffer for layer %s", layer3DS->id().constData());
+        (*dsTexOrRb)->setParent(textureParentNode);
     } else {
-        // This is for ES2 case without support for packed depth-stencil buffers
-        // Depth
-        ds->setAttachmentPoint(Qt3DRender::QRenderTargetOutput::Depth);
-        if (!existingDS) {
-            *dsTexOrRb = newDepthStencilBuffer(layerPixelSize, msaaSampleCount, Qt3DRender::QAbstractTexture::D16);
-            m_profiler->trackNewObject(*dsTexOrRb, Q3DSProfiler::Texture2DObject,
-                                       "Depth buffer for layer %s", layer3DS->id().constData());
-            (*dsTexOrRb)->setParent(textureParentNode);
-        } else {
-            *dsTexOrRb = existingDS;
-        }
+        *dsTexOrRb = existingDS;
     }
 
     ds->setTexture(*dsTexOrRb);
@@ -2469,7 +2467,7 @@ void Q3DSSceneManager::updateShadowMapStatus(Q3DSLayerNode *layer3DS, bool *smDi
                 auto createDepthStencil = [size, this]() {
                     Qt3DRender::QTexture2D *dsTexOrRb = new Qt3DRender::QTexture2D;
                     m_profiler->trackNewObject(dsTexOrRb, Q3DSProfiler::Texture2DObject, "Shadow map depth");
-                    dsTexOrRb->setFormat(Qt3DRender::QAbstractTexture::D24S8);
+                    dsTexOrRb->setFormat(Qt3DRender::QAbstractTexture::D16);
                     dsTexOrRb->setWidth(size);
                     dsTexOrRb->setHeight(size);
                     dsTexOrRb->setMinificationFilter(Qt3DRender::QAbstractTexture::Linear);
@@ -2570,7 +2568,7 @@ void Q3DSSceneManager::updateShadowMapStatus(Q3DSLayerNode *layer3DS, bool *smDi
                         shadowRt->addOutput(shadowRtOutput);
 
                         shadowRtOutput = new Qt3DRender::QRenderTargetOutput;
-                        shadowRtOutput->setAttachmentPoint(Qt3DRender::QRenderTargetOutput::DepthStencil);
+                        shadowRtOutput->setAttachmentPoint(Qt3DRender::QRenderTargetOutput::Depth);
                         shadowRtOutput->setTexture(d->shadowDS);
                         shadowRt->addOutput(shadowRtOutput);
 
@@ -2631,7 +2629,7 @@ void Q3DSSceneManager::updateShadowMapStatus(Q3DSLayerNode *layer3DS, bool *smDi
                     shadowRt->addOutput(shadowRtOutput);
 
                     shadowRtOutput = new Qt3DRender::QRenderTargetOutput;
-                    shadowRtOutput->setAttachmentPoint(Qt3DRender::QRenderTargetOutput::DepthStencil);
+                    shadowRtOutput->setAttachmentPoint(Qt3DRender::QRenderTargetOutput::Depth);
                     shadowRtOutput->setTexture(d->shadowDS);
                     shadowRt->addOutput(shadowRtOutput);
 
