@@ -46,6 +46,7 @@ class Q3DSViewerSettingsPrivate;
 class Q3DSV_EXPORT Q3DSViewerSettings : public QObject
 {
     Q_OBJECT
+    Q_PROPERTY(bool matteEnabled READ matteEnabled WRITE setMatteEnabled NOTIFY matteEnabledChanged)
     Q_PROPERTY(QColor matteColor READ matteColor WRITE setMatteColor NOTIFY matteColorChanged)
     Q_PROPERTY(bool showRenderStats READ isShowingRenderStats WRITE setShowRenderStats NOTIFY showRenderStatsChanged)
     Q_PROPERTY(ShadeMode shadeMode READ shadeMode WRITE setShadeMode NOTIFY shadeModeChanged)
@@ -68,6 +69,7 @@ public:
     explicit Q3DSViewerSettings(QObject *parent = nullptr);
     ~Q3DSViewerSettings();
 
+    bool matteEnabled() const;
     QColor matteColor() const;
     bool isShowingRenderStats() const;
     ShadeMode shadeMode() const;
@@ -81,12 +83,14 @@ public:
                           const QString &application = QString());
 
 public Q_SLOTS:
+    void setMatteEnabled(bool isEnabled);
     void setMatteColor(const QColor &color);
     void setShowRenderStats(bool show);
     void setShadeMode(ShadeMode mode);
     void setScaleMode(ScaleMode mode);
 
 Q_SIGNALS:
+    void matteEnabledChanged();
     void matteColorChanged();
     void showRenderStatsChanged();
     void shadeModeChanged();

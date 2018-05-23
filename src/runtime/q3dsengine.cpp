@@ -34,12 +34,14 @@
 #include "q3dslogging_p.h"
 #include "q3dsinputmanager_p.h"
 #include "q3dsinlineqmlsubpresentation_p.h"
+#include "q3dsviewersettings.h"
 
 #include <QLoggingCategory>
 #include <QKeyEvent>
 #include <QMouseEvent>
 #include <QtQml/qqmlengine.h>
 #include <QtQml/qqmlcontext.h>
+#include <QtMath>
 
 #include <QOpenGLContext>
 #include <QOpenGLFunctions>
@@ -158,6 +160,7 @@ Q3DSEngine::Q3DSEngine()
         const bool logValueChanges = qEnvironmentVariableIntValue("Q3DS_DEBUG") >= 1;
         const_cast<QLoggingCategory &>(lcUipProp()).setEnabled(QtDebugMsg, logValueChanges);
     }
+    setViewerSettings(new Q3DSViewerSettings(this));
 }
 
 Q3DSEngine::~Q3DSEngine()
@@ -752,6 +755,7 @@ bool Q3DSEngine::buildUipPresentationScene(UipPresentation *pres)
     params.outputDpr = effectiveDpr;
     params.surface = m_surface;
     params.engine = this;
+    params.viewport = calculateViewport(effectiveSize, m_implicitSize);
 
     QScopedPointer<Q3DSSceneManager> sceneManager(new Q3DSSceneManager);
     pres->q3dscene = sceneManager->buildScene(pres->presentation, params);
@@ -775,7 +779,11 @@ bool Q3DSEngine::buildUipPresentationScene(UipPresentation *pres)
 
     // Generate a resize to make sure everything size-related gets updated.
     // (avoids issues with camera upon loading new scenes)
-    pres->sceneManager->updateSizes(effectiveSize, effectiveDpr);
+    pres->sceneManager->updateSizes(effectiveSize, effectiveDpr, params.viewport);
+
+    // Set matte preferences
+    pres->sceneManager->setMatteEnabled(m_viewerSettings->matteEnabled());
+    pres->sceneManager->setMatteColor(m_viewerSettings->matteColor());
 
     // Expose update signal
     connect(pres->q3dscene.frameAction, &Qt3DLogic::QFrameAction::triggered, this, [this](float dt) {
@@ -1109,7 +1117,6 @@ void Q3DSEngine::destroy()
     // wish I knew why this is needed. Qt 3D tends not to shut down its threads correctly on exit otherwise.
     if (m_aspectEngine)
         Qt3DCore::QAspectEnginePrivate::get(m_aspectEngine.data())->exitSimulationLoop();
-
     m_aspectEngine.reset();
 }
 
@@ -1188,6 +1195,36 @@ Qt3DCore::QEntity *Q3DSEngine::rootEntity() const
     return m_uipPresentations.isEmpty() ? nullptr : m_uipPresentations[0].q3dscene.rootEntity;
 }
 
+Q3DSViewerSettings *Q3DSEngine::viewerSettings() const
+{
+    return m_viewerSettings;
+}
+
+void Q3DSEngine::setViewerSettings(Q3DSViewerSettings *viewerSettings)
+{
+    if (m_viewerSettings == viewerSettings)
+        return;
+
+    m_viewerSettings = viewerSettings;
+    connect(m_viewerSettings, &Q3DSViewerSettings::showRenderStatsChanged, [this] {
+        setProfileUiVisible(m_viewerSettings->isShowingRenderStats());
+    });
+    connect(m_viewerSettings, &Q3DSViewerSettings::scaleModeChanged, [this] {
+        // Force a resize
+        resize(m_size, m_dpr);
+    });
+    connect(m_viewerSettings, &Q3DSViewerSettings::matteEnabledChanged, [this] {
+        if (!m_uipPresentations.isEmpty()) {
+            m_uipPresentations[0].sceneManager->setMatteEnabled(m_viewerSettings->matteEnabled());
+        }
+    });
+    connect(m_viewerSettings, &Q3DSViewerSettings::matteColorChanged, [this] {
+        if (!m_uipPresentations.isEmpty()) {
+            m_uipPresentations[0].sceneManager->setMatteColor(m_viewerSettings->matteColor());
+        }
+    });
+}
+
 void Q3DSEngine::setOnDemandRendering(bool enabled)
 {
     if (m_onDemandRendering == enabled)
@@ -1228,8 +1265,13 @@ void Q3DSEngine::resize(const QSize &size, qreal dpr, bool forceSynchronous)
 {
     m_size = size;
     m_dpr = dpr;
-    if (!m_uipPresentations.isEmpty())
-        m_uipPresentations[0].sceneManager->updateSizes(m_size, m_dpr, forceSynchronous);
+
+    if (!m_uipPresentations.isEmpty()) {
+        const QSize presentationSize(m_uipPresentations[0].presentation->presentationWidth(),
+                                     m_uipPresentations[0].presentation->presentationHeight());
+        const QRect viewport = calculateViewport(m_size, presentationSize);
+        m_uipPresentations[0].sceneManager->updateSizes(m_size, m_dpr, viewport, forceSynchronous);
+    }
 }
 
 void Q3DSEngine::setAutoStart(bool autoStart)
@@ -1642,6 +1684,49 @@ void Q3DSEngine::behaviorFrameUpdate(float dt)
             emit h.object->update();
         }
     }
+}
+
+QRect Q3DSEngine::calculateViewport(const QSize &surfaceSize, const QSize &presentationSize) const
+{
+    // The top level persentations viewport depends on the scale mode of
+    // the Q3DSViewerSettings. The method returns the viewport rect based
+    // on the current surface size and scale mode.
+
+    // We need to have the presentation size
+    if (presentationSize.isNull())
+        return QRect();
+
+    QRect viewportRect;
+    if (m_viewerSettings->scaleMode() == Q3DSViewerSettings::ScaleModeFill) {
+        // the presentation is always rendered to fill the viewport
+        viewportRect = QRect(0, 0, surfaceSize.width(), surfaceSize.height());
+    } else if (m_viewerSettings->scaleMode() == Q3DSViewerSettings::ScaleModeCenter) {
+        // the presentation is rendered at the size specified in Studio. Additional content is cropped,
+        // additional space is letterboxed.
+        const qreal presHorizontalCenter = presentationSize.width() * 0.5;
+        const qreal presVerticalCenter = presentationSize.height() * 0.5;
+        const qreal surfaceHorizontalCenter = surfaceSize.width() * 0.5;
+        const qreal surfaceVerticalCenter = surfaceSize.height() * 0.5;
+        const qreal x = surfaceHorizontalCenter - presHorizontalCenter;
+        const qreal y = surfaceVerticalCenter - presVerticalCenter;
+        viewportRect = QRect(qFloor(x), qFloor(y), presentationSize.width(), presentationSize.height());
+    } else if (m_viewerSettings->scaleMode() == Q3DSViewerSettings::ScaleModeFit) {
+        // the aspect ratio of the presentation is preserved, letterboxing as needed.
+        const qreal presentationAspectRatio = qreal(presentationSize.width()) / qreal(presentationSize.height());
+        const qreal surfaceAspectRatio = qreal(surfaceSize.width()) / qreal(surfaceSize.height());
+        int width = surfaceSize.width();
+        int height = surfaceSize.height();
+        if (presentationAspectRatio > surfaceAspectRatio)
+            height = int(surfaceSize.width() / presentationAspectRatio);
+        else
+            width = int(surfaceSize.height() * presentationAspectRatio);
+        viewportRect = QRect((surfaceSize.width() - width) / 2,
+                             (surfaceSize.height() - height) / 2,
+                             width,
+                             height);
+    }
+
+    return viewportRect;
 }
 
 // Object reference format used by behaviors and some public API:

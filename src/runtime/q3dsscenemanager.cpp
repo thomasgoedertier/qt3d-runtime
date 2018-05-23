@@ -74,6 +74,7 @@
 #include <Qt3DRender/QGraphicsApiFilter>
 #include <Qt3DRender/QRenderPass>
 #include <Qt3DRender/QRenderPassFilter>
+#include <Qt3DRender/QRenderStateSet>
 #include <Qt3DRender/QFilterKey>
 #include <Qt3DRender/QNoDraw>
 #include <Qt3DRender/QFrontFace>
@@ -90,6 +91,7 @@
 #include <Qt3DRender/QStencilMask>
 #include <Qt3DRender/QStencilOperation>
 #include <Qt3DRender/QStencilOperationArguments>
+#include <Qt3DRender/QScissorTest>
 #include <Qt3DRender/QRayCaster>
 
 #include <Qt3DAnimation/QClipAnimator>
@@ -466,20 +468,44 @@ Q3DSSceneManager::~Q3DSSceneManager()
     delete m_inputManager;
 }
 
-void Q3DSSceneManager::updateSizes(const QSize &size, qreal dpr, bool forceSynchronous)
+void Q3DSSceneManager::updateSizes(const QSize &size, qreal dpr, const QRect &viewport, bool forceSynchronous)
 {
     if (!m_scene)
         return;
 
-    qCDebug(lcScene) << "Resize to" << size << "device pixel ratio" << dpr;
+    // Setup the matte and scene viewport
+    QRectF normalizedViewport;
+    if (viewport.isNull())
+        normalizedViewport = QRectF(0, 0, 1, 1);
+    else
+        normalizedViewport = QRectF(viewport.x() / qreal(size.width()),
+                              viewport.y() / qreal(size.height()),
+                              viewport.width() / qreal(size.width()),
+                              viewport.height() / qreal(size.height()));
 
-    m_outputPixelSize = size * dpr;
+    if (m_viewportData.viewport)
+       m_viewportData.viewport->setNormalizedRect(normalizedViewport);
+
+    m_viewportData.viewportRect = viewport;
+    m_viewportData.viewportDpr = dpr;
+    if (m_viewportData.matteScissorTest) {
+        m_viewportData.matteScissorTest->setBottom(qFloor(-(viewport.height() + viewport.y() - size.height()) * dpr));
+        m_viewportData.matteScissorTest->setLeft(qFloor(viewport.x() * dpr));
+        m_viewportData.matteScissorTest->setWidth(qFloor(viewport.width() * dpr));
+        m_viewportData.matteScissorTest->setHeight(qFloor(viewport.height() * dpr));
+    }
+
+    qCDebug(lcScene) << "Resize to" << size << "with viewport" << viewport << "device pixel ratio" << dpr;
+
+    m_outputPixelSize = viewport.size() * dpr;
+
+    // m_guiData uses the full surface size (not viewport)
     m_guiData.outputSize = size;
     m_guiData.outputDpr = dpr;
 
     if (m_guiData.camera) {
-        m_guiData.camera->setRight(m_outputPixelSize.width());
-        m_guiData.camera->setBottom(m_outputPixelSize.height());
+        m_guiData.camera->setRight(size.width() * float(dpr));
+        m_guiData.camera->setBottom(size.height() * float(dpr));
     }
 
     for (auto callback : m_compositorOutputSizeChangeCallbacks)
@@ -682,8 +708,10 @@ Q3DSSceneManager::Scene Q3DSSceneManager::buildScene(Q3DSUipPresentation *presen
         subPresFrameGraphRoot = nullptr;
         Q_ASSERT(frameGraphRoot);
     }
-
-    m_outputPixelSize = params.outputSize * params.outputDpr;
+    if (params.viewport.isNull())
+        m_outputPixelSize = params.outputSize * params.outputDpr;
+    else
+        m_outputPixelSize = params.viewport.size() * params.outputDpr;
     m_guiData.outputSize = params.outputSize;
     m_guiData.outputDpr = params.outputDpr;
 
@@ -3269,8 +3297,18 @@ void Q3DSSceneManager::buildCompositor(Qt3DRender::QFrameGraphNode *parent, Qt3D
     //                             ...
     // With standard blend modes only this is simplified to a single LayerFilter and QLayer tag.
 
-    Qt3DRender::QViewport *viewport = new Qt3DRender::QViewport(parent);
-    viewport->setNormalizedRect(QRectF(0, 0, 1, 1));
+    // If Matte is enabled in the ViewerSettings, then we need clear with the matte color first
+    // then later restrict the scene clear color to the vieport rect with a scissor test
+    m_viewportData.drawMatteNode = new Qt3DRender::QFrameGraphNode(parent);
+    new Qt3DRender::QNoDraw(m_viewportData.drawMatteNode);
+    m_viewportData.dummyMatteRoot = new Qt3DCore::QNode(m_rootEntity);
+    m_viewportData.matteClearBuffers = new Qt3DRender::QClearBuffers(m_viewportData.dummyMatteRoot);
+    m_viewportData.matteClearBuffers->setBuffers(Qt3DRender::QClearBuffers::ColorDepthStencilBuffer);
+    m_viewportData.matteClearBuffers->setClearColor(Qt::black);
+    new Qt3DRender::QNoDraw(m_viewportData.matteClearBuffers);
+
+    m_viewportData.viewport = new Qt3DRender::QViewport(parent);
+    m_viewportData.viewport->setNormalizedRect(QRectF(0, 0, 1, 1));
 
     Qt3DRender::QCamera *camera = new Qt3DRender::QCamera;
     camera->setObjectName(QLatin1String("compositor camera"));
@@ -3282,10 +3320,15 @@ void Q3DSSceneManager::buildCompositor(Qt3DRender::QFrameGraphNode *parent, Qt3D
     camera->setPosition(QVector3D(0, 0, 1));
     camera->setViewCenter(QVector3D(0, 0, 0));
 
-    Qt3DRender::QCameraSelector *cameraSelector = new Qt3DRender::QCameraSelector(viewport);
+    Qt3DRender::QCameraSelector *cameraSelector = new Qt3DRender::QCameraSelector(m_viewportData.viewport);
     cameraSelector->setCamera(camera);
 
-    Qt3DRender::QClearBuffers *clearBuffers = new Qt3DRender::QClearBuffers(cameraSelector);
+    m_viewportData.matteRenderState = new Qt3DRender::QRenderStateSet(cameraSelector);
+    m_viewportData.matteRenderState->setEnabled(false);
+    m_viewportData.matteScissorTest = new Qt3DRender::QScissorTest(m_viewportData.matteRenderState);
+    m_viewportData.matteRenderState->addRenderState(m_viewportData.matteScissorTest);
+
+    Qt3DRender::QClearBuffers *clearBuffers = new Qt3DRender::QClearBuffers(m_viewportData.matteRenderState);
     clearBuffers->setBuffers(Qt3DRender::QClearBuffers::ColorDepthStencilBuffer);
     QColor clearColor = Qt::transparent;
     if (m_scene->useClearColor()) {
@@ -7170,6 +7213,27 @@ void Q3DSSceneManager::configureProfileUi(float scale)
 #else
     Q_UNUSED(scale);
 #endif
+}
+
+void Q3DSSceneManager::setMatteEnabled(bool isEnabled)
+{
+    if (!m_viewportData.drawMatteNode)
+        return;
+
+    if (isEnabled) {
+        // Attached the matteClearBuffers to the drawMatteNode placeholder
+        m_viewportData.matteClearBuffers->setParent(m_viewportData.drawMatteNode);
+        m_viewportData.matteRenderState->setEnabled(true);
+    } else {
+        m_viewportData.matteClearBuffers->setParent(m_viewportData.dummyMatteRoot);
+        m_viewportData.matteRenderState->setEnabled(false);
+    }
+}
+
+void Q3DSSceneManager::setMatteColor(const QColor &color)
+{
+    if (m_viewportData.matteClearBuffers)
+        m_viewportData.matteClearBuffers->setClearColor(color);
 }
 
 void Q3DSSceneManager::addLog(const QString &msg)

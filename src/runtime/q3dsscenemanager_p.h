@@ -96,6 +96,9 @@ class QTechnique;
 class QFilterKey;
 class QRenderState;
 class QRayCaster;
+class QViewport;
+class QScissorTest;
+class QRenderStateSet;
 }
 
 namespace Qt3DExtras {
@@ -611,6 +614,18 @@ struct Q3DSGuiData
     qreal outputDpr = 1;
 };
 
+struct Q3DSViewportData
+{
+    Qt3DRender::QFrameGraphNode *drawMatteNode = nullptr;
+    Qt3DRender::QClearBuffers *matteClearBuffers = nullptr;
+    Qt3DRender::QRenderStateSet *matteRenderState = nullptr;
+    Qt3DRender::QScissorTest *matteScissorTest = nullptr;
+    Qt3DCore::QNode *dummyMatteRoot = nullptr;
+    Qt3DRender::QViewport *viewport = nullptr;
+    qreal viewportDpr = 1;
+    QRect viewportRect;
+};
+
 class Q3DSV_PRIVATE_EXPORT Q3DSSceneManager
 {
 public:
@@ -628,6 +643,7 @@ public:
         QObject *surface = nullptr; // null for subpresentations that go into a texture
         Qt3DRender::QFrameGraphNode *frameGraphRoot = nullptr; // when !window
         Q3DSEngine *engine = nullptr;
+        QRect viewport;
     };
 
     struct Scene {
@@ -643,7 +659,7 @@ public:
 
     Scene buildScene(Q3DSUipPresentation *presentation, const SceneBuilderParams &params);
     void finalizeMainScene(const QVector<Q3DSSubPresentation> &subPresentations);
-    void updateSizes(const QSize &size, qreal dpr, bool forceSynchronous = false);
+    void updateSizes(const QSize &size, qreal dpr, const QRect &viewport = QRect(), bool forceSynchronous = false);
 
     void prepareEngineReset();
     static void prepareEngineResetGlobal();
@@ -699,6 +715,9 @@ public:
     bool isProfileUiVisible() const;
     void setProfileUiInputEventSource(QObject *obj);
     void configureProfileUi(float scale);
+
+    void setMatteEnabled(bool isEnabled);
+    void setMatteColor(const QColor &color);
 
     Q3DSInputManager *inputManager() { return m_inputManager; }
 
@@ -873,6 +892,7 @@ private:
     bool m_layerCaching = true;
     bool m_layerUncachePending = false;
     QSet<Q3DSSceneManager *> m_layerCacheDeps;
+    Q3DSViewportData m_viewportData;
 
     friend class Q3DSFrameUpdater;
     friend class Q3DSProfiler;

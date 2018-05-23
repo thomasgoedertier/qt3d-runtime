@@ -47,14 +47,14 @@ Q3DSInputManager::Q3DSInputManager(Q3DSSceneManager *sceneManager, QObject *pare
 void Q3DSInputManager::handleMousePressEvent(QMouseEvent *e)
 {
     m_currentState.mousePressed = true;
-    PickRequest req(e->pos() * m_sceneManager->m_guiData.outputDpr, m_currentState);
+    PickRequest req(convertToViewportSpace(e->pos()), m_currentState);
     m_pickRequests.append(req);
 }
 
 void Q3DSInputManager::handleMouseReleaseEvent(QMouseEvent *e)
 {
     m_currentState.mousePressed = false;
-    PickRequest req(e->pos() * m_sceneManager->m_guiData.outputDpr, m_currentState);
+    PickRequest req(convertToViewportSpace(e->pos()), m_currentState);
     m_pickRequests.append(req);
 }
 
@@ -63,7 +63,7 @@ void Q3DSInputManager::handleMouseMoveEvent(QMouseEvent *e)
     if (!m_isHoverEnabled && !m_currentState.mousePressed)
         return;
 
-    PickRequest req(e->pos() * m_sceneManager->m_guiData.outputDpr, m_currentState);
+    PickRequest req(convertToViewportSpace(e->pos()), m_currentState);
     m_pickRequests.append(req);
 }
 
@@ -222,6 +222,16 @@ Q3DSGraphObject *Q3DSInputManager::getNodeForEntity(Q3DSLayerNode *layer, Qt3DCo
     }
 
     return nullptr;
+}
+
+QPoint Q3DSInputManager::convertToViewportSpace(const QPoint &point) const
+{
+    QPoint convertedPoint;
+    convertedPoint.setX(point.x() - m_sceneManager->m_viewportData.viewportRect.x());
+    convertedPoint.setY(point.y() - m_sceneManager->m_viewportData.viewportRect.y());
+
+    // adjust point for device pixel ratio
+    return convertedPoint * m_sceneManager->m_viewportData.viewportDpr;
 }
 
 void Q3DSInputManager::pick(const QPoint &point, const InputState &inputState)

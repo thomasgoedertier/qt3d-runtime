@@ -92,6 +92,19 @@ Q3DSViewerSettings::~Q3DSViewerSettings()
 
     \note This property is currently ignored.
  */
+
+/*!
+    \property Q3DSViewerSettings::matteEnabled
+
+    \note This property is currently ignored.
+ */
+
+bool Q3DSViewerSettings::matteEnabled() const
+{
+    Q_D(const Q3DSViewerSettings);
+    return d->matteEnabled;
+}
+
 QColor Q3DSViewerSettings::matteColor() const
 {
     Q_D(const Q3DSViewerSettings);
@@ -128,8 +141,6 @@ Q3DSViewerSettings::ShadeMode Q3DSViewerSettings::shadeMode() const
 
 /*!
     \property Q3DSViewerSettings::scaleMode
-
-    \note This property is currently ignored.
  */
 Q3DSViewerSettings::ScaleMode Q3DSViewerSettings::scaleMode() const
 {
@@ -137,11 +148,20 @@ Q3DSViewerSettings::ScaleMode Q3DSViewerSettings::scaleMode() const
     return d->scaleMode;
 }
 
+
+void Q3DSViewerSettings::setMatteEnabled(bool isEnabled)
+{
+    Q_D(Q3DSViewerSettings);
+    if (d->matteEnabled != isEnabled) {
+        d->matteEnabled = isEnabled;
+        emit matteEnabledChanged();
+    }
+}
+
 void Q3DSViewerSettings::setMatteColor(const QColor &color)
 {
     Q_D(Q3DSViewerSettings);
     if (d->matteColor != color) {
-        qWarning() << Q_FUNC_INFO << "not implemented";
         d->matteColor = color;
         emit matteColorChanged();
     }
@@ -170,7 +190,6 @@ void Q3DSViewerSettings::setScaleMode(Q3DSViewerSettings::ScaleMode mode)
 {
     Q_D(Q3DSViewerSettings);
     if (d->scaleMode != mode) {
-        qWarning() << Q_FUNC_INFO << "not implemented";
         d->scaleMode = mode;
         emit scaleModeChanged();
     }

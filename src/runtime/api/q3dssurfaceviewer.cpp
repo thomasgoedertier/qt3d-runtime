@@ -469,11 +469,6 @@ Q3DSSurfaceViewerPrivate::Q3DSSurfaceViewerPrivate()
       viewerSettings(new Q3DSViewerSettings)
 {
     Q3DSPresentationPrivate::get(presentation)->setController(this);
-
-    QObject::connect(viewerSettings, &Q3DSViewerSettings::showRenderStatsChanged, viewerSettings, [this] {
-        if (engine)
-            engine->setProfileUiVisible(viewerSettings->isShowingRenderStats());
-    });
 }
 
 Q3DSSurfaceViewerPrivate::~Q3DSSurfaceViewerPrivate()
@@ -511,6 +506,7 @@ bool Q3DSSurfaceViewerPrivate::createEngine()
         return false;
     }
     engine->setSurface(windowOrOffscreenSurface);
+    engine->setViewerSettings(viewerSettings);
 
     qCDebug(lc3DSSurface, "Created engine %p", engine);
 
@@ -528,8 +524,6 @@ bool Q3DSSurfaceViewerPrivate::createEngine()
 
     QObject::connect(engine, &Q3DSEngine::presentationLoaded, engine, [this] {
         Q_Q(Q3DSSurfaceViewer);
-        if (viewerSettings->isShowingRenderStats())
-            engine->setProfileUiVisible(true);
         emit q->presentationLoaded();
     });
 

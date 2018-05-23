@@ -85,6 +85,7 @@ private:
     void castRayIntoLayer(Q3DSLayerNode *layer, const QPointF &pos, const InputState &inputState, int eventId);
     void sendMouseEvent(Q3DSGraphObject *target, const Qt3DRender::QRayCasterHit &hit, const InputState &inputState);
     Q3DSGraphObject *getNodeForEntity(Q3DSLayerNode *layer, Qt3DCore::QEntity *entity);
+    QPoint convertToViewportSpace(const QPoint &point) const;
 
     Q3DSSceneManager *m_sceneManager = nullptr;
     bool m_isHoverEnabled = false;

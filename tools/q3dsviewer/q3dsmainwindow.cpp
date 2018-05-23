@@ -33,6 +33,7 @@
 #include <private/q3dsengine_p.h>
 #include <private/q3dsutils_p.h>
 #include <private/q3dsslideplayer_p.h>
+#include <Qt3DStudioRuntime2/Q3DSViewerSettings>
 #include <QApplication>
 #include <QMenuBar>
 #include <QMenu>
@@ -106,7 +107,68 @@ Q3DStudioMainWindow::Q3DStudioMainWindow(Q3DSWindow *view, Q3DSRemoteDeploymentM
             }
         });
     }
+    QAction *showMatte = viewMenu->addAction(tr("Show Matte"));
+    showMatte->setCheckable(true);
+    showMatte->setChecked(false);
+    showMatte->setShortcut(QKeySequence(tr("Ctrl+D")));
+    connect(showMatte, &QAction::toggled, [=]() {
+        view->engine()->viewerSettings()->setMatteEnabled(showMatte->isChecked());
+    });
+    QAction *scaleModeAction = new QAction(tr("Scale Mode"));
+    scaleModeAction->setShortcut(QKeySequence(tr("Ctrl+Shift+S")));
+    QMenu *scaleModeMenu = new QMenu();
+    scaleModeAction->setMenu(scaleModeMenu);
+    QAction *scaleModeCenter = new QAction(tr("Center"));
+    scaleModeCenter->setCheckable(true);
+    scaleModeCenter->setChecked(false);
+    scaleModeMenu->addAction(scaleModeCenter);
 
+    QAction *scaleModeFit = new QAction(tr("Scale to Fit"));
+    scaleModeFit->setCheckable(true);
+    scaleModeFit->setChecked(false);
+    scaleModeMenu->addAction(scaleModeFit);
+
+    QAction *scaleModeFill = new QAction(tr("Scale to Fill"));
+    scaleModeFill->setCheckable(true);
+    scaleModeFill->setChecked(true);
+    scaleModeMenu->addAction(scaleModeFill);
+
+    connect(scaleModeFit, &QAction::triggered, [=]() {
+        view->engine()->viewerSettings()->setScaleMode(Q3DSViewerSettings::ScaleModeFit);
+        scaleModeCenter->setChecked(false);
+        scaleModeFill->setChecked(false);
+        scaleModeFit->setChecked(true);
+    });
+    connect(scaleModeCenter, &QAction::triggered, [=]() {
+        view->engine()->viewerSettings()->setScaleMode(Q3DSViewerSettings::ScaleModeCenter);
+        scaleModeCenter->setChecked(true);
+        scaleModeFill->setChecked(false);
+        scaleModeFit->setChecked(false);
+    });
+    connect(scaleModeFill, &QAction::triggered, [=]() {
+        view->engine()->viewerSettings()->setScaleMode(Q3DSViewerSettings::ScaleModeFill);
+        scaleModeCenter->setChecked(false);
+        scaleModeFill->setChecked(true);
+        scaleModeFit->setChecked(false);
+    });
+    connect(scaleModeAction, &QAction::triggered, [=]() {
+        // toggle between the 3 scale modes
+        if (scaleModeCenter->isChecked()) {
+            scaleModeCenter->setChecked(false);
+            scaleModeFit->setChecked(true);
+            view->engine()->viewerSettings()->setScaleMode(Q3DSViewerSettings::ScaleModeFit);
+        } else if (scaleModeFit->isChecked()) {
+            scaleModeFit->setChecked(false);
+            scaleModeFill->setChecked(true);
+            view->engine()->viewerSettings()->setScaleMode(Q3DSViewerSettings::ScaleModeFill);
+        } else {
+            scaleModeFill->setChecked(false);
+            scaleModeCenter->setChecked(true);
+            view->engine()->viewerSettings()->setScaleMode(Q3DSViewerSettings::ScaleModeCenter);
+        }
+    });
+
+    viewMenu->addMenu(scaleModeMenu);
     viewMenu->addAction(tr("Toggle Full Scree&n"), this, [this] {
         Qt::WindowStates s = windowState();
         s.setFlag(Qt::WindowFullScreen, !s.testFlag(Qt::WindowFullScreen));

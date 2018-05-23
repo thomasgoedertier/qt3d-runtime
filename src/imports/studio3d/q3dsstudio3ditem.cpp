@@ -242,10 +242,8 @@ void Q3DSStudio3DItem::componentComplete()
                 qWarning("Studio3D: Duplicate ViewerSettings");
             } else {
                 m_viewerSettings = viewerSettings;
-                connect(m_viewerSettings, &Q3DSViewerSettings::showRenderStatsChanged, m_viewerSettings, [this] {
-                    if (m_engine)
-                        m_engine->setProfileUiVisible(m_viewerSettings->isShowingRenderStats());
-                });
+                if (m_engine)
+                    m_engine->setViewerSettings(m_viewerSettings);
             }
         }
     }
@@ -346,11 +344,12 @@ void Q3DSStudio3DItem::createEngine()
             m_engine->setSurface(w);
         }
 
+        if (m_viewerSettings)
+            m_engine->setViewerSettings(m_viewerSettings);
+
         qCDebug(lcStudio3D, "created engine %p", m_engine);
 
         connect(m_engine, &Q3DSEngine::presentationLoaded, this, [this]() {
-            if (m_viewerSettings && m_viewerSettings->isShowingRenderStats())
-                m_engine->setProfileUiVisible(true);
             m_presentation->studio3DPresentationLoaded();
             if (!m_running) {
                 m_running = true;

@@ -61,6 +61,7 @@ class QTabletEvent;
 class QQmlEngine;
 class QQmlComponent;
 class Q3DSInlineQmlSubPresentation;
+class Q3DSViewerSettings;
 
 namespace Qt3DRender {
 class QRenderCapture;
@@ -133,6 +134,9 @@ public:
 
     Qt3DCore::QAspectEngine *aspectEngine() const;
     Qt3DCore::QEntity *rootEntity() const;
+
+    Q3DSViewerSettings *viewerSettings() const;
+    void setViewerSettings(Q3DSViewerSettings *viewerSettings);
 
     void setOnDemandRendering(bool enabled);
 
@@ -244,6 +248,7 @@ private:
     void loadBehaviors();
     void destroyBehaviorHandle(const Q3DSBehaviorHandle &h);
     void behaviorFrameUpdate(float dt);
+    QRect calculateViewport(const QSize &surfaceSize, const QSize &presentationSize) const;
 
     QObject *m_surface = nullptr;
     QSize m_implicitSize;
@@ -279,6 +284,7 @@ private:
     BehaviorMap m_behaviorHandles;
 
     bool m_onDemandRendering = false;
+    Q3DSViewerSettings *m_viewerSettings = nullptr;
 };
 
 Q_DECLARE_OPERATORS_FOR_FLAGS(Q3DSEngine::Flags)

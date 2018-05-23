@@ -54,7 +54,8 @@ class Q3DSV_PRIVATE_EXPORT Q3DSViewerSettingsPrivate : public QObjectPrivate
 public:
     static Q3DSViewerSettingsPrivate *get(Q3DSViewerSettings *p) { return p->d_func(); }
 
-    QColor matteColor = Qt::black;
+    bool matteEnabled = false;
+    QColor matteColor = QColor(51, 51, 51);
     bool showRenderStats = false;
     Q3DSViewerSettings::ShadeMode shadeMode = Q3DSViewerSettings::ShadeModeShaded;
     Q3DSViewerSettings::ScaleMode scaleMode = Q3DSViewerSettings::ScaleModeFill;
