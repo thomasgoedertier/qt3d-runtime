@@ -52,9 +52,10 @@ struct Q3DSGraphicsLimits {
     bool versionedContextFailed = false;
     int maxDrawBuffers = 4;
     bool multisampleTextureSupported = false;
-    bool shaderTextureLodSupported = true;
-    bool shaderUniformBufferSupported = true;
-    bool packedDepthStencilBufferSupported = true;
+    bool shaderTextureLodSupported = false;
+    bool shaderUniformBufferSupported = false;
+    bool packedDepthStencilBufferSupported = false;
+    bool norm16TexturesSupported = false;
     QByteArray renderer;
     QByteArray vendor;
     QByteArray version;

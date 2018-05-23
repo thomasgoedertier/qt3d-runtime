@@ -2323,6 +2323,13 @@ void Q3DSEffectInstance::setProperties(const QXmlStreamAttributes &attrs, PropSe
     // refer to custom properties defined in the effect.
     for (const QXmlStreamAttribute &attr : attrs)
         m_pendingCustomProperties.append(Q3DSPropertyChange(attr.name().toString(), attr.value().toString()));
+
+    // If this is on the master slide, store some rollback info.
+    if (flags.testFlag(PropSetOnMaster)) {
+        m_masterRollbackList.append(Q3DSPropertyChange(QLatin1String("eyeball"), m_active ? QLatin1String("True")
+                                                                                          : QLatin1String("False")));
+
+    }
 }
 
 void Q3DSEffectInstance::applyPropertyChanges(const Q3DSPropertyChangeList &changeList)
@@ -2532,9 +2539,7 @@ void Q3DSNode::setProperties(const QXmlStreamAttributes &attrs, PropSetFlags fla
 
     // If this is on the master slide, store some rollback info.
     if (flags.testFlag(PropSetOnMaster)) {
-        if (m_masterRollbackList.isNull())
-            m_masterRollbackList.reset(new Q3DSPropertyChangeList);
-        m_masterRollbackList->append(Q3DSPropertyChange(QLatin1String("eyeball"),
+        m_masterRollbackList.append(Q3DSPropertyChange(QLatin1String("eyeball"),
                                      m_flags.testFlag(Q3DSNode::Active)
                                      ? QLatin1String("True") : QLatin1String("False")));
 

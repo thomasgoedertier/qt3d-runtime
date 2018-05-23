@@ -31,7 +31,8 @@
     \keyword C++ API
     \ingroup modules
 
-    \brief Qt 3D Studio provides a number of C++ classes to view and control the presentation.
+    \brief The Qt 3D Studio Runtime provides a number of C++ classes to
+    integrate and control Qt 3D Studio presentations in Qt applications.
 
     To include the definitions of the module's classes, use the following directive:
 
@@ -44,6 +45,36 @@
     \badcode
     QT += 3dstudioruntime2
     \endcode
+
+    \section1 Integrating
+
+    The two main classes are \l Q3DSWidget and \l Q3DSSurfaceViewer. Q3DSWidget
+    is a QWidget that can be used to show presentations inside a widget-based
+    user interface. Q3DSSurfaceViewer allows targeting a QWindow or an
+    offscreen render target (an OpenGL texture).
+
+    \note Qt applications based on QML and Qt Quick will rather want to use the
+    \l Studio3D type from \l{Qt 3D Studio Runtime QML Types}.
+
+    \section1 Controlling
+
+    Each \l Q3DSWidget and \l Q3DSSurfaceViewer instance exposes a \l
+    Q3DSPresentation. This, possibly in combination with \l Q3DSDataInput or
+    \l Q3DSElement objects, allows
+
+    \list
+
+    \li changing scene object properties (for example, the transform of a
+    model, colors and other settings of a material, etc.),
+
+    \li changing slides (thus starting the relevant animations and applying the
+    scene object property changes associated with the new slide),
+
+    \li and controlling the timeline (the current playback position for the
+    key-frame based animations) both on the main scene and on individual
+    Component nodes.
+
+    \endlist
 
     \section1 Classes
 
@@ -59,13 +90,30 @@
 
     \brief QML Types for the Qt 3D Studio Runtime module.
 
-    Qt 3D Studio provides a number of QML types to view and control the
-    presentation. These types can be imported into your application using the
-    following import statement in your .qml file:
+    The Qt 3D Studio Runtime provides a number of QML types to integrate and
+    control Qt 3D Studio presentations in Qt Quick applications. These types
+    can be imported into your application using the following import statement
+    in your \c{.qml} file:
 
     \badcode
     import QtStudio3D 2.0
     \endcode
+
+    The main type for embedding a Qt 3D Studio presentations into a Qt Quick
+    scene is \l Studio3D. Many of the other types correspond to a C++ class in
+    the API offered to non-QML based applications, providing the same level of
+    control described in \l{Qt 3D Studio Runtime C++ Classes}{the C++
+    reference}.
+
+    There are also QML types that offer functionality not available via the C++
+    classes. The \l SubPresentationSettings type allows defining \c{QML
+    sub-presentations} (live Qt Quick scenes composed into the 3D scene either
+    as Qt 3D Studio layers or as texture maps) in-line, inside a Studio3D
+    element, without having to deploy them as separate \c .qml files.
+
+    \note the \l Behavior type is to be used by \c{behavior scripts} (\c .qml
+    snippets associated with scene objects during the design phase in Qt 3D
+    Studio) and is not available in the main application code.
 
     \section1 QML Types
 

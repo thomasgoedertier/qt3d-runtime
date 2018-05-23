@@ -84,7 +84,7 @@
 			</State>
 			<State name="Master Slide" component="#Component" >
 				<State id="Component-Slide1" name="Slide1" >
-					<Add ref="#Camera_004" name="Camera" position="2.3094 -2.3094 2.3094" rotation="12 -291 0" scale="1 1 -0.6" />
+					<Add ref="#Camera_004" name="Camera" position="2.3094 -2.3094 2.3094" rotation="12 249 0" scale="1 1 0.6" />
 				</State>
 			</State>
 		</Logic>

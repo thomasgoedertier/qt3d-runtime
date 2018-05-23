@@ -80,6 +80,8 @@ public:
     Q_INVOKABLE void unregisterForEvent(const QString &event);
     Q_INVOKABLE void unregisterForEvent(const QString &handle, const QString &event);
     Q_REVISION(1) Q_INVOKABLE void setDataInputValue(const QString &name, const QVariant &value);
+    Q_INVOKABLE QMatrix4x4 calculateGlobalTransform(const QString &handle = QString());
+    Q_INVOKABLE QVector3D lookAt(const QVector3D &target);
 
 signals:
     void initialize();

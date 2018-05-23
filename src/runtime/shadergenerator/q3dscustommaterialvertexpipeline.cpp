@@ -408,7 +408,8 @@ struct ShaderGenerator : public Q3DSCustomMaterialShaderGenerator
         fragmentShader << "#include \"customMaterialFragBodyAO.glsllib\"\n";
 
         // for us right now transparency means we render a glass style material
-        if (m_currentMaterial->shaderHasTransparency() && !m_currentMaterial->shaderIsTransmissive())
+        if (m_currentMaterial->materialHasTransparency()
+                && !m_currentMaterial->shaderIsTransmissive())
             fragmentShader << " rgba = computeGlass( normal, materialIOR, alpha, rgba );\n";
         if (m_currentMaterial->shaderIsTransmissive())
             fragmentShader << " rgba = computeOpacity( rgba );\n";

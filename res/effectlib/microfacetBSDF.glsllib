@@ -93,7 +93,7 @@ float DtermGGXAniso( in mat3 tanFrame, in vec3 L, in vec3 V, in float roughnessU
 vec4 microfacetBSDF( in mat3 tanFrame, in vec3 L, in vec3 V, in vec3 lightSpecular, float ior,
                      in float roughnessU, in float roughnessV, int mode )
 {
-    vec4 rgba = vec4( 0.0f, 0.0f, 0.0f, 1.0f );
+    vec4 rgba = vec4( 0.0, 0.0, 0.0, 1.0 );
     vec3 H = normalize(L + V);
     float HdotL = clamp(dot(H, L), 0.0, 1.0);
     float NdotL = dot(tanFrame[2], L);
@@ -123,17 +123,17 @@ vec4 microfacetBSDF( in mat3 tanFrame, in vec3 L, in vec3 V, in vec3 lightSpecul
 
 vec4 microfacetBSDFEnvironment( in mat3 tanFrame, in vec3 viewDir, in float roughnessU, in float roughnessV, int mode )
 {
-  vec3 rgb = vec3( 0.0f, 0.0f, 0.0f );
+  vec3 rgb = vec3( 0.0, 0.0, 0.0 );
 #if !QT3DS_ENABLE_LIGHT_PROBE
   if ( uEnvironmentMappingEnabled )
   {
     float roughness = calculateRoughness( tanFrame[2], roughnessU, roughnessV, tanFrame[0] );
     vec3 R = reflect( -viewDir, tanFrame[2] );
     rgb =  0.01 * evalEnvironmentMap( R, roughness );
-    rgb = microfacetBSDF( tanFrame, R, viewDir, rgb, 1.0f, roughnessU, roughnessV, scatter_reflect ).rgb;
+    rgb = microfacetBSDF( tanFrame, R, viewDir, rgb, 1.0, roughnessU, roughnessV, scatter_reflect ).rgb;
   }
 #endif
-  return( vec4( rgb, 1.0f ) );
+  return( vec4( rgb, 1.0 ) );
 }
 
 
@@ -211,7 +211,7 @@ vec3 sampleEnv(in vec3 L, float pdf, uint sampleCount, float roughness )
     float b = 0.5*log2( pdf * d );
 
      // convert coord to 2D
-    vec2 tc = vec2( ( atan( L.x, -L.z ) + PI ) / ( 2.0f * PI ), acos( -L.y ) / PI );
+    vec2 tc = vec2( ( atan( L.x, -L.z ) + PI ) / ( 2.0 * PI ), acos( -L.y ) / PI );
     float weight = step( 0.0001, roughness );
 
     float lod = max( 0.0, min( (a - b)*weight, envMapLevels ));
@@ -221,7 +221,7 @@ vec3 sampleEnv(in vec3 L, float pdf, uint sampleCount, float roughness )
 
 vec4 microfacetSampledBSDF( in mat3 tanFrame, in vec3 viewDir, in float roughnessU, in float roughnessV, int mode )
 {
-  vec3 rgb = vec3( 0.0f, 0.0f, 0.0f );
+  vec3 rgb = vec3( 0.0, 0.0, 0.0 );
 
   float roughness = clamp( calculateRoughness( tanFrame[2], roughnessU, roughnessV, tanFrame[0] ), 0.0, 1.0 );
 
@@ -253,7 +253,7 @@ vec4 microfacetSampledBSDF( in mat3 tanFrame, in vec3 viewDir, in float roughnes
 
   rgb /= float(NumSamples);
 
-  return( vec4( rgb, 1.0f ) );
+  return( vec4( rgb, 1.0 ) );
 }
 
 #endif

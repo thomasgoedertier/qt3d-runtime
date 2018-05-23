@@ -34,11 +34,11 @@ texture_return flakeNoiseTexture( in texture_coordinate_info uvw, in float inten
   vec3 grad = miNoise( tex ).xyz;
 
   // displace coordinate according to noise value
-  tex += 2.0f * grad;
+  tex += 2.0 * grad;
 
   // then use only integer coordinates, to make flakes transients harder and not wobbly
   vec4 noise =  miNoise( floor( tex ) );
-  float s = pow( noise.w, 1.0f / density ) * intensity;
+  float s = pow( noise.w, 1.0 / density ) * intensity;
 
   texture_return tr;
   tr.tint = vec3( noise.x, noise.y, noise.z );
@@ -53,11 +53,11 @@ texture_return flakeNoiseAndBumpTexture( in texture_coordinate_info uvw, in floa
   vec3 grad = miNoise( tex ).xyz;
 
   // displace coordinate according to noise value
-  tex += 2.0f * grad;
+  tex += 2.0 * grad;
 
   // then use only integer coordinates, to make flakes transients harder and not wobbly
   vec4 noise =  miNoise( round( tex ) );
-  float s = pow( noise.w, 1.0f / density ) * intensity;
+  float s = pow( noise.w, 1.0 / density ) * intensity;
 
   texture_return tr;
   tr.tint = normalize( normal/strength + ( uvw.tangent_u * grad.x + uvw.tangent_v * grad.y + normal * abs( grad.z ) ) );

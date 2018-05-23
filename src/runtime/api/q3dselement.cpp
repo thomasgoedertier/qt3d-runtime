@@ -37,7 +37,7 @@ QT_BEGIN_NAMESPACE
     \inmodule 3dstudioruntime2
     \since Qt 3D Studio 2.0
 
-    \brief Controls a scene object in a Qt 3D Studio presentation.
+    \brief Controls a scene object (node) in a Qt 3D Studio presentation.
 
     This class is a convenience class for controlling the properties of a scene
     object (such as, model, material, camera, layer) in a Qt 3D Studio
@@ -183,10 +183,12 @@ void Q3DSElementPrivate::setPresentation(Q3DSPresentation *pres)
     \ingroup 3dstudioruntime2
     \brief Control type for elements in a Qt 3D Studio presentation.
 
-    This type is a convenience type for managing a presentation element.
+    This type is a convenience for controlling the properties of a scene object
+    (such as, model, material, camera, layer) in a Qt 3D Studio presentation.
 
-    All methods provided by this type are queued and handled asynchronously before the next
-    frame is displayed.
+    \note The functionality of Element is equivalent to
+    Presentation::setAttribute(), Presentation::getAttribute() and
+    Presentation::fireEvent().
 
     \sa Studio3D, Presentation, SceneElement
 */
@@ -195,37 +197,54 @@ void Q3DSElementPrivate::setPresentation(Q3DSPresentation *pres)
     \qmlproperty string Element::elementPath
 
     Holds the element path of the presentation element.
-    This property must be set as part of Element declaration.
-    You can specify an element of a sub-presentation by adding "SubPresentationId:"
-    in front of the element path, for example \c{"SubPresentationOne:Scene"}.
+
+    An element path refers to an object in the scene either by name or id. The
+    latter is rarely used in application code since the unique IDs are not
+    exposed in the Qt 3D Studio application. To refer to an object by id,
+    prepend \c{#} to the name. Applications will typically refer to objects by
+    name.
+
+    Names are not necessarily unique, however. To access an object with a
+    non-unique name, the path can be specified, for example,
+    \c{Scene.Layer.Camera}. Here the right camera object gets chosen even if
+    the scene contains other layers with the default camera names (for instance
+    \c{Scene.Layer2.Camera}).
+
+    If the object is renamed to a unique name in the Qt 3D Studio application's
+    Timeline view, the path can be omitted. For example, if the camera in
+    question was renamed to \c MyCamera, applications can then simply pass \c
+    MyCamera as the element path.
+
+    To access an object in a sub-presentation, prepend the name of the
+    sub-presentation followed by a colon, for example,
+    \c{SubPresentationOne:Scene.Layer.Camera}.
 */
+
+/*!
+    \qmlmethod variant Element::getAttribute(string attributeName)
+
+    Returns the current value of an attribute (property) of the scene object
+    specified by this Element instance. The \a attributeName is the
+    \l{Attribute Names}{scripting name} of the attribute.
+ */
 
 /*!
     \qmlmethod void Element::setAttribute(string attributeName, variant value)
 
-    Sets the \a value of an attribute on an element specified by this instance.
-    The \a attributeName is the \l{Attribute Names}{scripting name} of the attribute.
-
-    The attribute must be preserved for scripting to be set by this function, or else it will fail.
-    An attribute is preserved if it is either \e{animated}, or
-    \e{an attribute on a master element that is unlinked and changed per-slide}.
+    Sets the \a value of an attribute (property) of the scene object specified
+    by this Element instance. The \a attributeName is the \l{Attribute
+    Names}{scripting name} of the attribute.
 */
 
 /*!
     \qmlmethod void Element::fireEvent(string eventName)
 
-    Dispatches an event with \a eventName on the element specified by this instance.
-    Appropriate actions created in Qt 3D Studio or callbacks registered using the registerForEvent()
-    method in attached scripts will be executed in response to the event.
-*/
+    Dispatches an event with \a eventName on the scene object
+    specified by elementPath.
 
-/*!
-    \qmlsignal Element::elementPathChanged(string elementPath)
-
-    This signal is emitted when the element path property changes.
-    The new value is provided in the \a elementPath parameter.
-
-    The corresponding handler is \c onElementPathChanged.
+    Appropriate actions created in Qt 3D Studio or callbacks registered using
+    the registerForEvent() method in attached \c{behavior scripts} will be
+    executed in response to the event.
 */
 
 QT_END_NAMESPACE

@@ -834,7 +834,7 @@ public:
     void applyPropertyChanges(const Q3DSPropertyChangeList &changeList) override;
     int mapChangeFlags(const Q3DSPropertyChangeList &changeList) override;
 
-    const Q3DSPropertyChangeList *masterRollbackList() const { return m_masterRollbackList.data(); }
+    const Q3DSPropertyChangeList &masterRollbackList() const { return m_masterRollbackList; }
 
     QStringList propertyNames() const override;
     QVariantList propertyValues() const override;
@@ -870,7 +870,7 @@ protected:
     qint32 m_skeletonId = -1;
     RotationOrder m_rotationOrder = YXZ;
     Orientation m_orientation = LeftHanded;
-    QScopedPointer<Q3DSPropertyChangeList> m_masterRollbackList;
+    Q3DSPropertyChangeList m_masterRollbackList;
 
 private:
     Q_DISABLE_COPY(Q3DSNode)
@@ -1842,6 +1842,8 @@ public:
     QVariant customProperty(const QString &name) const { return m_effectPropertyVals.value(name); }
     Q3DSPropertyChange setCustomProperty(const QString &name, const QVariant &value);
 
+    const Q3DSPropertyChangeList &masterRollbackList() const { return m_masterRollbackList; }
+
 private:
     Q_DISABLE_COPY(Q3DSEffectInstance)
     template<typename V> void setProps(const V &attrs, PropSetFlags flags);
@@ -1852,6 +1854,7 @@ private:
     bool m_active = true;
     QVariantMap m_effectPropertyVals;
     Q3DSPropertyChangeList m_pendingCustomProperties;
+    Q3DSPropertyChangeList m_masterRollbackList;
 };
 
 class Q3DSV_PRIVATE_EXPORT Q3DSBehaviorInstance : public Q3DSGraphObject

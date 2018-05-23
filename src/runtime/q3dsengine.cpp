@@ -193,22 +193,24 @@ static void initGraphicsLimits(QOpenGLContext *ctx)
     qDebug("  multisample textures: %s", gfxLimits.multisampleTextureSupported ? "true" : "false");
 
     auto extensions = ctx->extensions();
-    if (!extensions.isEmpty()) {
-        gfxLimits.extensions = extensions;
+    gfxLimits.extensions = extensions;
 
-        if (ctx->isOpenGLES() && ctx->format().majorVersion() == 2) {
-            gfxLimits.shaderTextureLodSupported = false;
-            gfxLimits.shaderUniformBufferSupported = false;
-            gfxLimits.packedDepthStencilBufferSupported = false;
-        }
-        if (extensions.contains("GL_EXT_shader_texture_lod"))
-            gfxLimits.shaderTextureLodSupported = true;
-        qDebug("  texture lod: %s", gfxLimits.shaderTextureLodSupported ? "true" : "false");
-
-        if (extensions.contains("GL_EXT_packed_depth_stencil"))
-            gfxLimits.packedDepthStencilBufferSupported = true;
-        qDebug("  packed depth-stencil: %s", gfxLimits.packedDepthStencilBufferSupported ? "true" : "false");
+    if (ctx->isOpenGLES() && ctx->format().majorVersion() < 3) {
+        gfxLimits.shaderUniformBufferSupported = false;
+        gfxLimits.shaderTextureLodSupported = extensions.contains("GL_EXT_shader_texture_lod");
+        gfxLimits.packedDepthStencilBufferSupported = extensions.contains("GL_EXT_packed_depth_stencil");
+    } else {
+        gfxLimits.shaderUniformBufferSupported = true;
+        gfxLimits.shaderTextureLodSupported = true;
+        gfxLimits.packedDepthStencilBufferSupported = true;
     }
+    qDebug("  uniform buffers: %s", gfxLimits.shaderUniformBufferSupported ? "true" : "false");
+    qDebug("  texture lod: %s", gfxLimits.shaderTextureLodSupported ? "true" : "false");
+    qDebug("  packed depth-stencil: %s", gfxLimits.packedDepthStencilBufferSupported ? "true" : "false");
+
+    gfxLimits.norm16TexturesSupported = ctx->isOpenGLES() ? extensions.contains("GL_EXT_texture_norm16") : true;
+    qDebug("  norm16 textures: %s", gfxLimits.norm16TexturesSupported ? "true" : "false");
+
     qDebug() << "  extensions: " << extensions;
 
     // version string bonanza for the profiler

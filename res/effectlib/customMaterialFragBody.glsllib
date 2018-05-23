@@ -32,7 +32,7 @@
 #define CUSTOM_MATERIAL_FRAG_BODY_GLSLLIB
 
   bool twoSided = false;
-  vec3 materialEmissive = vec3( 0.0f, 0.0f, 0.0f );
+  vec3 materialEmissive = vec3( 0.0, 0.0, 0.0 );
 
   float materialIOR = computeIOR();
 
@@ -42,7 +42,7 @@
   }
   else
   {
-    materialIOR = 1.0f / materialIOR;
+    materialIOR = 1.0 / materialIOR;
     twoSided = evalTwoSided();
     if ( twoSided )
     {
@@ -51,7 +51,7 @@
     }
   }
 
-  vec4 rgba = vec4( materialEmissive, 0.0f );
+  vec4 rgba = vec4( materialEmissive, 0.0 );
 
   vec3 lightAmbient, lightDiffuse, lightSpecular, L;
   for ( int i=0 ; i<uNumLights ; i++ )
@@ -71,7 +71,7 @@
       computeBackAreaColor( i, arealights[i].diffuse, arealights[i].specular );
   }
 
-  if ( 0.0f < alpha )
+  if ( 0.0 < alpha )
   {
     if (gl_FrontFacing)
       computeFrontLayerEnvironment( normal, viewDir, 1.0 );

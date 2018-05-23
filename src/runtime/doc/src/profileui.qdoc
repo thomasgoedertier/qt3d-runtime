@@ -1,0 +1,133 @@
+/****************************************************************************
+**
+** Copyright (C) 2018 The Qt Company Ltd.
+** Contact: https://www.qt.io/licensing/
+**
+** This file is part of Qt 3D Studio.
+**
+** $QT_BEGIN_LICENSE:FDL$
+** Commercial License Usage
+** Licensees holding valid commercial Qt licenses may use this file in
+** accordance with the commercial license agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and The Qt Company. For licensing terms
+** and conditions see https://www.qt.io/terms-conditions. For further
+** information use the contact form at https://www.qt.io/contact-us.
+**
+** GNU Free Documentation License Usage
+** Alternatively, this file may be used under the terms of the GNU Free
+** Documentation License version 1.3 as published by the Free Software
+** Foundation and appearing in the file included in the packaging of
+** this file. Please review the following information to ensure
+** the GNU Free Documentation License version 1.3 requirements
+** will be met: https://www.gnu.org/licenses/fdl-1.3.html.
+** $QT_END_LICENSE$
+**
+****************************************************************************/
+
+/*!
+    \page qt3d-runtime-profileui.html
+    \title Using the In-Scene Debug and Profile views
+
+    The Qt 3D Studio Runtime includes a set of built-in views that can be
+    brought up on top of the scene at any time. These panes are rendered
+    completely inside the 3D scene and are therefore available on any platform,
+    even when running on mobile or embedded systems without a windowing system
+    (for example, via the \c eglfs platform plugin), with the Qt 3D Studio
+    presentation and the Qt Quick user interface occupying the entire scren.
+
+    \image profileui-example.png
+
+    \section1 Activation
+
+    In the Viewer application, toggle with \c F10 or the \uicontrol{Profile and
+    Debug} submenu under \uicontrol View.
+
+    In applications these views have no built-in shortcuts. It is up to the
+    application to toggle visibility. From C++ this is done via \l
+    Q3DSPresentation::profileUiVisible or \l
+    Q3DSViewerSettings::showRenderStats. From QML the corresponding properties
+    are \l Presentation::profileUiVisible and \l ViewerSettings::showRenderStats.
+
+    In order to enable all features in the debug and profile views, presentations
+    must be loaded with profiling enabled. In this mode the Qt 3D objects
+    managed by the runtime get tracked, and various statistics get collected
+    internally. This is enabled by default in the Viewer application, whereas
+    applications have to opt-in explicitly via \l
+    Q3DSPresentation::profilingEnabled or \l Presentation::profilingEnabled.
+
+    As an example, the following is how the \l{Qt 3D Studio Runtime: Simple QML
+    Example} enables and connects the toggling of these views to a Qt Quick
+    Controls button:
+
+    \badcode
+        Studio3D {
+            Presentation {
+                id: presentation
+                source: "qrc:/presentation/barrel.uip"
+                profilingEnabled: true
+            }
+        }
+
+        Button {
+            text: "Toggle profile UI"
+            onClicked: presentation.profileUiVisible = !s3dpres.profileUiVisible
+            ...
+        }
+    }
+    \endcode
+
+    \section1 Features
+
+    \list
+
+    \li CPU and memory usage of the application process (available on Windows, Linux, and Android)
+
+    \li OpenGL context information
+
+    \li Frame rate, with a visualization of its history during the last 100 frames (configurable)
+
+    \li Various timings from the loading of the scene
+
+    \li Qt 3D object list - showing the active list of mesh and texture objects
+    can give an approximate understanding of the graphics resource usage and
+    can also uncover sub-optimal asset situations that lead to degraded
+    performance. For example, having a large number of meshes in the list for a
+    seemingly simple scene should warrant an investigation of the assets as
+    they may be overly complex. Similarly, large textures are often not ideal,
+    yet they may be overlooked during the design phase of the presentation.
+    Here it becomes immediately obvious if some texture map is unncessarily
+    large.
+
+    \li Layer list - showing the list of active and inactive \c layers in the
+    presentation. A Qt 3D Studio presentations consists of one or more layers
+    which are backed by OpenGL textures each. These are composed together with
+    the appropriate blending mode (and optionally with post-postprocessing
+    effects applied) to get the final output. It is important to understand
+    that each layer corresponds to a separate render target (e.g. an OpenGL
+    texture and the corresponding framebuffer setup) in the engine and is using
+    graphics resources like any other texture map. The performance of the
+    composition is also important, especially on mobile and embedded where the
+    fragment processing power can be more limited.
+
+    \li A filterable log view (with the debug messages that are also printed on
+    the default qDebug output of the platform)
+
+    \li A number of other, experimental views
+
+    \endlist
+
+    The views and their contents are live at any time, meaning they always
+    reflect the Qt 3D Studio Runtime's state for the current frame.
+
+    Watch out for the tooltips marked with \c{(?)}. Moving the mouse cursor
+    over these results in showing additional information about the item in
+    question which can be useful in understanding the implications of certain
+    statistics.
+
+    \image profileui-tooltips.png
+
+    \note the feature set may get extended or changed in future versions. It is
+    also possible that certain information gets folded into the Qt 3D Studio
+    application itself in the future.
+*/

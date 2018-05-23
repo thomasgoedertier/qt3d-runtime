@@ -89,7 +89,24 @@ Q3DSWidget::~Q3DSWidget()
 }
 
 /*!
+    \fn Q3DSWidget::frameUpdate()
+
+    This signal is emitted each time a frame has been rendered.
+*/
+
+/*!
+    \fn Q3DSWidget::presentationLoaded()
+
+    This signal is emitted when the viewer has been initialized and the
+    presentation is ready to be shown.
+*/
+
+/*!
+    \property Q3DSWidget::presentation
+
     Returns the presentation object used by the Q3DSWidget.
+
+    This property is read-only.
  */
 Q3DSPresentation *Q3DSWidget::presentation() const
 {
@@ -106,6 +123,15 @@ Q3DSViewerSettings *Q3DSWidget::settings() const
     return d->viewerSettings;
 }
 
+/*!
+    \property Q3DSWidget::error
+
+    Contains the text for the error message that was generated during the
+    loading of the presentation. When no error occurred or there is no
+    presentation loaded, the value is an empty string.
+
+    This property is read-only.
+ */
 QString Q3DSWidget::error() const
 {
     Q_D(const Q3DSWidget);
@@ -159,6 +185,9 @@ void Q3DSWidget::setUpdateInterval(int interval)
     }
 }
 
+/*!
+    \internal
+ */
 void Q3DSWidget::keyPressEvent(QKeyEvent *event)
 {
     Q_D(Q3DSWidget);
@@ -166,6 +195,9 @@ void Q3DSWidget::keyPressEvent(QKeyEvent *event)
         d->engine->handleKeyPressEvent(event);
 }
 
+/*!
+    \internal
+ */
 void Q3DSWidget::keyReleaseEvent(QKeyEvent *event)
 {
     Q_D(Q3DSWidget);
@@ -173,6 +205,9 @@ void Q3DSWidget::keyReleaseEvent(QKeyEvent *event)
         d->engine->handleKeyReleaseEvent(event);
 }
 
+/*!
+    \internal
+ */
 void Q3DSWidget::mousePressEvent(QMouseEvent *event)
 {
     Q_D(Q3DSWidget);
@@ -180,6 +215,9 @@ void Q3DSWidget::mousePressEvent(QMouseEvent *event)
         d->engine->handleMousePressEvent(event);
 }
 
+/*!
+    \internal
+ */
 void Q3DSWidget::mouseMoveEvent(QMouseEvent *event)
 {
     Q_D(Q3DSWidget);
@@ -187,6 +225,9 @@ void Q3DSWidget::mouseMoveEvent(QMouseEvent *event)
         d->engine->handleMouseMoveEvent(event);
 }
 
+/*!
+    \internal
+ */
 void Q3DSWidget::mouseReleaseEvent(QMouseEvent *event)
 {
     Q_D(Q3DSWidget);
@@ -194,6 +235,9 @@ void Q3DSWidget::mouseReleaseEvent(QMouseEvent *event)
         d->engine->handleMouseReleaseEvent(event);
 }
 
+/*!
+    \internal
+ */
 void Q3DSWidget::mouseDoubleClickEvent(QMouseEvent *event)
 {
     Q_D(Q3DSWidget);
@@ -202,6 +246,9 @@ void Q3DSWidget::mouseDoubleClickEvent(QMouseEvent *event)
 }
 
 #if QT_CONFIG(wheelevent)
+/*!
+    \internal
+ */
 void Q3DSWidget::wheelEvent(QWheelEvent *event)
 {
     Q_D(Q3DSWidget);
@@ -210,10 +257,16 @@ void Q3DSWidget::wheelEvent(QWheelEvent *event)
 }
 #endif
 
+/*!
+    \internal
+ */
 void Q3DSWidget::initializeGL()
 {
 }
 
+/*!
+    \internal
+ */
 void Q3DSWidget::resizeGL(int w, int h)
 {
     Q_D(Q3DSWidget);
@@ -224,6 +277,9 @@ void Q3DSWidget::resizeGL(int w, int h)
     }
 }
 
+/*!
+    \internal
+ */
 void Q3DSWidget::paintGL()
 {
     Q_D(Q3DSWidget);
