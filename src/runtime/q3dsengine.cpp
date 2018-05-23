@@ -208,6 +208,12 @@ static void initGraphicsLimits(QOpenGLContext *ctx)
         if (extensions.contains("GL_EXT_packed_depth_stencil"))
             gfxLimits.packedDepthStencilBufferSupported = true;
         qDebug("  packed depth-stencil: %s", gfxLimits.packedDepthStencilBufferSupported ? "true" : "false");
+
+        if (ctx->isOpenGLES())
+            gfxLimits.norm16TexturesSupported = extensions.contains("GL_EXT_texture_norm16");
+        else
+            gfxLimits.norm16TexturesSupported = true;
+        qDebug("  norm16 textures: %s", gfxLimits.norm16TexturesSupported ? "true" : "false");
     }
     qDebug() << "  extensions: " << extensions;
 

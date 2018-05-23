@@ -2516,8 +2516,15 @@ void Q3DSSceneManager::updateShadowMapStatus(Q3DSLayerNode *layer3DS, bool *smDi
                                                "Shadow map temp buffer for light %s", light3DS->id().constData());
                 }
 
-                d->shadowMapTexture->setFormat(Qt3DRender::QAbstractTexture::R16_UNorm);
-                d->shadowMapTextureTemp->setFormat(Qt3DRender::QAbstractTexture::R16_UNorm);
+                Qt3DRender::QAbstractTexture::TextureFormat format = Qt3DRender::QAbstractTexture::R16_UNorm;
+                // GL_R16 does not seem to exist in OpenGL ES unless GL_EXT_texture_norm16
+                // is present.  Fall back to the GL_R8 when not supported (but this leads
+                // to uglier output with more artifacts).
+                if (!m_gfxLimits.norm16TexturesSupported)
+                    format = Qt3DRender::QAbstractTexture::R8_UNorm;
+
+                d->shadowMapTexture->setFormat(format);
+                d->shadowMapTextureTemp->setFormat(format);
 
                 d->shadowMapTexture->setMinificationFilter(Qt3DRender::QAbstractTexture::Linear);
                 d->shadowMapTextureTemp->setMinificationFilter(Qt3DRender::QAbstractTexture::Linear);

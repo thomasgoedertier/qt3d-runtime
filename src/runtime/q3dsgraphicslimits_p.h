@@ -55,6 +55,7 @@ struct Q3DSGraphicsLimits {
     bool shaderTextureLodSupported = true;
     bool shaderUniformBufferSupported = true;
     bool packedDepthStencilBufferSupported = true;
+    bool norm16TexturesSupported = true;
     QByteArray renderer;
     QByteArray vendor;
     QByteArray version;
