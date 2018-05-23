@@ -611,8 +611,7 @@ Q3DSSceneManager::Scene Q3DSSceneManager::buildScene(Q3DSUipPresentation *presen
     m_scene = m_presentation->scene();
     m_masterSlide = m_presentation->masterSlide();
     m_currentSlide = nullptr;
-    m_pendingNodeShow.clear();
-    m_pendingNodeHide.clear();
+    m_pendingNodeVisibility.clear();
     m_pendingSubPresLayers.clear();
     m_pendingSubPresImages.clear();
     m_subPresentations.clear();
@@ -6651,16 +6650,9 @@ void Q3DSSceneManager::updateSubTree(Q3DSGraphObject *obj)
         }
     }
 
-    if (!m_pendingNodeHide.isEmpty()) {
-        for (Q3DSNode *node : m_pendingNodeHide)
-            setNodeVisibility(node, false);
-        m_pendingNodeHide.clear();
-    }
-    if (!m_pendingNodeShow.isEmpty()) {
-        for (Q3DSNode *node : m_pendingNodeShow)
-            setNodeVisibility(node, true);
-        m_pendingNodeShow.clear();
-    }
+    for (auto it = m_pendingNodeVisibility.constBegin(); it != m_pendingNodeVisibility.constEnd(); ++it)
+        setNodeVisibility(it.key(), it.value());
+    m_pendingNodeVisibility.clear();
 }
 
 static Q3DSComponentNode *findNextComponentParent(Q3DSComponentNode *component)
@@ -7041,8 +7033,7 @@ void Q3DSSceneManager::updateNodeFromChangeFlags(Q3DSNode *node, Qt3DCore::QTran
             // Drop whatever is queued since that was based on now-invalid
             // input. (important when entering slides, where eyball property
             // changes get processed after an initial visit of all objects)
-            m_pendingNodeShow.remove(node);
-            m_pendingNodeHide.remove(node);
+            m_pendingNodeVisibility.remove(node);
 
             const bool active = node->flags().testFlag(Q3DSNode::Active);
             setNodeVisibility(node, active);

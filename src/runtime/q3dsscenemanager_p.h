@@ -853,8 +853,7 @@ private:
     Q3DSTextRenderer *m_textRenderer;
     QSet<Q3DSGraphObject *> m_subTreeWithDirtyLights;
     QSet<Q3DSDefaultMaterial *> m_pendingDefMatRebuild;
-    QSet<Q3DSNode *> m_pendingNodeShow;
-    QSet<Q3DSNode *> m_pendingNodeHide;
+    QHash<Q3DSNode *, bool> m_pendingNodeVisibility;
     Qt3DRender::QLayer *m_fsQuadTag = nullptr;
     QStack<Q3DSComponentNode *> m_componentNodeStack;
     QSet<Q3DSLayerNode *> m_pendingSubPresLayers;

@@ -737,17 +737,25 @@ void Q3DSSlidePlayer::updateObjectVisibility(Q3DSGraphObject *obj, bool shouldBe
 {
     Q_ASSERT(obj->isNode() || obj->type() == Q3DSGraphObject::Effect);
     if (obj->isNode()) {
-        if (shouldBeVisible) {
-            qCDebug(lcSlidePlayer, "Scheduling node \"%s\" to be shown", obj->id().constData());
-            m_sceneManager->m_pendingNodeShow.insert(static_cast<Q3DSNode *>(obj));
-        } else {
-            qCDebug(lcSlidePlayer, "Scheduling node \"%s\" to be hidden", obj->id().constData());
-            m_sceneManager->m_pendingNodeHide.insert(static_cast<Q3DSNode *>(obj));
+        Q3DSNode *node = static_cast<Q3DSNode *>(obj);
+        auto foundIt = m_sceneManager->m_pendingNodeVisibility.find(node);
+        const bool insertValue = (foundIt == m_sceneManager->m_pendingNodeVisibility.end());
+        const bool updateValue = (!insertValue && foundIt.value() != shouldBeVisible);
+
+        if (insertValue || updateValue) {
+            qCDebug(lcSlidePlayer, "Scheduling node \"%s\" to be %s", obj->id().constData(), shouldBeVisible ? "shown" : "hidden");
+            if (updateValue)
+                *foundIt = shouldBeVisible;
+            else if (insertValue)
+                m_sceneManager->m_pendingNodeVisibility.insert(node, shouldBeVisible);
         }
     } else {
-        qCDebug(lcSlidePlayer, "Scheduling effect \"%s\" to be %s", obj->id().constData(), shouldBeVisible ? "shown" : "hidden");
-        obj->applyPropertyChanges(Q3DSPropertyChangeList({Q3DSPropertyChange::fromVariant(QLatin1String("eyeball"), QVariant::fromValue(shouldBeVisible))}));
-        obj->notifyPropertyChanges(Q3DSPropertyChangeList({Q3DSPropertyChange::fromVariant(QLatin1String("eyeball"), QVariant::fromValue(shouldBeVisible))}));
+        Q3DSEffectInstance *effect = static_cast<Q3DSEffectInstance *>(obj);
+        if (effect->active() != shouldBeVisible) {
+            qCDebug(lcSlidePlayer, "Scheduling effect \"%s\" to be %s", obj->id().constData(), shouldBeVisible ? "shown" : "hidden");
+            obj->applyPropertyChanges(Q3DSPropertyChangeList({Q3DSPropertyChange::fromVariant(QLatin1String("eyeball"), QVariant::fromValue(shouldBeVisible))}));
+            obj->notifyPropertyChanges(Q3DSPropertyChangeList({Q3DSPropertyChange::fromVariant(QLatin1String("eyeball"), QVariant::fromValue(shouldBeVisible))}));
+        }
     }
 }
 
