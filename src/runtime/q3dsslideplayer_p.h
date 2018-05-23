@@ -144,7 +144,7 @@ private:
     // TODO: Move out to a "slide manager"?
     void setSlideTime(Q3DSSlide *slide, float time, bool parentVisible = true);
     void sendPositionChanged(Q3DSSlide *slide, float pos);
-    void updateNodeVisibility(Q3DSNode *node, bool visible);
+    void updateObjectVisibility(Q3DSGraphObject *obj, bool visible);
     bool isSlideVisible(Q3DSSlide *slide);
     void processPropertyChanges(Q3DSSlide *currentSlide);
 
