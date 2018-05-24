@@ -4248,7 +4248,7 @@ void Q3DSSceneManager::buildModelMaterial(Q3DSModelNode *model3DS)
     for (auto light : lights)
         lightNodes.append(light->lightNodes);
 
-    const int lightNodeLimit = m_gfxLimits.shaderUniformBufferSupported ? Q3DS_MAX_NUM_LIGHTS : Q3DS_MAX_NUM_LIGHTS_ES2;
+    const int lightNodeLimit = !m_gfxLimits.useGles2Path ? Q3DS_MAX_NUM_LIGHTS : Q3DS_MAX_NUM_LIGHTS_ES2;
     if (lightNodes.count() > lightNodeLimit) {
         qCWarning(lcPerf, "Default material for model %s got %d lights, shader input truncated to %d",
                   model3DS->id().constData(), lightNodes.count(), lightNodeLimit);
@@ -4293,7 +4293,7 @@ void Q3DSSceneManager::buildModelMaterial(Q3DSModelNode *model3DS)
                     lightsData->lightAmbientTotalParamenter->setValue(lightAmbientTotal);
                     params.append(lightsData->lightAmbientTotalParamenter);
 
-                    if (m_gfxLimits.shaderUniformBufferSupported) {
+                    if (!m_gfxLimits.useGles2Path) {
                         // Setup lights, use combined buffer for the default material.
                         if (!lightsData->allLightsConstantBuffer) {
                             lightsData->allLightsConstantBuffer = new Qt3DRender::QBuffer(layerData->entity);
@@ -4359,7 +4359,7 @@ void Q3DSSceneManager::buildModelMaterial(Q3DSModelNode *model3DS)
                 updateCustomMaterial(customMaterial, sm.referencingMaterial, model3DS);
 
                 if (lightsData) {
-                    if (m_gfxLimits.shaderUniformBufferSupported) {
+                    if (!m_gfxLimits.useGles2Path) {
                         // Here lights are provided in two separate buffers.
                         if (!lightsData->nonAreaLightsConstantBuffer) {
                             lightsData->nonAreaLightsConstantBuffer = new Qt3DRender::QBuffer(layerData->entity);

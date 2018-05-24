@@ -53,7 +53,6 @@ struct Q3DSGraphicsLimits {
     int maxDrawBuffers = 4;
     bool multisampleTextureSupported = false;
     bool shaderTextureLodSupported = false;
-    bool shaderUniformBufferSupported = false;
     bool packedDepthStencilBufferSupported = false;
     bool norm16TexturesSupported = false;
     QByteArray renderer;

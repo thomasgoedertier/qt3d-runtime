@@ -199,15 +199,12 @@ static void initGraphicsLimits(QOpenGLContext *ctx)
     qDebug("  use feature-limited GLES2 rendering path: %s", gfxLimits.useGles2Path ? "true" : "false");
 
     if (gfxLimits.useGles2Path) {
-        gfxLimits.shaderUniformBufferSupported = false;
         gfxLimits.shaderTextureLodSupported = extensions.contains("GL_EXT_shader_texture_lod");
         gfxLimits.packedDepthStencilBufferSupported = extensions.contains("GL_EXT_packed_depth_stencil");
     } else {
-        gfxLimits.shaderUniformBufferSupported = true;
         gfxLimits.shaderTextureLodSupported = true;
         gfxLimits.packedDepthStencilBufferSupported = true;
     }
-    qDebug("  uniform buffers: %s", gfxLimits.shaderUniformBufferSupported ? "true" : "false");
     qDebug("  texture lod: %s", gfxLimits.shaderTextureLodSupported ? "true" : "false");
     qDebug("  packed depth-stencil: %s", gfxLimits.packedDepthStencilBufferSupported ? "true" : "false");
 
