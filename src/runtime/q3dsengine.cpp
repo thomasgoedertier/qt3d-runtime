@@ -195,7 +195,10 @@ static void initGraphicsLimits(QOpenGLContext *ctx)
     auto extensions = ctx->extensions();
     gfxLimits.extensions = extensions;
 
-    if (ctx->isOpenGLES() && ctx->format().majorVersion() < 3) {
+    gfxLimits.useGles2Path = ctx->isOpenGLES() && ctx->format().majorVersion() < 3;
+    qDebug("  use feature-limited GLES2 rendering path: %s", gfxLimits.useGles2Path ? "true" : "false");
+
+    if (gfxLimits.useGles2Path) {
         gfxLimits.shaderUniformBufferSupported = false;
         gfxLimits.shaderTextureLodSupported = extensions.contains("GL_EXT_shader_texture_lod");
         gfxLimits.packedDepthStencilBufferSupported = extensions.contains("GL_EXT_packed_depth_stencil");

@@ -61,6 +61,7 @@ struct Q3DSGraphicsLimits {
     QByteArray version;
     QSet<QByteArray> extensions;
     QSurfaceFormat format;
+    bool useGles2Path = false;
 };
 
 Q_DECLARE_TYPEINFO(Q3DSGraphicsLimits, Q_MOVABLE_TYPE);

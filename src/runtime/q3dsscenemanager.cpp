@@ -736,14 +736,12 @@ Q3DSSceneManager::Scene Q3DSSceneManager::buildScene(Q3DSUipPresentation *presen
     }
 #endif
 
-    const bool gles2 = m_gfxLimits.format.renderableType() == QSurfaceFormat::OpenGLES && m_gfxLimits.format.majorVersion() == 2;
-
     // Fullscreen quad for bluring the shadow map/cubemap
     Q3DSShaderManager &sm(Q3DSShaderManager::instance());
     QStringList fsQuadPassNames { QLatin1String("shadowOrthoBlurX"), QLatin1String("shadowOrthoBlurY") };
     QVector<Qt3DRender::QShaderProgram *> fsQuadPassProgs { sm.getOrthoShadowBlurXShader(m_rootEntity), sm.getOrthoShadowBlurYShader(m_rootEntity) };
 
-    if (!gles2) {
+    if (!m_gfxLimits.useGles2Path) {
         if (m_gfxLimits.maxDrawBuffers >= 6) { // ###
             fsQuadPassNames << QLatin1String("shadowCubeBlurX") << QLatin1String("shadowCubeBlurY");
             fsQuadPassProgs << sm.getCubeShadowBlurXShader(m_rootEntity, m_gfxLimits) << sm.getCubeShadowBlurYShader(m_rootEntity, m_gfxLimits);

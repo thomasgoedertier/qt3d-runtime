@@ -755,10 +755,8 @@ private:
     void resolveShaderLibraryVersion()
     {
         QString versionString;
-        const QSurfaceFormat &format = Q3DS::graphicsLimits().format;
-        if (format.renderableType() == QSurfaceFormat::OpenGLES)
-            if (format.majorVersion() == 2)
-                versionString = QLatin1Literal("gles2");
+        if (Q3DS::graphicsLimits().useGles2Path)
+            versionString = QLatin1String("gles2");
         m_shaderContextLibraryVersion = versionString;
     }
 
