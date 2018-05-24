@@ -6407,12 +6407,15 @@ void Q3DSSceneManager::updateLightsBuffer(const QVector<Q3DSLightSource> &lights
     if (!uniformBuffer) // no models in the layer -> no buffers -> handle gracefully
         return; // can also get here when no custom material-specific buffers exist for a given layer because it only uses default material, this is normal
 
-    QByteArray lightBufferData((sizeof(Q3DSLightSourceData) * Q3DS_MAX_NUM_LIGHTS) + (4 * sizeof(qint32)), '\0');
+    Q_ASSERT(sizeof(Q3DSLightSourceData) == 240);
+    // uNumLights takes 4 * sizeof(qint32) since the next member must be 4N (16 bytes) aligned
+    const int uNumLightsSize = 4 * sizeof(qint32);
+    QByteArray lightBufferData((sizeof(Q3DSLightSourceData) * Q3DS_MAX_NUM_LIGHTS) + uNumLightsSize, '\0');
     // Set the number of lights
     qint32 *numLights = reinterpret_cast<qint32 *>(lightBufferData.data());
     *numLights = lights.count();
     // Set the lightData
-    Q3DSLightSourceData *lightData = reinterpret_cast<Q3DSLightSourceData *>(lightBufferData.data() + (4 * sizeof(qint32)));
+    Q3DSLightSourceData *lightData = reinterpret_cast<Q3DSLightSourceData *>(lightBufferData.data() + uNumLightsSize);
     for (int i = 0; i < lights.count(); ++i) {
         if (i >= Q3DS_MAX_NUM_LIGHTS)
             break;
@@ -6453,7 +6456,7 @@ void Q3DSSceneManager::updateLightsBuffer(const QVector<Q3DSLightSource> &lights
         // shadowControls
         lightData[i].m_shadowControls = lights[i].shadowControlsParam->value().value<QVector4D>();
         // shadowView
-        lightData[i].m_shadowView = lights[i].shadowViewParam->value().value<QMatrix4x4>();
+        memcpy(lightData[i].m_shadowView, lights[i].shadowViewParam->value().value<QMatrix4x4>().constData(), 16 * sizeof(float));
         // shadowIdx
         lightData[i].m_shadowIdx = lights[i].shadowIdxParam->value().toInt();
     }

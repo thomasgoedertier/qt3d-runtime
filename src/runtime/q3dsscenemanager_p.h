@@ -135,9 +135,10 @@ Q_DECLARE_TYPEINFO(Q3DSLightSource, Q_MOVABLE_TYPE);
 #define Q3DS_MAX_NUM_LIGHTS 16
 #define Q3DS_MAX_NUM_LIGHTS_ES2 8
 
-// note this struct must exactly match the memory layout of the
-// struct sampleLight.glsllib and sampleArea.glsllib. If you make changes here you need
-// to adjust the code in sampleLight.glsllib and sampleArea.glsllib as well
+// note this struct must exactly match the memory layout of the GLSL struct
+// (which is typically in a std140 layout uniform block). If you make changes
+// here you need to adjust the code in funcsampleLightVars/sampleLight.glsllib
+// and funcareaLightVars/sampleArea.glsllib as well.
 struct Q3DSLightSourceData
 {
     QVector4D m_position;
@@ -156,9 +157,9 @@ struct Q3DSLightSourceData
     float m_width; // Specifies the width of the area light surface.
     float m_height; // Specifies the height of the area light surface;
     QVector4D m_shadowControls;
-    QMatrix4x4 m_shadowView;
+    float m_shadowView[16]; // not QMatrix4x4 since that's 68 bytes, we need 64
     qint32 m_shadowIdx;
-    float m_padding1[2];
+    float m_padding[3];
 };
 
 Q_DECLARE_TYPEINFO(Q3DSLightSourceData, Q_MOVABLE_TYPE);
