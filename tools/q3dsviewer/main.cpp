@@ -34,6 +34,7 @@
 #else
 #include <QGuiApplication>
 #endif
+#include <QTimer>
 
 #include "q3dsremotedeploymentmanager.h"
 
@@ -77,6 +78,8 @@ int main(int argc, char *argv[])
                                     QObject::tr("Sets the <port> to listen on in remote connection mode. The default <port> is 36000."),
                                     QObject::tr("port"), QLatin1String("36000"));
     cmdLineParser.addOption(remoteOption);
+    QCommandLineOption autoExitOption({ "x", "exitafter" }, QObject::tr("Exit after <n> seconds."), QObject::tr("n"), QLatin1String("5"));
+    cmdLineParser.addOption(autoExitOption);
     cmdLineParser.process(app);
 
 #if !defined(Q_OS_ANDROID) && !defined(Q_OS_IOS)
@@ -146,6 +149,9 @@ int main(int argc, char *argv[])
         engine->setAutoToggleProfileUi(false);
 #endif
     }
+
+    if (cmdLineParser.isSet(autoExitOption))
+        QTimer::singleShot(cmdLineParser.value(autoExitOption).toInt() * 1000, &app, SLOT(quit()));
 
     int r = app.exec();
 
