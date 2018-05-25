@@ -345,6 +345,9 @@ public:
         for (const Q3DSShaderPreprocessorFeature &ppFeature : inFeatureSet)
             output.append(QLatin1String("#define ") + ppFeature.name + QLatin1String(" ")
                           + (ppFeature.enabled ? QLatin1String("1\n") : QLatin1String("0\n")));
+
+        output.append(QLatin1String("#define MAX_NUM_LIGHTS ") + QString::number(gfxLimits.maxLightsPerLayer) + QLatin1String("\n"));
+        output.append(QLatin1String("#define MAX_AREA_LIGHTS ") + QString::number(gfxLimits.maxLightsPerLayer) + QLatin1String("\n"));
     }
 
     QString getVersionString(const QSurfaceFormat &format) {
