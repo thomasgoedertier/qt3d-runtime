@@ -38,11 +38,100 @@
 #include <Qt3DAnimation/qclipanimator.h>
 #include <Qt3DAnimation/qclock.h>
 #include <Qt3DAnimation/qanimationclip.h>
+#include <Qt3DAnimation/qanimationcallback.h>
+#include <Qt3DAnimation/qchannel.h>
+#include <Qt3DAnimation/qchannelmapper.h>
+#include <Qt3DAnimation/qcallbackmapping.h>
 
 #include <Qt3DCore/QEntity>
 #include <Qt3DRender/QLayer>
 
 QT_BEGIN_NAMESPACE
+
+class Q3DSSlidePositionCallback : public Qt3DAnimation::QAnimationCallback
+{
+public:
+    Q3DSSlidePositionCallback(Q3DSSlide *slide)
+        : m_slide(slide) {}
+
+    void valueChanged(const QVariant &value) override {
+        Q_ASSERT(m_slide);
+
+        const float newValue = value.toFloat();
+        if (qFuzzyCompare(m_previousValue, newValue))
+            return;
+
+        Q3DSSlidePlayer *slidePlayer = m_slide->attached<Q3DSSlideAttached>()->slidePlayer;
+        // TODO: See QT3DS-1302
+        if (!slidePlayer)
+            return;
+
+        slidePlayer->setSlideTime(m_slide, newValue * 1000.0f);
+        m_previousValue = newValue;
+    }
+
+private:
+    Q3DSSlide *m_slide;
+    float m_previousValue = -1.0f;
+};
+
+// Dummy animator for keeping track of the time line for the current slide
+static void attatchPositionCallback(Q3DSSlide *slide)
+{
+    using namespace Qt3DAnimation;
+
+    Q_ASSERT(slide);
+    qint32 startTime = 0.0f; // We always start from 0.0
+    qint32 endTime = 0.0f;
+    Q3DSSlideUtils::getStartAndEndTime(slide, nullptr, &endTime);
+
+    Q3DSSlideAttached *data = slide->attached<Q3DSSlideAttached>();
+    QClipAnimator *animator = data->animator ? data->animator : (data->animator = new QClipAnimator);
+    if (!animator->clock())
+        animator->setClock(new QClock);
+
+    QAnimationClip *clip = animator->clip() ? static_cast<QAnimationClip *>(animator->clip()) : new QAnimationClip;
+
+    const QString channelName = slide->name() + QLatin1String("_timeDummy");
+    QKeyFrame keyFrameStart(QVector2D(startTime / 1000.0f, 0.0f));
+    QKeyFrame keyFrameEnd(QVector2D(endTime / 1000.0f, endTime / 1000.0f));
+
+    // New clip data
+    QAnimationClipData clipData;
+    QChannel channel(channelName);
+    QChannelComponent component;
+    component.appendKeyFrame(keyFrameStart);
+    component.appendKeyFrame(keyFrameEnd);
+    channel.appendChannelComponent(component);
+    clipData.appendChannel(channel);
+
+    if (!animator->channelMapper()) {
+        QChannelMapper *mapper = new QChannelMapper;
+        QCallbackMapping *mapping = new QCallbackMapping;
+        mapping->setChannelName(channelName);
+        mapping->setCallback(QMetaType::Float, new Q3DSSlidePositionCallback(slide));
+        mapper->addMapping(mapping);
+        animator->setChannelMapper(mapper);
+    }
+
+    clip->setClipData(clipData);
+    animator->setClip(clip);
+
+    data->entity->addComponent(animator);
+}
+
+static void detatchPositionCallback(Q3DSSlide *slide)
+{
+    if (!slide)
+        return;
+
+    Q3DSSlideAttached *data = slide->attached<Q3DSSlideAttached>();
+    auto animator = data->animator;
+    if (animator) {
+        Q_ASSERT(!animator->isRunning());
+        slide->attached()->entity->removeComponent(animator);
+    }
+}
 
 void Q3DSSlideUtils::getStartAndEndTime(Q3DSSlide *slide, qint32 *startTime, qint32 *endTime)
 {
@@ -592,12 +681,14 @@ void Q3DSSlidePlayer::handleCurrentSlideChanged(Q3DSSlide *slide,
             // TODO: We probably want to be a bit less brute.
             if (slide) Q_ASSERT(previousSlide->parent() == slide->parent());
             updateAnimators(previousSlide, false, false, 1.0f);
+            detatchPositionCallback(previousSlide);
             m_animationManager->clearAnimations(previousSlide);
         }
     }
 
     if (slide && slideDidChange && isSlideVisible(slide)) {
         processPropertyChanges(slide);
+        attatchPositionCallback(slide);
         m_animationManager->updateAnimations(slide, (m_mode == PlayerMode::Editor));
         if (parentChanged)
             setSlideTime(static_cast<Q3DSSlide *>(slide->parent()), 0.0f);

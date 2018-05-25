@@ -165,7 +165,7 @@ private:
     PlayerType m_type = PlayerType::Slide;
 
     // This class handles animation callback from animationmanager and calls setSlideTime
-    friend class DummyCallback;
+    friend class Q3DSSlidePositionCallback;
 };
 
 class Q3DSV_PRIVATE_EXPORT Q3DSSlideDeck

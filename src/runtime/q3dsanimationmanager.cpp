@@ -532,51 +532,9 @@ void Q3DSAnimationManager::updateAnimationHelper(const AnimationTrackListMap<T *
     }
 }
 
-class DummyCallback : public Qt3DAnimation::QAnimationCallback
-{
-public:
-    DummyCallback(Q3DSSlide *slide)
-        : m_slide(slide) {}
-
-    void valueChanged(const QVariant &value) override {
-        Q_ASSERT(m_slide);
-
-        const float newValue = value.toFloat();
-        if (qFuzzyCompare(m_previousValue, newValue))
-            return;
-
-        Q3DSSlidePlayer *slidePlayer = m_slide->attached<Q3DSSlideAttached>()->slidePlayer;
-        // TODO: See QT3DS-1302
-        if (!slidePlayer)
-            return;
-
-        slidePlayer->setSlideTime(m_slide, newValue * 1000.0f);
-        m_previousValue = newValue;
-    }
-
-private:
-    Q3DSSlide *m_slide;
-    float m_previousValue = -1.0f;
-};
-
 void Q3DSAnimationManager::clearAnimations(Q3DSSlide *slide)
 {
     qCDebug(lcAnim, "Clearing animations for slide (%s)", qPrintable(slide->name()));
-
-    // Clear the old slide animator
-    // TODO: We no longer need this (keep the running check though).
-    static const auto clearSlideAnimator = [](Q3DSSlide *slide) {
-        Q_ASSERT(slide);
-        Q3DSSlideAttached *data = slide->attached<Q3DSSlideAttached>();
-        auto animator = data->animator;
-        if (animator) {
-            Q_ASSERT(!animator->isRunning());
-            slide->attached()->entity->removeComponent(animator);
-        }
-    };
-
-    if (slide)
-        clearSlideAnimator(slide);
 
     Q3DSSlide *masterSlide = static_cast<Q3DSSlide *>(slide->parent());
 
@@ -620,50 +578,6 @@ void Q3DSAnimationManager::clearAnimations(Q3DSSlide *slide)
     cleanUpAnimationData(slide->animations(), slide);
 }
 
-// Dummy animator for keeping track of the time line for the current slide
-void Q3DSAnimationManager::buildClipAnimator(Q3DSSlide *slide)
-{
-    using namespace Qt3DAnimation;
-
-    qint32 startTime = 0.0f; // We always start from 0.0
-    qint32 endTime = 0.0f;
-    Q3DSSlideUtils::getStartAndEndTime(slide, nullptr, &endTime);
-
-    Q3DSSlideAttached *data = slide->attached<Q3DSSlideAttached>();
-    QClipAnimator *animator = data->animator ? data->animator : (data->animator = new QClipAnimator);
-    if (!animator->clock())
-        animator->setClock(new QClock);
-
-    QAnimationClip *clip = animator->clip() ? static_cast<QAnimationClip *>(animator->clip()) : new QAnimationClip;
-
-    const QString channelName = slide->name() + QLatin1String("_timeDummy");
-    QKeyFrame keyFrameStart(QVector2D(startTime / 1000.0f, 0.0f));
-    QKeyFrame keyFrameEnd(QVector2D(endTime / 1000.0f, endTime / 1000.0f));
-
-    // New clip data
-    QAnimationClipData clipData;
-    QChannel channel(channelName);
-    QChannelComponent component;
-    component.appendKeyFrame(keyFrameStart);
-    component.appendKeyFrame(keyFrameEnd);
-    channel.appendChannelComponent(component);
-    clipData.appendChannel(channel);
-
-    if (!animator->channelMapper()) {
-        QChannelMapper *mapper = new QChannelMapper;
-        QCallbackMapping *mapping = new QCallbackMapping;
-        mapping->setChannelName(channelName);
-        mapping->setCallback(QMetaType::Float, new DummyCallback(slide));
-        mapper->addMapping(mapping);
-        animator->setChannelMapper(mapper);
-    }
-
-    clip->setClipData(clipData);
-    animator->setClip(clip);
-
-    data->entity->addComponent(animator);
-}
-
 template <typename T>
 static void insertTrack(T &trackList, const Q3DSAnimationTrack &animTrack, bool overWrite)
 {
@@ -686,8 +600,6 @@ void Q3DSAnimationManager::updateAnimations(Q3DSSlide *slide, bool editorMode)
     Q_ASSERT(slide);
 
     qCDebug(lcAnim, "Updating animations for slide (%s)", qPrintable(slide->name()));
-
-    buildClipAnimator(slide);
 
     Q3DSSlide *masterSlide = static_cast<Q3DSSlide *>(slide->parent());
 
