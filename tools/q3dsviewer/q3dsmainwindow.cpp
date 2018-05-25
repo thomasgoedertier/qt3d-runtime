@@ -109,7 +109,7 @@ Q3DStudioMainWindow::Q3DStudioMainWindow(Q3DSWindow *view, Q3DSRemoteDeploymentM
     }
     QAction *showMatte = viewMenu->addAction(tr("Show Matte"));
     showMatte->setCheckable(true);
-    showMatte->setChecked(false);
+    showMatte->setChecked(view->engine()->viewerSettings()->matteEnabled());
     showMatte->setShortcut(QKeySequence(tr("Ctrl+D")));
     connect(showMatte, &QAction::toggled, [=]() {
         view->engine()->viewerSettings()->setMatteEnabled(showMatte->isChecked());
@@ -120,17 +120,17 @@ Q3DStudioMainWindow::Q3DStudioMainWindow(Q3DSWindow *view, Q3DSRemoteDeploymentM
     scaleModeAction->setMenu(scaleModeMenu);
     QAction *scaleModeCenter = new QAction(tr("Center"));
     scaleModeCenter->setCheckable(true);
-    scaleModeCenter->setChecked(false);
+    scaleModeCenter->setChecked(view->engine()->viewerSettings()->scaleMode() == Q3DSViewerSettings::ScaleModeCenter);
     scaleModeMenu->addAction(scaleModeCenter);
 
     QAction *scaleModeFit = new QAction(tr("Scale to Fit"));
     scaleModeFit->setCheckable(true);
-    scaleModeFit->setChecked(false);
+    scaleModeFit->setChecked(view->engine()->viewerSettings()->scaleMode() == Q3DSViewerSettings::ScaleModeFit);
     scaleModeMenu->addAction(scaleModeFit);
 
     QAction *scaleModeFill = new QAction(tr("Scale to Fill"));
     scaleModeFill->setCheckable(true);
-    scaleModeFill->setChecked(true);
+    scaleModeFill->setChecked(view->engine()->viewerSettings()->scaleMode() == Q3DSViewerSettings::ScaleModeFill);
     scaleModeMenu->addAction(scaleModeFill);
 
     connect(scaleModeFit, &QAction::triggered, [=]() {

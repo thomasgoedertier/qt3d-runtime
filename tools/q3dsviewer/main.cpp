@@ -44,6 +44,8 @@
 #include <private/q3dswindow_p.h>
 #include <private/q3dsutils_p.h>
 
+#include <Qt3DStudioRuntime2/Q3DSViewerSettings>
+
 QT_BEGIN_NAMESPACE
 class Q3DStudioMainWindow;
 QT_END_NAMESPACE
@@ -80,6 +82,18 @@ int main(int argc, char *argv[])
     cmdLineParser.addOption(remoteOption);
     QCommandLineOption autoExitOption({ "x", "exitafter" }, QObject::tr("Exit after <n> seconds."), QObject::tr("n"), QLatin1String("5"));
     cmdLineParser.addOption(autoExitOption);
+    QCommandLineOption scaleModeOption("scalemode",
+                                       QObject::tr("Specifies scaling mode.\n"
+                                       "The default value is 'center'."),
+                                       QObject::tr("center|fit|fill"),
+                                       QStringLiteral("center"));
+    cmdLineParser.addOption(scaleModeOption);
+    QCommandLineOption matteColorOption("mattecolor",
+                                        QObject::tr("Specifies custom matte color\n"
+                                        "using #000000 syntax.\n"
+                                        "For example, white matte: #ffffff"),
+                                        QObject::tr("color"), QStringLiteral("#333333"));
+    cmdLineParser.addOption(matteColorOption);
     cmdLineParser.process(app);
 
 #if !defined(Q_OS_ANDROID) && !defined(Q_OS_IOS)
@@ -123,6 +137,23 @@ int main(int argc, char *argv[])
         // Try and set the source for the engine
         if (!engine->setSource(fn.first()))
             return 0;
+    }
+
+    // Setup Viewer Settings
+    Q3DSViewerSettings *viewerSettings = new Q3DSViewerSettings;
+    engine->setViewerSettings(viewerSettings);
+    viewerSettings->setMatteEnabled(true);
+    if (cmdLineParser.isSet(scaleModeOption)) {
+        const QString scaleMode = cmdLineParser.value(scaleModeOption);
+        if (scaleMode == QStringLiteral("center"))
+            viewerSettings->setScaleMode(Q3DSViewerSettings::ScaleModeCenter);
+        else if (scaleMode == QStringLiteral("fit"))
+            viewerSettings->setScaleMode(Q3DSViewerSettings::ScaleModeFit);
+        else
+            viewerSettings->setScaleMode(Q3DSViewerSettings::ScaleModeFill);
+    }
+    if (cmdLineParser.isSet(matteColorOption)) {
+        viewerSettings->setMatteColor(cmdLineParser.value(matteColorOption));
     }
 
 #ifdef Q3DSVIEWER_WIDGETS
