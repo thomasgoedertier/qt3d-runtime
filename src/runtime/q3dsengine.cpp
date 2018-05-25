@@ -181,39 +181,8 @@ static void initGraphicsLimits(QOpenGLContext *ctx)
     }
 
     QOpenGLFunctions *f = ctx->functions();
-    GLint n;
 
-    // Max number of MRT outputs is typically 8 or so, but may be 4 on some implementations.
-    n = 0;
-    f->glGetIntegerv(GL_MAX_DRAW_BUFFERS, &n);
-    qDebug("  GL_MAX_DRAW_BUFFERS: %d", n);
-    gfxLimits.maxDrawBuffers = n;
-
-    gfxLimits.multisampleTextureSupported = QOpenGLTexture::hasFeature(QOpenGLTexture::TextureMultisample);
-    qDebug("  multisample textures: %s", gfxLimits.multisampleTextureSupported ? "true" : "false");
-
-    auto extensions = ctx->extensions();
-    gfxLimits.extensions = extensions;
-
-    gfxLimits.useGles2Path = ctx->isOpenGLES() && ctx->format().majorVersion() < 3;
-    qDebug("  use feature-limited GLES2 rendering path: %s", gfxLimits.useGles2Path ? "true" : "false");
-
-    if (gfxLimits.useGles2Path) {
-        gfxLimits.shaderTextureLodSupported = extensions.contains("GL_EXT_shader_texture_lod");
-        gfxLimits.packedDepthStencilBufferSupported = extensions.contains("GL_EXT_packed_depth_stencil");
-    } else {
-        gfxLimits.shaderTextureLodSupported = true;
-        gfxLimits.packedDepthStencilBufferSupported = true;
-    }
-    qDebug("  texture lod: %s", gfxLimits.shaderTextureLodSupported ? "true" : "false");
-    qDebug("  packed depth-stencil: %s", gfxLimits.packedDepthStencilBufferSupported ? "true" : "false");
-
-    gfxLimits.norm16TexturesSupported = ctx->isOpenGLES() ? extensions.contains("GL_EXT_texture_norm16") : true;
-    qDebug("  norm16 textures: %s", gfxLimits.norm16TexturesSupported ? "true" : "false");
-
-    qDebug() << "  extensions: " << extensions;
-
-    // version string bonanza for the profiler
+    // version string bonanza for the profiler and driver-specific workarounds
     const char *rendererStr = reinterpret_cast<const char *>(f->glGetString(GL_RENDERER));
     if (rendererStr) {
         gfxLimits.renderer = rendererStr;
@@ -229,6 +198,45 @@ static void initGraphicsLimits(QOpenGLContext *ctx)
         gfxLimits.version = versionStr;
         qDebug("  version: %s", versionStr);
     }
+
+    // Max number of MRT outputs is typically 8 or so, but may be 4 on some implementations.
+    GLint n = 0;
+    f->glGetIntegerv(GL_MAX_DRAW_BUFFERS, &n);
+    gfxLimits.maxDrawBuffers = n;
+
+    gfxLimits.multisampleTextureSupported = QOpenGLTexture::hasFeature(QOpenGLTexture::TextureMultisample);
+
+    gfxLimits.useGles2Path = ctx->isOpenGLES() && ctx->format().majorVersion() < 3;
+
+    auto extensions = ctx->extensions();
+    gfxLimits.extensions = extensions;
+
+    if (gfxLimits.useGles2Path) {
+        gfxLimits.shaderTextureLodSupported = extensions.contains("GL_EXT_shader_texture_lod");
+        gfxLimits.packedDepthStencilBufferSupported = extensions.contains("GL_EXT_packed_depth_stencil");
+    } else {
+        gfxLimits.shaderTextureLodSupported = true;
+        gfxLimits.packedDepthStencilBufferSupported = true;
+    }
+
+    gfxLimits.norm16TexturesSupported = ctx->isOpenGLES() ? extensions.contains("GL_EXT_texture_norm16") : true;
+
+    // now apply some driver-specific overrides
+    if (gfxLimits.vendor.contains(QByteArrayLiteral("Vivante Corporation"))
+        && gfxLimits.version.contains(QByteArrayLiteral("OpenGL ES 3.0")))
+    {
+        qDebug("  found Vivante OpenGL ES 3.0, forcing OpenGL ES 2.0 rendering path");
+        gfxLimits.useGles2Path = true;
+    }
+
+    qDebug("  use feature-limited GLES2 rendering path: %s", gfxLimits.useGles2Path ? "true" : "false");
+    qDebug("  GL_MAX_DRAW_BUFFERS: %d", gfxLimits.maxDrawBuffers);
+    qDebug("  multisample textures: %s", gfxLimits.multisampleTextureSupported ? "true" : "false");
+    qDebug("  texture lod: %s", gfxLimits.shaderTextureLodSupported ? "true" : "false");
+    qDebug("  packed depth-stencil: %s", gfxLimits.packedDepthStencilBufferSupported ? "true" : "false");
+    qDebug("  norm16 textures: %s", gfxLimits.norm16TexturesSupported ? "true" : "false");
+
+    qDebug() << "  extensions: " << extensions;
 
     gfxLimits.format = ctx->format();
 
