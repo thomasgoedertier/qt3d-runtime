@@ -524,29 +524,31 @@ void Q3DSSceneManager::updateSizes(const QSize &size, qreal dpr, const QRect &vi
     });
 }
 
-void Q3DSSceneManager::setCurrentSlide(Q3DSSlide *newSlide, bool fromSlidePlayer)
+void Q3DSSceneManager::setCurrentSlide(Q3DSSlide *newSlide, bool flush)
 {
+    // NOTE: m_currentSlide is update from the slide player...
     if (m_currentSlide == newSlide)
         return;
 
-    // TODO: Workaround to keep the slide test working...
-    if (!fromSlidePlayer) {
-        const int index = m_slidePlayer->slideDeck()->indexOfSlide(newSlide);
-        m_slidePlayer->slideDeck()->setCurrentSlide(index);
-        return;
+    const int index = m_slidePlayer->slideDeck()->indexOfSlide(newSlide);
+    Q_ASSERT(index != -1);
+    m_slidePlayer->slideDeck()->setCurrentSlide(index);
+    if (flush || m_slidePlayer->state() != Q3DSSlidePlayer::PlayerState::Playing) {
+        m_slidePlayer->setSlideTime(newSlide, 0.0f);
+        updateSubTree(m_scene);
     }
-
-    qCDebug(lcScene, "Setting new current slide %s", newSlide->id().constData());
-    m_currentSlide = newSlide;
 }
 
-void Q3DSSceneManager::setComponentCurrentSlide(Q3DSComponentNode *component, Q3DSSlide *newSlide)
+void Q3DSSceneManager::setComponentCurrentSlide(Q3DSSlide *newSlide, bool flush)
 {
-    Q3DSSlideAttached *data = component->masterSlide()->attached<Q3DSSlideAttached>();
+    Q3DSSlideAttached *data = newSlide->attached<Q3DSSlideAttached>();
     const int index = data->slidePlayer->slideDeck()->indexOfSlide(newSlide);
     Q_ASSERT(index != -1);
     data->slidePlayer->slideDeck()->setCurrentSlide(index);
-    qCDebug(lcScene, "Setting new current slide %s for component %s", newSlide->id().constData(), component->id().constData());
+    if (flush || data->slidePlayer->state() != Q3DSSlidePlayer::PlayerState::Playing) {
+        data->slidePlayer->setSlideTime(newSlide, 0.0f);
+        updateSubTree(m_scene);
+    }
 }
 
 void Q3DSSceneManager::setLayerCaching(bool enabled)
@@ -637,7 +639,7 @@ Q3DSSceneManager::Scene Q3DSSceneManager::buildScene(Q3DSUipPresentation *presen
     m_scene = m_presentation->scene();
     m_masterSlide = m_presentation->masterSlide();
     m_currentSlide = nullptr;
-    m_pendingNodeVisibility.clear();
+    m_pendingObjectVisibility.clear();
     m_pendingSubPresLayers.clear();
     m_pendingSubPresImages.clear();
     m_subPresentations.clear();
@@ -1923,7 +1925,7 @@ Q3DSCameraNode *Q3DSSceneManager::findFirstCamera(Q3DSLayerNode *layer3DS)
             if (obj->type() == Q3DSGraphObject::Camera) {
                 Q3DSCameraNode *cam = static_cast<Q3DSCameraNode *>(obj);
                 // ### should use globalVisibility (which is only set in buildLayerCamera first...)
-                const bool active = cam->flags().testFlag(Q3DSNode::Active);;
+                const bool active = (cam->attached() && cam->attached()->visibilityTag == Q3DSGraphObjectAttached::Visible);
                 if (active) {
                     // Check if camera is on the current slide
                     Q3DSComponentNode *component = cam->attached() ? cam->attached()->component : nullptr;
@@ -3188,7 +3190,7 @@ void Q3DSSceneManager::buildLayerQuadEntity(Q3DSLayerNode *layer3DS, Qt3DCore::Q
     Qt3DCore::QEntity *layerQuadEntity = new Qt3DCore::QEntity(parentEntity);
     layerQuadEntity->setObjectName(QObject::tr("compositor for %1").arg(QString::fromUtf8(layer3DS->id())));
     data->compositorEntity = layerQuadEntity;
-    if (!layer3DS->flags().testFlag(Q3DSNode::Active))
+    if (layer3DS->attached()->visibilityTag == Q3DSGraphObjectAttached::Hidden)
         layerQuadEntity->setEnabled(false);
 
     // QPlaneMesh works here because the compositor shader is provided by
@@ -5522,7 +5524,7 @@ void Q3DSSceneManager::updateEffectStatus(Q3DSLayerNode *layer3DS)
     for (int i = 0; i < count; ++i) {
         Q3DSEffectInstance *eff3DS = layerData->effectData.effects[i];
         Q3DSEffectAttached *effData = static_cast<Q3DSEffectAttached *>(eff3DS->attached());
-        if (eff3DS->active()) {
+        if (effData->visibilityTag == Q3DSGraphObjectAttached::Visible) {
             ++activeEffectCount;
             if (activeEffectCount == 1)
                 firstActiveIndex = i;
@@ -5559,7 +5561,7 @@ void Q3DSSceneManager::updateEffectStatus(Q3DSLayerNode *layer3DS)
         Qt3DRender::QAbstractTexture *prevOutput = nullptr;
         for (int i = 0; i < count; ++i) {
             Q3DSEffectInstance *eff3DS = layerData->effectData.effects[i];
-            if (eff3DS->active()) {
+            if (eff3DS->attached()->visibilityTag == Q3DSGraphObjectAttached::Visible) {
                 Q3DSSceneManager::EffectActivationFlags flags = 0;
                 if (i == firstActiveIndex)
                     flags |= Q3DSSceneManager::EffIsFirst;
@@ -6701,9 +6703,15 @@ void Q3DSSceneManager::updateSubTree(Q3DSGraphObject *obj)
         }
     }
 
-    for (auto it = m_pendingNodeVisibility.constBegin(); it != m_pendingNodeVisibility.constEnd(); ++it)
-        setNodeVisibility(it.key(), it.value());
-    m_pendingNodeVisibility.clear();
+    for (auto it = m_pendingObjectVisibility.constBegin(); it != m_pendingObjectVisibility.constEnd(); ++it) {
+        if (it.key()->isNode() && it.key()->type() != Q3DSGraphObject::Layer && it.key()->type() != Q3DSGraphObject::Camera) {
+            setNodeVisibility(static_cast<Q3DSNode *>(it.key()), it.value());
+        } else {
+            // NOTE: Special handling for e.g., Camera, layers and effects.
+            it.key()->attached()->visibilityTag = (it.value() ? Q3DSGraphObjectAttached::Visible : Q3DSGraphObjectAttached::Hidden);
+        }
+    }
+    m_pendingObjectVisibility.clear();
 }
 
 static Q3DSComponentNode *findNextComponentParent(Q3DSComponentNode *component)
@@ -7084,7 +7092,7 @@ void Q3DSSceneManager::updateNodeFromChangeFlags(Q3DSNode *node, Qt3DCore::QTran
             // Drop whatever is queued since that was based on now-invalid
             // input. (important when entering slides, where eyball property
             // changes get processed after an initial visit of all objects)
-            m_pendingNodeVisibility.remove(node);
+            m_pendingObjectVisibility.remove(node);
 
             const bool active = node->flags().testFlag(Q3DSNode::Active);
             setNodeVisibility(node, active);
@@ -7112,9 +7120,11 @@ void Q3DSSceneManager::setNodeVisibility(Q3DSNode *node, bool visible)
         return;
 
     if (!visible) {
+        data->visibilityTag = Q3DSGraphObjectAttached::Hidden;
         data->entity->removeComponent(layerData->opaqueTag);
         data->entity->removeComponent(layerData->transparentTag);
     } else {
+        data->visibilityTag = Q3DSGraphObjectAttached::Visible;
         if (node->type() != Q3DSGraphObject::Text)
             data->entity->addComponent(layerData->opaqueTag);
         data->entity->addComponent(layerData->transparentTag);
@@ -7298,7 +7308,7 @@ void Q3DSSceneManager::changeSlideByName(Q3DSGraphObject *sceneOrComponent, cons
     if (targetSlide) {
         if (component) {
             if (m_currentSlide->objects().contains(component) || m_masterSlide->objects().contains(component))
-                setComponentCurrentSlide(component, targetSlide);
+                setComponentCurrentSlide(targetSlide);
             else
                 component->setCurrentSlide(targetSlide);
         } else {

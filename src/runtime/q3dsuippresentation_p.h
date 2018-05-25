@@ -184,6 +184,12 @@ public:
     Qt3DCore::QEntity *entity = nullptr;
     Q3DSComponentNode *component = nullptr;
 
+    enum VisibilityTag
+    {
+        Visible,
+        Hidden
+    };
+
     enum FrameDirtyFlag {
         GroupDirty = 0x01,
         LightDirty = 0x02,
@@ -204,6 +210,7 @@ public:
     };
     Q_DECLARE_FLAGS(FrameDirtyFlags, FrameDirtyFlag)
 
+    VisibilityTag visibilityTag = Visible;
     FrameDirtyFlags frameDirty;
     int frameChangeFlags = 0;
 };

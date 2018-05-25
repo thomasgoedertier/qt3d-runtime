@@ -666,8 +666,8 @@ public:
 
     Q3DSSlide *currentSlide() const { return m_currentSlide; }
     Q3DSSlide *masterSlide() const { return m_masterSlide; }
-    void setCurrentSlide(Q3DSSlide *slide, bool fromSlidePlayer = false);
-    void setComponentCurrentSlide(Q3DSComponentNode *component, Q3DSSlide *newSlide);
+    void setCurrentSlide(Q3DSSlide *slide, bool flush = false);
+    void setComponentCurrentSlide(Q3DSSlide *newSlide, bool flush = false);
 
     void setLayerCaching(bool enabled);
 
@@ -869,7 +869,7 @@ private:
     Q3DSTextRenderer *m_textRenderer;
     QSet<Q3DSGraphObject *> m_subTreeWithDirtyLights;
     QSet<Q3DSDefaultMaterial *> m_pendingDefMatRebuild;
-    QHash<Q3DSNode *, bool> m_pendingNodeVisibility;
+    QHash<Q3DSGraphObject *, bool> m_pendingObjectVisibility;
     Qt3DRender::QLayer *m_fsQuadTag = nullptr;
     QStack<Q3DSComponentNode *> m_componentNodeStack;
     QSet<Q3DSLayerNode *> m_pendingSubPresLayers;

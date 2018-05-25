@@ -255,7 +255,7 @@ void tst_Q3DSSlides::setPresentationSlides()
     QVERIFY(!isNodeVisible(m_slide4Cone));
 
     // Set second slide
-    m_sceneManager->setCurrentSlide(m_presentationSlide2);
+    m_sceneManager->setCurrentSlide(m_presentationSlide2, true);
     // Verify second slide state
     QCOMPARE(player->duration(), 10000);
     // MasterCylinder should be visible
@@ -266,7 +266,7 @@ void tst_Q3DSSlides::setPresentationSlides()
     QVERIFY(!isNodeVisible(m_slide1Rect));
 
     // Go back to first slide
-    m_sceneManager->setCurrentSlide(m_presentationSlide1);
+    m_sceneManager->setCurrentSlide(m_presentationSlide1, true);
     // Check first slide state
     QCOMPARE(player->duration(), 10000);
     // MasterCylinder should be visible
@@ -278,7 +278,7 @@ void tst_Q3DSSlides::setPresentationSlides()
     QVERIFY(!isNodeVisible(m_slide2Sphere));
 
     // Set 3rd Slide (with Component)
-    m_sceneManager->setCurrentSlide(m_presentationSlide3);
+    m_sceneManager->setCurrentSlide(m_presentationSlide3, true);
     QCOMPARE(player->duration(), 10000);
     // MasterCylinder should be visible
     QVERIFY(isNodeVisible(m_masterCylinder));
@@ -290,7 +290,7 @@ void tst_Q3DSSlides::setPresentationSlides()
     QVERIFY(!isNodeVisible(m_slide1Rect));
 
     // Set 4th Slide (from Component)
-    m_sceneManager->setCurrentSlide(m_presentationSlide4);
+    m_sceneManager->setCurrentSlide(m_presentationSlide4, true);
     QCOMPARE(player->duration(), 12028);
     // MasterCylinder should be visible
     QVERIFY(isNodeVisible(m_masterCylinder));
@@ -304,7 +304,7 @@ void tst_Q3DSSlides::setPresentationSlides()
     QVERIFY(isNodeVisible(m_slide4Cone));
 
     // Set the same slide again
-    m_sceneManager->setCurrentSlide(m_presentationSlide4);
+    m_sceneManager->setCurrentSlide(m_presentationSlide4, true);
     QCOMPARE(player->duration(), 12028);
     // MasterCylinder should be visible
     QVERIFY(isNodeVisible(m_masterCylinder));
@@ -321,30 +321,30 @@ void tst_Q3DSSlides::setPresentationSlides()
 void tst_Q3DSSlides::presentationRollback()
 {
     // Go back to first slide
-    m_sceneManager->setCurrentSlide(m_presentationSlide1);
+    m_sceneManager->setCurrentSlide(m_presentationSlide1, true);
 
     // DynamicSphere exists on the master slide (visible by default)
     // DynamicSphere has eyeball set to false on Slides 2 and 4
     QVERIFY(isNodeVisible(m_dynamicSphere));
 
     // Go to Second Slide
-    m_sceneManager->setCurrentSlide(m_presentationSlide2);
+    m_sceneManager->setCurrentSlide(m_presentationSlide2, true);
     QVERIFY(!isNodeVisible(m_dynamicSphere));
 
     // Go to Third Slide (requires rollback)
-    m_sceneManager->setCurrentSlide(m_presentationSlide3);
+    m_sceneManager->setCurrentSlide(m_presentationSlide3, true);
     QVERIFY(isNodeVisible(m_dynamicSphere));
 
     // Go to Forth Slide
-    m_sceneManager->setCurrentSlide(m_presentationSlide4);
+    m_sceneManager->setCurrentSlide(m_presentationSlide4, true);
     QVERIFY(!isNodeVisible(m_dynamicSphere));
 
     // Go to another slide with eyeball false (no rollback)
-    m_sceneManager->setCurrentSlide(m_presentationSlide2);
+    m_sceneManager->setCurrentSlide(m_presentationSlide2, true);
     QVERIFY(!isNodeVisible(m_dynamicSphere));
 
     // Make sure rollback still works
-    m_sceneManager->setCurrentSlide(m_presentationSlide1);
+    m_sceneManager->setCurrentSlide(m_presentationSlide1, true);
     QVERIFY(isNodeVisible(m_dynamicSphere));
 
 }
@@ -352,7 +352,7 @@ void tst_Q3DSSlides::presentationRollback()
 void tst_Q3DSSlides::setComponentSlides()
 {
     // Set the presentation slide to Slide3 (contains component)
-    m_sceneManager->setCurrentSlide(m_presentationSlide3);
+    m_sceneManager->setCurrentSlide(m_presentationSlide3, true);
     QVERIFY(isNodeVisible(m_slide3Component));
 
     // Initial slide should be m_componentSlide1
@@ -362,28 +362,28 @@ void tst_Q3DSSlides::setComponentSlides()
     QVERIFY(!isNodeVisible(m_componentSlide3Component));
 
     // Switch to Component Slide 2 (text)
-    m_sceneManager->setComponentCurrentSlide(m_slide3Component, m_componentSlide2);
+    m_sceneManager->setComponentCurrentSlide(m_componentSlide2, true);
     QVERIFY(!isNodeVisible(m_componentMasterCube));
     QVERIFY(!isNodeVisible(m_componentSlide1Cone));
     QVERIFY(isNodeVisible(m_componentSlide2Text));
     QVERIFY(!isNodeVisible(m_componentSlide3Component));
 
     // Switch back to Component Slide 1
-    m_sceneManager->setComponentCurrentSlide(m_slide3Component, m_componentSlide1);
+    m_sceneManager->setComponentCurrentSlide(m_componentSlide1, true);
     QVERIFY(isNodeVisible(m_componentMasterCube));
     QVERIFY(isNodeVisible(m_componentSlide1Cone));
     QVERIFY(!isNodeVisible(m_componentSlide2Text));
     QVERIFY(!isNodeVisible(m_componentSlide3Component));
 
     // Switch to Component Slide 3 (deep component)
-    m_sceneManager->setComponentCurrentSlide(m_slide3Component, m_componentSlide3);
+    m_sceneManager->setComponentCurrentSlide(m_componentSlide3, true);
     QVERIFY(isNodeVisible(m_componentMasterCube));
     QVERIFY(!isNodeVisible(m_componentSlide1Cone));
     QVERIFY(!isNodeVisible(m_componentSlide2Text));
     QVERIFY(isNodeVisible(m_componentSlide3Component));
 
     // Switch to same slide
-    m_sceneManager->setComponentCurrentSlide(m_slide3Component, m_componentSlide3);
+    m_sceneManager->setComponentCurrentSlide(m_componentSlide3, true);
     QVERIFY(isNodeVisible(m_componentMasterCube));
     QVERIFY(!isNodeVisible(m_componentSlide1Cone));
     QVERIFY(!isNodeVisible(m_componentSlide2Text));
@@ -393,23 +393,23 @@ void tst_Q3DSSlides::setComponentSlides()
 void tst_Q3DSSlides::componentRollback()
 {
     // Set the presentation slide to Slide3 (contains component)
-    m_sceneManager->setCurrentSlide(m_presentationSlide3);
+    m_sceneManager->setCurrentSlide(m_presentationSlide3, true);
     QVERIFY(isNodeVisible(m_slide3Component));
 
     // Set first slide which contains "Master Cube"
-    m_sceneManager->setComponentCurrentSlide(m_slide3Component, m_componentSlide1);
+    m_sceneManager->setComponentCurrentSlide(m_componentSlide1, true);
     QVERIFY(isNodeVisible(m_componentMasterCube));
 
     // Second slide sets Master Cube eyeball to false
-    m_sceneManager->setComponentCurrentSlide(m_slide3Component, m_componentSlide2);
+    m_sceneManager->setComponentCurrentSlide(m_componentSlide2, true);
     QVERIFY(!isNodeVisible(m_componentMasterCube));
 
     // Switch back to first slide (requires rollback)
-    m_sceneManager->setComponentCurrentSlide(m_slide3Component, m_componentSlide1);
+    m_sceneManager->setComponentCurrentSlide(m_componentSlide1, true);
     QVERIFY(isNodeVisible(m_componentMasterCube));
 
     // Move to slide 3 (no change)
-    m_sceneManager->setComponentCurrentSlide(m_slide3Component, m_componentSlide3);
+    m_sceneManager->setComponentCurrentSlide(m_componentSlide3, true);
     QVERIFY(isNodeVisible(m_componentMasterCube));
 }
 
@@ -418,9 +418,9 @@ void tst_Q3DSSlides::setDeepComponentSlides()
     // Deep Component is a nested component Slide
     // PresentationSlide3 -> ComponentSlide3 -> DeepComponentSlide[n]
     // Set the presentation slide to Slide3 (contains component)
-    m_sceneManager->setCurrentSlide(m_presentationSlide3);
+    m_sceneManager->setCurrentSlide(m_presentationSlide3, true);
     QVERIFY(isNodeVisible(m_slide3Component));
-    m_sceneManager->setComponentCurrentSlide(m_slide3Component, m_componentSlide3);
+    m_sceneManager->setComponentCurrentSlide(m_componentSlide3, true);
     QVERIFY(isNodeVisible(m_componentSlide3Component));
 
     // At this point the first slide of deep component should be active
@@ -430,19 +430,19 @@ void tst_Q3DSSlides::setDeepComponentSlides()
     QVERIFY(!isNodeVisible(m_deepComponentSlide2Moon));
 
     // Switch to second deep component slide
-    m_sceneManager->setComponentCurrentSlide(m_componentSlide3Component, m_deepComponentSlide2);
+    m_sceneManager->setComponentCurrentSlide(m_deepComponentSlide2, true);
     QVERIFY(!isNodeVisible(m_deepComponentSlide1Cylinder));
     QVERIFY(isNodeVisible(m_deepComponentSlide2Sphere));
     QVERIFY(isNodeVisible(m_deepComponentSlide2Moon));
 
     // Switch back to deep component first slide
-    m_sceneManager->setComponentCurrentSlide(m_componentSlide3Component, m_deepComponentSlide1);
+    m_sceneManager->setComponentCurrentSlide(m_deepComponentSlide1, true);
     QVERIFY(isNodeVisible(m_deepComponentSlide1Cylinder));
     QVERIFY(!isNodeVisible(m_deepComponentSlide2Sphere));
     QVERIFY(!isNodeVisible(m_deepComponentSlide2Moon));
 
     // Set same slide again
-    m_sceneManager->setComponentCurrentSlide(m_componentSlide3Component, m_deepComponentSlide1);
+    m_sceneManager->setComponentCurrentSlide(m_deepComponentSlide1, true);
     QVERIFY(isNodeVisible(m_deepComponentSlide1Cylinder));
     QVERIFY(!isNodeVisible(m_deepComponentSlide2Sphere));
     QVERIFY(!isNodeVisible(m_deepComponentSlide2Moon));
@@ -453,21 +453,21 @@ void tst_Q3DSSlides::deepComponentRollback()
     // Deep Component is a nested component Slide
     // PresentationSlide3 -> ComponentSlide3 -> DeepComponentSlide[n]
     // Set the presentation slide to Slide3 (contains component)
-    m_sceneManager->setCurrentSlide(m_presentationSlide3);
+    m_sceneManager->setCurrentSlide(m_presentationSlide3, true);
     QVERIFY(isNodeVisible(m_slide3Component));
-    m_sceneManager->setComponentCurrentSlide(m_slide3Component, m_componentSlide3);
+    m_sceneManager->setComponentCurrentSlide(m_componentSlide3, true);
     QVERIFY(isNodeVisible(m_componentSlide3Component));
 
     // First slide has "master text" active
-    m_sceneManager->setComponentCurrentSlide(m_componentSlide3Component, m_deepComponentSlide1);
+    m_sceneManager->setComponentCurrentSlide(m_deepComponentSlide1, true);
     QVERIFY(isNodeVisible(m_deepComponentMasterText));
 
     // Second slide has eyeball set to false for master text
-    m_sceneManager->setComponentCurrentSlide(m_componentSlide3Component, m_deepComponentSlide2);
+    m_sceneManager->setComponentCurrentSlide(m_deepComponentSlide2, true);
     QVERIFY(!isNodeVisible(m_deepComponentMasterText));
 
     // Switch back to first slide to perform rollback
-    m_sceneManager->setComponentCurrentSlide(m_componentSlide3Component, m_deepComponentSlide1);
+    m_sceneManager->setComponentCurrentSlide(m_deepComponentSlide1, true);
     QVERIFY(isNodeVisible(m_deepComponentMasterText));
 }
 
@@ -480,13 +480,13 @@ void tst_Q3DSSlides::setNonVisibleComponentSlides()
     // does not have un-intended side effects for the active slides.
 
     // Select a presentation slide that does not have a component
-    m_sceneManager->setCurrentSlide(m_presentationSlide1);
+    m_sceneManager->setCurrentSlide(m_presentationSlide1, true);
     QVERIFY(!isNodeVisible(m_slide3Component));
 
     // m_slide3Component is only visible on m_presentationSlide3
     // change m_slide3Component's slides and make sure the contents
     // do not become visible.
-    m_sceneManager->setComponentCurrentSlide(m_slide3Component, m_componentSlide1);
+    m_sceneManager->setComponentCurrentSlide(m_componentSlide1, true);
     QVERIFY(!isNodeVisible(m_componentMasterCube));
     QVERIFY(!isNodeVisible(m_componentSlide1Cone));
     QVERIFY(!isNodeVisible(m_componentSlide2Text));
@@ -496,7 +496,7 @@ void tst_Q3DSSlides::setNonVisibleComponentSlides()
     QVERIFY(!isNodeVisible(m_deepComponentSlide2Moon));
     QVERIFY(!isNodeVisible(m_deepComponentMasterText));
 
-    m_sceneManager->setComponentCurrentSlide(m_slide3Component, m_componentSlide2);
+    m_sceneManager->setComponentCurrentSlide(m_componentSlide2, true);
     QVERIFY(!isNodeVisible(m_componentMasterCube));
     QVERIFY(!isNodeVisible(m_componentSlide1Cone));
     QVERIFY(!isNodeVisible(m_componentSlide2Text));
@@ -506,7 +506,7 @@ void tst_Q3DSSlides::setNonVisibleComponentSlides()
     QVERIFY(!isNodeVisible(m_deepComponentSlide2Moon));
     QVERIFY(!isNodeVisible(m_deepComponentMasterText));
 
-    m_sceneManager->setComponentCurrentSlide(m_slide3Component, m_componentSlide3);
+    m_sceneManager->setComponentCurrentSlide(m_componentSlide3, true);
     QVERIFY(!isNodeVisible(m_componentMasterCube));
     QVERIFY(!isNodeVisible(m_componentSlide1Cone));
     QVERIFY(!isNodeVisible(m_componentSlide2Text));
@@ -517,7 +517,7 @@ void tst_Q3DSSlides::setNonVisibleComponentSlides()
     QVERIFY(!isNodeVisible(m_deepComponentMasterText));
 
     // also change deep compoents slides (now active in component slide3)
-    m_sceneManager->setComponentCurrentSlide(m_componentSlide3Component, m_deepComponentSlide1);
+    m_sceneManager->setComponentCurrentSlide(m_deepComponentSlide1, true);
     QVERIFY(!isNodeVisible(m_componentMasterCube));
     QVERIFY(!isNodeVisible(m_componentSlide1Cone));
     QVERIFY(!isNodeVisible(m_componentSlide2Text));
@@ -527,7 +527,7 @@ void tst_Q3DSSlides::setNonVisibleComponentSlides()
     QVERIFY(!isNodeVisible(m_deepComponentSlide2Moon));
     QVERIFY(!isNodeVisible(m_deepComponentMasterText));
 
-    m_sceneManager->setComponentCurrentSlide(m_componentSlide3Component, m_deepComponentSlide2);
+    m_sceneManager->setComponentCurrentSlide(m_deepComponentSlide2, true);
     QVERIFY(!isNodeVisible(m_componentMasterCube));
     QVERIFY(!isNodeVisible(m_componentSlide1Cone));
     QVERIFY(!isNodeVisible(m_componentSlide2Text));
@@ -538,7 +538,7 @@ void tst_Q3DSSlides::setNonVisibleComponentSlides()
     QVERIFY(!isNodeVisible(m_deepComponentMasterText));
 
     // Now make component visible by switching to slide 3
-    m_sceneManager->setCurrentSlide(m_presentationSlide3);
+    m_sceneManager->setCurrentSlide(m_presentationSlide3, true);
     QVERIFY(isNodeVisible(m_slide3Component));
     QVERIFY(isNodeVisible(m_componentMasterCube));
     QVERIFY(!isNodeVisible(m_componentSlide1Cone));
@@ -550,7 +550,7 @@ void tst_Q3DSSlides::setNonVisibleComponentSlides()
     QVERIFY(!isNodeVisible(m_deepComponentMasterText));
 
     // make sure that they go away again
-    m_sceneManager->setCurrentSlide(m_presentationSlide1);
+    m_sceneManager->setCurrentSlide(m_presentationSlide1, true);
     QVERIFY(!isNodeVisible(m_slide3Component));
     QVERIFY(!isNodeVisible(m_componentMasterCube));
     QVERIFY(!isNodeVisible(m_componentSlide1Cone));
@@ -566,7 +566,7 @@ void tst_Q3DSSlides::testTimeLineVisibility()
 {
     // Select a presentation slide that has items with different starttimes
     // and endtimes than the slide they are on
-    m_sceneManager->setCurrentSlide(m_presentationSlide5);
+    m_sceneManager->setCurrentSlide(m_presentationSlide5, true);
 
     QVERIFY(isNodeVisible(m_masterCylinder));
     QVERIFY(isNodeVisible(m_dynamicSphere));

@@ -3387,7 +3387,6 @@ void Q3DSComponentNode::setCurrentSlide(Q3DSSlide *slide)
     if (m_currentSlide == slide)
         return;
 
-    qCDebug(lcUip, "Setting new current slide %s", slide->id().constData());
     m_currentSlide = slide;
 }
 

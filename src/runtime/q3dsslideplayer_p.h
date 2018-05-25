@@ -136,13 +136,13 @@ private:
     void setInternalState(PlayerState state);
     void onDurationChanged(float duration);
     void onSlideFinished(Q3DSSlide *slide);
+    void setSlideTime(Q3DSSlide *slide, float time, bool parentVisible = true);
 
     void handleCurrentSlideChanged(Q3DSSlide *slide,
                                    Q3DSSlide *previousSlide,
                                    bool forceUpdate = false);
 
     // TODO: Move out to a "slide manager"?
-    void setSlideTime(Q3DSSlide *slide, float time, bool parentVisible = true);
     void sendPositionChanged(Q3DSSlide *slide, float pos);
     void updateObjectVisibility(Q3DSGraphObject *obj, bool visible);
     bool isSlideVisible(Q3DSSlide *slide);
@@ -166,6 +166,7 @@ private:
 
     // This class handles animation callback from animationmanager and calls setSlideTime
     friend class Q3DSSlidePositionCallback;
+    friend class Q3DSSceneManager;
 };
 
 class Q3DSV_PRIVATE_EXPORT Q3DSSlideDeck
