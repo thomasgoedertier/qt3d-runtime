@@ -131,10 +131,6 @@ struct Q3DSLightSource
 
 Q_DECLARE_TYPEINFO(Q3DSLightSource, Q_MOVABLE_TYPE);
 
-// these are our current shader limits
-#define Q3DS_MAX_NUM_LIGHTS 16
-#define Q3DS_MAX_NUM_LIGHTS_ES2 8
-
 // note this struct must exactly match the memory layout of the GLSL struct
 // (which is typically in a std140 layout uniform block). If you make changes
 // here you need to adjust the code in funcsampleLightVars/sampleLight.glsllib

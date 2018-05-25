@@ -211,14 +211,6 @@ static void initGraphicsLimits(QOpenGLContext *ctx)
     auto extensions = ctx->extensions();
     gfxLimits.extensions = extensions;
 
-    if (gfxLimits.useGles2Path) {
-        gfxLimits.shaderTextureLodSupported = extensions.contains("GL_EXT_shader_texture_lod");
-        gfxLimits.packedDepthStencilBufferSupported = extensions.contains("GL_EXT_packed_depth_stencil");
-    } else {
-        gfxLimits.shaderTextureLodSupported = true;
-        gfxLimits.packedDepthStencilBufferSupported = true;
-    }
-
     gfxLimits.norm16TexturesSupported = ctx->isOpenGLES() ? extensions.contains("GL_EXT_texture_norm16") : true;
 
     // now apply some driver-specific overrides
@@ -229,7 +221,18 @@ static void initGraphicsLimits(QOpenGLContext *ctx)
         gfxLimits.useGles2Path = true;
     }
 
+    if (gfxLimits.useGles2Path) {
+        gfxLimits.shaderTextureLodSupported = extensions.contains("GL_EXT_shader_texture_lod");
+        gfxLimits.packedDepthStencilBufferSupported = extensions.contains("GL_EXT_packed_depth_stencil");
+        gfxLimits.maxLightsPerLayer = 8;
+    } else {
+        gfxLimits.shaderTextureLodSupported = true;
+        gfxLimits.packedDepthStencilBufferSupported = true;
+        gfxLimits.maxLightsPerLayer = 16;
+    }
+
     qDebug("  use feature-limited GLES2 rendering path: %s", gfxLimits.useGles2Path ? "true" : "false");
+    qDebug("  max lights per layer: %d", gfxLimits.maxLightsPerLayer);
     qDebug("  GL_MAX_DRAW_BUFFERS: %d", gfxLimits.maxDrawBuffers);
     qDebug("  multisample textures: %s", gfxLimits.multisampleTextureSupported ? "true" : "false");
     qDebug("  texture lod: %s", gfxLimits.shaderTextureLodSupported ? "true" : "false");

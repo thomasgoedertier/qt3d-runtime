@@ -4248,14 +4248,13 @@ void Q3DSSceneManager::buildModelMaterial(Q3DSModelNode *model3DS)
     for (auto light : lights)
         lightNodes.append(light->lightNodes);
 
-    const int lightNodeLimit = !m_gfxLimits.useGles2Path ? Q3DS_MAX_NUM_LIGHTS : Q3DS_MAX_NUM_LIGHTS_ES2;
-    if (lightNodes.count() > lightNodeLimit) {
+    if (lightNodes.count() > m_gfxLimits.maxLightsPerLayer) {
         qCWarning(lcPerf, "Default material for model %s got %d lights, shader input truncated to %d",
-                  model3DS->id().constData(), lightNodes.count(), lightNodeLimit);
+                  model3DS->id().constData(), lightNodes.count(), m_gfxLimits.maxLightsPerLayer);
         // This is what the shader generator will see so truncate this. That
         // some calculations below may still use all the lights does not
         // matters so much.
-        lightNodes.resize(lightNodeLimit);
+        lightNodes.resize(m_gfxLimits.maxLightsPerLayer);
     }
 
     for (Q3DSModelAttached::SubMesh &sm : modelData->subMeshes) {
@@ -6326,7 +6325,7 @@ QVector<Qt3DRender::QParameter*> Q3DSSceneManager::prepareSeparateLightUniforms(
 {
     QVector<Qt3DRender::QParameter*> params;
     for (int i = 0; i < allLights.size(); ++i) {
-        if (i >= Q3DS_MAX_NUM_LIGHTS_ES2)
+        if (i >= m_gfxLimits.maxLightsPerLayer)
             break;
 
         const QString uniformPrefix = lightsUniformName + QStringLiteral("[") + QString::number(i) + QStringLiteral("].");
@@ -6410,14 +6409,14 @@ void Q3DSSceneManager::updateLightsBuffer(const QVector<Q3DSLightSource> &lights
     Q_ASSERT(sizeof(Q3DSLightSourceData) == 240);
     // uNumLights takes 4 * sizeof(qint32) since the next member must be 4N (16 bytes) aligned
     const int uNumLightsSize = 4 * sizeof(qint32);
-    QByteArray lightBufferData((sizeof(Q3DSLightSourceData) * Q3DS_MAX_NUM_LIGHTS) + uNumLightsSize, '\0');
+    QByteArray lightBufferData((sizeof(Q3DSLightSourceData) * m_gfxLimits.maxLightsPerLayer) + uNumLightsSize, '\0');
     // Set the number of lights
     qint32 *numLights = reinterpret_cast<qint32 *>(lightBufferData.data());
     *numLights = lights.count();
     // Set the lightData
     Q3DSLightSourceData *lightData = reinterpret_cast<Q3DSLightSourceData *>(lightBufferData.data() + uNumLightsSize);
     for (int i = 0; i < lights.count(); ++i) {
-        if (i >= Q3DS_MAX_NUM_LIGHTS)
+        if (i >= m_gfxLimits.maxLightsPerLayer)
             break;
         lightData[i].m_position = lights[i].positionParam->value().value<QVector4D>();
         lightData[i].m_direction = lights[i].directionParam->value().value<QVector3D>().toVector4D();

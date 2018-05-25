@@ -61,6 +61,7 @@ struct Q3DSGraphicsLimits {
     QSet<QByteArray> extensions;
     QSurfaceFormat format;
     bool useGles2Path = false;
+    int maxLightsPerLayer = 16;
 };
 
 Q_DECLARE_TYPEINFO(Q3DSGraphicsLimits, Q_MOVABLE_TYPE);
