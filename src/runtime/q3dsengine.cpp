@@ -214,9 +214,9 @@ static void initGraphicsLimits(QOpenGLContext *ctx)
     gfxLimits.norm16TexturesSupported = ctx->isOpenGLES() ? extensions.contains("GL_EXT_texture_norm16") : true;
 
     // now apply some driver-specific overrides
-    if (gfxLimits.vendor.contains(QByteArrayLiteral("Vivante Corporation"))
-        && gfxLimits.version.contains(QByteArrayLiteral("OpenGL ES 3.0")))
-    {
+    const bool vivante = gfxLimits.vendor.contains(QByteArrayLiteral("Vivante Corporation"))
+        && gfxLimits.version.contains(QByteArrayLiteral("OpenGL ES 3.0"));
+    if (vivante) {
         qDebug("  found Vivante OpenGL ES 3.0, forcing OpenGL ES 2.0 rendering path");
         gfxLimits.useGles2Path = true;
     }
@@ -229,6 +229,13 @@ static void initGraphicsLimits(QOpenGLContext *ctx)
         gfxLimits.shaderTextureLodSupported = true;
         gfxLimits.packedDepthStencilBufferSupported = true;
         gfxLimits.maxLightsPerLayer = 16;
+    }
+
+    if (vivante) {
+        // In addition to not being able to handle GLES3.0 stuff, having a lot of uniforms
+        // makes the i.MX6 Vivante driver do weird things. Avoid this by reducing the max
+        // number of lights (and so the number of uniforms).
+        gfxLimits.maxLightsPerLayer = 2;
     }
 
     qDebug("  use feature-limited GLES2 rendering path: %s", gfxLimits.useGles2Path ? "true" : "false");
