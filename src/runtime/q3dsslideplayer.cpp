@@ -846,10 +846,10 @@ void Q3DSSlidePlayer::processPropertyChanges(Q3DSSlide *currentSlide)
     const auto &propertyChanges = currentSlide->propertyChanges();
     for (auto it = propertyChanges.cbegin(); it != propertyChanges.cend(); ++it) {
         std::find_if((*it)->cbegin(), (*it)->cend(), [it](const Q3DSPropertyChange &propChange) {
+            it.key()->applyPropertyChanges(*it.value());
             if (propChange.name() == QLatin1String("eyeball"))
                 it.key()->notifyPropertyChanges(*it.value());
 
-            it.key()->applyPropertyChanges(*it.value());
             return false;
         });
     }
