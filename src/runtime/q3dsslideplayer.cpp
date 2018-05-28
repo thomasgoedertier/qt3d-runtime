@@ -54,7 +54,7 @@ void Q3DSSlideUtils::getStartAndEndTime(Q3DSSlide *slide, qint32 *startTime, qin
     // Check if there are nodes  from the parent slide that has property changes on this slide.
     if (Q3DSSlide *p = static_cast<Q3DSSlide *>(slide->parent())) {
         for (auto *obj : p->objects()) {
-            if (!obj->isNode())
+            if (!obj->isNode() || obj->state() != Q3DSGraphObject::Enabled)
                 continue;
 
             // Look for property updates on "this" slide.
@@ -83,7 +83,7 @@ void Q3DSSlideUtils::getStartAndEndTime(Q3DSSlide *slide, qint32 *startTime, qin
     // Now look for the endtime on nodes on this slide.
     for (const auto obj : slide->objects()) {
         // Skip non-node types.
-        if (!obj->isNode())
+        if (!obj->isNode() || obj->state() != Q3DSGraphObject::Enabled)
             continue;
 
         // We collect both layer endtimes (if any) and object endtimes in one go.
@@ -238,7 +238,7 @@ void Q3DSSlidePlayer::sceneReady()
 
             const auto &objects = slide->objects();
             std::find_if(objects.constBegin(), objects.constEnd(), [](Q3DSGraphObject *obj) {
-                if (obj->type() == Q3DSGraphObject::Component) {
+                if (obj->type() == Q3DSGraphObject::Component && obj->state() == Q3DSGraphObject::Enabled) {
                     Q3DSComponentNode *comp = static_cast<Q3DSComponentNode *>(obj);
                     Q3DSSlide *compSlide = comp->currentSlide();
                     Q3DSSlidePlayer *player = compSlide->attached<Q3DSSlideAttached>()->slidePlayer;
@@ -410,7 +410,7 @@ void Q3DSSlidePlayer::setSlideDeck(Q3DSSlideDeck *slideDeck)
         }
 
         for (auto object : slide->objects()) {
-            if (object->type() == Q3DSGraphObject::Component)
+            if (object->type() == Q3DSGraphObject::Component && object->state() == Q3DSGraphObject::Enabled)
                 prepareComponentsOnSlide(slide, object);
         }
     };
@@ -571,7 +571,7 @@ void Q3DSSlidePlayer::handleCurrentSlideChanged(Q3DSSlide *slide,
 
         const auto &objects = slide->objects();
         std::find_if(objects.constBegin(), objects.constEnd(), [](Q3DSGraphObject *obj) {
-            if (obj->type() == Q3DSGraphObject::Component) {
+            if (obj->type() == Q3DSGraphObject::Component && obj->state() == Q3DSGraphObject::Enabled) {
                 Q3DSComponentNode *comp = static_cast<Q3DSComponentNode *>(obj);
                 Q3DSSlide *compSlide = comp->currentSlide();
                 Q3DSSlideAttached *data = compSlide->attached<Q3DSSlideAttached>();
@@ -645,7 +645,7 @@ void Q3DSSlidePlayer::handleCurrentSlideChanged(Q3DSSlide *slide,
                 return;
             const auto &objects = slide->objects();
             std::find_if(objects.constBegin(), objects.constEnd(), [](Q3DSGraphObject *obj) {
-                if (obj->type() == Q3DSGraphObject::Component) {
+                if (obj->type() == Q3DSGraphObject::Component && obj->state() == Q3DSGraphObject::Enabled) {
                     Q3DSComponentNode *comp = static_cast<Q3DSComponentNode *>(obj);
                     Q3DSSlide *compSlide = comp->currentSlide();
                     Q3DSSlideAttached *data = compSlide->attached<Q3DSSlideAttached>();
@@ -691,6 +691,9 @@ void Q3DSSlidePlayer::setSlideTime(Q3DSSlide *slide, float time, bool parentVisi
     const bool forceUpdate = parentVisible &&
         (qFuzzyCompare(time, 0.0f) || qFuzzyCompare(time, -1.0f));
     for (Q3DSGraphObject *obj : slide->objects()) {
+        if (obj->state() != Q3DSGraphObject::Enabled)
+            continue;
+
         const bool isEffect = (obj->type() == Q3DSGraphObject::Effect);
         if ((!obj->isNode() && !isEffect) || obj->type() == Q3DSGraphObject::Camera || obj->type() == Q3DSGraphObject::Layer)
             continue;
@@ -796,7 +799,7 @@ void Q3DSSlidePlayer::processPropertyChanges(Q3DSSlide *currentSlide)
     QHash<Q3DSGraphObject *, Q3DSPropertyChangeList> dynamicPropertyChanges;
     const auto &tracks = currentSlide->animations();
     std::find_if(tracks.cbegin(), tracks.cend(), [&dynamicPropertyChanges](const Q3DSAnimationTrack &track) {
-        if (track.isDynamic()) {
+        if (track.isDynamic() && track.target()->state() == Q3DSGraphObject::Enabled) {
             const auto foundIt = dynamicPropertyChanges.constFind(track.target());
             Q3DSPropertyChangeList changeList;
             if (foundIt != dynamicPropertyChanges.constEnd())
@@ -813,7 +816,10 @@ void Q3DSSlidePlayer::processPropertyChanges(Q3DSSlide *currentSlide)
     if (currentSlide->parent()) {
         Q3DSSlide *parent = static_cast<Q3DSSlide *>(currentSlide->parent());
         const auto &objects = parent->objects();
-        std::find_if(objects.constBegin(), objects.constEnd(), [](Q3DSGraphObject *object){
+        std::find_if(objects.constBegin(), objects.constEnd(), [this](Q3DSGraphObject *object){
+            if (object->state() != Q3DSGraphObject::Enabled)
+                return false;
+
             if (!object->isNode() && object->type() != Q3DSGraphObject::Effect)
                 return false;
 

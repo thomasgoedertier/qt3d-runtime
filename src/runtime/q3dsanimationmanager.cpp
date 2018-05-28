@@ -589,7 +589,7 @@ void Q3DSAnimationManager::clearAnimations(Q3DSSlide *slide)
 
     const auto cleanUpAnimationData = [this](const QVector<Q3DSAnimationTrack> &anims, Q3DSSlide *slide) {
         for (const Q3DSAnimationTrack &track : anims) {
-            if (!m_activeTargets.contains(track.target()))
+            if (!m_activeTargets.contains(track.target()) || track.target()->state() != Q3DSGraphObject::Enabled)
                 continue;
 
             Q3DSGraphObjectAttached *data = track.target()->attached();
@@ -717,6 +717,9 @@ void Q3DSAnimationManager::updateAnimations(Q3DSSlide *slide, bool editorMode)
         const QVector<Q3DSAnimationTrack> &anims = slide->animations();
         for (const Q3DSAnimationTrack &animTrack : anims) {
             Q3DSGraphObject *target = animTrack.target();
+
+            if (target->state() != Q3DSGraphObject::Enabled)
+                continue;
 
             switch (target->type()) {
             case Q3DSGraphObject::DefaultMaterial:

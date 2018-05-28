@@ -128,6 +128,7 @@ Q3DSUipPresentation *Q3DSUipParser::createPresentation(const QString &presentati
     resolveReferences(m_presentation->masterSlide());
 
     m_presentation->resolveAliases();
+    m_presentation->updateObjectStateForSubTrees();
 
     qint64 loadTime = elapsedSinceSetSource();
     qCDebug(lcPerf, "Presentation %s loaded in %lld ms", qPrintable(m_presentation->sourceFile()), loadTime);

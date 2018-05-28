@@ -3878,6 +3878,18 @@ void Q3DSUipPresentation::resolveAliases()
 
 }
 
+void Q3DSUipPresentation::updateObjectStateForSubTrees()
+{
+    forAllObjectsInSubTree(scene(), [](Q3DSGraphObject *obj) {
+        if (obj->type() == Q3DSGraphObject::Layer && !static_cast<Q3DSLayerNode *>(obj)->sourcePath().isEmpty()) {
+            // Sub-presentation, set all objects to be inactive
+            forAllObjectsInSubTree(obj, [](Q3DSGraphObject *obj) {
+                obj->m_state = Q3DSGraphObject::Disabled;
+            });
+        }
+    });
+}
+
 QHash<QString, bool> &Q3DSUipPresentation::imageTransparencyHash()
 {
     return m_imageTransparencyHash;
