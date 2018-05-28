@@ -3910,8 +3910,12 @@ QString Q3DSUipPresentation::assetFileName(const QString &xmlFileNameRef, int *p
             *part = idx;
         rawName = rawName.left(pos);
     } else {
+        // If no part is specified return -1 so the mesh parser can decide which
+        // part is the best.  This will usually be 1 but for older versions
+        // of the editor multi-meshes were used for revisions, and we would
+        // need to return the last part in the list, not the first.
         if (part)
-            *part = 1;
+            *part = -1;
     }
 
     rawName.replace('\\', '/');
