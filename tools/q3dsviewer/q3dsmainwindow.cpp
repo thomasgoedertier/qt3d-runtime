@@ -169,7 +169,7 @@ Q3DStudioMainWindow::Q3DStudioMainWindow(Q3DSWindow *view, Q3DSRemoteDeploymentM
     });
 
     viewMenu->addMenu(scaleModeMenu);
-    viewMenu->addAction(tr("Toggle Full Scree&n"), this, [this] {
+    viewMenu->addAction(tr("Full Scree&n"), this, [this] {
         Qt::WindowStates s = windowState();
         s.setFlag(Qt::WindowFullScreen, !s.testFlag(Qt::WindowFullScreen));
         setWindowState(s);
