@@ -326,7 +326,7 @@ static const int LAYER_CACHING_THRESHOLD = 4;
                     LayerFilter {
                         Layer { id: compositorTag }
                         layers: [ compositorTag ]
-                        ...
+                        ... // see buildCompositor()
                     }
 
                     // Profiling gui framegraph (once only, not included again for subpresentations)
@@ -429,7 +429,7 @@ static const int LAYER_CACHING_THRESHOLD = 4;
         }
     ]
 
-    Compute pass for texture prefiltering is provided as a separate technique with "type" == "bsdfPrefilter".
+    Compute pass for texture prefiltering is provided as a separate technique with "type" == "bsdfPrefilter". [not implemented]
 
 */
 
@@ -479,9 +479,9 @@ void Q3DSSceneManager::updateSizes(const QSize &size, qreal dpr, const QRect &vi
         normalizedViewport = QRectF(0, 0, 1, 1);
     else
         normalizedViewport = QRectF(viewport.x() / qreal(size.width()),
-                              viewport.y() / qreal(size.height()),
-                              viewport.width() / qreal(size.width()),
-                              viewport.height() / qreal(size.height()));
+                                    viewport.y() / qreal(size.height()),
+                                    viewport.width() / qreal(size.width()),
+                                    viewport.height() / qreal(size.height()));
 
     if (m_viewportData.viewport)
        m_viewportData.viewport->setNormalizedRect(normalizedViewport);
@@ -3291,7 +3291,9 @@ void Q3DSSceneManager::updateLayerCompositorProgram(Q3DSLayerNode *layer3DS)
 void Q3DSSceneManager::buildCompositor(Qt3DRender::QFrameGraphNode *parent, Qt3DCore::QEntity *parentEntity)
 {
     // Simplified view (excluding advanced blending-specific nodes):
-    // Viewport - CameraSelector - ClearBuffers - NoDraw
+    // MatteRoot - NoDraw
+    //           - [Clear - NoDraw]
+    // Viewport - CameraSelector - [Scissor] - ClearBuffers - NoDraw
     //                           - LayerFilter for layer quad entity 0
     //                           - LayerFilter for layer quad entity 1
     //                             ...
@@ -3433,15 +3435,17 @@ void Q3DSSceneManager::buildCompositor(Qt3DRender::QFrameGraphNode *parent, Qt3D
                 new Qt3DRender::QNoDraw(bgBlit);
 
                 // Layer size dependent properties have to be updated dynamically.
-                auto setSizeDependentValues = [bgBlit, layer3DS, data](Q3DSLayerNode *changedLayer) {
+                auto setSizeDependentValues = [bgBlit, layer3DS, data, this](Q3DSLayerNode *changedLayer) {
                     if (changedLayer != layer3DS)
                         return;
 
                     if (data->layerSize.isEmpty())
                         return;
 
+                    const QPointF pos = data->layerPos + m_viewportData.viewportRect.topLeft() * m_viewportData.viewportDpr;
+
                     // this assumes QTBUG-65123 is fixed
-                    QRectF srcRect(data->layerPos, data->layerSize);
+                    QRectF srcRect(pos, data->layerSize);
                     bgBlit->setSourceRect(srcRect);
                     QRectF dstRect(QPointF(0, 0), data->layerSize);
                     bgBlit->setDestinationRect(dstRect);
