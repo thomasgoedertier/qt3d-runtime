@@ -117,5 +117,6 @@
         <file alias="res/effectlib/gles2/shadowMapping.glsllib">../../res/effectlib/gles2/shadowMapping.glsllib</file>
         <file alias="res/effectlib/gles2/SSAOCustomMaterial.glsllib">../../res/effectlib/gles2/SSAOCustomMaterial.glsllib</file>
         <file alias="res/effectlib/gles2/tangentSpaceNormalTexture.glsllib">../../res/effectlib/gles2/tangentSpaceNormalTexture.glsllib</file>
+        <file alias="res/effectlib/gles2/defaultMaterialFresnel.glsllib">../../res/effectlib/gles2/defaultMaterialFresnel.glsllib</file>
     </qresource>
 </RCC>
