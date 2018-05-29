@@ -110,10 +110,13 @@ Q3DSUipPresentation *Q3DSUipParser::createPresentation(const QString &presentati
 
     QXmlStreamReader *r = reader();
     if (r->readNextStartElement()) {
-        if (r->name() == QStringLiteral("UIP") && r->attributes().value(QLatin1String("version")) == QStringLiteral("3"))
+        if (r->name() == QStringLiteral("UIP")
+                && (r->attributes().value(QLatin1String("version")) == QStringLiteral("4")
+                    || r->attributes().value(QLatin1String("version")) == QStringLiteral("3"))) {
             parseUIP();
-        else
-            r->raiseError(QObject::tr("Not a UIP version 3 document."));
+        } else {
+            r->raiseError(QObject::tr("UIP version is too low, and is no longer supported."));
+        }
     }
 
     if (r->hasError()) {
