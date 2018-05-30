@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<UIP version="3" >
+<UIP version="4" >
 	<Project >
 		<ProjectSettings author="" company="" presentationWidth="800" presentationHeight="480" maintainAspect="False" >
 			<CustomColors count="16" >#ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff</CustomColors>
@@ -51,7 +51,7 @@
 					<Add ref="#Text6" name="Text6" font="TitilliumWeb-Regular" position="135.678 -300.019 -8.28656" size="16" textstring="Opacity control&#10;(Variant type)" />
 					<Add ref="#Text8" name="Text8" font="TitilliumWeb-Regular" position="-428.683 -290.118 0" size="16" textstring="Scale control" />
 					<Add ref="#Cube2" name="Cube2" controlledproperty="$cameraRotInput rotation" position="409.919 -177.535 0" sourcepath="#Cube" />
-					<Add ref="#Default_003" controlledproperty="$vec3Input2 diffuse" />
+					<Add ref="#Default_003" controlledproperty="" />
 					<Add ref="#Text3" name="Text3" font="TitilliumWeb-Regular" position="434.456 -304.552 0" size="16" textstring="Rotation control&#10;Diffuse color control" />
 					<Add ref="#Text4" name="Text4" font="TitilliumWeb-Regular" position="-381.051 290.118 0" size="18" textstring="Directional light color control&#10;Camera xy rotation control" />
 					<Add ref="#Rectangle" name="Rectangle" position="0 -400 20" rotation="90.5 0 0" scale="11.0468 7.99191 9.12813" sourcepath="#Rectangle" />
