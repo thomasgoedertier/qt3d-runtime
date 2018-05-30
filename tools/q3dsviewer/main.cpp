@@ -63,7 +63,6 @@ int main(int argc, char *argv[])
 #else
     QGuiApplication app(argc, argv);
 #endif
-    QSurfaceFormat::setDefaultFormat(Q3DS::surfaceFormat());
 
     QCommandLineParser cmdLineParser;
     cmdLineParser.addHelpOption();
@@ -95,6 +94,8 @@ int main(int argc, char *argv[])
                                         QObject::tr("color"), QStringLiteral("#333333"));
     cmdLineParser.addOption(matteColorOption);
     cmdLineParser.process(app);
+
+    QSurfaceFormat::setDefaultFormat(Q3DS::surfaceFormat());
 
 #if !defined(Q_OS_ANDROID) && !defined(Q_OS_IOS)
     bool noWidgets = cmdLineParser.isSet(noMainWindowOption);
