@@ -28,6 +28,7 @@
 ****************************************************************************/
 
 #include "q3dstextrenderer_p.h"
+#include "q3dsscenemanager_p.h"
 #include "q3dsuippresentation_p.h"
 #include "q3dslogging_p.h"
 
@@ -42,6 +43,12 @@
 #include <qmath.h>
 
 QT_BEGIN_NAMESPACE
+
+Q3DSTextRenderer::Q3DSTextRenderer(Q3DSSceneManager *sceneManager)
+    : m_sceneManager(sceneManager)
+{
+
+}
 
 void Q3DSTextRenderer::registerFonts(const QStringList &dirs)
 {
@@ -117,7 +124,7 @@ Q3DSTextRenderer::Font *Q3DSTextRenderer::findFont(const QString &name)
 
 void Q3DSTextRenderer::updateFontInfo(Font *font, Q3DSTextNode *text3DS)
 {
-    font->font.setPointSizeF(qreal(text3DS->size()));
+    font->font.setPixelSize(text3DS->size());
     font->font.setLetterSpacing(QFont::AbsoluteSpacing, qreal(text3DS->tracking()));
 }
 
@@ -132,7 +139,7 @@ QRectF Q3DSTextRenderer::textBoundingBox(Q3DSTextNode *text3DS, const QFontMetri
     for (int i = 0; i < lineList.size(); ++i) {
         const float width = float(fm.width(lineList[i]));
         const float right = float(fm.boundingRect(lineList[i]).right());
-        const float lineWidth = qMax(width, right);
+        const float lineWidth = qMax(width, right) + float(m_sceneManager->m_viewportData.viewportDpr);
         (*lineWidths)[i] = lineWidth;
         if (float(boundingBox.width()) < lineWidth)
             boundingBox.setWidth(qreal(lineWidth));

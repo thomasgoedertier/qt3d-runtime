@@ -3443,7 +3443,11 @@ int Q3DSTextNode::mapChangeFlags(const Q3DSPropertyChangeList &changeList)
     for (auto it = changeList.cbegin(), itEnd = changeList.cend(); it != itEnd; ++it) {
         if (it->nameStr() == QStringLiteral("textstring")
                 || it->nameStr() == QStringLiteral("leading")
-                || it->nameStr() == QStringLiteral("tracking"))
+                || it->nameStr() == QStringLiteral("tracking")
+                || it->nameStr() == QStringLiteral("size")
+                || it->nameStr() == QStringLiteral("font")
+                || it->nameStr() == QStringLiteral("horzalign")
+                || it->nameStr() == QStringLiteral("vertalign"))
         {
             changeFlags |= TextureImageDepChanges;
         }

@@ -48,12 +48,14 @@
 QT_BEGIN_NAMESPACE
 
 class Q3DSTextNode;
+class Q3DSSceneManager;
 class QFontMetricsF;
 class QPainter;
 
 class Q3DSTextRenderer
 {
 public:
+    Q3DSTextRenderer(Q3DSSceneManager *sceneManager);
     void registerFonts(const QStringList &dirs);
     QSize textImageSize(Q3DSTextNode *text3DS);
     void renderText(QPainter *painter, Q3DSTextNode *text3DS);
@@ -71,6 +73,7 @@ private:
                            const QStringList &lineList, QVector<float> *lineWidths);
 
     QVector<Font> m_fonts;
+    Q3DSSceneManager *m_sceneManager;
 };
 
 QT_END_NAMESPACE

@@ -899,6 +899,7 @@ private:
     friend class Q3DSSlidePlayer;
     friend class Q3DSInputManager;
     friend class Q3DSConsoleCommands;
+    friend class Q3DSTextRenderer;
 };
 
 Q_DECLARE_OPERATORS_FOR_FLAGS(Q3DSSceneManager::SceneBuilderFlags)
