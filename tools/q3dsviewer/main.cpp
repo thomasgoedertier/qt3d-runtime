@@ -143,6 +143,7 @@ int main(int argc, char *argv[])
     Q3DSViewerSettings *viewerSettings = new Q3DSViewerSettings;
     engine->setViewerSettings(viewerSettings);
     viewerSettings->setMatteEnabled(true);
+    viewerSettings->setScaleMode(Q3DSViewerSettings::ScaleModeCenter);
     if (cmdLineParser.isSet(scaleModeOption)) {
         const QString scaleMode = cmdLineParser.value(scaleModeOption);
         if (scaleMode == QStringLiteral("center"))
