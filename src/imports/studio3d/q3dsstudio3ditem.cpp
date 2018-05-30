@@ -121,10 +121,25 @@ QT_BEGIN_NAMESPACE
 */
 
 /*!
-    \qmlsignal Studio3D::presentationReady()
+    \qmlsignal Studio3D::presentationLoaded()
 
     This signal is emitted when the presentation has been loaded and is ready
     to be shown.
+*/
+
+/*!
+    \qmlsignal Studio3D::presentationReady()
+
+    This signal is emitted when the presentation has fully initialized its 3D
+    scene for the first frame.
+
+    The difference to presentationLoaded() is that this signal is emitted only
+    when the asynchronous operations needed to build to 3D scene and the first
+    frame have completed.
+
+    When implementing splash screens via Loader items and the Item::visible
+    property, this is the signal that should be used to trigger hiding the
+    splash screen.
 */
 
 static bool engineCleanerRegistered = false;
@@ -355,12 +370,18 @@ void Q3DSStudio3DItem::createEngine()
                 m_running = true;
                 emit runningChanged();
             }
-            emit presentationReady();
+            emit presentationLoaded();
         });
         connect(m_engine, &Q3DSEngine::nextFrameStarting, this, [this]() {
+            if (m_needsPresReadySignal) {
+                m_needsPresReadySignal = false;
+                emit presentationReady();
+            }
             emit frameUpdate();
         });
     }
+
+    m_needsPresReadySignal = true;
 
     const QString fn = QQmlFile::urlToLocalFileOrQrc(m_source);
     qCDebug(lcStudio3D) << "source is now" << fn;
