@@ -3972,6 +3972,10 @@ Qt3DCore::QEntity *Q3DSSceneManager::buildText(Q3DSTextNode *text3DS, Q3DSLayerN
     data->texture = new Qt3DRender::QTexture2D;
     m_profiler->trackNewObject(data->texture, Q3DSProfiler::Texture2DObject,
                                "Texture for text item %s", text3DS->id().constData());
+    data->texture->setGenerateMipMaps(true);
+    data->texture->setMinificationFilter(Qt3DRender::QAbstractTexture::LinearMipMapLinear);
+    data->texture->setMagnificationFilter(Qt3DRender::QAbstractTexture::Linear);
+
     data->textureImage = new Q3DSTextImage(text3DS, m_textRenderer);
     data->textureImage->setSize(sz);
     data->texture->addTextureImage(data->textureImage);
