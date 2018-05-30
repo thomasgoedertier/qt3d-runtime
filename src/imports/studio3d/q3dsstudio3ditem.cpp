@@ -123,8 +123,8 @@ QT_BEGIN_NAMESPACE
 /*!
     \qmlsignal Studio3D::presentationReady()
 
-    This signal is emitted when the viewer has been initialized and the
-    presentation is ready to be shown.
+    This signal is emitted when the presentation has been loaded and is ready
+    to be shown.
 */
 
 static bool engineCleanerRegistered = false;
@@ -176,8 +176,8 @@ Q3DSPresentationItem *Q3DSStudio3DItem::presentation() const
 /*!
     \qmlproperty bool Studio3D::running
 
-    The value of this property is \c true when the viewer has been initialized
-    and the presentation is running.
+    The value of this property is \c true when the presentation has been loaded
+    and is ready to be shown.
 
     This property is read-only.
 */

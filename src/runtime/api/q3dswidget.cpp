@@ -97,8 +97,8 @@ Q3DSWidget::~Q3DSWidget()
 /*!
     \fn Q3DSWidget::presentationLoaded()
 
-    This signal is emitted when the viewer has been initialized and the
-    presentation is ready to be shown.
+    This signal is emitted when the presentation has been loaded and is ready
+    to be shown.
 */
 
 /*!
@@ -141,8 +141,8 @@ QString Q3DSWidget::error() const
 /*!
     \property Q3DSWidget::running
 
-    The value of this property is \c true when the viewer has been initialized
-    and the presentation is running.
+    The value of this property is \c true when the presentation has been loaded
+    and is ready to be shown.
 
     This property is read-only.
 */
