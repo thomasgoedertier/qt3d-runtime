@@ -159,6 +159,8 @@ Q3DSEngine::Q3DSEngine()
         // Q3DS_DEBUG is set to 1 or higher.
         const bool logValueChanges = qEnvironmentVariableIntValue("Q3DS_DEBUG") >= 1;
         const_cast<QLoggingCategory &>(lcUipProp()).setEnabled(QtDebugMsg, logValueChanges);
+        // same for q3ds.input
+        const_cast<QLoggingCategory &>(lcInput()).setEnabled(QtDebugMsg, logValueChanges);
     }
     setViewerSettings(new Q3DSViewerSettings(this));
 }

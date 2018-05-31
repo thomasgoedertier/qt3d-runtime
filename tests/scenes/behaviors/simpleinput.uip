@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<UIP version="4" >
+	<Project >
+		<ProjectSettings author="" company="" presentationWidth="800" presentationHeight="480" maintainAspect="False" >
+			<CustomColors count="16" >#ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff</CustomColors>
+		</ProjectSettings>
+		<Graph >
+			<Scene id="Scene" backgroundcolor="0.929412 0.956863 0.34902" >
+				<Layer id="Layer" >
+					<Camera id="Camera" />
+					<Light id="Light" />
+					<Model id="Cone" >
+						<Material id="Material_003" />
+					</Model>
+					<Text id="Text2" />
+					<Text id="Text3" />
+					<Model id="Sphere2" >
+						<Material id="Default" name="Default" />
+					</Model>
+				</Layer>
+			</Scene>
+		</Graph>
+		<Logic >
+			<State name="Master Slide" component="#Scene" >
+				<Add ref="#Layer" />
+				<Add ref="#Camera" position="0 -40 -600" rotation="-10 0 -10" />
+				<Add ref="#Light" />
+				<State id="Scene-Slide1" name="Slide1" playmode="Looping" >
+					<Add ref="#Cone" name="Cone" rotation="-47.4815 2.69907 11.9215" sourcepath="#Cone" >
+						<Action id="Cone-Action" eyeball="True" triggerObject="#Cone" event="onPressureDown" targetObject="#Scene" handler="Next Slide" />
+					</Add>
+					<Add ref="#Material_003" diffuse="0.890196 0.341176 0.615686" />
+					<Add ref="#Text2" name="Text2" font="TitilliumWeb-Regular" position="-22.6025 107.143 0" textstring="Press for next slide" />
+				</State>
+				<State id="Scene-Slide2" name="Slide2" initialplaystate="Play" playmode="Stop at end" playthroughto="Previous" >
+					<Add ref="#Text3" name="Text3" font="TitilliumWeb-Regular" position="-0.443962 367.803 0" textstring="Previous slide" />
+					<Add ref="#Sphere2" name="Sphere2" position="-16.1459 261.794 0" sourcepath="#Sphere" >
+						<Action id="Sphere2-Action" eyeball="True" triggerObject="#Sphere2" event="onPressureDown" targetObject="#Scene" handler="Previous Slide" />
+					</Add>
+					<Add ref="#Default" />
+				</State>
+			</State>
+		</Logic>
+	</Project>
+</UIP>

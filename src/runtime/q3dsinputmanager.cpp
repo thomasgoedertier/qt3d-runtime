@@ -34,6 +34,7 @@
 #include <QtGui/QMouseEvent>
 
 #include "q3dsscenemanager_p.h"
+#include "q3dslogging_p.h"
 
 QT_BEGIN_NAMESPACE
 
@@ -46,33 +47,45 @@ Q3DSInputManager::Q3DSInputManager(Q3DSSceneManager *sceneManager, QObject *pare
 
 void Q3DSInputManager::handleMousePressEvent(QMouseEvent *e)
 {
+    qCDebug(lcInput) << "mouse press" << e->pos() << "viewport pos" << convertToViewportSpace(e->pos());
     m_currentState.mousePressed = true;
     PickRequest req(convertToViewportSpace(e->pos()), m_currentState);
-    m_pickRequests.append(req);
+    m_pickRequests.enqueue(req);
 }
 
 void Q3DSInputManager::handleMouseReleaseEvent(QMouseEvent *e)
 {
+    qCDebug(lcInput) << "mouse release" << e->pos() << "viewport pos" << convertToViewportSpace(e->pos());
     m_currentState.mousePressed = false;
     PickRequest req(convertToViewportSpace(e->pos()), m_currentState);
-    m_pickRequests.append(req);
+    m_pickRequests.enqueue(req);
 }
 
 void Q3DSInputManager::handleMouseMoveEvent(QMouseEvent *e)
 {
+    // no scene events for mouse move at the moment so do nothing
+#if 0
     if (!m_isHoverEnabled && !m_currentState.mousePressed)
         return;
 
     PickRequest req(convertToViewportSpace(e->pos()), m_currentState);
-    m_pickRequests.append(req);
+    m_pickRequests.enqueue(req);
+#else
+    Q_UNUSED(e);
+#endif
 }
 
 void Q3DSInputManager::runPicks()
 {
-    for (const auto &p : m_pickRequests)
-        pick(p.pos, p.inputState);
+    if (m_pickRequests.isEmpty())
+        return;
 
-    m_pickRequests.clear();
+    qCDebug(lcInput, "runPicks (%d in queue)", m_pickRequests.count());
+
+    while (!m_pickRequests.isEmpty()) {
+        const PickRequest p = m_pickRequests.dequeue();
+        pick(p.pos, p.inputState);
+    }
 }
 
 void Q3DSInputManager::sendMouseEvent(Q3DSGraphObject *target,
@@ -83,15 +96,13 @@ void Q3DSInputManager::sendMouseEvent(Q3DSGraphObject *target,
     if (!target->attached())
         return;
 
-    const bool isPress = inputState.mousePressed && !m_lastSentState.mousePressed;
-    const bool isRelease = !inputState.mousePressed && m_lastSentState.mousePressed;
-
-    if (isPress)
+    if (inputState.mousePressed) {
+        qCDebug(lcInput) << "  queuing press event on" << target->id();
         m_sceneManager->queueEvent(Q3DSGraphObject::Event(target, Q3DSGraphObjectEvents::pressureDownEvent()));
-    if (isRelease)
+    } else {
+        qCDebug(lcInput) << "  queuing release event on" << target->id();
         m_sceneManager->queueEvent(Q3DSGraphObject::Event(target, Q3DSGraphObjectEvents::pressureUpEvent()));
-
-    m_lastSentState.mousePressed = m_currentState.mousePressed;
+    }
 }
 
 namespace {
@@ -173,25 +184,28 @@ void Q3DSInputManager::castNextRay(Q3DSLayerNode *layer)
     rayCaster->setOrigin(e.origin);
     rayCaster->setLength(e.length);
 
-    if (!m_connectionMap.value(e.eventId)) {
-        QMetaObject::Connection connection = connect(rayCaster, &Qt3DRender::QAbstractRayCaster::hitsChanged, rayCaster,
-                                                     [=](const Qt3DRender::QAbstractRayCaster::Hits &hits)
-        {
-            for (auto hit : hits) {
-                auto node = getNodeForEntity(layer, hit.entity());
-                sendMouseEvent(node, hit, e.inputState);
-            }
-            disconnect(m_connectionMap.value(e.eventId));
-            m_connectionMap.remove(e.eventId);
-            layerData->rayCasterBusy = false;
-            if (!layerData->rayCastQueue.isEmpty()) {
-                // the stupid thing is blocking property notifications so issue the
-                // next raycast after the emit returns
-                QMetaObject::invokeMethod(this, "castNextRay", Qt::QueuedConnection, Q_ARG(Q3DSLayerNode*, layer));
-            }
-        });
-        m_connectionMap.insert(e.eventId, connection);
-    }
+    Q_ASSERT(!m_connectionMap.contains(e.eventId));
+
+    qCDebug(lcInput) << "setting up async raycast for eventId" << e.eventId << "layer" << layer->id();
+    QMetaObject::Connection connection = connect(rayCaster, &Qt3DRender::QAbstractRayCaster::hitsChanged, rayCaster,
+                                                 [=](const Qt3DRender::QAbstractRayCaster::Hits &hits)
+    {
+        qCDebug(lcInput) << "raycast result for eventId" << e.eventId << hits.count() << "hits";
+        for (auto hit : hits) {
+            auto node = getNodeForEntity(layer, hit.entity());
+            qCDebug(lcInput) << "  hit node is" << node->id();
+            sendMouseEvent(node, hit, e.inputState);
+        }
+        disconnect(m_connectionMap.value(e.eventId));
+        m_connectionMap.remove(e.eventId);
+        layerData->rayCasterBusy = false;
+        if (!layerData->rayCastQueue.isEmpty()) {
+            // the stupid thing is blocking property notifications so issue the
+            // next raycast after the emit returns
+            QMetaObject::invokeMethod(this, "castNextRay", Qt::QueuedConnection, Q_ARG(Q3DSLayerNode*, layer));
+        }
+    });
+    m_connectionMap.insert(e.eventId, connection);
 
     layerData->rayCasterBusy = true;
     rayCaster->trigger();
@@ -258,9 +272,13 @@ void Q3DSInputManager::pick(const QPoint &point, const InputState &inputState)
             // OpenGL has inverted Y
             y = -y;
 
+            qCDebug(lcInput) << "raycast for pick" << point << x << y << "on layer" << layer->id() << m_eventId;
+
             // Cast a ray into the layer and get hits
             castRayIntoLayer(layer, QPointF(x, y), inputState, m_eventId);
             m_eventId++;
+        } else {
+            qCDebug(lcInput) << "pick" << point << "does not intersect with layer" << layer->id();
         }
     }
 }

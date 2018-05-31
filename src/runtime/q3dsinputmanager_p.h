@@ -44,6 +44,7 @@
 
 #include <QtCore/QObject>
 #include <QtCore/QSize>
+#include <QtCore/QQueue>
 #include <Qt3DRender/QRayCaster>
 
 QT_BEGIN_NAMESPACE
@@ -100,10 +101,9 @@ private:
         QPoint pos;
         InputState inputState;
     };
-    QVector<PickRequest> m_pickRequests;
+    QQueue<PickRequest> m_pickRequests;
 
     InputState m_currentState;
-    InputState m_lastSentState;
 };
 
 QT_END_NAMESPACE
