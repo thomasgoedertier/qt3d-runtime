@@ -3894,6 +3894,73 @@ void Q3DSUipPresentation::updateObjectStateForSubTrees()
     });
 }
 
+void Q3DSUipPresentation::addImplicitPropertyChanges()
+{
+    // TODO: There might be other cases where we need to generate the property changes,
+    // this only deals with the start and end times for now.
+    forAllObjectsInSubTree(scene(), [](Q3DSGraphObject *obj) {
+        if ((obj->type() == Q3DSGraphObject::Slide && !obj->parent()) || obj->type() == Q3DSGraphObject::Component) {
+            const bool isComponent = (obj->type() == Q3DSGraphObject::Component);
+            Q3DSSlide *master = isComponent ? static_cast<Q3DSComponentNode *>(obj)->masterSlide() : static_cast<Q3DSSlide *>(obj);
+            Q3DSSlide *slide = static_cast<Q3DSSlide *>(master->firstChild());
+            while (slide) {
+                for (auto o : master->objects()) {
+                    if (!o->isNode())
+                        continue;
+
+                    auto propChanges = slide->propertyChanges();
+                    const auto foundIt = propChanges.constFind(o);
+
+                    struct StartAndEndTime {
+                        qint32 hasStart = false;
+                        qint32 hasEnd = false;
+                        const qint32 defaultStart = 0;
+                        const qint32 defaultEnd = 10000;
+                    } startAndEndTime;
+
+                    if (foundIt != propChanges.cend()) {
+                        std::find_if(foundIt.value()->cbegin(), foundIt.value()->cend(), [&startAndEndTime](const Q3DSPropertyChange &change) {
+                            if (startAndEndTime.hasStart && startAndEndTime.hasEnd)
+                                return true;
+
+                            if (change.name() == QLatin1String("starttime"))
+                                startAndEndTime.hasStart = true;
+                            else if (change.name() == QLatin1String("endtime"))
+                                startAndEndTime.hasEnd = true;
+
+                            return false;
+                        });
+                    }
+
+                    // No prop change for object, then add default values 0s and 10s
+                    if (!startAndEndTime.hasStart) {
+                        const auto propChange = Q3DSPropertyChange::fromVariant(QLatin1String("starttime"), QVariant::fromValue(startAndEndTime.defaultStart));
+                        if (foundIt != propChanges.constEnd()) {
+                            auto propChangeList = slide->takePropertyChanges(o);
+                            propChangeList->append(propChange);
+                            slide->addPropertyChanges(o, propChangeList);
+                        } else {
+                            slide->addPropertyChanges(o, new Q3DSPropertyChangeList({propChange}));
+                        }
+                    }
+
+                    if (!startAndEndTime.hasEnd) {
+                        const auto propChange = Q3DSPropertyChange::fromVariant(QLatin1String("endtime"), QVariant::fromValue(startAndEndTime.defaultEnd));
+                        if (foundIt != propChanges.constEnd()) {
+                            auto propChangeList = slide->takePropertyChanges(o);
+                            propChangeList->append(propChange);
+                            slide->addPropertyChanges(o, propChangeList);
+                        } else {
+                            slide->addPropertyChanges(o, new Q3DSPropertyChangeList({propChange}));
+                        }
+                    }
+                }
+                slide = static_cast<Q3DSSlide *>(slide->nextSibling());
+            }
+        }
+    });
+}
+
 QHash<QString, bool> &Q3DSUipPresentation::imageTransparencyHash()
 {
     return m_imageTransparencyHash;

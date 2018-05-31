@@ -129,6 +129,7 @@ Q3DSUipPresentation *Q3DSUipParser::createPresentation(const QString &presentati
 
     m_presentation->resolveAliases();
     m_presentation->updateObjectStateForSubTrees();
+    m_presentation->addImplicitPropertyChanges();
 
     qint64 loadTime = elapsedSinceSetSource();
     qCDebug(lcPerf, "Presentation %s loaded in %lld ms", qPrintable(m_presentation->sourceFile()), loadTime);

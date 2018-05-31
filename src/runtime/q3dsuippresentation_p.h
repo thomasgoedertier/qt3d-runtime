@@ -2040,6 +2040,7 @@ public:
     }
     void resolveAliases();
     void updateObjectStateForSubTrees();
+    void addImplicitPropertyChanges();
     QHash<QString, bool> &imageTransparencyHash();
 
 private:
