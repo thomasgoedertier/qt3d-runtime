@@ -728,9 +728,17 @@ void Q3DSSlidePlayer::sendPositionChanged(Q3DSSlide *slide, float pos)
     if (!qFuzzyCompare(oldPosition, pos))
         Q_EMIT positionChanged(pos);
 
-    const bool onEOS = (m_data.state == PlayerState::Playing && m_data.pendingState == PlayerState::Playing)
-            && ((m_data.position == 0.0f && m_data.playbackRate < 0.0f)
-                || (m_data.position == duration() && m_data.playbackRate > 0.0f));
+    // Check if we are close enough to the end of playback that we
+    // are unlikely to get another position change
+    float timeLeft = 0.0f;
+    if (m_data.playbackRate < 0.0f)
+        timeLeft = m_data.position;
+    else
+        timeLeft = qMax(0.0f, duration() - m_data.position);
+
+    const bool onEOS = m_data.state == PlayerState::Playing
+            && m_data.pendingState == PlayerState::Playing
+            && timeLeft < 0.1f;
 
     if (onEOS)
         onSlideFinished(slide);
