@@ -31,6 +31,7 @@
 #define Q3DSREMOTEDEPLOYMENTMANAGER_H
 
 #include <QObject>
+#include <QTimer>
 
 QT_BEGIN_NAMESPACE
 
@@ -82,6 +83,9 @@ private:
     int m_port;
     QString m_errorMessage;
     State m_state = LocalProject;
+    QTimer m_connectionInfoTimer;
+    bool m_isReadyToShow = false;
+    bool m_isRemoteProjectLoaded = false;
 };
 
 QT_END_NAMESPACE
