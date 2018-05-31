@@ -3951,7 +3951,7 @@ Qt3DCore::QEntity *Q3DSSceneManager::buildText(Q3DSTextNode *text3DS, Q3DSLayerN
                                                  std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
     text3DS->addEventHandler(QString(), std::bind(&Q3DSSceneManager::handleEvent, this, std::placeholders::_1));
 
-    QSize sz = m_textRenderer->textImageSize(text3DS) * m_viewportData.viewportDpr;
+    QSize sz = m_textRenderer->textImageSize(text3DS);
     if (sz.isEmpty())
         return entity;
 
@@ -4002,7 +4002,7 @@ void Q3DSSceneManager::updateText(Q3DSTextNode *text3DS, bool needsNewImage)
 
     if (needsNewImage) {
         // textstring, leading, tracking
-        const QSize sz = m_textRenderer->textImageSize(text3DS) * m_viewportData.viewportDpr;
+        const QSize sz = m_textRenderer->textImageSize(text3DS);
         if (!sz.isEmpty()) {
             data->mesh->setWidth(sz.width());
             data->mesh->setHeight(sz.height());
