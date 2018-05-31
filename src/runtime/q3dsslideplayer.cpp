@@ -357,6 +357,30 @@ float Q3DSSlidePlayer::position() const
 void Q3DSSlidePlayer::setMode(Q3DSSlidePlayer::PlayerMode mode)
 {
     m_mode = mode;
+    if (!m_data.slideDeck)
+        return;
+
+    Q3DSSlide *currentSlide = m_data.slideDeck->currentSlide();
+    Q_ASSERT(currentSlide);
+
+    const auto notifyComponentPlayers = [mode](Q3DSSlide *slide) {
+        if (!slide)
+            return;
+
+        const auto &objects = slide->objects();
+        std::find_if(objects.constBegin(), objects.constEnd(), [mode](Q3DSGraphObject *obj) {
+            if (obj->type() == Q3DSGraphObject::Component && obj->state() == Q3DSGraphObject::Enabled) {
+                Q3DSComponentNode *comp = static_cast<Q3DSComponentNode *>(obj);
+                Q3DSSlide *compSlide = comp->currentSlide();
+                Q3DSSlidePlayer *player = compSlide->attached<Q3DSSlideAttached>()->slidePlayer;
+                player->setMode(mode);
+            }
+            return false;
+        });
+    };
+    notifyComponentPlayers(static_cast<Q3DSSlide *>(currentSlide->parent()));
+    notifyComponentPlayers(currentSlide);
+
     reload();
 }
 
@@ -476,6 +500,7 @@ void Q3DSSlidePlayer::setSlideDeck(Q3DSSlideDeck *slideDeck)
         if (!compMasterData->slidePlayer) {
             qCDebug(lcSlidePlayer, "No player found for Component \"%s\", adding one", qPrintable(comp->name()));
             compMasterData->slidePlayer = new Q3DSSlidePlayer(m_animationManager, m_sceneManager, comp, this);
+            compMasterData->slidePlayer->setMode(mode());
             compMasterSlide->attached<Q3DSSlideAttached>()->entity = comp->attached()->entity;
             Q3DSSlide *s = static_cast<Q3DSSlide *>(compMasterSlide->firstChild());
             while (s) {
