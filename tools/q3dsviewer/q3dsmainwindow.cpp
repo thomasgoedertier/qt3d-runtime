@@ -58,6 +58,13 @@ Q3DStudioMainWindow::Q3DStudioMainWindow(Q3DSWindow *view, Q3DSRemoteDeploymentM
     styleFile.open(QFile::ReadOnly);
     qApp->setStyleSheet(styleFile.readAll());
 
+    // This timer makes sure that reloads are not called more often than once per second
+    m_refreshTimer.setInterval(1000);
+    m_refreshTimer.setSingleShot(true);
+    connect(&m_refreshTimer, &QTimer::timeout, [this] {
+        m_okToReload = true;
+    });
+
     static const bool enableDebugMenu = qEnvironmentVariableIntValue("Q3DS_DEBUG") >= 1;
 
     QWidget *wrapper = QWidget::createWindowContainer(view);
@@ -98,7 +105,11 @@ Q3DStudioMainWindow::Q3DStudioMainWindow(Q3DSWindow *view, Q3DSRemoteDeploymentM
             remote->state() != Q3DSRemoteDeploymentManager::LocalProject &&
             remote->state() != Q3DSRemoteDeploymentManager::RemoteProject)
             return;
-        view->engine()->setSource(view->engine()->source());
+        if (m_okToReload) {
+            view->engine()->setSource(view->engine()->source());
+            m_refreshTimer.start();
+            m_okToReload = false;
+        }
     });
     fileMenu->addAction(reloadAction);
     addAction(reloadAction);
