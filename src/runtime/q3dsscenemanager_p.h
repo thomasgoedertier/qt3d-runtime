@@ -734,7 +734,8 @@ public:
     void changeSlideByName(Q3DSGraphObject *sceneOrComponent, const QString &name);
     void changeSlideByIndex(Q3DSGraphObject *sceneOrComponent, int index);
     void changeSlideByDirection(Q3DSGraphObject *sceneOrComponent, bool next, bool wrap);
-    void goToTime(Q3DSGraphObject *sceneOrComponent, float milliseconds, bool pause = false);
+    void goToTime(Q3DSGraphObject *sceneOrComponent, float milliseconds);
+    void goToTimeAction(Q3DSGraphObject *sceneOrComponent, float milliseconds, bool pause);
 
     void queueEvent(const Q3DSGraphObject::Event &e);
 

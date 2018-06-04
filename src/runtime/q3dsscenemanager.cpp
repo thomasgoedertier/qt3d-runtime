@@ -7346,7 +7346,18 @@ void Q3DSSceneManager::changeSlideByDirection(Q3DSGraphObject *sceneOrComponent,
     slidePlayer->reload();
 }
 
-void Q3DSSceneManager::goToTime(Q3DSGraphObject *sceneOrComponent, float milliseconds, bool pause)
+void Q3DSSceneManager::goToTime(Q3DSGraphObject *sceneOrComponent, float milliseconds)
+{
+    Q3DSSlidePlayer *slidePlayer = m_slidePlayer;
+    if (sceneOrComponent->type() == Q3DSGraphObject::Component) {
+        slidePlayer = static_cast<Q3DSComponentNode *>(sceneOrComponent)->masterSlide()
+                ->attached<Q3DSSlideAttached>()->slidePlayer;
+    }
+
+    slidePlayer->seek(milliseconds);
+}
+
+void Q3DSSceneManager::goToTimeAction(Q3DSGraphObject *sceneOrComponent, float milliseconds, bool pause)
 {
     Q3DSSlidePlayer *slidePlayer = m_slidePlayer;
     if (sceneOrComponent->type() == Q3DSGraphObject::Component) {
@@ -7628,7 +7639,7 @@ void Q3DSSceneManager::runAction(const Q3DSAction &action)
             bool pause = false;
             if (shouldPause.isValid())
                 Q3DS::convertToBool(&shouldPause.value, &pause);
-            goToTime(action.targetObject, seekTimeMs, pause);
+            goToTimeAction(action.targetObject, seekTimeMs, pause);
         }
     }
         break;
