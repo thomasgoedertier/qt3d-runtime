@@ -3,5 +3,8 @@
         <file>resources/intro/Intro.uia</file>
         <file>resources/intro/Intro.uip</file>
         <file>resources/intro/fonts/TitilliumWeb-Regular.ttf</file>
+        <file>resources/images/open_dialog.png</file>
+        <file>resources/images/open_dialog@2x.png</file>
+        <file>resources/style.qss</file>
     </qresource>
 </RCC>

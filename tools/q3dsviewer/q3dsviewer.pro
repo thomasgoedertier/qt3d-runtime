@@ -3,8 +3,14 @@ QT += 3dstudioruntime2-private
 qtHaveModule(widgets):!boot2qt {
     QT += widgets
     DEFINES += Q3DSVIEWER_WIDGETS
-    SOURCES += q3dsmainwindow.cpp
-    HEADERS += q3dsmainwindow.h
+    SOURCES += \
+        q3dsmainwindow.cpp \
+        q3dsaboutdialog.cpp
+    HEADERS += \
+        q3dsmainwindow.h \
+        q3dsaboutdialog.h
+
+    FORMS += q3dsaboutdialog.ui
 }
 
 SOURCES += main.cpp \
@@ -30,3 +36,4 @@ HEADERS += \
 
 RESOURCES += \
     resources.qrc
+

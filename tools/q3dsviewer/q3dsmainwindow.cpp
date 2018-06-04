@@ -29,6 +29,7 @@
 
 #include "q3dsmainwindow.h"
 #include "q3dsremotedeploymentmanager.h"
+#include "q3dsaboutdialog.h"
 #include <private/q3dswindow_p.h>
 #include <private/q3dsengine_p.h>
 #include <private/q3dsutils_p.h>
@@ -40,6 +41,7 @@
 #include <QMessageBox>
 #include <QFileDialog>
 #include <QFileInfo>
+#include <QApplication>
 
 QT_BEGIN_NAMESPACE
 
@@ -51,6 +53,11 @@ QString Q3DStudioMainWindow::fileFilter()
 Q3DStudioMainWindow::Q3DStudioMainWindow(Q3DSWindow *view, Q3DSRemoteDeploymentManager *remote, QWidget *parent)
     : QMainWindow(parent)
 {
+    // Load and apply stylesheet for the application
+    QFile styleFile(":/resources/style.qss");
+    styleFile.open(QFile::ReadOnly);
+    qApp->setStyleSheet(styleFile.readAll());
+
     static const bool enableDebugMenu = qEnvironmentVariableIntValue("Q3DS_DEBUG") >= 1;
 
     QWidget *wrapper = QWidget::createWindowContainer(view);
@@ -299,7 +306,8 @@ Q3DStudioMainWindow::Q3DStudioMainWindow(Q3DSWindow *view, Q3DSRemoteDeploymentM
 
     QMenu *helpMenu = menuBar()->addMenu(tr("&Help"));
     helpMenu->addAction(tr("&About"), this, [this]() {
-        QMessageBox::about(this, tr("About q3dsviewer"), tr("Qt 3D Studio Viewer 2.0"));
+        Q3DSAboutDialog dialog;
+        dialog.exec();
     });
     helpMenu->addAction(tr("About &Qt"), qApp, &QApplication::aboutQt);
 
