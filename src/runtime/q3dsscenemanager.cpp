@@ -1677,7 +1677,7 @@ void Q3DSSceneManager::setLayerProperties(Q3DSLayerNode *layer3DS)
         setClearColorForClearBuffers(data->clearBuffers, layer3DS);
 
     if (data->compositorEntity) // may not exist if this is still buildLayer()
-        data->compositorEntity->setEnabled(layer3DS->flags().testFlag(Q3DSNode::Active));
+        data->compositorEntity->setEnabled(layer3DS->flags().testFlag(Q3DSNode::Active) && (data->visibilityTag == Q3DSGraphObjectAttached::Visible));
 
     // IBL Probes
     if (!data->iblProbeData.lightProbeProperties) {
@@ -3857,12 +3857,12 @@ void Q3DSSceneManager::updateGlobals(Q3DSNode *node, UpdateGlobalFlags flags)
         // update the global, inherited opacity
         globalOpacity = clampOpacity(parentData->globalOpacity * (node->localOpacity() / 100.0f));
         // update inherited visibility
-        globalVisibility = node->flags().testFlag(Q3DSNode::Active) && parentData->globalVisibility;
+        globalVisibility = node->flags().testFlag(Q3DSNode::Active) && (parentData->visibilityTag == Q3DSGraphObjectAttached::Visible) && parentData->globalVisibility;
     } else {
         if (!flags.testFlag(UpdateGlobalsSkipTransform))
             globalTransform = data->transform->matrix();
         globalOpacity = clampOpacity(node->localOpacity() / 100.0f);
-        globalVisibility = node->flags().testFlag(Q3DSNode::Active);
+        globalVisibility = node->flags().testFlag(Q3DSNode::Active) && (data->visibilityTag == Q3DSGraphObjectAttached::Visible);
     }
 
     if (!flags.testFlag(UpdateGlobalsSkipTransform) && globalTransform != data->globalTransform) {
@@ -6742,10 +6742,36 @@ void Q3DSSceneManager::updateSubTree(Q3DSGraphObject *obj)
 
     for (auto it = m_pendingObjectVisibility.constBegin(); it != m_pendingObjectVisibility.constEnd(); ++it) {
         if (it.key()->isNode() && it.key()->type() != Q3DSGraphObject::Layer && it.key()->type() != Q3DSGraphObject::Camera) {
-            setNodeVisibility(static_cast<Q3DSNode *>(it.key()), it.value());
+            Q3DSNode *node = static_cast<Q3DSNode *>(it.key());
+            const bool visible = (it.value() && node->flags().testFlag(Q3DSNode::Active));
+            it.key()->attached()->visibilityTag = visible ? Q3DSGraphObjectAttached::Visible
+                                                          : Q3DSGraphObjectAttached::Hidden;
+            setNodeVisibility(node, visible);
+        } else if (it.key()->type() == Q3DSGraphObject::Effect){
+            Q3DSEffectInstance *effect = static_cast<Q3DSEffectInstance *>(it.key());
+            it.key()->attached()->visibilityTag = (it.value() && effect->active()) ? Q3DSGraphObjectAttached::Visible
+                                                                                   : Q3DSGraphObjectAttached::Hidden;
+            updateEffectStatus(effect->attached<Q3DSEffectAttached>()->layer3DS);
+        } else if (it.key()->type() == Q3DSGraphObject::Layer) {
+            Q3DSLayerNode *layer3DS = static_cast<Q3DSLayerNode *>(it.key());
+            Q3DSLayerAttached *data = static_cast<Q3DSLayerAttached *>(layer3DS->attached());
+            if (data && data->compositorEntity) { // may not exist if this is still buildLayer()
+                const bool enabled = it.value() && layer3DS->flags().testFlag(Q3DSNode::Active);
+                it.key()->attached()->visibilityTag = enabled ? Q3DSGraphObjectAttached::Visible
+                                                              : Q3DSGraphObjectAttached::Hidden;
+                data->compositorEntity->setEnabled(enabled);
+            }
+        } else if (it.key()->type() == Q3DSGraphObject::Camera) {
+            Q3DSCameraNode *cam3DS = static_cast<Q3DSCameraNode *>(it.key());
+            Q3DSCameraAttached *data = static_cast<Q3DSCameraAttached *>(cam3DS->attached());
+            if (data) {
+                const bool visible = (it.value() && cam3DS->flags().testFlag(Q3DSNode::Active));
+                it.key()->attached()->visibilityTag = visible ? Q3DSGraphObjectAttached::Visible
+                                                              : Q3DSGraphObjectAttached::Hidden;
+                updateLayerCamera(data->layer3DS);
+            }
         } else {
-            // NOTE: Special handling for e.g., Camera, layers and effects.
-            it.key()->attached()->visibilityTag = (it.value() ? Q3DSGraphObjectAttached::Visible : Q3DSGraphObjectAttached::Hidden);
+            Q_UNREACHABLE();
         }
     }
     m_pendingObjectVisibility.clear();
@@ -7131,7 +7157,7 @@ void Q3DSSceneManager::updateNodeFromChangeFlags(Q3DSNode *node, Qt3DCore::QTran
             // changes get processed after an initial visit of all objects)
             m_pendingObjectVisibility.remove(node);
 
-            const bool active = node->flags().testFlag(Q3DSNode::Active);
+            const bool active = (node->flags().testFlag(Q3DSNode::Active) && (node->attached()->visibilityTag == Q3DSGraphObjectAttached::Visible));
             setNodeVisibility(node, active);
         }
         m_wasDirty = true;

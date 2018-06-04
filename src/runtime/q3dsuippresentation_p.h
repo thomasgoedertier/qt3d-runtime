@@ -210,7 +210,7 @@ public:
     };
     Q_DECLARE_FLAGS(FrameDirtyFlags, FrameDirtyFlag)
 
-    VisibilityTag visibilityTag = Visible;
+    VisibilityTag visibilityTag = Hidden;
     FrameDirtyFlags frameDirty;
     int frameChangeFlags = 0;
 };
