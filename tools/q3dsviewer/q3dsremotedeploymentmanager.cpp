@@ -70,7 +70,6 @@ Q3DSRemoteDeploymentManager::Q3DSRemoteDeploymentManager(Q3DSEngine *engine, int
 
 Q3DSRemoteDeploymentManager::~Q3DSRemoteDeploymentManager()
 {
-    m_server->disconnectRemote();
 }
 
 void Q3DSRemoteDeploymentManager::setConnectionPort(int port)
