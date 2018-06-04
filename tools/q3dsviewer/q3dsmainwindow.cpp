@@ -70,7 +70,7 @@ Q3DStudioMainWindow::Q3DStudioMainWindow(Q3DSWindow *view, Q3DSRemoteDeploymentM
         if (remote)
             remote->setState(Q3DSRemoteDeploymentManager::LocalProject);
     };
-    fileMenu->addAction(tr("&Open..."), this, [=] {
+    QAction *openAction = fileMenu->addAction(tr("&Open..."), this, [=] {
         view->engine()->setFlag(Q3DSEngine::EnableProfiling, true);
         open();
     } , QKeySequence::Open);
@@ -78,19 +78,25 @@ Q3DStudioMainWindow::Q3DStudioMainWindow(Q3DSWindow *view, Q3DSRemoteDeploymentM
         view->engine()->setFlag(Q3DSEngine::EnableProfiling, false);
         open();
     });
+    addAction(openAction);
     if (remote)
         fileMenu->addAction(tr("Remote Setup"), this, [remote] {
             remote->showConnectionSetup();
         });
-    fileMenu->addAction(tr("&Reload"), this, [=] {
+    QAction *reloadAction = new QAction(tr("&Reload"), this);
+    reloadAction->setShortcut(QKeySequence::Refresh);
+    connect(reloadAction, &QAction::triggered, [=] (){
         // Don't reload if on the ConnectionInfo screen
         if (remote &&
             remote->state() != Q3DSRemoteDeploymentManager::LocalProject &&
             remote->state() != Q3DSRemoteDeploymentManager::RemoteProject)
             return;
         view->engine()->setSource(view->engine()->source());
-    }, QKeySequence::Refresh);
-    fileMenu->addAction(tr("E&xit"), this, &QWidget::close, QKeySequence::Quit);
+    });
+    fileMenu->addAction(reloadAction);
+    addAction(reloadAction);
+    QAction *exitAction = fileMenu->addAction(tr("E&xit"), this, &QWidget::close, QKeySequence::Quit);
+    addAction(exitAction);
 
     QMenu *viewMenu = menuBar()->addMenu(tr("&View"));
     if (enableDebugMenu) {
@@ -108,6 +114,7 @@ Q3DStudioMainWindow::Q3DStudioMainWindow(Q3DSWindow *view, Q3DSRemoteDeploymentM
         });
     }
     QAction *showMatte = viewMenu->addAction(tr("Show Matte"));
+    addAction(showMatte);
     showMatte->setCheckable(true);
     showMatte->setChecked(view->engine()->viewerSettings()->matteEnabled());
     showMatte->setShortcut(QKeySequence(tr("Ctrl+D")));
@@ -115,6 +122,7 @@ Q3DStudioMainWindow::Q3DStudioMainWindow(Q3DSWindow *view, Q3DSRemoteDeploymentM
         view->engine()->viewerSettings()->setMatteEnabled(showMatte->isChecked());
     });
     QAction *scaleModeAction = new QAction(tr("Scale Mode"));
+    addAction(scaleModeAction);
     scaleModeAction->setShortcut(QKeySequence(tr("Ctrl+Shift+S")));
     QMenu *scaleModeMenu = new QMenu();
     scaleModeAction->setMenu(scaleModeMenu);
@@ -169,25 +177,36 @@ Q3DStudioMainWindow::Q3DStudioMainWindow(Q3DSWindow *view, Q3DSRemoteDeploymentM
     });
 
     viewMenu->addMenu(scaleModeMenu);
-    viewMenu->addAction(tr("Full Scree&n"), this, [this] {
-        Qt::WindowStates s = windowState();
-        s.setFlag(Qt::WindowFullScreen, !s.testFlag(Qt::WindowFullScreen));
-        setWindowState(s);
-    }, QKeySequence::FullScreen);
+    QAction *fullscreenAction = new QAction(tr("Full Scree&n"), this);
+    connect(fullscreenAction, &QAction::triggered, [this]() {
+        if (!windowState().testFlag(Qt::WindowFullScreen)) {
+            showFullScreen();
+            menuBar()->hide();
+        } else {
+            showNormal();
+            menuBar()->show();
+        }
+    });
+    fullscreenAction->setShortcut(QKeySequence::FullScreen);
+    addAction(fullscreenAction);
+    viewMenu->addAction(fullscreenAction);
 
     QMenu *profileSubMenu = new QMenu(tr("&Profile and Debug"));
-    profileSubMenu->addAction(tr("Toggle in-scene &debug view"), this, [view] {
+    QAction *showDebugView = profileSubMenu->addAction(tr("Toggle in-scene &debug view"), this, [view] {
         Q3DSEngine *engine = view->engine();
         engine->setProfileUiVisible(!engine->isProfileUiVisible());
     }, Qt::Key_F10);
-    profileSubMenu->addAction(tr("Scale in-scene debug view up"), this, [view] {
+    addAction(showDebugView);
+    QAction *scaleUpDebugView = profileSubMenu->addAction(tr("Scale in-scene debug view up"), this, [view] {
         Q3DSEngine *engine = view->engine();
         engine->configureProfileUi(engine->profileUiScaleFactor() + 0.2f);
     }, QKeySequence(QLatin1String("Ctrl+F10")));
-    profileSubMenu->addAction(tr("Scale in-scene debug view down"), this, [view] {
+    addAction(scaleUpDebugView);
+    QAction *scaleDownDebugView = profileSubMenu->addAction(tr("Scale in-scene debug view down"), this, [view] {
         Q3DSEngine *engine = view->engine();
         engine->configureProfileUi(engine->profileUiScaleFactor() - 0.2f);
     }, QKeySequence(QLatin1String("Alt+F10")));
+    addAction(scaleDownDebugView);
     viewMenu->addMenu(profileSubMenu);
 
     if (enableDebugMenu) {
