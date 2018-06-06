@@ -77,6 +77,7 @@ private:
     void setupConnectionScene();
     QString generateConnectionInfo();
     void setErrorMessage(const QString &errorString);
+    void setProgress(int progress) ;
 
     Q3DSEngine *m_engine = nullptr;
     Q3DSRemoteDeploymentServer *m_server = nullptr;

@@ -61,6 +61,7 @@ Q_SIGNALS:
     void projectChanging();
     void remoteConnected();
     void remoteDisconnected();
+    void updateProgress(int progress);
 
 private Q_SLOTS:
     void acceptRemoteConnection();

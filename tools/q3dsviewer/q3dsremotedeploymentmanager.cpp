@@ -59,6 +59,8 @@ Q3DSRemoteDeploymentManager::Q3DSRemoteDeploymentManager(Q3DSEngine *engine, int
         m_isRemoteProjectLoaded = true;
         loadRemoteProject();
     });
+    connect(m_server, &Q3DSRemoteDeploymentServer::updateProgress,
+            this, &Q3DSRemoteDeploymentManager::setProgress);
 
     m_connectionInfoTimer.setInterval(1000);
     m_connectionInfoTimer.setSingleShot(true);
@@ -208,6 +210,11 @@ void Q3DSRemoteDeploymentManager::setErrorMessage(const QString &errorString)
 {
     m_errorMessage = errorString;
     m_engine->setDataInputValue(c_connectionErrorDataInput(), errorString);
+}
+
+void Q3DSRemoteDeploymentManager::setProgress(int progress)
+{
+    setErrorMessage(tr("Receiving (%1%)").arg(progress));
 }
 
 QT_END_NAMESPACE
