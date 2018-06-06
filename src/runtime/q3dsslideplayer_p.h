@@ -129,7 +129,7 @@ private:
     Q3DSSlidePlayer(QSharedPointer<Q3DSAnimationManager> animationManager,
                     Q3DSSceneManager *sceneManager,
                     Q3DSComponentNode *component,
-                    QObject *parent = nullptr);
+                    Q3DSSlidePlayer *parent = nullptr);
 
     void init();
     void reset();
