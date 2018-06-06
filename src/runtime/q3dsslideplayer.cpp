@@ -801,12 +801,15 @@ static bool objectHasVisibilityTag(Q3DSGraphObject *object)
     return false;
 }
 
-void Q3DSSlidePlayer::setSlideTime(Q3DSSlide *slide, float time, bool parentVisible)
+void Q3DSSlidePlayer::setSlideTime(Q3DSSlide *slide, float time)
 {
+    // If this is a component player, then check if the component is visible in the parent.
+    const bool visibleInParent = (m_type == Q3DSSlidePlayer::PlayerType::ComponentSlide) ? (m_component->attached()->visibilityTag == Q3DSGraphObjectAttached::Visible)
+                                                                                         : true;
     // We force an update if we are at the beginning (0.0f) or the end (-1.0f)
     // to ensure the scenemanager has correct global values for visibility during
     // slide changes
-    const bool forceUpdate = parentVisible &&
+    const bool forceUpdate = visibleInParent &&
         (qFuzzyCompare(time, 0.0f) || qFuzzyCompare(time, -1.0f));
     const auto updateObjects = [=](Q3DSSlide *s) {
         if (!s)
@@ -828,7 +831,7 @@ void Q3DSSlidePlayer::setSlideTime(Q3DSSlide *slide, float time, bool parentVisi
             const bool nodeActive = (node && node->flags().testFlag(Q3DSNode::Active) && node->attached<Q3DSNodeAttached>()->globalVisibility);
             const bool otherActive = !node && (obj->attached()->visibilityTag == Q3DSGraphObjectAttached::Visible);
 
-            const bool shouldBeVisible = parentVisible
+            const bool shouldBeVisible = visibleInParent
                     && time >= obj->startTime() && time <= obj->endTime()
                     && (nodeActive || otherActive);
 

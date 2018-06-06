@@ -136,7 +136,7 @@ private:
     void setInternalState(PlayerState state);
     void onDurationChanged(float duration);
     void onSlideFinished(Q3DSSlide *slide);
-    void setSlideTime(Q3DSSlide *slide, float time, bool parentVisible = true);
+    void setSlideTime(Q3DSSlide *slide, float time);
 
     void handleCurrentSlideChanged(Q3DSSlide *slide,
                                    Q3DSSlide *previousSlide,
