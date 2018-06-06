@@ -130,6 +130,9 @@ static void detatchPositionCallback(Q3DSSlide *slide)
     if (animator) {
         Q_ASSERT(!animator->isRunning());
         slide->attached()->entity->removeComponent(animator);
+        // TODO: Figure out why this is needed.
+        data->animator = nullptr;
+        delete animator;
     }
 }
 
