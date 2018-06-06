@@ -94,6 +94,8 @@
 #include <Qt3DRender/QScissorTest>
 #include <Qt3DRender/QRayCaster>
 
+#include <Qt3DRender/private/qpaintedtextureimage_p.h>
+
 #include <Qt3DAnimation/QClipAnimator>
 #include <Qt3DAnimation/qclock.h>
 
@@ -511,17 +513,30 @@ void Q3DSSceneManager::updateSizes(const QSize &size, qreal dpr, const QRect &vi
     for (auto callback : m_compositorOutputSizeChangeCallbacks)
         callback();
 
-    Q3DSUipPresentation::forAllLayers(m_scene, [=](Q3DSLayerNode *layer3DS) {
-        Q3DSLayerAttached *data = static_cast<Q3DSLayerAttached *>(layer3DS->attached());
-        if (data) {
-            data->parentSize = m_outputPixelSize;
-            data->frameDirty |= Q3DSGraphObjectAttached::LayerDirty;
-            // do it right away if there was no size set yet
-            if (data->parentSize.isEmpty() || forceSynchronous)
-                updateSubTree(m_scene);
-            // Defer otherwise, like it is done for other property changes.
+    bool forceTreeVisit = forceSynchronous;
+    Q3DSUipPresentation::forAllObjects(m_scene, [this, &forceTreeVisit](Q3DSGraphObject *obj) {
+        if (obj->type() == Q3DSGraphObject::Layer) {
+            Q3DSLayerAttached *data = obj->attached<Q3DSLayerAttached>();
+            if (data) {
+                data->parentSize = m_outputPixelSize;
+                data->frameDirty |= Q3DSGraphObjectAttached::LayerDirty;
+                // do it right away if there was no size set yet
+                if (data->parentSize.isEmpty())
+                    forceTreeVisit = true;
+                // Defer otherwise, like it is done for other property changes.
+            }
+        } else if (obj->type() == Q3DSGraphObject::Text) {
+            // Text nodes depend on the device pixel ratio and so
+            // may need to be updated.
+            Q3DSTextAttached *data = obj->attached<Q3DSTextAttached>();
+            if (data) {
+                data->frameDirty = Q3DSGraphObjectAttached::TextDirty;
+                data->frameChangeFlags |= Q3DSTextNode::TextureImageDepChanges;
+            }
         }
     });
+    if (forceTreeVisit)
+        updateSubTree(m_scene);
 }
 
 void Q3DSSceneManager::setCurrentSlide(Q3DSSlide *newSlide, bool flush)
@@ -3979,7 +3994,14 @@ Qt3DCore::QEntity *Q3DSSceneManager::buildText(Q3DSTextNode *text3DS, Q3DSLayerN
     data->texture->setMagnificationFilter(Qt3DRender::QAbstractTexture::Linear);
 
     data->textureImage = new Q3DSTextImage(text3DS, m_textRenderer);
+#if QT_VERSION >= QT_VERSION_CHECK(5,11,1)
+    auto texImageD = static_cast<Qt3DRender::QPaintedTextureImagePrivate *>(
+                Qt3DRender::QPaintedTextureImagePrivate::get(data->textureImage));
+    texImageD->m_devicePixelRatio = m_viewportData.viewportDpr;
+    data->textureImage->setSize(sz * m_viewportData.viewportDpr);
+#else
     data->textureImage->setSize(sz);
+#endif
     data->texture->addTextureImage(data->textureImage);
 
     data->textureParam = new Qt3DRender::QParameter;
@@ -4003,15 +4025,30 @@ void Q3DSSceneManager::updateText(Q3DSTextNode *text3DS, bool needsNewImage)
     data->colorParam->setValue(text3DS->color());
 
     if (needsNewImage) {
-        // textstring, leading, tracking
+        // textstring, leading, tracking, ...
         const QSize sz = m_textRenderer->textImageSize(text3DS);
         if (!sz.isEmpty()) {
             data->mesh->setWidth(sz.width());
             data->mesh->setHeight(sz.height());
+#if QT_VERSION >= QT_VERSION_CHECK(5,11,1)
+            const QSize pixelSize = sz * m_viewportData.viewportDpr;
+            auto texImageD = static_cast<Qt3DRender::QPaintedTextureImagePrivate *>(
+                        Qt3DRender::QPaintedTextureImagePrivate::get(data->textureImage));
+            if (data->textureImage->size() != pixelSize
+                    || texImageD->m_devicePixelRatio != m_viewportData.viewportDpr)
+            {
+                texImageD->m_devicePixelRatio = m_viewportData.viewportDpr;
+                // this repaints, no need for update() afterwards
+                data->textureImage->setSize(pixelSize);
+            } else {
+                data->textureImage->update();
+            }
+#else
             if (data->textureImage->size() != sz)
                 data->textureImage->setSize(sz); // this repaints, no need for update() afterwards
             else
                 data->textureImage->update();
+#endif
         }
     }
 }
