@@ -810,10 +810,10 @@ static bool objectHasVisibilityTag(Q3DSGraphObject *object)
     return false;
 }
 
-void Q3DSSlidePlayer::setSlideTime(Q3DSSlide *slide, float time)
+void Q3DSSlidePlayer::setSlideTime(Q3DSSlide *slide, float time, bool parentVisible)
 {
     // If this is a component player, then check if the component is visible in the parent.
-    const bool visibleInParent = (m_type == Q3DSSlidePlayer::PlayerType::ComponentSlide) ? (m_component->attached()->visibilityTag == Q3DSGraphObjectAttached::Visible)
+    const bool visibleInParent = (m_type == Q3DSSlidePlayer::PlayerType::ComponentSlide) ? ((m_component->attached()->visibilityTag == Q3DSGraphObjectAttached::Visible) && parentVisible)
                                                                                          : true;
     // We force an update if we are at the beginning (0.0f) or the end (-1.0f)
     // to ensure the scenemanager has correct global values for visibility during
@@ -846,6 +846,13 @@ void Q3DSSlidePlayer::setSlideTime(Q3DSSlide *slide, float time)
 
             if (forceUpdate || shouldBeVisible != objectHasVisibilityTag(obj))
                 updateObjectVisibility(obj, shouldBeVisible);
+
+            if (obj->type() == Q3DSGraphObject::Component) {
+                Q3DSComponentNode *component = static_cast<Q3DSComponentNode *>(obj);
+                Q3DSSlide *componentCurrentSlide = component->currentSlide();
+                Q3DSSlidePlayer *player = componentCurrentSlide->attached<Q3DSSlideAttached>()->slidePlayer;
+                player->setSlideTime(componentCurrentSlide, time, shouldBeVisible);
+            }
         }
     };
 
