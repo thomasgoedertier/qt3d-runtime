@@ -1,5 +1,3 @@
-#define MAX_AREA_LIGHTS 16
-
 // note this struct must exactly match the memory layout of the
 // struct SLightSourceShader in the source code. If you make changes here you need
 // to adjust the struct SLightSourceShader as well

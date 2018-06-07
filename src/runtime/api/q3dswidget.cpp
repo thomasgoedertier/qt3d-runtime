@@ -97,8 +97,8 @@ Q3DSWidget::~Q3DSWidget()
 /*!
     \fn Q3DSWidget::presentationLoaded()
 
-    This signal is emitted when the viewer has been initialized and the
-    presentation is ready to be shown.
+    This signal is emitted when the presentation has been loaded and is ready
+    to be shown.
 */
 
 /*!
@@ -141,8 +141,8 @@ QString Q3DSWidget::error() const
 /*!
     \property Q3DSWidget::running
 
-    The value of this property is \c true when the viewer has been initialized
-    and the presentation is running.
+    The value of this property is \c true when the presentation has been loaded
+    and is ready to be shown.
 
     This property is read-only.
 */
@@ -325,11 +325,6 @@ Q3DSWidgetPrivate::Q3DSWidgetPrivate(Q3DSWidget *q)
 {
     Q3DSPresentationPrivate::get(presentation)->setController(this);
 
-    QObject::connect(viewerSettings, &Q3DSViewerSettings::showRenderStatsChanged, viewerSettings, [this] {
-        if (engine)
-            engine->setProfileUiVisible(viewerSettings->isShowingRenderStats());
-    });
-
     typedef void (QWidget::*QWidgetVoidSlot)();
     QObject::connect(&updateTimer, &QTimer::timeout, q, static_cast<QWidgetVoidSlot>(&QWidget::update));
     updateTimer.setInterval(updateInterval);
@@ -355,6 +350,7 @@ void Q3DSWidgetPrivate::createEngine()
     engine->setAutoToggleProfileUi(false); // up to the app to control this via the API instead
 
     engine->setSurface(q_ptr->window()->windowHandle());
+    engine->setViewerSettings(viewerSettings);
     qCDebug(lc3DSWidget, "Created engine %p", engine);
 
     initializePresentationController(engine, presentation);
@@ -366,8 +362,6 @@ void Q3DSWidgetPrivate::createEngine()
         engine->resize(sz);
 
     QObject::connect(engine, &Q3DSEngine::presentationLoaded, engine, [this] {
-        if (viewerSettings->isShowingRenderStats())
-            engine->setProfileUiVisible(true);
         emit q_ptr->presentationLoaded();
     });
 

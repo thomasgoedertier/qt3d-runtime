@@ -96,6 +96,9 @@ class QTechnique;
 class QFilterKey;
 class QRenderState;
 class QRayCaster;
+class QViewport;
+class QScissorTest;
+class QRenderStateSet;
 }
 
 namespace Qt3DExtras {
@@ -131,13 +134,10 @@ struct Q3DSLightSource
 
 Q_DECLARE_TYPEINFO(Q3DSLightSource, Q_MOVABLE_TYPE);
 
-// these are our current shader limits
-#define Q3DS_MAX_NUM_LIGHTS 16
-#define Q3DS_MAX_NUM_LIGHTS_ES2 8
-
-// note this struct must exactly match the memory layout of the
-// struct sampleLight.glsllib and sampleArea.glsllib. If you make changes here you need
-// to adjust the code in sampleLight.glsllib and sampleArea.glsllib as well
+// note this struct must exactly match the memory layout of the GLSL struct
+// (which is typically in a std140 layout uniform block). If you make changes
+// here you need to adjust the code in funcsampleLightVars/sampleLight.glsllib
+// and funcareaLightVars/sampleArea.glsllib as well.
 struct Q3DSLightSourceData
 {
     QVector4D m_position;
@@ -156,9 +156,9 @@ struct Q3DSLightSourceData
     float m_width; // Specifies the width of the area light surface.
     float m_height; // Specifies the height of the area light surface;
     QVector4D m_shadowControls;
-    QMatrix4x4 m_shadowView;
+    float m_shadowView[16]; // not QMatrix4x4 since that's 68 bytes, we need 64
     qint32 m_shadowIdx;
-    float m_padding1[2];
+    float m_padding[3];
 };
 
 Q_DECLARE_TYPEINFO(Q3DSLightSourceData, Q_MOVABLE_TYPE);
@@ -614,6 +614,18 @@ struct Q3DSGuiData
     qreal outputDpr = 1;
 };
 
+struct Q3DSViewportData
+{
+    Qt3DRender::QFrameGraphNode *drawMatteNode = nullptr;
+    Qt3DRender::QClearBuffers *matteClearBuffers = nullptr;
+    Qt3DRender::QRenderStateSet *matteRenderState = nullptr;
+    Qt3DRender::QScissorTest *matteScissorTest = nullptr;
+    Qt3DCore::QNode *dummyMatteRoot = nullptr;
+    Qt3DRender::QViewport *viewport = nullptr;
+    qreal viewportDpr = 1;
+    QRect viewportRect;
+};
+
 class Q3DSV_PRIVATE_EXPORT Q3DSSceneManager
 {
 public:
@@ -631,6 +643,7 @@ public:
         QObject *surface = nullptr; // null for subpresentations that go into a texture
         Qt3DRender::QFrameGraphNode *frameGraphRoot = nullptr; // when !window
         Q3DSEngine *engine = nullptr;
+        QRect viewport;
     };
 
     struct Scene {
@@ -646,15 +659,15 @@ public:
 
     Scene buildScene(Q3DSUipPresentation *presentation, const SceneBuilderParams &params);
     void finalizeMainScene(const QVector<Q3DSSubPresentation> &subPresentations);
-    void updateSizes(const QSize &size, qreal dpr, bool forceSynchronous = false);
+    void updateSizes(const QSize &size, qreal dpr, const QRect &viewport = QRect(), bool forceSynchronous = false);
 
     void prepareEngineReset();
     static void prepareEngineResetGlobal();
 
     Q3DSSlide *currentSlide() const { return m_currentSlide; }
     Q3DSSlide *masterSlide() const { return m_masterSlide; }
-    void setCurrentSlide(Q3DSSlide *slide, bool fromSlidePlayer = false);
-    void setComponentCurrentSlide(Q3DSComponentNode *component, Q3DSSlide *newSlide);
+    void setCurrentSlide(Q3DSSlide *slide, bool flush = false);
+    void setComponentCurrentSlide(Q3DSSlide *newSlide, bool flush = false);
 
     void setLayerCaching(bool enabled);
 
@@ -703,6 +716,9 @@ public:
     void setProfileUiInputEventSource(QObject *obj);
     void configureProfileUi(float scale);
 
+    void setMatteEnabled(bool isEnabled);
+    void setMatteColor(const QColor &color);
+
     Q3DSInputManager *inputManager() { return m_inputManager; }
 
     // for testing from the viewer - to be moved private later
@@ -718,7 +734,8 @@ public:
     void changeSlideByName(Q3DSGraphObject *sceneOrComponent, const QString &name);
     void changeSlideByIndex(Q3DSGraphObject *sceneOrComponent, int index);
     void changeSlideByDirection(Q3DSGraphObject *sceneOrComponent, bool next, bool wrap);
-    void goToTime(Q3DSGraphObject *sceneOrComponent, float milliseconds, bool pause = false);
+    void goToTime(Q3DSGraphObject *sceneOrComponent, float milliseconds);
+    void goToTimeAction(Q3DSGraphObject *sceneOrComponent, float milliseconds, bool pause);
 
     void queueEvent(const Q3DSGraphObject::Event &e);
 
@@ -853,7 +870,7 @@ private:
     Q3DSTextRenderer *m_textRenderer;
     QSet<Q3DSGraphObject *> m_subTreeWithDirtyLights;
     QSet<Q3DSDefaultMaterial *> m_pendingDefMatRebuild;
-    QHash<Q3DSNode *, bool> m_pendingNodeVisibility;
+    QHash<Q3DSGraphObject *, bool> m_pendingObjectVisibility;
     Qt3DRender::QLayer *m_fsQuadTag = nullptr;
     QStack<Q3DSComponentNode *> m_componentNodeStack;
     QSet<Q3DSLayerNode *> m_pendingSubPresLayers;
@@ -876,12 +893,14 @@ private:
     bool m_layerCaching = true;
     bool m_layerUncachePending = false;
     QSet<Q3DSSceneManager *> m_layerCacheDeps;
+    Q3DSViewportData m_viewportData;
 
     friend class Q3DSFrameUpdater;
     friend class Q3DSProfiler;
     friend class Q3DSSlidePlayer;
     friend class Q3DSInputManager;
     friend class Q3DSConsoleCommands;
+    friend class Q3DSTextRenderer;
 };
 
 Q_DECLARE_OPERATORS_FOR_FLAGS(Q3DSSceneManager::SceneBuilderFlags)

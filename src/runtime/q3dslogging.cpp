@@ -37,6 +37,7 @@ Q3DSV_PRIVATE_EXPORT Q_LOGGING_CATEGORY(lcScene, "q3ds.scene")
 Q3DSV_PRIVATE_EXPORT Q_LOGGING_CATEGORY(lcAnim, "q3ds.anim")
 Q3DSV_PRIVATE_EXPORT Q_LOGGING_CATEGORY(lcPerf, "q3ds.perf")
 Q3DSV_PRIVATE_EXPORT Q_LOGGING_CATEGORY(lcSlidePlayer, "q3ds.slideplayer")
+Q3DSV_PRIVATE_EXPORT Q_LOGGING_CATEGORY(lcInput, "q3ds.input")
 Q3DSV_PRIVATE_EXPORT Q_LOGGING_CATEGORY(lcProf, "q3ds.profileui")
 Q3DSV_PRIVATE_EXPORT Q_LOGGING_CATEGORY(lcStudio3D, "q3ds.studio3d")
 Q3DSV_PRIVATE_EXPORT Q_LOGGING_CATEGORY(lc3DSSurface, "q3ds.surface")
@@ -52,6 +53,7 @@ QByteArrayList loggingCategoryNames()
         QByteArrayLiteral("q3ds.scene"),
         QByteArrayLiteral("q3ds.anim"),
         QByteArrayLiteral("q3ds.slideplayer"),
+        QByteArrayLiteral("q3ds.input"),
         QByteArrayLiteral("q3ds.profileui"),
         QByteArrayLiteral("q3ds.studio3d"),
         QByteArrayLiteral("q3ds.surface"),
@@ -67,6 +69,7 @@ void setLogging(bool enabled)
     const_cast<QLoggingCategory &>(lcAnim()).setEnabled(QtDebugMsg, enabled);
     const_cast<QLoggingCategory &>(lcPerf()).setEnabled(QtDebugMsg, enabled);
     const_cast<QLoggingCategory &>(lcSlidePlayer()).setEnabled(QtDebugMsg, enabled);
+    const_cast<QLoggingCategory &>(lcInput()).setEnabled(QtDebugMsg, enabled);
     const_cast<QLoggingCategory &>(lcProf()).setEnabled(QtDebugMsg, enabled);
     const_cast<QLoggingCategory &>(lcStudio3D()).setEnabled(QtDebugMsg, enabled);
     const_cast<QLoggingCategory &>(lc3DSSurface()).setEnabled(QtDebugMsg, enabled);

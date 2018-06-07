@@ -184,6 +184,12 @@ public:
     Qt3DCore::QEntity *entity = nullptr;
     Q3DSComponentNode *component = nullptr;
 
+    enum VisibilityTag
+    {
+        Visible,
+        Hidden
+    };
+
     enum FrameDirtyFlag {
         GroupDirty = 0x01,
         LightDirty = 0x02,
@@ -204,6 +210,7 @@ public:
     };
     Q_DECLARE_FLAGS(FrameDirtyFlags, FrameDirtyFlag)
 
+    VisibilityTag visibilityTag = Visible;
     FrameDirtyFlags frameDirty;
     int frameChangeFlags = 0;
 };
@@ -276,6 +283,12 @@ public:
         DirtyNodeAdded = 0x01,
         DirtyNodeRemoved = 0x02
     };
+
+    enum State {
+        Enabled,
+        Disabled
+    };
+
     Q_DECLARE_FLAGS(DirtyFlags, DirtyFlag)
 
     Q3DSGraphObject(Type type);
@@ -355,6 +368,8 @@ public:
     Q3DSPropertyChange setStartTime(qint32 v);
     Q3DSPropertyChange setEndTime(qint32 v);
 
+    State state() const { return m_state; }
+
 protected:
     void destroyGraph();
 
@@ -377,6 +392,7 @@ private:
     QVector<PropertyChangeCallback> m_callbacks;
     Q3DSGraphObjectAttached *m_attached = nullptr;
     DataInputControlledProperties m_dataInputControlledProperties;
+    State m_state = Enabled;
 
     friend class Q3DSUipPresentation;
 };
@@ -2030,6 +2046,8 @@ public:
             obj->parent()->removeChildNode(obj);
     }
     void resolveAliases();
+    void updateObjectStateForSubTrees();
+    void addImplicitPropertyChanges();
     QHash<QString, bool> &imageTransparencyHash();
 
 private:

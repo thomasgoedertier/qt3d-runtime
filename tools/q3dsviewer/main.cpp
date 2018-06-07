@@ -34,6 +34,7 @@
 #else
 #include <QGuiApplication>
 #endif
+#include <QTimer>
 
 #include "q3dsremotedeploymentmanager.h"
 
@@ -42,6 +43,8 @@
 #include <private/q3dsengine_p.h>
 #include <private/q3dswindow_p.h>
 #include <private/q3dsutils_p.h>
+
+#include <Qt3DStudioRuntime2/Q3DSViewerSettings>
 
 QT_BEGIN_NAMESPACE
 class Q3DStudioMainWindow;
@@ -60,7 +63,6 @@ int main(int argc, char *argv[])
 #else
     QGuiApplication app(argc, argv);
 #endif
-    QSurfaceFormat::setDefaultFormat(Q3DS::surfaceFormat());
 
     QCommandLineParser cmdLineParser;
     cmdLineParser.addHelpOption();
@@ -77,7 +79,23 @@ int main(int argc, char *argv[])
                                     QObject::tr("Sets the <port> to listen on in remote connection mode. The default <port> is 36000."),
                                     QObject::tr("port"), QLatin1String("36000"));
     cmdLineParser.addOption(remoteOption);
+    QCommandLineOption autoExitOption({ "x", "exitafter" }, QObject::tr("Exit after <n> seconds."), QObject::tr("n"), QLatin1String("5"));
+    cmdLineParser.addOption(autoExitOption);
+    QCommandLineOption scaleModeOption("scalemode",
+                                       QObject::tr("Specifies scaling mode.\n"
+                                       "The default value is 'center'."),
+                                       QObject::tr("center|fit|fill"),
+                                       QStringLiteral("center"));
+    cmdLineParser.addOption(scaleModeOption);
+    QCommandLineOption matteColorOption("mattecolor",
+                                        QObject::tr("Specifies custom matte color\n"
+                                        "using #000000 syntax.\n"
+                                        "For example, white matte: #ffffff"),
+                                        QObject::tr("color"), QStringLiteral("#333333"));
+    cmdLineParser.addOption(matteColorOption);
     cmdLineParser.process(app);
+
+    QSurfaceFormat::setDefaultFormat(Q3DS::surfaceFormat());
 
 #if !defined(Q_OS_ANDROID) && !defined(Q_OS_IOS)
     bool noWidgets = cmdLineParser.isSet(noMainWindowOption);
@@ -122,6 +140,24 @@ int main(int argc, char *argv[])
             return 0;
     }
 
+    // Setup Viewer Settings
+    Q3DSViewerSettings *viewerSettings = new Q3DSViewerSettings;
+    engine->setViewerSettings(viewerSettings);
+    viewerSettings->setMatteEnabled(true);
+    viewerSettings->setScaleMode(Q3DSViewerSettings::ScaleModeCenter);
+    if (cmdLineParser.isSet(scaleModeOption)) {
+        const QString scaleMode = cmdLineParser.value(scaleModeOption);
+        if (scaleMode == QStringLiteral("center"))
+            viewerSettings->setScaleMode(Q3DSViewerSettings::ScaleModeCenter);
+        else if (scaleMode == QStringLiteral("fit"))
+            viewerSettings->setScaleMode(Q3DSViewerSettings::ScaleModeFit);
+        else
+            viewerSettings->setScaleMode(Q3DSViewerSettings::ScaleModeFill);
+    }
+    if (cmdLineParser.isSet(matteColorOption)) {
+        viewerSettings->setMatteColor(cmdLineParser.value(matteColorOption));
+    }
+
 #ifdef Q3DSVIEWER_WIDGETS
     Q3DStudioMainWindow *mw = nullptr;
 #endif
@@ -146,6 +182,9 @@ int main(int argc, char *argv[])
         engine->setAutoToggleProfileUi(false);
 #endif
     }
+
+    if (cmdLineParser.isSet(autoExitOption))
+        QTimer::singleShot(cmdLineParser.value(autoExitOption).toInt() * 1000, &app, SLOT(quit()));
 
     int r = app.exec();
 

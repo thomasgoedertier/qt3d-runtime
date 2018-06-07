@@ -345,6 +345,9 @@ public:
         for (const Q3DSShaderPreprocessorFeature &ppFeature : inFeatureSet)
             output.append(QLatin1String("#define ") + ppFeature.name + QLatin1String(" ")
                           + (ppFeature.enabled ? QLatin1String("1\n") : QLatin1String("0\n")));
+
+        output.append(QLatin1String("#define MAX_NUM_LIGHTS ") + QString::number(gfxLimits.maxLightsPerLayer) + QLatin1String("\n"));
+        output.append(QLatin1String("#define MAX_AREA_LIGHTS ") + QString::number(gfxLimits.maxLightsPerLayer) + QLatin1String("\n"));
     }
 
     QString getVersionString(const QSurfaceFormat &format) {
@@ -755,10 +758,8 @@ private:
     void resolveShaderLibraryVersion()
     {
         QString versionString;
-        const QSurfaceFormat &format = Q3DS::graphicsLimits().format;
-        if (format.renderableType() == QSurfaceFormat::OpenGLES)
-            if (format.majorVersion() == 2)
-                versionString = QLatin1Literal("gles2");
+        if (Q3DS::graphicsLimits().useGles2Path)
+            versionString = QLatin1String("gles2");
         m_shaderContextLibraryVersion = versionString;
     }
 

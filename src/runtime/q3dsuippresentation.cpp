@@ -3387,7 +3387,6 @@ void Q3DSComponentNode::setCurrentSlide(Q3DSSlide *slide)
     if (m_currentSlide == slide)
         return;
 
-    qCDebug(lcUip, "Setting new current slide %s", slide->id().constData());
     m_currentSlide = slide;
 }
 
@@ -3443,7 +3442,11 @@ int Q3DSTextNode::mapChangeFlags(const Q3DSPropertyChangeList &changeList)
     for (auto it = changeList.cbegin(), itEnd = changeList.cend(); it != itEnd; ++it) {
         if (it->nameStr() == QStringLiteral("textstring")
                 || it->nameStr() == QStringLiteral("leading")
-                || it->nameStr() == QStringLiteral("tracking"))
+                || it->nameStr() == QStringLiteral("tracking")
+                || it->nameStr() == QStringLiteral("size")
+                || it->nameStr() == QStringLiteral("font")
+                || it->nameStr() == QStringLiteral("horzalign")
+                || it->nameStr() == QStringLiteral("vertalign"))
         {
             changeFlags |= TextureImageDepChanges;
         }
@@ -3878,6 +3881,85 @@ void Q3DSUipPresentation::resolveAliases()
 
 }
 
+void Q3DSUipPresentation::updateObjectStateForSubTrees()
+{
+    forAllObjectsInSubTree(scene(), [](Q3DSGraphObject *obj) {
+        if (obj->type() == Q3DSGraphObject::Layer && !static_cast<Q3DSLayerNode *>(obj)->sourcePath().isEmpty()) {
+            // Sub-presentation, set all objects to be inactive
+            forAllObjectsInSubTree(obj, [](Q3DSGraphObject *obj) {
+                obj->m_state = Q3DSGraphObject::Disabled;
+            });
+        }
+    });
+}
+
+void Q3DSUipPresentation::addImplicitPropertyChanges()
+{
+    // TODO: There might be other cases where we need to generate the property changes,
+    // this only deals with the start and end times for now.
+    forAllObjectsInSubTree(scene(), [](Q3DSGraphObject *obj) {
+        if ((obj->type() == Q3DSGraphObject::Slide && !obj->parent()) || obj->type() == Q3DSGraphObject::Component) {
+            const bool isComponent = (obj->type() == Q3DSGraphObject::Component);
+            Q3DSSlide *master = isComponent ? static_cast<Q3DSComponentNode *>(obj)->masterSlide() : static_cast<Q3DSSlide *>(obj);
+            Q3DSSlide *slide = static_cast<Q3DSSlide *>(master->firstChild());
+            while (slide) {
+                for (auto o : master->objects()) {
+                    if (!o->isNode())
+                        continue;
+
+                    auto propChanges = slide->propertyChanges();
+                    const auto foundIt = propChanges.constFind(o);
+
+                    struct StartAndEndTime {
+                        qint32 hasStart = false;
+                        qint32 hasEnd = false;
+                        const qint32 defaultStart = 0;
+                        const qint32 defaultEnd = 10000;
+                    } startAndEndTime;
+
+                    if (foundIt != propChanges.cend()) {
+                        std::find_if(foundIt.value()->cbegin(), foundIt.value()->cend(), [&startAndEndTime](const Q3DSPropertyChange &change) {
+                            if (startAndEndTime.hasStart && startAndEndTime.hasEnd)
+                                return true;
+
+                            if (change.name() == QLatin1String("starttime"))
+                                startAndEndTime.hasStart = true;
+                            else if (change.name() == QLatin1String("endtime"))
+                                startAndEndTime.hasEnd = true;
+
+                            return false;
+                        });
+                    }
+
+                    // No prop change for object, then add default values 0s and 10s
+                    if (!startAndEndTime.hasStart) {
+                        const auto propChange = Q3DSPropertyChange::fromVariant(QLatin1String("starttime"), QVariant::fromValue(startAndEndTime.defaultStart));
+                        if (foundIt != propChanges.constEnd()) {
+                            auto propChangeList = slide->takePropertyChanges(o);
+                            propChangeList->append(propChange);
+                            slide->addPropertyChanges(o, propChangeList);
+                        } else {
+                            slide->addPropertyChanges(o, new Q3DSPropertyChangeList({propChange}));
+                        }
+                    }
+
+                    if (!startAndEndTime.hasEnd) {
+                        const auto propChange = Q3DSPropertyChange::fromVariant(QLatin1String("endtime"), QVariant::fromValue(startAndEndTime.defaultEnd));
+                        if (foundIt != propChanges.constEnd()) {
+                            auto propChangeList = slide->takePropertyChanges(o);
+                            propChangeList->append(propChange);
+                            slide->addPropertyChanges(o, propChangeList);
+                        } else {
+                            slide->addPropertyChanges(o, new Q3DSPropertyChangeList({propChange}));
+                        }
+                    }
+                }
+                slide = static_cast<Q3DSSlide *>(slide->nextSibling());
+            }
+        }
+    });
+}
+
 QHash<QString, bool> &Q3DSUipPresentation::imageTransparencyHash()
 {
     return m_imageTransparencyHash;
@@ -3910,8 +3992,12 @@ QString Q3DSUipPresentation::assetFileName(const QString &xmlFileNameRef, int *p
             *part = idx;
         rawName = rawName.left(pos);
     } else {
+        // If no part is specified return -1 so the mesh parser can decide which
+        // part is the best.  This will usually be 1 but for older versions
+        // of the editor multi-meshes were used for revisions, and we would
+        // need to return the last part in the list, not the first.
         if (part)
-            *part = 1;
+            *part = -1;
     }
 
     rawName.replace('\\', '/');

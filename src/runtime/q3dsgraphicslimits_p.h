@@ -53,7 +53,6 @@ struct Q3DSGraphicsLimits {
     int maxDrawBuffers = 4;
     bool multisampleTextureSupported = false;
     bool shaderTextureLodSupported = false;
-    bool shaderUniformBufferSupported = false;
     bool packedDepthStencilBufferSupported = false;
     bool norm16TexturesSupported = false;
     QByteArray renderer;
@@ -61,6 +60,8 @@ struct Q3DSGraphicsLimits {
     QByteArray version;
     QSet<QByteArray> extensions;
     QSurfaceFormat format;
+    bool useGles2Path = false;
+    int maxLightsPerLayer = 16;
 };
 
 Q_DECLARE_TYPEINFO(Q3DSGraphicsLimits, Q_MOVABLE_TYPE);

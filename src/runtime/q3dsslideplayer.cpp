@@ -38,11 +38,103 @@
 #include <Qt3DAnimation/qclipanimator.h>
 #include <Qt3DAnimation/qclock.h>
 #include <Qt3DAnimation/qanimationclip.h>
+#include <Qt3DAnimation/qanimationcallback.h>
+#include <Qt3DAnimation/qchannel.h>
+#include <Qt3DAnimation/qchannelmapper.h>
+#include <Qt3DAnimation/qcallbackmapping.h>
 
 #include <Qt3DCore/QEntity>
 #include <Qt3DRender/QLayer>
 
 QT_BEGIN_NAMESPACE
+
+class Q3DSSlidePositionCallback : public Qt3DAnimation::QAnimationCallback
+{
+public:
+    Q3DSSlidePositionCallback(Q3DSSlide *slide)
+        : m_slide(slide) {}
+
+    void valueChanged(const QVariant &value) override {
+        Q_ASSERT(m_slide);
+
+        const float newValue = value.toFloat();
+        if (qFuzzyCompare(m_previousValue, newValue))
+            return;
+
+        Q3DSSlidePlayer *slidePlayer = m_slide->attached<Q3DSSlideAttached>()->slidePlayer;
+        // TODO: See QT3DS-1302
+        if (!slidePlayer)
+            return;
+
+        slidePlayer->setSlideTime(m_slide, newValue * 1000.0f);
+        m_previousValue = newValue;
+    }
+
+private:
+    Q3DSSlide *m_slide;
+    float m_previousValue = -1.0f;
+};
+
+// Dummy animator for keeping track of the time line for the current slide
+static void attatchPositionCallback(Q3DSSlide *slide)
+{
+    using namespace Qt3DAnimation;
+
+    Q_ASSERT(slide);
+    qint32 startTime = 0.0f; // We always start from 0.0
+    qint32 endTime = 0.0f;
+    Q3DSSlideUtils::getStartAndEndTime(slide, nullptr, &endTime);
+
+    Q3DSSlideAttached *data = slide->attached<Q3DSSlideAttached>();
+    QClipAnimator *animator = data->animator ? data->animator : (data->animator = new QClipAnimator);
+    if (!animator->clock())
+        animator->setClock(new QClock);
+
+    QAnimationClip *clip = animator->clip() ? static_cast<QAnimationClip *>(animator->clip()) : new QAnimationClip;
+
+    const QString channelName = slide->name() + QLatin1String("_timeDummy");
+    QKeyFrame keyFrameStart(QVector2D(startTime / 1000.0f, 0.0f));
+    QKeyFrame keyFrameEnd(QVector2D(endTime / 1000.0f, endTime / 1000.0f));
+
+    // New clip data
+    QAnimationClipData clipData;
+    QChannel channel(channelName);
+    QChannelComponent component;
+    component.appendKeyFrame(keyFrameStart);
+    component.appendKeyFrame(keyFrameEnd);
+    channel.appendChannelComponent(component);
+    clipData.appendChannel(channel);
+
+    if (!animator->channelMapper()) {
+        QChannelMapper *mapper = new QChannelMapper;
+        QCallbackMapping *mapping = new QCallbackMapping;
+        mapping->setChannelName(channelName);
+        mapping->setCallback(QMetaType::Float, new Q3DSSlidePositionCallback(slide));
+        mapper->addMapping(mapping);
+        animator->setChannelMapper(mapper);
+    }
+
+    clip->setClipData(clipData);
+    animator->setClip(clip);
+
+    data->entity->addComponent(animator);
+}
+
+static void detatchPositionCallback(Q3DSSlide *slide)
+{
+    if (!slide)
+        return;
+
+    Q3DSSlideAttached *data = slide->attached<Q3DSSlideAttached>();
+    auto animator = data->animator;
+    if (animator) {
+        Q_ASSERT(!animator->isRunning());
+        slide->attached()->entity->removeComponent(animator);
+        // TODO: Figure out why this is needed.
+        data->animator = nullptr;
+        delete animator;
+    }
+}
 
 void Q3DSSlideUtils::getStartAndEndTime(Q3DSSlide *slide, qint32 *startTime, qint32 *endTime)
 {
@@ -54,7 +146,7 @@ void Q3DSSlideUtils::getStartAndEndTime(Q3DSSlide *slide, qint32 *startTime, qin
     // Check if there are nodes  from the parent slide that has property changes on this slide.
     if (Q3DSSlide *p = static_cast<Q3DSSlide *>(slide->parent())) {
         for (auto *obj : p->objects()) {
-            if (!obj->isNode())
+            if (!obj->isNode() || obj->state() != Q3DSGraphObject::Enabled)
                 continue;
 
             // Look for property updates on "this" slide.
@@ -83,7 +175,7 @@ void Q3DSSlideUtils::getStartAndEndTime(Q3DSSlide *slide, qint32 *startTime, qin
     // Now look for the endtime on nodes on this slide.
     for (const auto obj : slide->objects()) {
         // Skip non-node types.
-        if (!obj->isNode())
+        if (!obj->isNode() || obj->state() != Q3DSGraphObject::Enabled)
             continue;
 
         // We collect both layer endtimes (if any) and object endtimes in one go.
@@ -238,17 +330,23 @@ void Q3DSSlidePlayer::sceneReady()
 
             const auto &objects = slide->objects();
             std::find_if(objects.constBegin(), objects.constEnd(), [](Q3DSGraphObject *obj) {
-                if (obj->type() == Q3DSGraphObject::Component) {
+                if (obj->type() == Q3DSGraphObject::Component && obj->state() == Q3DSGraphObject::Enabled) {
                     Q3DSComponentNode *comp = static_cast<Q3DSComponentNode *>(obj);
-                    Q3DSSlide *compSlide = comp->currentSlide();
+                    Q3DSSlide *compSlide = comp->masterSlide();
                     Q3DSSlidePlayer *player = compSlide->attached<Q3DSSlideAttached>()->slidePlayer;
                     player->sceneReady();
                 }
                 return false;
             });
         };
-        notifyComponentPlayers(static_cast<Q3DSSlide *>(currentSlide->parent()));
-        notifyComponentPlayers(currentSlide);
+
+        Q3DSSlide *slide = m_data.slideDeck->masterSlide();
+        notifyComponentPlayers(slide);
+        slide = static_cast<Q3DSSlide *>(slide->firstChild());
+        while (slide) {
+            notifyComponentPlayers(slide);
+            slide = static_cast<Q3DSSlide *>(slide->nextSibling());
+        }
     }
 }
 
@@ -268,6 +366,33 @@ float Q3DSSlidePlayer::position() const
 void Q3DSSlidePlayer::setMode(Q3DSSlidePlayer::PlayerMode mode)
 {
     m_mode = mode;
+    if (!m_data.slideDeck)
+        return;
+
+    const auto notifyComponentPlayers = [mode](Q3DSSlide *slide) {
+        if (!slide)
+            return;
+
+        const auto &objects = slide->objects();
+        std::find_if(objects.constBegin(), objects.constEnd(), [mode](Q3DSGraphObject *obj) {
+            if (obj->type() == Q3DSGraphObject::Component && obj->state() == Q3DSGraphObject::Enabled) {
+                Q3DSComponentNode *comp = static_cast<Q3DSComponentNode *>(obj);
+                Q3DSSlide *compSlide = comp->masterSlide();
+                Q3DSSlidePlayer *player = compSlide->attached<Q3DSSlideAttached>()->slidePlayer;
+                player->setMode(mode);
+            }
+            return false;
+        });
+    };
+
+    Q3DSSlide *slide = m_data.slideDeck->masterSlide();
+    notifyComponentPlayers(slide);
+    slide = static_cast<Q3DSSlide *>(slide->firstChild());
+    while (slide) {
+        notifyComponentPlayers(slide);
+        slide = static_cast<Q3DSSlide *>(slide->nextSibling());
+    }
+
     reload();
 }
 
@@ -410,7 +535,7 @@ void Q3DSSlidePlayer::setSlideDeck(Q3DSSlideDeck *slideDeck)
         }
 
         for (auto object : slide->objects()) {
-            if (object->type() == Q3DSGraphObject::Component)
+            if (object->type() == Q3DSGraphObject::Component && object->state() == Q3DSGraphObject::Enabled)
                 prepareComponentsOnSlide(slide, object);
         }
     };
@@ -488,11 +613,12 @@ void Q3DSSlidePlayer::reload()
 Q3DSSlidePlayer::Q3DSSlidePlayer(QSharedPointer<Q3DSAnimationManager> animationManager,
                                  Q3DSSceneManager *sceneManager,
                                  Q3DSComponentNode *component,
-                                 QObject *parent)
+                                 Q3DSSlidePlayer *parent)
     : QObject(parent),
       m_sceneManager(sceneManager),
       m_component(component),
       m_animationManager(animationManager),
+      m_mode(parent->mode()),
       m_type(PlayerType::ComponentSlide)
 {
 }
@@ -571,7 +697,7 @@ void Q3DSSlidePlayer::handleCurrentSlideChanged(Q3DSSlide *slide,
 
         const auto &objects = slide->objects();
         std::find_if(objects.constBegin(), objects.constEnd(), [](Q3DSGraphObject *obj) {
-            if (obj->type() == Q3DSGraphObject::Component) {
+            if (obj->type() == Q3DSGraphObject::Component && obj->state() == Q3DSGraphObject::Enabled) {
                 Q3DSComponentNode *comp = static_cast<Q3DSComponentNode *>(obj);
                 Q3DSSlide *compSlide = comp->currentSlide();
                 Q3DSSlideAttached *data = compSlide->attached<Q3DSSlideAttached>();
@@ -581,10 +707,8 @@ void Q3DSSlidePlayer::handleCurrentSlideChanged(Q3DSSlide *slide,
         });
     };
     if (previousSlide && slideDidChange) {
-        if (parentChanged) {
+        if (parentChanged)
             cleanUpComponentPlayers(static_cast<Q3DSSlide *>(previousSlide->parent()));
-            setSlideTime(static_cast<Q3DSSlide *>(previousSlide->parent()), -1.0f);
-        }
         setSlideTime(previousSlide, -1.0f);
         cleanUpComponentPlayers(previousSlide);
         Q3DSSlideAttached *data = previousSlide->attached<Q3DSSlideAttached>();
@@ -592,16 +716,16 @@ void Q3DSSlidePlayer::handleCurrentSlideChanged(Q3DSSlide *slide,
             // TODO: We probably want to be a bit less brute.
             if (slide) Q_ASSERT(previousSlide->parent() == slide->parent());
             updateAnimators(previousSlide, false, false, 1.0f);
+            detatchPositionCallback(previousSlide);
             m_animationManager->clearAnimations(previousSlide);
         }
     }
 
     if (slide && slideDidChange && isSlideVisible(slide)) {
         processPropertyChanges(slide);
-        m_animationManager->updateAnimations(slide, (m_mode == PlayerMode::Editor));
-        if (parentChanged)
-            setSlideTime(static_cast<Q3DSSlide *>(slide->parent()), 0.0f);
+        attatchPositionCallback(slide);
         setSlideTime(slide, 0.0f);
+        m_animationManager->updateAnimations(slide, (m_mode == PlayerMode::Editor));
 
         Q3DSGraphObject *eventTarget = m_sceneManager->m_scene;
         if (m_type != PlayerType::Slide)
@@ -629,7 +753,7 @@ void Q3DSSlidePlayer::handleCurrentSlideChanged(Q3DSSlide *slide,
 
         // A bit crude, but whatever
         if (m_type == PlayerType::Slide)
-            m_sceneManager->setCurrentSlide(slide, true);
+            m_sceneManager->m_currentSlide = slide;
         else
             m_component->setCurrentSlide(slide);
 
@@ -645,7 +769,7 @@ void Q3DSSlidePlayer::handleCurrentSlideChanged(Q3DSSlide *slide,
                 return;
             const auto &objects = slide->objects();
             std::find_if(objects.constBegin(), objects.constEnd(), [](Q3DSGraphObject *obj) {
-                if (obj->type() == Q3DSGraphObject::Component) {
+                if (obj->type() == Q3DSGraphObject::Component && obj->state() == Q3DSGraphObject::Enabled) {
                     Q3DSComponentNode *comp = static_cast<Q3DSComponentNode *>(obj);
                     Q3DSSlide *compSlide = comp->currentSlide();
                     Q3DSSlideAttached *data = compSlide->attached<Q3DSSlideAttached>();
@@ -675,6 +799,9 @@ static bool objectHasVisibilityTag(Q3DSGraphObject *object)
     if (!entity)
         return false;
 
+    if (object->type() == Q3DSGraphObject::Camera || object->type() == Q3DSGraphObject::Layer || object->type() == Q3DSGraphObject::Effect)
+        return (object->attached()->visibilityTag == Q3DSGraphObjectAttached::Visible);
+
     auto layerAttached = static_cast<Q3DSLayerAttached *>(object->isNode() ? object->attached<Q3DSNodeAttached>()->layer3DS->attached()
                                                                            : object->attached<Q3DSEffectAttached>()->layer3DS->attached());
     if (entity->components().contains(layerAttached->opaqueTag) || entity->components().contains(layerAttached->transparentTag))
@@ -685,30 +812,52 @@ static bool objectHasVisibilityTag(Q3DSGraphObject *object)
 
 void Q3DSSlidePlayer::setSlideTime(Q3DSSlide *slide, float time, bool parentVisible)
 {
+    // If this is a component player, then check if the component is visible in the parent.
+    const bool visibleInParent = (m_type == Q3DSSlidePlayer::PlayerType::ComponentSlide) ? ((m_component->attached()->visibilityTag == Q3DSGraphObjectAttached::Visible) && parentVisible)
+                                                                                         : true;
     // We force an update if we are at the beginning (0.0f) or the end (-1.0f)
     // to ensure the scenemanager has correct global values for visibility during
     // slide changes
-    const bool forceUpdate = parentVisible &&
+    const bool forceUpdate = visibleInParent &&
         (qFuzzyCompare(time, 0.0f) || qFuzzyCompare(time, -1.0f));
-    for (Q3DSGraphObject *obj : slide->objects()) {
-        const bool isEffect = (obj->type() == Q3DSGraphObject::Effect);
-        if ((!obj->isNode() && !isEffect) || obj->type() == Q3DSGraphObject::Camera || obj->type() == Q3DSGraphObject::Layer)
-            continue;
+    const auto updateObjects = [=](Q3DSSlide *s) {
+        if (!s)
+            return;
 
-        Q3DSNode *node = obj->isNode() ? static_cast<Q3DSNode *>(obj) : nullptr;
-        if (node && !node->attached())
-            continue;
+        for (Q3DSGraphObject *obj : s->objects()) {
+            if (obj->state() != Q3DSGraphObject::Enabled)
+                continue;
 
-        const bool nodeActive = (node && node->flags().testFlag(Q3DSNode::Active) && node->attached<Q3DSNodeAttached>()->globalVisibility);
-        const bool effectActive = isEffect && static_cast<Q3DSEffectInstance *>(obj)->active();
+            const bool isEffect = (obj->type() == Q3DSGraphObject::Effect);
+            if ((!obj->isNode() && !isEffect))
+                continue;
 
-        const bool shouldBeVisible = parentVisible
-            && time >= obj->startTime() && time <= obj->endTime()
-            && (nodeActive || effectActive);
+            const bool isRealNode = (obj->isNode() && obj->type() != Q3DSGraphObject::Layer && obj->type() != Q3DSGraphObject::Camera);
+            Q3DSNode *node = isRealNode ? static_cast<Q3DSNode *>(obj) : nullptr;
+            if (node && !node->attached())
+                continue;
 
-        if (forceUpdate || shouldBeVisible != objectHasVisibilityTag(obj))
-            updateObjectVisibility(obj, shouldBeVisible);
-    }
+            const bool nodeActive = (node && node->flags().testFlag(Q3DSNode::Active) && node->attached<Q3DSNodeAttached>()->globalVisibility);
+            const bool otherActive = !node && (obj->attached()->visibilityTag == Q3DSGraphObjectAttached::Visible);
+
+            const bool shouldBeVisible = visibleInParent
+                    && time >= obj->startTime() && time <= obj->endTime()
+                    && (nodeActive || otherActive);
+
+            if (forceUpdate || shouldBeVisible != objectHasVisibilityTag(obj))
+                updateObjectVisibility(obj, shouldBeVisible);
+
+            if (obj->type() == Q3DSGraphObject::Component) {
+                Q3DSComponentNode *component = static_cast<Q3DSComponentNode *>(obj);
+                Q3DSSlide *componentCurrentSlide = component->currentSlide();
+                Q3DSSlidePlayer *player = componentCurrentSlide->attached<Q3DSSlideAttached>()->slidePlayer;
+                player->setSlideTime(componentCurrentSlide, time, shouldBeVisible);
+            }
+        }
+    };
+
+    updateObjects(static_cast<Q3DSSlide *>(slide->parent()));
+    updateObjects(slide);
 
     // This method is called for all slides, but we only want to update the
     // position for the associated slide player once
@@ -725,9 +874,17 @@ void Q3DSSlidePlayer::sendPositionChanged(Q3DSSlide *slide, float pos)
     if (!qFuzzyCompare(oldPosition, pos))
         Q_EMIT positionChanged(pos);
 
-    const bool onEOS = (m_data.state == PlayerState::Playing && m_data.pendingState == PlayerState::Playing)
-            && ((m_data.position == 0.0f && m_data.playbackRate < 0.0f)
-                || (m_data.position == duration() && m_data.playbackRate > 0.0f));
+    // Check if we are close enough to the end of playback that we
+    // are unlikely to get another position change
+    float timeLeft = 0.0f;
+    if (m_data.playbackRate < 0.0f)
+        timeLeft = m_data.position;
+    else
+        timeLeft = qMax(0.0f, duration() - m_data.position);
+
+    const bool onEOS = m_data.state == PlayerState::Playing
+            && m_data.pendingState == PlayerState::Playing
+            && timeLeft < 0.1f;
 
     if (onEOS)
         onSlideFinished(slide);
@@ -736,26 +893,16 @@ void Q3DSSlidePlayer::sendPositionChanged(Q3DSSlide *slide, float pos)
 void Q3DSSlidePlayer::updateObjectVisibility(Q3DSGraphObject *obj, bool shouldBeVisible)
 {
     Q_ASSERT(obj->isNode() || obj->type() == Q3DSGraphObject::Effect);
-    if (obj->isNode()) {
-        Q3DSNode *node = static_cast<Q3DSNode *>(obj);
-        auto foundIt = m_sceneManager->m_pendingNodeVisibility.find(node);
-        const bool insertValue = (foundIt == m_sceneManager->m_pendingNodeVisibility.end());
-        const bool updateValue = (!insertValue && foundIt.value() != shouldBeVisible);
+    auto foundIt = m_sceneManager->m_pendingObjectVisibility.find(obj);
+    const bool insertValue = (foundIt == m_sceneManager->m_pendingObjectVisibility.end());
+    const bool updateValue = (!insertValue && foundIt.value() != shouldBeVisible);
 
-        if (insertValue || updateValue) {
-            qCDebug(lcSlidePlayer, "Scheduling node \"%s\" to be %s", obj->id().constData(), shouldBeVisible ? "shown" : "hidden");
-            if (updateValue)
-                *foundIt = shouldBeVisible;
-            else if (insertValue)
-                m_sceneManager->m_pendingNodeVisibility.insert(node, shouldBeVisible);
-        }
-    } else {
-        Q3DSEffectInstance *effect = static_cast<Q3DSEffectInstance *>(obj);
-        if (effect->active() != shouldBeVisible) {
-            qCDebug(lcSlidePlayer, "Scheduling effect \"%s\" to be %s", obj->id().constData(), shouldBeVisible ? "shown" : "hidden");
-            obj->applyPropertyChanges(Q3DSPropertyChangeList({Q3DSPropertyChange::fromVariant(QLatin1String("eyeball"), QVariant::fromValue(shouldBeVisible))}));
-            obj->notifyPropertyChanges(Q3DSPropertyChangeList({Q3DSPropertyChange::fromVariant(QLatin1String("eyeball"), QVariant::fromValue(shouldBeVisible))}));
-        }
+    if (insertValue || updateValue) {
+        qCDebug(lcSlidePlayer, "Scheduling object \"%s\" to be %s", obj->id().constData(), shouldBeVisible ? "shown" : "hidden");
+        if (updateValue)
+            *foundIt = shouldBeVisible;
+        else if (insertValue)
+            m_sceneManager->m_pendingObjectVisibility.insert(obj, shouldBeVisible);
     }
 }
 
@@ -796,7 +943,7 @@ void Q3DSSlidePlayer::processPropertyChanges(Q3DSSlide *currentSlide)
     QHash<Q3DSGraphObject *, Q3DSPropertyChangeList> dynamicPropertyChanges;
     const auto &tracks = currentSlide->animations();
     std::find_if(tracks.cbegin(), tracks.cend(), [&dynamicPropertyChanges](const Q3DSAnimationTrack &track) {
-        if (track.isDynamic()) {
+        if (track.isDynamic() && track.target()->state() == Q3DSGraphObject::Enabled) {
             const auto foundIt = dynamicPropertyChanges.constFind(track.target());
             Q3DSPropertyChangeList changeList;
             if (foundIt != dynamicPropertyChanges.constEnd())
@@ -814,6 +961,9 @@ void Q3DSSlidePlayer::processPropertyChanges(Q3DSSlide *currentSlide)
         Q3DSSlide *parent = static_cast<Q3DSSlide *>(currentSlide->parent());
         const auto &objects = parent->objects();
         std::find_if(objects.constBegin(), objects.constEnd(), [](Q3DSGraphObject *object){
+            if (object->state() != Q3DSGraphObject::Enabled)
+                return false;
+
             if (!object->isNode() && object->type() != Q3DSGraphObject::Effect)
                 return false;
 
@@ -831,11 +981,11 @@ void Q3DSSlidePlayer::processPropertyChanges(Q3DSSlide *currentSlide)
     // Filter out properties that we needs to be marked dirty, i.e., eyeball changes.
     const auto &propertyChanges = currentSlide->propertyChanges();
     for (auto it = propertyChanges.cbegin(); it != propertyChanges.cend(); ++it) {
+        it.key()->applyPropertyChanges(*it.value());
         std::find_if((*it)->cbegin(), (*it)->cend(), [it](const Q3DSPropertyChange &propChange) {
             if (propChange.name() == QLatin1String("eyeball"))
-                it.key()->notifyPropertyChanges(*it.value());
+                it.key()->notifyPropertyChanges(Q3DSPropertyChangeList({propChange}));
 
-            it.key()->applyPropertyChanges(*it.value());
             return false;
         });
     }

@@ -201,8 +201,8 @@ void Q3DSSurfaceViewer::destroy()
 /*!
     \fn Q3DSSurfaceViewer::presentationLoaded()
 
-    This signal is emitted when the viewer has been initialized and the
-    presentation is ready to be shown.
+    This signal is emitted when the presentation has been loaded and is ready
+    to be shown.
 */
 
 /*!
@@ -241,8 +241,8 @@ QString Q3DSSurfaceViewer::error() const
 /*!
     \property Q3DSSurfaceViewer::running
 
-    The value of this property is \c true when the viewer has been initialized
-    and the presentation is running.
+    The value of this property is \c true when the presentation has been loaded
+    and is ready to be shown.
 
     This property is read-only.
 */
@@ -469,11 +469,6 @@ Q3DSSurfaceViewerPrivate::Q3DSSurfaceViewerPrivate()
       viewerSettings(new Q3DSViewerSettings)
 {
     Q3DSPresentationPrivate::get(presentation)->setController(this);
-
-    QObject::connect(viewerSettings, &Q3DSViewerSettings::showRenderStatsChanged, viewerSettings, [this] {
-        if (engine)
-            engine->setProfileUiVisible(viewerSettings->isShowingRenderStats());
-    });
 }
 
 Q3DSSurfaceViewerPrivate::~Q3DSSurfaceViewerPrivate()
@@ -511,6 +506,7 @@ bool Q3DSSurfaceViewerPrivate::createEngine()
         return false;
     }
     engine->setSurface(windowOrOffscreenSurface);
+    engine->setViewerSettings(viewerSettings);
 
     qCDebug(lc3DSSurface, "Created engine %p", engine);
 
@@ -528,8 +524,6 @@ bool Q3DSSurfaceViewerPrivate::createEngine()
 
     QObject::connect(engine, &Q3DSEngine::presentationLoaded, engine, [this] {
         Q_Q(Q3DSSurfaceViewer);
-        if (viewerSettings->isShowingRenderStats())
-            engine->setProfileUiVisible(true);
         emit q->presentationLoaded();
     });
 

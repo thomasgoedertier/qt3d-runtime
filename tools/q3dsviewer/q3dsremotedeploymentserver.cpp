@@ -132,6 +132,9 @@ void Q3DSRemoteDeploymentServer::readProject()
     int totalBytes = 0;
     m_incoming >> totalBytes;
 
+    if (totalBytes != 0)
+        emit updateProgress(100 * ((double)m_connection->bytesAvailable() / (double)totalBytes));
+
     if (m_connection->bytesAvailable() < totalBytes) {
         m_incoming.rollbackTransaction();
         return;

@@ -775,13 +775,19 @@ MeshList loadMeshDataFromMulti(const QString &path, int id, bool useQt3DAttribut
     QMap<quint32, MeshMultiEntry> entries;
     quint64 multiOffset = multiHeaderStart - size * sizeof(MeshMultiEntry);
     meshFile.seek(multiOffset);
+    quint32 lastEntry = 1;
     for (quint32 i = 0; i < size; ++i) {
         MeshMultiEntry entry;
         meshFileStream >> entry.m_MeshOffset;
         meshFileStream >> entry.m_MeshId;
         meshFileStream >> entry.m_Padding;
         entries.insert(entry.m_MeshId, entry);
+        lastEntry = entry.m_MeshId;
     }
+
+    // QT3DS-1791: If no part is specified, use the last entry (newest revisions)
+    if (id == -1)
+        id = int(lastEntry);
 
     // Load mesh data
     MeshList meshList;

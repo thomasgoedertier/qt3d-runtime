@@ -74,6 +74,7 @@
 #include <Qt3DRender/QGraphicsApiFilter>
 #include <Qt3DRender/QRenderPass>
 #include <Qt3DRender/QRenderPassFilter>
+#include <Qt3DRender/QRenderStateSet>
 #include <Qt3DRender/QFilterKey>
 #include <Qt3DRender/QNoDraw>
 #include <Qt3DRender/QFrontFace>
@@ -90,6 +91,7 @@
 #include <Qt3DRender/QStencilMask>
 #include <Qt3DRender/QStencilOperation>
 #include <Qt3DRender/QStencilOperationArguments>
+#include <Qt3DRender/QScissorTest>
 #include <Qt3DRender/QRayCaster>
 
 #include <Qt3DAnimation/QClipAnimator>
@@ -324,7 +326,7 @@ static const int LAYER_CACHING_THRESHOLD = 4;
                     LayerFilter {
                         Layer { id: compositorTag }
                         layers: [ compositorTag ]
-                        ...
+                        ... // see buildCompositor()
                     }
 
                     // Profiling gui framegraph (once only, not included again for subpresentations)
@@ -427,7 +429,7 @@ static const int LAYER_CACHING_THRESHOLD = 4;
         }
     ]
 
-    Compute pass for texture prefiltering is provided as a separate technique with "type" == "bsdfPrefilter".
+    Compute pass for texture prefiltering is provided as a separate technique with "type" == "bsdfPrefilter". [not implemented]
 
 */
 
@@ -436,7 +438,7 @@ Q3DSSceneManager::Q3DSSceneManager()
       m_matGen(new Q3DSDefaultMaterialGenerator),
       m_customMaterialGen(new Q3DSCustomMaterialGenerator),
       m_textMatGen(new Q3DSTextMaterialGenerator),
-      m_textRenderer(new Q3DSTextRenderer),
+      m_textRenderer(new Q3DSTextRenderer(this)),
       m_profiler(new Q3DSProfiler),
       m_slidePlayer(new Q3DSSlidePlayer(this)),
       m_inputManager(new Q3DSInputManager(this))
@@ -466,20 +468,44 @@ Q3DSSceneManager::~Q3DSSceneManager()
     delete m_inputManager;
 }
 
-void Q3DSSceneManager::updateSizes(const QSize &size, qreal dpr, bool forceSynchronous)
+void Q3DSSceneManager::updateSizes(const QSize &size, qreal dpr, const QRect &viewport, bool forceSynchronous)
 {
     if (!m_scene)
         return;
 
-    qCDebug(lcScene) << "Resize to" << size << "device pixel ratio" << dpr;
+    // Setup the matte and scene viewport
+    QRectF normalizedViewport;
+    if (viewport.isNull())
+        normalizedViewport = QRectF(0, 0, 1, 1);
+    else
+        normalizedViewport = QRectF(viewport.x() / qreal(size.width()),
+                                    viewport.y() / qreal(size.height()),
+                                    viewport.width() / qreal(size.width()),
+                                    viewport.height() / qreal(size.height()));
 
-    m_outputPixelSize = size * dpr;
+    if (m_viewportData.viewport)
+       m_viewportData.viewport->setNormalizedRect(normalizedViewport);
+
+    m_viewportData.viewportRect = viewport;
+    m_viewportData.viewportDpr = dpr;
+    if (m_viewportData.matteScissorTest) {
+        m_viewportData.matteScissorTest->setBottom(qFloor(-(viewport.height() + viewport.y() - size.height()) * dpr));
+        m_viewportData.matteScissorTest->setLeft(qFloor(viewport.x() * dpr));
+        m_viewportData.matteScissorTest->setWidth(qFloor(viewport.width() * dpr));
+        m_viewportData.matteScissorTest->setHeight(qFloor(viewport.height() * dpr));
+    }
+
+    qCDebug(lcScene) << "Resize to" << size << "with viewport" << viewport << "device pixel ratio" << dpr;
+
+    m_outputPixelSize = viewport.size() * dpr;
+
+    // m_guiData uses the full surface size (not viewport)
     m_guiData.outputSize = size;
     m_guiData.outputDpr = dpr;
 
     if (m_guiData.camera) {
-        m_guiData.camera->setRight(m_outputPixelSize.width());
-        m_guiData.camera->setBottom(m_outputPixelSize.height());
+        m_guiData.camera->setRight(size.width() * float(dpr));
+        m_guiData.camera->setBottom(size.height() * float(dpr));
     }
 
     for (auto callback : m_compositorOutputSizeChangeCallbacks)
@@ -498,29 +524,31 @@ void Q3DSSceneManager::updateSizes(const QSize &size, qreal dpr, bool forceSynch
     });
 }
 
-void Q3DSSceneManager::setCurrentSlide(Q3DSSlide *newSlide, bool fromSlidePlayer)
+void Q3DSSceneManager::setCurrentSlide(Q3DSSlide *newSlide, bool flush)
 {
+    // NOTE: m_currentSlide is update from the slide player...
     if (m_currentSlide == newSlide)
         return;
 
-    // TODO: Workaround to keep the slide test working...
-    if (!fromSlidePlayer) {
-        const int index = m_slidePlayer->slideDeck()->indexOfSlide(newSlide);
-        m_slidePlayer->slideDeck()->setCurrentSlide(index);
-        return;
+    const int index = m_slidePlayer->slideDeck()->indexOfSlide(newSlide);
+    Q_ASSERT(index != -1);
+    m_slidePlayer->slideDeck()->setCurrentSlide(index);
+    if (flush || m_slidePlayer->state() != Q3DSSlidePlayer::PlayerState::Playing) {
+        m_slidePlayer->setSlideTime(newSlide, 0.0f);
+        updateSubTree(m_scene);
     }
-
-    qCDebug(lcScene, "Setting new current slide %s", newSlide->id().constData());
-    m_currentSlide = newSlide;
 }
 
-void Q3DSSceneManager::setComponentCurrentSlide(Q3DSComponentNode *component, Q3DSSlide *newSlide)
+void Q3DSSceneManager::setComponentCurrentSlide(Q3DSSlide *newSlide, bool flush)
 {
-    Q3DSSlideAttached *data = component->masterSlide()->attached<Q3DSSlideAttached>();
+    Q3DSSlideAttached *data = newSlide->attached<Q3DSSlideAttached>();
     const int index = data->slidePlayer->slideDeck()->indexOfSlide(newSlide);
     Q_ASSERT(index != -1);
     data->slidePlayer->slideDeck()->setCurrentSlide(index);
-    qCDebug(lcScene, "Setting new current slide %s for component %s", newSlide->id().constData(), component->id().constData());
+    if (flush || data->slidePlayer->state() != Q3DSSlidePlayer::PlayerState::Playing) {
+        data->slidePlayer->setSlideTime(newSlide, 0.0f);
+        updateSubTree(m_scene);
+    }
 }
 
 void Q3DSSceneManager::setLayerCaching(bool enabled)
@@ -611,7 +639,7 @@ Q3DSSceneManager::Scene Q3DSSceneManager::buildScene(Q3DSUipPresentation *presen
     m_scene = m_presentation->scene();
     m_masterSlide = m_presentation->masterSlide();
     m_currentSlide = nullptr;
-    m_pendingNodeVisibility.clear();
+    m_pendingObjectVisibility.clear();
     m_pendingSubPresLayers.clear();
     m_pendingSubPresImages.clear();
     m_subPresentations.clear();
@@ -682,8 +710,10 @@ Q3DSSceneManager::Scene Q3DSSceneManager::buildScene(Q3DSUipPresentation *presen
         subPresFrameGraphRoot = nullptr;
         Q_ASSERT(frameGraphRoot);
     }
-
-    m_outputPixelSize = params.outputSize * params.outputDpr;
+    if (params.viewport.isNull())
+        m_outputPixelSize = params.outputSize * params.outputDpr;
+    else
+        m_outputPixelSize = params.viewport.size() * params.outputDpr;
     m_guiData.outputSize = params.outputSize;
     m_guiData.outputDpr = params.outputDpr;
 
@@ -736,14 +766,12 @@ Q3DSSceneManager::Scene Q3DSSceneManager::buildScene(Q3DSUipPresentation *presen
     }
 #endif
 
-    const bool gles2 = m_gfxLimits.format.renderableType() == QSurfaceFormat::OpenGLES && m_gfxLimits.format.majorVersion() == 2;
-
     // Fullscreen quad for bluring the shadow map/cubemap
     Q3DSShaderManager &sm(Q3DSShaderManager::instance());
     QStringList fsQuadPassNames { QLatin1String("shadowOrthoBlurX"), QLatin1String("shadowOrthoBlurY") };
     QVector<Qt3DRender::QShaderProgram *> fsQuadPassProgs { sm.getOrthoShadowBlurXShader(m_rootEntity), sm.getOrthoShadowBlurYShader(m_rootEntity) };
 
-    if (!gles2) {
+    if (!m_gfxLimits.useGles2Path) {
         if (m_gfxLimits.maxDrawBuffers >= 6) { // ###
             fsQuadPassNames << QLatin1String("shadowCubeBlurX") << QLatin1String("shadowCubeBlurY");
             fsQuadPassProgs << sm.getCubeShadowBlurXShader(m_rootEntity, m_gfxLimits) << sm.getCubeShadowBlurYShader(m_rootEntity, m_gfxLimits);
@@ -1897,7 +1925,7 @@ Q3DSCameraNode *Q3DSSceneManager::findFirstCamera(Q3DSLayerNode *layer3DS)
             if (obj->type() == Q3DSGraphObject::Camera) {
                 Q3DSCameraNode *cam = static_cast<Q3DSCameraNode *>(obj);
                 // ### should use globalVisibility (which is only set in buildLayerCamera first...)
-                const bool active = cam->flags().testFlag(Q3DSNode::Active);;
+                const bool active = (cam->attached() && cam->attached()->visibilityTag == Q3DSGraphObjectAttached::Visible);
                 if (active) {
                     // Check if camera is on the current slide
                     Q3DSComponentNode *component = cam->attached() ? cam->attached()->component : nullptr;
@@ -3162,7 +3190,7 @@ void Q3DSSceneManager::buildLayerQuadEntity(Q3DSLayerNode *layer3DS, Qt3DCore::Q
     Qt3DCore::QEntity *layerQuadEntity = new Qt3DCore::QEntity(parentEntity);
     layerQuadEntity->setObjectName(QObject::tr("compositor for %1").arg(QString::fromUtf8(layer3DS->id())));
     data->compositorEntity = layerQuadEntity;
-    if (!layer3DS->flags().testFlag(Q3DSNode::Active))
+    if (layer3DS->attached()->visibilityTag == Q3DSGraphObjectAttached::Hidden)
         layerQuadEntity->setEnabled(false);
 
     // QPlaneMesh works here because the compositor shader is provided by
@@ -3265,14 +3293,26 @@ void Q3DSSceneManager::updateLayerCompositorProgram(Q3DSLayerNode *layer3DS)
 void Q3DSSceneManager::buildCompositor(Qt3DRender::QFrameGraphNode *parent, Qt3DCore::QEntity *parentEntity)
 {
     // Simplified view (excluding advanced blending-specific nodes):
-    // Viewport - CameraSelector - ClearBuffers - NoDraw
+    // MatteRoot - NoDraw
+    //           - [Clear - NoDraw]
+    // Viewport - CameraSelector - [Scissor] - ClearBuffers - NoDraw
     //                           - LayerFilter for layer quad entity 0
     //                           - LayerFilter for layer quad entity 1
     //                             ...
     // With standard blend modes only this is simplified to a single LayerFilter and QLayer tag.
 
-    Qt3DRender::QViewport *viewport = new Qt3DRender::QViewport(parent);
-    viewport->setNormalizedRect(QRectF(0, 0, 1, 1));
+    // If Matte is enabled in the ViewerSettings, then we need clear with the matte color first
+    // then later restrict the scene clear color to the vieport rect with a scissor test
+    m_viewportData.drawMatteNode = new Qt3DRender::QFrameGraphNode(parent);
+    new Qt3DRender::QNoDraw(m_viewportData.drawMatteNode);
+    m_viewportData.dummyMatteRoot = new Qt3DCore::QNode(m_rootEntity);
+    m_viewportData.matteClearBuffers = new Qt3DRender::QClearBuffers(m_viewportData.dummyMatteRoot);
+    m_viewportData.matteClearBuffers->setBuffers(Qt3DRender::QClearBuffers::ColorDepthStencilBuffer);
+    m_viewportData.matteClearBuffers->setClearColor(Qt::black);
+    new Qt3DRender::QNoDraw(m_viewportData.matteClearBuffers);
+
+    m_viewportData.viewport = new Qt3DRender::QViewport(parent);
+    m_viewportData.viewport->setNormalizedRect(QRectF(0, 0, 1, 1));
 
     Qt3DRender::QCamera *camera = new Qt3DRender::QCamera;
     camera->setObjectName(QLatin1String("compositor camera"));
@@ -3284,10 +3324,15 @@ void Q3DSSceneManager::buildCompositor(Qt3DRender::QFrameGraphNode *parent, Qt3D
     camera->setPosition(QVector3D(0, 0, 1));
     camera->setViewCenter(QVector3D(0, 0, 0));
 
-    Qt3DRender::QCameraSelector *cameraSelector = new Qt3DRender::QCameraSelector(viewport);
+    Qt3DRender::QCameraSelector *cameraSelector = new Qt3DRender::QCameraSelector(m_viewportData.viewport);
     cameraSelector->setCamera(camera);
 
-    Qt3DRender::QClearBuffers *clearBuffers = new Qt3DRender::QClearBuffers(cameraSelector);
+    m_viewportData.matteRenderState = new Qt3DRender::QRenderStateSet(cameraSelector);
+    m_viewportData.matteRenderState->setEnabled(false);
+    m_viewportData.matteScissorTest = new Qt3DRender::QScissorTest(m_viewportData.matteRenderState);
+    m_viewportData.matteRenderState->addRenderState(m_viewportData.matteScissorTest);
+
+    Qt3DRender::QClearBuffers *clearBuffers = new Qt3DRender::QClearBuffers(m_viewportData.matteRenderState);
     clearBuffers->setBuffers(Qt3DRender::QClearBuffers::ColorDepthStencilBuffer);
     QColor clearColor = Qt::transparent;
     if (m_scene->useClearColor()) {
@@ -3392,15 +3437,17 @@ void Q3DSSceneManager::buildCompositor(Qt3DRender::QFrameGraphNode *parent, Qt3D
                 new Qt3DRender::QNoDraw(bgBlit);
 
                 // Layer size dependent properties have to be updated dynamically.
-                auto setSizeDependentValues = [bgBlit, layer3DS, data](Q3DSLayerNode *changedLayer) {
+                auto setSizeDependentValues = [bgBlit, layer3DS, data, this](Q3DSLayerNode *changedLayer) {
                     if (changedLayer != layer3DS)
                         return;
 
                     if (data->layerSize.isEmpty())
                         return;
 
+                    const QPointF pos = data->layerPos + m_viewportData.viewportRect.topLeft() * m_viewportData.viewportDpr;
+
                     // this assumes QTBUG-65123 is fixed
-                    QRectF srcRect(data->layerPos, data->layerSize);
+                    QRectF srcRect(pos, data->layerSize);
                     bgBlit->setSourceRect(srcRect);
                     QRectF dstRect(QPointF(0, 0), data->layerSize);
                     bgBlit->setDestinationRect(dstRect);
@@ -3927,6 +3974,10 @@ Qt3DCore::QEntity *Q3DSSceneManager::buildText(Q3DSTextNode *text3DS, Q3DSLayerN
     data->texture = new Qt3DRender::QTexture2D;
     m_profiler->trackNewObject(data->texture, Q3DSProfiler::Texture2DObject,
                                "Texture for text item %s", text3DS->id().constData());
+    data->texture->setGenerateMipMaps(true);
+    data->texture->setMinificationFilter(Qt3DRender::QAbstractTexture::LinearMipMapLinear);
+    data->texture->setMagnificationFilter(Qt3DRender::QAbstractTexture::Linear);
+
     data->textureImage = new Q3DSTextImage(text3DS, m_textRenderer);
     data->textureImage->setSize(sz);
     data->texture->addTextureImage(data->textureImage);
@@ -4250,14 +4301,13 @@ void Q3DSSceneManager::buildModelMaterial(Q3DSModelNode *model3DS)
     for (auto light : lights)
         lightNodes.append(light->lightNodes);
 
-    const int lightNodeLimit = m_gfxLimits.shaderUniformBufferSupported ? Q3DS_MAX_NUM_LIGHTS : Q3DS_MAX_NUM_LIGHTS_ES2;
-    if (lightNodes.count() > lightNodeLimit) {
+    if (lightNodes.count() > m_gfxLimits.maxLightsPerLayer) {
         qCWarning(lcPerf, "Default material for model %s got %d lights, shader input truncated to %d",
-                  model3DS->id().constData(), lightNodes.count(), lightNodeLimit);
+                  model3DS->id().constData(), lightNodes.count(), m_gfxLimits.maxLightsPerLayer);
         // This is what the shader generator will see so truncate this. That
         // some calculations below may still use all the lights does not
         // matters so much.
-        lightNodes.resize(lightNodeLimit);
+        lightNodes.resize(m_gfxLimits.maxLightsPerLayer);
     }
 
     for (Q3DSModelAttached::SubMesh &sm : modelData->subMeshes) {
@@ -4295,7 +4345,7 @@ void Q3DSSceneManager::buildModelMaterial(Q3DSModelNode *model3DS)
                     lightsData->lightAmbientTotalParamenter->setValue(lightAmbientTotal);
                     params.append(lightsData->lightAmbientTotalParamenter);
 
-                    if (m_gfxLimits.shaderUniformBufferSupported) {
+                    if (!m_gfxLimits.useGles2Path) {
                         // Setup lights, use combined buffer for the default material.
                         if (!lightsData->allLightsConstantBuffer) {
                             lightsData->allLightsConstantBuffer = new Qt3DRender::QBuffer(layerData->entity);
@@ -4361,7 +4411,7 @@ void Q3DSSceneManager::buildModelMaterial(Q3DSModelNode *model3DS)
                 updateCustomMaterial(customMaterial, sm.referencingMaterial, model3DS);
 
                 if (lightsData) {
-                    if (m_gfxLimits.shaderUniformBufferSupported) {
+                    if (!m_gfxLimits.useGles2Path) {
                         // Here lights are provided in two separate buffers.
                         if (!lightsData->nonAreaLightsConstantBuffer) {
                             lightsData->nonAreaLightsConstantBuffer = new Qt3DRender::QBuffer(layerData->entity);
@@ -5474,7 +5524,7 @@ void Q3DSSceneManager::updateEffectStatus(Q3DSLayerNode *layer3DS)
     for (int i = 0; i < count; ++i) {
         Q3DSEffectInstance *eff3DS = layerData->effectData.effects[i];
         Q3DSEffectAttached *effData = static_cast<Q3DSEffectAttached *>(eff3DS->attached());
-        if (eff3DS->active()) {
+        if (effData->visibilityTag == Q3DSGraphObjectAttached::Visible) {
             ++activeEffectCount;
             if (activeEffectCount == 1)
                 firstActiveIndex = i;
@@ -5511,7 +5561,7 @@ void Q3DSSceneManager::updateEffectStatus(Q3DSLayerNode *layer3DS)
         Qt3DRender::QAbstractTexture *prevOutput = nullptr;
         for (int i = 0; i < count; ++i) {
             Q3DSEffectInstance *eff3DS = layerData->effectData.effects[i];
-            if (eff3DS->active()) {
+            if (eff3DS->attached()->visibilityTag == Q3DSGraphObjectAttached::Visible) {
                 Q3DSSceneManager::EffectActivationFlags flags = 0;
                 if (i == firstActiveIndex)
                     flags |= Q3DSSceneManager::EffIsFirst;
@@ -6328,7 +6378,7 @@ QVector<Qt3DRender::QParameter*> Q3DSSceneManager::prepareSeparateLightUniforms(
 {
     QVector<Qt3DRender::QParameter*> params;
     for (int i = 0; i < allLights.size(); ++i) {
-        if (i >= Q3DS_MAX_NUM_LIGHTS_ES2)
+        if (i >= m_gfxLimits.maxLightsPerLayer)
             break;
 
         const QString uniformPrefix = lightsUniformName + QStringLiteral("[") + QString::number(i) + QStringLiteral("].");
@@ -6409,14 +6459,17 @@ void Q3DSSceneManager::updateLightsBuffer(const QVector<Q3DSLightSource> &lights
     if (!uniformBuffer) // no models in the layer -> no buffers -> handle gracefully
         return; // can also get here when no custom material-specific buffers exist for a given layer because it only uses default material, this is normal
 
-    QByteArray lightBufferData((sizeof(Q3DSLightSourceData) * Q3DS_MAX_NUM_LIGHTS) + (4 * sizeof(qint32)), '\0');
+    Q_ASSERT(sizeof(Q3DSLightSourceData) == 240);
+    // uNumLights takes 4 * sizeof(qint32) since the next member must be 4N (16 bytes) aligned
+    const int uNumLightsSize = 4 * sizeof(qint32);
+    QByteArray lightBufferData((sizeof(Q3DSLightSourceData) * m_gfxLimits.maxLightsPerLayer) + uNumLightsSize, '\0');
     // Set the number of lights
     qint32 *numLights = reinterpret_cast<qint32 *>(lightBufferData.data());
     *numLights = lights.count();
     // Set the lightData
-    Q3DSLightSourceData *lightData = reinterpret_cast<Q3DSLightSourceData *>(lightBufferData.data() + (4 * sizeof(qint32)));
+    Q3DSLightSourceData *lightData = reinterpret_cast<Q3DSLightSourceData *>(lightBufferData.data() + uNumLightsSize);
     for (int i = 0; i < lights.count(); ++i) {
-        if (i >= Q3DS_MAX_NUM_LIGHTS)
+        if (i >= m_gfxLimits.maxLightsPerLayer)
             break;
         lightData[i].m_position = lights[i].positionParam->value().value<QVector4D>();
         lightData[i].m_direction = lights[i].directionParam->value().value<QVector3D>().toVector4D();
@@ -6455,7 +6508,7 @@ void Q3DSSceneManager::updateLightsBuffer(const QVector<Q3DSLightSource> &lights
         // shadowControls
         lightData[i].m_shadowControls = lights[i].shadowControlsParam->value().value<QVector4D>();
         // shadowView
-        lightData[i].m_shadowView = lights[i].shadowViewParam->value().value<QMatrix4x4>();
+        memcpy(lightData[i].m_shadowView, lights[i].shadowViewParam->value().value<QMatrix4x4>().constData(), 16 * sizeof(float));
         // shadowIdx
         lightData[i].m_shadowIdx = lights[i].shadowIdxParam->value().toInt();
     }
@@ -6650,9 +6703,15 @@ void Q3DSSceneManager::updateSubTree(Q3DSGraphObject *obj)
         }
     }
 
-    for (auto it = m_pendingNodeVisibility.constBegin(); it != m_pendingNodeVisibility.constEnd(); ++it)
-        setNodeVisibility(it.key(), it.value());
-    m_pendingNodeVisibility.clear();
+    for (auto it = m_pendingObjectVisibility.constBegin(); it != m_pendingObjectVisibility.constEnd(); ++it) {
+        if (it.key()->isNode() && it.key()->type() != Q3DSGraphObject::Layer && it.key()->type() != Q3DSGraphObject::Camera) {
+            setNodeVisibility(static_cast<Q3DSNode *>(it.key()), it.value());
+        } else {
+            // NOTE: Special handling for e.g., Camera, layers and effects.
+            it.key()->attached()->visibilityTag = (it.value() ? Q3DSGraphObjectAttached::Visible : Q3DSGraphObjectAttached::Hidden);
+        }
+    }
+    m_pendingObjectVisibility.clear();
 }
 
 static Q3DSComponentNode *findNextComponentParent(Q3DSComponentNode *component)
@@ -7033,7 +7092,7 @@ void Q3DSSceneManager::updateNodeFromChangeFlags(Q3DSNode *node, Qt3DCore::QTran
             // Drop whatever is queued since that was based on now-invalid
             // input. (important when entering slides, where eyball property
             // changes get processed after an initial visit of all objects)
-            m_pendingNodeVisibility.remove(node);
+            m_pendingObjectVisibility.remove(node);
 
             const bool active = node->flags().testFlag(Q3DSNode::Active);
             setNodeVisibility(node, active);
@@ -7061,9 +7120,11 @@ void Q3DSSceneManager::setNodeVisibility(Q3DSNode *node, bool visible)
         return;
 
     if (!visible) {
+        data->visibilityTag = Q3DSGraphObjectAttached::Hidden;
         data->entity->removeComponent(layerData->opaqueTag);
         data->entity->removeComponent(layerData->transparentTag);
     } else {
+        data->visibilityTag = Q3DSGraphObjectAttached::Visible;
         if (node->type() != Q3DSGraphObject::Text)
             data->entity->addComponent(layerData->opaqueTag);
         data->entity->addComponent(layerData->transparentTag);
@@ -7172,6 +7233,27 @@ void Q3DSSceneManager::configureProfileUi(float scale)
 #endif
 }
 
+void Q3DSSceneManager::setMatteEnabled(bool isEnabled)
+{
+    if (!m_viewportData.drawMatteNode)
+        return;
+
+    if (isEnabled) {
+        // Attached the matteClearBuffers to the drawMatteNode placeholder
+        m_viewportData.matteClearBuffers->setParent(m_viewportData.drawMatteNode);
+        m_viewportData.matteRenderState->setEnabled(true);
+    } else {
+        m_viewportData.matteClearBuffers->setParent(m_viewportData.dummyMatteRoot);
+        m_viewportData.matteRenderState->setEnabled(false);
+    }
+}
+
+void Q3DSSceneManager::setMatteColor(const QColor &color)
+{
+    if (m_viewportData.matteClearBuffers)
+        m_viewportData.matteClearBuffers->setClearColor(color);
+}
+
 void Q3DSSceneManager::addLog(const QString &msg)
 {
 #if QT_CONFIG(q3ds_profileui)
@@ -7226,7 +7308,7 @@ void Q3DSSceneManager::changeSlideByName(Q3DSGraphObject *sceneOrComponent, cons
     if (targetSlide) {
         if (component) {
             if (m_currentSlide->objects().contains(component) || m_masterSlide->objects().contains(component))
-                setComponentCurrentSlide(component, targetSlide);
+                setComponentCurrentSlide(targetSlide);
             else
                 component->setCurrentSlide(targetSlide);
         } else {
@@ -7264,7 +7346,18 @@ void Q3DSSceneManager::changeSlideByDirection(Q3DSGraphObject *sceneOrComponent,
     slidePlayer->reload();
 }
 
-void Q3DSSceneManager::goToTime(Q3DSGraphObject *sceneOrComponent, float milliseconds, bool pause)
+void Q3DSSceneManager::goToTime(Q3DSGraphObject *sceneOrComponent, float milliseconds)
+{
+    Q3DSSlidePlayer *slidePlayer = m_slidePlayer;
+    if (sceneOrComponent->type() == Q3DSGraphObject::Component) {
+        slidePlayer = static_cast<Q3DSComponentNode *>(sceneOrComponent)->masterSlide()
+                ->attached<Q3DSSlideAttached>()->slidePlayer;
+    }
+
+    slidePlayer->seek(milliseconds);
+}
+
+void Q3DSSceneManager::goToTimeAction(Q3DSGraphObject *sceneOrComponent, float milliseconds, bool pause)
 {
     Q3DSSlidePlayer *slidePlayer = m_slidePlayer;
     if (sceneOrComponent->type() == Q3DSGraphObject::Component) {
@@ -7546,7 +7639,7 @@ void Q3DSSceneManager::runAction(const Q3DSAction &action)
             bool pause = false;
             if (shouldPause.isValid())
                 Q3DS::convertToBool(&shouldPause.value, &pause);
-            goToTime(action.targetObject, seekTimeMs, pause);
+            goToTimeAction(action.targetObject, seekTimeMs, pause);
         }
     }
         break;

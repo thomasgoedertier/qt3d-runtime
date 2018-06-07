@@ -31,6 +31,7 @@
 #define Q3DSTUDIOMAINWINDOW_H
 
 #include <QMainWindow>
+#include <QTimer>
 
 QT_BEGIN_NAMESPACE
 
@@ -44,6 +45,9 @@ public:
     explicit Q3DStudioMainWindow(Q3DSWindow *view, Q3DSRemoteDeploymentManager *remote = nullptr, QWidget *parent = nullptr);
 
     static QString fileFilter();
+private:
+    QTimer m_refreshTimer;
+    bool m_okToReload = true;
 };
 
 QT_END_NAMESPACE

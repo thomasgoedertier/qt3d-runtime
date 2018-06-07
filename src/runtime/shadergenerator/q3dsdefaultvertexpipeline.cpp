@@ -584,9 +584,6 @@ struct ShaderGenerator : public Q3DSDefaultMaterialShaderGenerator
         bool hasIblProbe = false;
 
         // specify how to build lights
-        bool isgles2 = Q3DS::graphicsLimits().format.renderableType() == QSurfaceFormat::OpenGLES &&
-                       Q3DS::graphicsLimits().format.majorVersion() == 2;
-
         auto features = featureSet();
         for (const auto &feature : features) {
             if (!feature.enabled)
@@ -662,7 +659,7 @@ struct ShaderGenerator : public Q3DSDefaultMaterialShaderGenerator
 
                 fragmentShader.addUniform("bumpAmount", "float");
 
-                if (isgles2) {
+                if (Q3DS::graphicsLimits().useGles2Path) {
                     const QByteArray imageSamplerSize = m_ImageSize.toUtf8();
                     fragmentShader.addUniform(m_ImageSize.toLatin1(), "vec2");
                     fragmentShader.addInclude("defaultMaterialBumpNoLod.glsllib");

@@ -84,6 +84,7 @@ signals:
     void runningChanged();
     void errorChanged();
     void ignoredEventsChanged();
+    void presentationLoaded();
     void presentationReady();
     void frameUpdate();
 
@@ -131,6 +132,7 @@ private:
     bool m_running = false;
     QString m_error;
     EventIgnoreFlags m_eventIgnoreFlags;
+    bool m_needsPresReadySignal = true;
 };
 
 Q_DECLARE_OPERATORS_FOR_FLAGS(Q3DSStudio3DItem::EventIgnoreFlags)

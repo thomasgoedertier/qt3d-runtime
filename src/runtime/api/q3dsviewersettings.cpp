@@ -42,10 +42,6 @@ QT_BEGIN_NAMESPACE
     Q3DSViewerSettings provides properties to define presentation independent
     viewer settings.
 
-    \note As of Qt 3D Studio 2.0 this class is provided mainly for
-    compatibility reasons. Most functions are not applicable or are not
-    currently supported and will be silently ignored.
-
     \note This class should not be instantiated directly when working with the
     C++ APIs. Q3DSSurfaceViewer and Q3DSWidget create a Q3DSViewerSettings
     instance implicitly. This can be queried via Q3DSSurfaceViewer::settings()
@@ -75,6 +71,8 @@ Q3DSViewerSettings::~Q3DSViewerSettings()
     \value ShadeModeShadedWireframe The objects in the presentation are shaded
     with a super-imposed wireframe on top of the normal shading. Only objects that specify
     a tesselation mode will display this wireframe.
+
+    \note As of Qt 3D Studio 2.0 the shade mode setting is ignored.
 */
 
 /*!
@@ -82,15 +80,34 @@ Q3DSViewerSettings::~Q3DSViewerSettings()
 
     This enumeration specifies the possible scaling modes.
 
-    \value ScaleModeFit Scales the presentation to fit the viewer.
-    \value ScaleModeFill Scales the presentation to fill the viewer.
-    \value ScaleModeCenter Centers the presentation into the viewer without scaling it.
+    \value ScaleModeFit Scales the presentation to fit the output area.
+    \value ScaleModeFill Scales the presentation to completely fill the output area. This is the default.
+    \value ScaleModeCenter Centers the presentation in the output area without scaling it.
 */
+
+/*!
+    \property Q3DSViewerSettings::matteEnabled
+
+    Specifies if the empty area around the presentation (applicable when
+    scaleMode is set to ScaleModeCenter or ScaleModeFit) should be filled with
+    a custom color.
+
+    The default value is \c false.
+
+    \sa matteColor
+ */
+bool Q3DSViewerSettings::matteEnabled() const
+{
+    Q_D(const Q3DSViewerSettings);
+    return d->matteEnabled;
+}
 
 /*!
     \property Q3DSViewerSettings::matteColor
 
-    \note This property is currently ignored.
+    Specifies the matte color.
+
+    \sa matteEnabled
  */
 QColor Q3DSViewerSettings::matteColor() const
 {
@@ -129,7 +146,14 @@ Q3DSViewerSettings::ShadeMode Q3DSViewerSettings::shadeMode() const
 /*!
     \property Q3DSViewerSettings::scaleMode
 
-    \note This property is currently ignored.
+    Specifies the scaling mode. The default value \c is ScaleModeFill where the
+    size of the presentation on-screen follows and fills the size of the output
+    area (the window, the screen, or the area occupied by the \l Studio3D
+    element).
+
+    During the design phase it can be valuable to see the presentation with
+    some other scaling approach. For example, the Qt 3D Studio Viewer
+    application uses ScaleModeCenter by default.
  */
 Q3DSViewerSettings::ScaleMode Q3DSViewerSettings::scaleMode() const
 {
@@ -137,11 +161,20 @@ Q3DSViewerSettings::ScaleMode Q3DSViewerSettings::scaleMode() const
     return d->scaleMode;
 }
 
+
+void Q3DSViewerSettings::setMatteEnabled(bool isEnabled)
+{
+    Q_D(Q3DSViewerSettings);
+    if (d->matteEnabled != isEnabled) {
+        d->matteEnabled = isEnabled;
+        emit matteEnabledChanged();
+    }
+}
+
 void Q3DSViewerSettings::setMatteColor(const QColor &color)
 {
     Q_D(Q3DSViewerSettings);
     if (d->matteColor != color) {
-        qWarning() << Q_FUNC_INFO << "not implemented";
         d->matteColor = color;
         emit matteColorChanged();
     }
@@ -170,7 +203,6 @@ void Q3DSViewerSettings::setScaleMode(Q3DSViewerSettings::ScaleMode mode)
 {
     Q_D(Q3DSViewerSettings);
     if (d->scaleMode != mode) {
-        qWarning() << Q_FUNC_INFO << "not implemented";
         d->scaleMode = mode;
         emit scaleModeChanged();
     }
@@ -230,6 +262,41 @@ void Q3DSViewerSettings::load(const QString &group,
     property has no effect.
 
     The default value is \c{false}.
+*/
+
+/*!
+    \qmlproperty bool ViewerSettings::matteEnabled
+
+    Specifies if the empty area around the presentation (applicable when
+    scaleMode is set to ScaleModeCenter or ScaleModeFit) should be filled with
+    a custom color.
+
+    The default value is \c false.
+ */
+
+/*!
+    \qmlproperty QColor ViewerSettings::matteColor
+
+    Specifies the matte color.
+ */
+
+/*!
+    \qmlproperty enumeration ViewerSettings::scaleMode
+
+    Specifies the scaling mode. The default value \c is ScaleModeFill where the
+    size of the presentation on-screen follows and fills the size of the output
+    area (the window, the screen, or the area occupied by the Studio3D
+    element).
+
+    During the design phase it can be valuable to see the presentation with
+    some other scaling approach. For example, the Qt 3D Studio Viewer
+    application uses ScaleModeCenter by default.
+
+    \value ScaleModeFit Scales the presentation to fit the output area.
+    \value ScaleModeFill Scales the presentation to completely fill the output area.
+    \value ScaleModeCenter Centers the presentation in the output area without scaling it.
+
+    The default value is \c{ScaleModeFill}.
 */
 
 QT_END_NAMESPACE

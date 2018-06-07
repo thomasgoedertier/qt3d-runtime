@@ -1,0 +1,427 @@
+/* General coloring and font size */
+QWidget {
+    color: #ffffff;
+    background: #2e2f30;
+    font-size: 12px;
+    border: 0px;
+}
+
+/* DockWidget */
+QMainWindow::separator {
+    background: #000000;
+    width: 1px;  /* when vertical */
+    height: 1px; /* when horizontal */
+}
+
+QDockWidget::title {
+    border: 1px solid #262829;
+    background: #2e2f30;
+    padding: 3px;
+}
+
+QDockWidget::close-button,
+QDockWidget::float-button {
+    border: 1px solid transparent;
+    background: transparent;
+}
+
+/* Tabs */
+QTabBar::tab:selected {
+    background: #2e2f30;
+    padding: 5px;
+}
+
+QTabBar::tab:!selected {
+    background: #262829;
+    color: #727476;
+    padding: 5px;
+}
+
+QTabWidget::pane {
+    border: 1px solid #404244;
+}
+
+/* Scrollbar */
+QScrollBar:horizontal {
+    height: 6px;
+}
+
+QScrollBar:vertical {
+    width: 6px;
+}
+
+QScrollBar::add-page:horizontal,
+QScrollBar::sub-page:horizontal,
+QScrollBar::add-page:vertical,
+QScrollBar::sub-page:vertical {
+    background: #2e2f30;
+}
+
+QScrollBar::handle:horizontal {
+    height: 6px;
+    border: 3px solid #999A9B;
+    border-radius: 3px;
+}
+
+QScrollBar::add-line:horizontal,
+QScrollBar::sub-line:horizontal {
+    width: 0px;
+}
+
+QScrollBar::handle:vertical {
+    width: 6px;
+    border: 3px solid #999A9B;
+    border-radius: 3px;
+}
+
+QScrollBar::add-line:vertical,
+QScrollBar::sub-line:vertical {
+    height: 0px;
+}
+
+/* Menubar */
+QMenuBar {
+    background: #404244;
+    border-top: 1px solid #262829;
+    border-bottom: 1px solid #262829;
+}
+
+QMenuBar::item {
+    background: transparent;
+}
+
+QMenuBar::item:selected {
+    background: #46a2da;
+    border: 1px solid #262829;
+}
+
+/* Menu */
+QMenu {
+    background: #262829;
+    border: 1px solid #727476;
+}
+
+QMenu::item {
+    padding: 4px 20px 4px 20px;
+}
+
+QMenu::item:selected:enabled {
+    background: #46a2da;
+}
+
+QMenu::item:disabled {
+    padding: 4px 20px 4px 20px;
+    color: #727476;
+}
+
+QMenu::separator {
+    height: 1px;
+    background: #727476;
+}
+
+/* Toolbar */
+QToolBar {
+    background: #404244;
+}
+
+QToolBar::handle:horizontal {
+    image: url(:/images/separator.png);
+}
+
+QToolBar::handle:vertical {
+    image: url(:/images/separator-vertical.png);
+}
+
+QToolBar::separator:horizontal {
+    background: #727476;
+    width: 1px;
+    margin: 3px;
+}
+
+QToolBar::separator:vertical {
+    background: #727476;
+    height: 1px;
+    margin: 3px;
+}
+
+QToolButton:!checked {
+    min-width: 22px;
+    max-width: 22px;
+    min-height: 22px;
+    max-height: 22px;
+    background-color: #404244;
+}
+
+QToolButton:checked, QToolButton:hover {
+    min-width: 22px;
+    max-width: 22px;
+    min-height: 22px;
+    max-height: 22px;
+    background-color: #262829;
+}
+
+QToolButton:pressed:!checked {
+    min-width: 22px;
+    max-width: 22px;
+    min-height: 22px;
+    max-height: 22px;
+    background-color: #46a2da;
+}
+
+QToolButton#qt_toolbar_ext_button {
+    image: url(:/images/toolbutton-arrow.png);
+}
+
+QComboBox#cameraSelector {
+    /* We have a specific style for camera selector combobox, as it's in the toolbar and needs to
+       blend in */
+    background: #404244;
+    border: 0px;
+    border-radius: 0;
+    padding: 3px;
+}
+
+/* ToolTip */
+QToolTip {
+    background: #404244;
+    color: #ffffff;
+    font-size: 12px;
+    border: 1px solid #727476;
+    border-radius: 2;
+}
+
+/* Dialog widgets */
+QComboBox,
+QLineEdit,
+QSpinBox,
+QDoubleSpinBox,
+QDateTimeEdit {
+    background: #404244;
+    border: 1px solid #262829;
+    border-radius: 2;
+    padding: 3px;
+}
+
+QComboBox::drop-down {
+    background: #404244;
+}
+
+QComboBox::down-arrow,
+QSpinBox::down-arrow,
+QDoubleSpinBox::down-arrow,
+QDateTimeEdit::down-arrow {
+    image: url(:/images/arrow_down.png);
+}
+
+QComboBox::down-arrow:on {
+    image: url(:/images/arrow_up.png);
+}
+
+QSpinBox::up-arrow,
+QDoubleSpinBox::up-arrow,
+QDateTimeEdit::up-arrow {
+    image: url(:/images/arrow_up.png);
+}
+
+QSpinBox::up-button,
+QSpinBox::down-button,
+QDoubleSpinBox::up-button,
+QDoubleSpinBox::down-button,
+QDateTimeEdit::up-button,
+QDateTimeEdit::down-button {
+    border: 0px;
+}
+
+QGroupBox {
+    padding: 14px 0px 0px 0px;
+    border: 1px solid #262829;
+}
+
+QGroupBox::title {
+    subcontrol-origin: padding;
+    margin-top: 2px;
+    margin-left: 10px;
+}
+
+QPushButton:!pressed {
+    background: #404244;
+    border: 1px solid #262829;
+    border-radius: 2;
+    padding: 3px 10px 3px 10px;
+    min-width: 75;
+}
+
+QPushButton:pressed {
+    background: #262829;
+}
+
+QHeaderView::section {
+    background: transparent;
+    min-height: 26px;
+}
+
+QHeaderView::section:hover {
+    background: #46a2da;
+}
+
+/* Tutorial Dialog */
+QDialog#StudioTutorialWidget,
+QDialog#StudioTutorialWidget QWidget {
+    color: #ffffff;
+    background-color: transparent;
+    border: 0px;
+}
+
+QPushButton:!pressed#studioTutorialOpen,
+QPushButton:!pressed#studioTutorialNew {
+    background: transparent;
+    border: 1px solid #41cd52;
+}
+
+QPushButton:pressed#studioTutorialOpen,
+QPushButton:pressed#studioTutorialNew {
+    background: #41cd52;
+    border: 1px solid #41cd52;
+}
+
+/* Startup Dialog */
+QDialog#StartupDlg,
+QDialog#StartupDlg QWidget {
+    color: #ffffff;
+    background-color: transparent;
+    border: 0px;
+    font-size: 16px;
+}
+
+/* About Dialog */
+QDialog#Q3DSAboutDialog,
+QDialog#Q3DSAboutDialog QWidget {
+    background-color: transparent;
+    border: 0px;
+}
+
+QDialog#Q3DSAboutDialog QPushButton:!pressed {
+    background: transparent;
+    border: 1px solid #41cd52;
+}
+
+QDialog#Q3DSAboutDialog QPushButton:pressed {
+    background: #41cd52;
+    border: 1px solid #41cd52;
+}
+
+/* TimeLineToolbar */
+QWidget#TimeLineParent,
+TimeLineToolbar QWidget#layoutWidget {
+    background: #404244;
+}
+
+TimeLineToolbar QPushButton#timeButton {
+    border: 0px;
+}
+
+TimeLineToolbar QLabel#dataInputName {
+    background: transparent;
+    color: #ff5102;
+}
+
+QLabel#timebarToolTip {
+    background: #404244;
+    color: #ffffff;
+    font-size: 12px;
+    border: 1px solid #727476;
+    border-radius: 2;
+}
+
+/* Loading progress dialog */
+QDialog#ProgressDlg QWidget {
+    background-color: #202020;
+}
+
+QDialog#ProgressDlg QWidget#backgroundWidget {
+    border: 1px solid #808080;
+}
+
+QDialog#ProgressDlg QWidget#progressActionText {
+    font-size: 16px;
+}
+
+/* Sub-presentation Dialogs and Data Input Dialogs */
+QDialog#SubPresentationListDlg QTableView QTableCornerButton::section,
+QDialog#SubPresentationListDlg QHeaderView::section,
+QDialog#DataInputListDlg QTableView QTableCornerButton::section,
+QDialog#DataInputListDlg QHeaderView::section {
+    font-weight: bold;
+}
+
+QDialog#SubPresentationListDlg QTableView,
+QDialog#DataInputListDlg QTableView {
+    selection-background-color: #46a2da;
+    gridline-color: #2e2f30;
+}
+
+QDialog#DataInputListDlg QComboBox QAbstractItemView::item:selected
+{
+    background-color: #46a2da;
+}
+
+QDialog#DataInputListDlg QComboBox QAbstractItemView::item
+{
+    margin-top: 5px;
+}
+
+QDialog#SubPresentationListDlg QPushButton#SubPresentationListButton,
+QDialog#DataInputListDlg QPushButton#DataInputListButton {
+    background-color: transparent;
+    border: 0px;
+    min-width: 16px;
+    max-width: 16px;
+    min-height: 16px;
+    max-height: 16px;
+    padding: 0px;
+}
+
+QDialog#SubPresentationListDlg QPushButton#SubPresentationListButton:pressed,
+QDialog#DataInputListDlg QPushButton#DataInputListButton:pressed {
+    background-color: #262829;
+}
+
+QDialog#SubPresentationDlg QPushButton:!enabled,
+QDialog#DataInputDlg  QPushButton:!enabled {
+    background: transparent;
+    color: #727476;
+}
+
+/* Data input chooser */
+DataInputSelectDlg {
+    border: 1px solid #404244;
+}
+
+DataInputSelectDlg::item:selected {
+    background: #46a2da;
+}
+
+DataInputSelectDlg::item:hover {
+    background: #23516d;
+}
+
+/* QSlider horizontal */
+QSlider {
+    background: transparent;
+}
+
+QSlider::groove:horizontal {
+    background: #dddddd;
+    height: 1px;
+}
+
+QSlider::handle:horizontal {
+    background: #999A9B;
+    width: 12px;
+    margin: -5px 0;
+    border-radius: 4px;
+}
+
+QSlider::handle:horizontal:hover {
+    background: #cccccc;
+}

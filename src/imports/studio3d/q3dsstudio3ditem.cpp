@@ -121,10 +121,25 @@ QT_BEGIN_NAMESPACE
 */
 
 /*!
+    \qmlsignal Studio3D::presentationLoaded()
+
+    This signal is emitted when the presentation has been loaded and is ready
+    to be shown.
+*/
+
+/*!
     \qmlsignal Studio3D::presentationReady()
 
-    This signal is emitted when the viewer has been initialized and the
-    presentation is ready to be shown.
+    This signal is emitted when the presentation has fully initialized its 3D
+    scene for the first frame.
+
+    The difference to presentationLoaded() is that this signal is emitted only
+    when the asynchronous operations needed to build to 3D scene and the first
+    frame have completed.
+
+    When implementing splash screens via Loader items and the Item::visible
+    property, this is the signal that should be used to trigger hiding the
+    splash screen.
 */
 
 static bool engineCleanerRegistered = false;
@@ -176,8 +191,8 @@ Q3DSPresentationItem *Q3DSStudio3DItem::presentation() const
 /*!
     \qmlproperty bool Studio3D::running
 
-    The value of this property is \c true when the viewer has been initialized
-    and the presentation is running.
+    The value of this property is \c true when the presentation has been loaded
+    and is ready to be shown.
 
     This property is read-only.
 */
@@ -242,10 +257,8 @@ void Q3DSStudio3DItem::componentComplete()
                 qWarning("Studio3D: Duplicate ViewerSettings");
             } else {
                 m_viewerSettings = viewerSettings;
-                connect(m_viewerSettings, &Q3DSViewerSettings::showRenderStatsChanged, m_viewerSettings, [this] {
-                    if (m_engine)
-                        m_engine->setProfileUiVisible(m_viewerSettings->isShowingRenderStats());
-                });
+                if (m_engine)
+                    m_engine->setViewerSettings(m_viewerSettings);
             }
         }
     }
@@ -346,22 +359,29 @@ void Q3DSStudio3DItem::createEngine()
             m_engine->setSurface(w);
         }
 
+        if (m_viewerSettings)
+            m_engine->setViewerSettings(m_viewerSettings);
+
         qCDebug(lcStudio3D, "created engine %p", m_engine);
 
         connect(m_engine, &Q3DSEngine::presentationLoaded, this, [this]() {
-            if (m_viewerSettings && m_viewerSettings->isShowingRenderStats())
-                m_engine->setProfileUiVisible(true);
             m_presentation->studio3DPresentationLoaded();
             if (!m_running) {
                 m_running = true;
                 emit runningChanged();
             }
-            emit presentationReady();
+            emit presentationLoaded();
         });
         connect(m_engine, &Q3DSEngine::nextFrameStarting, this, [this]() {
+            if (m_needsPresReadySignal) {
+                m_needsPresReadySignal = false;
+                emit presentationReady();
+            }
             emit frameUpdate();
         });
     }
+
+    m_needsPresReadySignal = true;
 
     const QString fn = QQmlFile::urlToLocalFileOrQrc(m_source);
     qCDebug(lcStudio3D) << "source is now" << fn;

@@ -44,6 +44,7 @@
 
 #include <QtCore/QObject>
 #include <QtCore/QSize>
+#include <QtCore/QQueue>
 #include <Qt3DRender/QRayCaster>
 
 QT_BEGIN_NAMESPACE
@@ -85,6 +86,7 @@ private:
     void castRayIntoLayer(Q3DSLayerNode *layer, const QPointF &pos, const InputState &inputState, int eventId);
     void sendMouseEvent(Q3DSGraphObject *target, const Qt3DRender::QRayCasterHit &hit, const InputState &inputState);
     Q3DSGraphObject *getNodeForEntity(Q3DSLayerNode *layer, Qt3DCore::QEntity *entity);
+    QPoint convertToViewportSpace(const QPoint &point) const;
 
     Q3DSSceneManager *m_sceneManager = nullptr;
     bool m_isHoverEnabled = false;
@@ -99,10 +101,9 @@ private:
         QPoint pos;
         InputState inputState;
     };
-    QVector<PickRequest> m_pickRequests;
+    QQueue<PickRequest> m_pickRequests;
 
     InputState m_currentState;
-    InputState m_lastSentState;
 };
 
 QT_END_NAMESPACE

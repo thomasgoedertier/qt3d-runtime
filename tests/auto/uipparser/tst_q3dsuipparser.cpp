@@ -195,7 +195,7 @@ void tst_Q3DSUipParser::assetRef()
     part = -123;
     fn = pres->assetFileName("something", &part);
     QCOMPARE(fn, QLatin1String(":/data/something"));
-    QCOMPARE(part, 1);
+    QCOMPARE(part, -1);
 
     fn = pres->assetFileName("/absolute/blah#32", &part);
     QCOMPARE(fn, QLatin1String("/absolute/blah"));

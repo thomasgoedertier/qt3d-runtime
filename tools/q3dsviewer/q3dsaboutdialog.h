@@ -27,55 +27,40 @@
 **
 ****************************************************************************/
 
-#ifndef Q3DSTEXTRENDERER_P_H
-#define Q3DSTEXTRENDERER_P_H
+#ifndef Q3DSABOUTDIALOG_H
+#define Q3DSABOUTDIALOG_H
 
-//
-//  W A R N I N G
-//  -------------
-//
-// This file is not part of the Qt API.  It exists for the convenience
-// of a number of Qt sources files.  This header file may change from
-// version to version without notice, or even be removed.
-//
-// We mean it.
-//
-
-#include <QVector>
-#include <QStringList>
-#include <QFont>
+#include <QDialog>
+#include <QPixmap>
 
 QT_BEGIN_NAMESPACE
 
-class Q3DSTextNode;
-class Q3DSSceneManager;
-class QFontMetricsF;
-class QPainter;
+namespace Ui {
+class Q3DSAboutDialog;
+}
 
-class Q3DSTextRenderer
+class Q3DSAboutDialog : public QDialog
 {
+    Q_OBJECT
 public:
-    Q3DSTextRenderer(Q3DSSceneManager *sceneManager);
-    void registerFonts(const QStringList &dirs);
-    QSize textImageSize(Q3DSTextNode *text3DS);
-    void renderText(QPainter *painter, Q3DSTextNode *text3DS);
+    explicit Q3DSAboutDialog(QWidget *parent = nullptr);
+    ~Q3DSAboutDialog() override;
+
+protected:
+    void paintEvent(QPaintEvent* event) override;
 
 private:
-    struct Font {
-        QString fontName;
-        QString fontFamily;
-        QFont font;
-    };
+    void initDialog();
+    Ui::Q3DSAboutDialog *m_ui;
 
-    Font *findFont(const QString &name);
-    void updateFontInfo(Font *font, Q3DSTextNode *text3DS);
-    QRectF textBoundingBox(Q3DSTextNode *text3DS, const QFontMetricsF &fm,
-                           const QStringList &lineList, QVector<float> *lineWidths);
+    QPixmap m_backgroundPixmap;
+    bool m_isPaletteSet = false;
 
-    QVector<Font> m_fonts;
-    Q3DSSceneManager *m_sceneManager;
+    QString m_ProductVersionStr;
+    QString m_CopyrightStr;
+    QString m_Credit1Str;
 };
 
 QT_END_NAMESPACE
 
-#endif // Q3DSTEXTRENDERER_P_H
+#endif // Q3DSABOUTDIALOG_H

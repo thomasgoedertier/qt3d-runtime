@@ -31,6 +31,7 @@
 #define Q3DSREMOTEDEPLOYMENTMANAGER_H
 
 #include <QObject>
+#include <QTimer>
 
 QT_BEGIN_NAMESPACE
 
@@ -76,12 +77,16 @@ private:
     void setupConnectionScene();
     QString generateConnectionInfo();
     void setErrorMessage(const QString &errorString);
+    void setProgress(int progress) ;
 
     Q3DSEngine *m_engine = nullptr;
     Q3DSRemoteDeploymentServer *m_server = nullptr;
     int m_port;
     QString m_errorMessage;
     State m_state = LocalProject;
+    QTimer m_connectionInfoTimer;
+    bool m_isReadyToShow = false;
+    bool m_isRemoteProjectLoaded = false;
 };
 
 QT_END_NAMESPACE

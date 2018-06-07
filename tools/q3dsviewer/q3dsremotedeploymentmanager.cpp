@@ -55,13 +55,23 @@ Q3DSRemoteDeploymentManager::Q3DSRemoteDeploymentManager(Q3DSEngine *engine, int
             this, &Q3DSRemoteDeploymentManager::remoteDisconnected);
     connect(m_server, &Q3DSRemoteDeploymentServer::projectChanging,
             this, &Q3DSRemoteDeploymentManager::remoteProjectChanging);
-    connect(m_server, &Q3DSRemoteDeploymentServer::projectChanged,
-            this, &Q3DSRemoteDeploymentManager::loadRemoteProject);
+    connect(m_server, &Q3DSRemoteDeploymentServer::projectChanged, [this] {
+        m_isRemoteProjectLoaded = true;
+        loadRemoteProject();
+    });
+    connect(m_server, &Q3DSRemoteDeploymentServer::updateProgress,
+            this, &Q3DSRemoteDeploymentManager::setProgress);
+
+    m_connectionInfoTimer.setInterval(1000);
+    m_connectionInfoTimer.setSingleShot(true);
+    connect(&m_connectionInfoTimer, &QTimer::timeout, [this] {
+        m_isReadyToShow = true;
+        loadRemoteProject();
+    });
 }
 
 Q3DSRemoteDeploymentManager::~Q3DSRemoteDeploymentManager()
 {
-    m_server->disconnectRemote();
 }
 
 void Q3DSRemoteDeploymentManager::setConnectionPort(int port)
@@ -113,13 +123,17 @@ Q3DSRemoteDeploymentManager::State Q3DSRemoteDeploymentManager::state() const
 
 void Q3DSRemoteDeploymentManager::remoteConnected()
 {
+    if (m_state == LocalProject || m_state == RemoteProject)
+        showConnectionSetup();
+
     setState(RemoteConnected);
     setErrorMessage(tr("Connected!"));
 }
 
 void Q3DSRemoteDeploymentManager::remoteDisconnected()
 {
-    setState(ConnectionInfo);
+    if (m_state == LocalProject || m_state == RemoteProject)
+        showConnectionSetup();
     setErrorMessage(tr("Disconnected from Qt 3D Studio..."));
 }
 
@@ -131,15 +145,23 @@ void Q3DSRemoteDeploymentManager::remoteProjectChanging()
     if (m_state == RemoteLoading)
         return;
 
+    if (m_state == LocalProject || m_state == RemoteProject)
+        showConnectionSetup();
     setState(RemoteLoading);
+    m_connectionInfoTimer.start();
     setErrorMessage(tr("Loading Remote Project..."));
 }
 
 void Q3DSRemoteDeploymentManager::loadRemoteProject()
 {
-    setState(RemoteProject);
-    const QString remoteProject = m_server->fileName();
-    loadFile(remoteProject);
+    setErrorMessage(tr("Loading Presentation..."));
+    if (m_isReadyToShow && m_isRemoteProjectLoaded) {
+        setState(RemoteProject);
+        const QString remoteProject = m_server->fileName();
+        loadFile(remoteProject);
+        m_isReadyToShow = false;
+        m_isRemoteProjectLoaded = false;
+    }
 }
 
 void Q3DSRemoteDeploymentManager::loadFile(const QString &filename)
@@ -174,8 +196,6 @@ void Q3DSRemoteDeploymentManager::setupConnectionScene()
     m_engine->setDataInputValue(c_connectionErrorDataInput(), m_errorMessage);
     if (!m_server->isConnected())
         setState(ConnectionInfo);
-    else
-        remoteConnected();
 }
 
 QString Q3DSRemoteDeploymentManager::generateConnectionInfo()
@@ -191,6 +211,15 @@ void Q3DSRemoteDeploymentManager::setErrorMessage(const QString &errorString)
 {
     m_errorMessage = errorString;
     m_engine->setDataInputValue(c_connectionErrorDataInput(), errorString);
+}
+
+void Q3DSRemoteDeploymentManager::setProgress(int progress)
+{
+    // Don't wait for 100%, as it'll already start loading and text isn't updated anymore
+    if (progress >= 98)
+        setErrorMessage(tr("Loading Presentation..."));
+    else
+        setErrorMessage(tr("Receiving (%1%)").arg(progress));
 }
 
 QT_END_NAMESPACE

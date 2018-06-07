@@ -214,8 +214,14 @@ void Q3DSProfileView::frame()
         ImGui::Text("RENDERER: %s", gfxLimits.renderer.constData());
         ImGui::Text("VENDOR: %s", gfxLimits.vendor.constData());
         ImGui::Text("VERSION: %s", gfxLimits.version.constData());
-        ImGui::Text("Multisample textures supported: %s", (gfxLimits.multisampleTextureSupported ? "yes" : "no"));
-        ImGui::Text("MAX_DRAW_BUFFERS: %d", gfxLimits.maxDrawBuffers);
+        if (gfxLimits.useGles2Path) {
+            ImGui::Text("Using limited GLES 2.0 renderer");
+        } else {
+            ImGui::Text("Multisample textures supported: %s", (gfxLimits.multisampleTextureSupported ? "yes" : "no"));
+            ImGui::Text("Norm16 textures supported: %s", (gfxLimits.norm16TexturesSupported ? "yes" : "no"));
+            ImGui::Text("MAX_DRAW_BUFFERS: %d", gfxLimits.maxDrawBuffers);
+        }
+        ImGui::Text("Max lights per layer: %d", gfxLimits.maxLightsPerLayer);
     }
 
     if (ImGui::CollapsingHeader("Frame rate")) {
