@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<UIP version="4" >
+	<Project >
+		<ProjectSettings author="" company="Eagle Jump" presentationWidth="800" presentationHeight="480" maintainAspect="False" >
+			<CustomColors count="16" >#ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff</CustomColors>
+		</ProjectSettings>
+		<Classes >
+			<CustomMaterial id="porcelain" name="porcelain" sourcepath="materials/porcelain.material" />
+		</Classes>
+		<Graph >
+			<Scene id="Scene" >
+				<Layer id="Layer" >
+					<Camera id="Camera" />
+					<Model id="Rectangle" >
+						<CustomMaterial id="Material" class="#porcelain" />
+					</Model>
+					<Model id="Cylinder" >
+						<Material id="Material_001" />
+					</Model>
+					<Light id="shadowcaster" />
+					<Light id="noncaster" />
+					<Light id="shadowcaster2" />
+				</Layer>
+			</Scene>
+		</Graph>
+		<Logic >
+			<State name="Master Slide" component="#Scene" >
+				<Add ref="#Layer" />
+				<Add ref="#Camera" />
+				<State id="Scene-Slide1" name="Slide1" >
+					<Add ref="#Rectangle" name="RectangleWithCustomMaterial" position="-5.77344 -34.641 0" rotation="53.5 0 0" scale="6.30691 5.36799 1" sourcepath="#Rectangle" />
+					<Add ref="#Material" name="Material" />
+					<Add ref="#Cylinder" name="Cylinder" position="26.809 49.9481 25.2529" rotation="-52.8354 30.8347 -4.94139" scale="1.16992 0.986966 1" sourcepath="#Cylinder" >
+						<AnimationTrack property="rotation.x" type="EaseInOut" >0 -52.8354 100 100 10 50 100 100</AnimationTrack>
+						<AnimationTrack property="rotation.y" type="EaseInOut" >0 30.8347 100 100 10 30.8347 100 100</AnimationTrack>
+						<AnimationTrack property="rotation.z" type="EaseInOut" >0 -4.94139 100 100 10 -4.94139 100 100</AnimationTrack>
+					</Add>
+					<Add ref="#Material_001" diffuse="0.501961 1 0.501961" />
+					<Add ref="#shadowcaster" name="shadowcaster" castshadow="True" lightdiffuse="1 0.662745 0.501961" lighttype="Point" position="392.861 235.972 3.46274" shdwbias="0" shdwfactor="31.9375" shdwfilter="27.8125" shdwmapfar="5000" shdwmapres="9" />
+					<Add ref="#noncaster" name="noncaster" lighttype="Point" position="294.449 -51.9615 0" />
+					<Add ref="#shadowcaster2" name="shadowcaster2" castshadow="True" lighttype="Point" position="511.618 70.4722 0" />
+				</State>
+			</State>
+		</Logic>
+	</Project>
+</UIP>
