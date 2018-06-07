@@ -97,10 +97,16 @@ vec2 getProbeSampleUV( vec3 smpDir, vec4 probeRot, vec2 probeOfs )
     vec2 smpUV;
 
 #if QT3DS_ENABLE_IBL_FOV
-    smpUV.x = (2.0 * atan(-smpDir.z, smpDir.x) + 3.14159265358 ) / light_probe_opts.x;
-    smpUV.y = (2.0 * atan(-smpDir.z, smpDir.y) + 3.14159265358 ) / light_probe_opts.x;
+    smpUV = vec2(atan(smpDir.x, smpDir.z), asin(smpDir.y));
+    // assume equirectangular HDR spherical map (instead of cube map) and map sample
+    // UV coordinates accordingly
+    smpUV *= 2.0 * vec2(0.1591596371160, 0.318319274232054);
+    // Default FOV is 180 deg = pi rad. Narrow the FOV
+    // by scaling texture coordinates by the ratio of
+    // incoming FOV to 180 degrees default
+    smpUV *= 3.14159265358 / light_probe_opts.x;
 #else
-    smpUV.x = atan( smpDir.x, -smpDir.z) / 3.14159265359;
+    smpUV.x = atan( smpDir.x, smpDir.z) / 3.14159265359;
     smpUV.y = 1.0 - (acos(smpDir.y) / 1.57079632679);
 #endif
     smpUV = transformSample( smpUV.xy * 0.5, probeRot, probeOfs ) + vec2(0.5, 0.5);
