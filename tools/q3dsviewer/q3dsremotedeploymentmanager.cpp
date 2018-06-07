@@ -154,6 +154,7 @@ void Q3DSRemoteDeploymentManager::remoteProjectChanging()
 
 void Q3DSRemoteDeploymentManager::loadRemoteProject()
 {
+    setErrorMessage(tr("Loading Presentation..."));
     if (m_isReadyToShow && m_isRemoteProjectLoaded) {
         setState(RemoteProject);
         const QString remoteProject = m_server->fileName();
@@ -214,7 +215,11 @@ void Q3DSRemoteDeploymentManager::setErrorMessage(const QString &errorString)
 
 void Q3DSRemoteDeploymentManager::setProgress(int progress)
 {
-    setErrorMessage(tr("Receiving (%1%)").arg(progress));
+    // Don't wait for 100%, as it'll already start loading and text isn't updated anymore
+    if (progress >= 98)
+        setErrorMessage(tr("Loading Presentation..."));
+    else
+        setErrorMessage(tr("Receiving (%1%)").arg(progress));
 }
 
 QT_END_NAMESPACE
