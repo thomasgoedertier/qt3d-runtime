@@ -265,10 +265,10 @@ public:
         output.append(getVersionString(gfxLimits.format));
 
         if (isOpenGLES) {
-            // TODO: check if this is portable:
-            output.append(QLatin1String("#extension GL_OES_standard_derivatives : enable\n"));
             if (gfxLimits.format.majorVersion() == 2) {
                 // ES2
+                output.append(QLatin1String("#extension GL_OES_standard_derivatives : enable\n"));
+
                 output.append(QLatin1String("#define GLSL_100 1\n"));
                 output.append(QLatin1String("#define GLSL_130 0\n"));
                 if (m_stage == Q3DSShaderGeneratorStages::Enum::Fragment) {
