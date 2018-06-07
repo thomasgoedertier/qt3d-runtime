@@ -219,7 +219,7 @@
                 <Property name="shdwmapres" formalName="Shadow Resolution" description="Resolution of shadow map\n(powers of two)" type="ShadowMapResolution" default="9" animatable="False" />
                 <Property name="shdwbias" formalName="Shadow Depth Bias" description="Slight offset to avoid self-shadowing\nartifacts" default="0" min="-1.0" max="1.0" />
                 <Property name="shdwmapfar" formalName="Shadow Far Clip" description="Affects the maximum distance for the shadow\ndepth map" default="5000" />
-                <Property name="shdwmapfov" formalName="Shadow Field of View" description="Affects the field of view of the shadow\ncamera" default="90" min="1" max="179" />
+                <Property name="shdwmapfov" formalName="Shadow Field of View" description="Affects the field of view of the shadow\ncamera" default="90" min="1" max="179" hidden="True" />
         </Light>
         <Lightmaps>
                 <Property name="name" formalName="Name" type="String" default="Lightmaps" hidden="True" category="Lighting" />
