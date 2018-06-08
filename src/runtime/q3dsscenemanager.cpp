@@ -6229,8 +6229,14 @@ void Q3DSSceneManager::deactivateEffect(Q3DSEffectInstance *eff3DS, Q3DSLayerNod
         delete effData->outputTexture;
     }
 
+    // TODO: We only restor the visibility tag, layer and entity,
+    // but there might be other things that needs to be kept...
+    const Q3DSGraphObjectAttached::VisibilityTag visibleTag = effData->visibilityTag;
+    Qt3DCore::QEntity *entity = effData->entity;
     *effData = Q3DSEffectAttached();
     effData->layer3DS = layer3DS;
+    effData->visibilityTag = visibleTag;
+    effData->entity = entity;
 }
 
 void Q3DSSceneManager::setupEffectTextureBuffer(Q3DSEffectAttached::TextureBuffer *tb,
@@ -6812,9 +6818,12 @@ void Q3DSSceneManager::updateSubTree(Q3DSGraphObject *obj)
             setNodeVisibility(node, visible);
         } else if (it.key()->type() == Q3DSGraphObject::Effect){
             Q3DSEffectInstance *effect = static_cast<Q3DSEffectInstance *>(it.key());
-            it.key()->attached()->visibilityTag = (it.value() && effect->active()) ? Q3DSGraphObjectAttached::Visible
-                                                                                   : Q3DSGraphObjectAttached::Hidden;
-            updateEffectStatus(effect->attached<Q3DSEffectAttached>()->layer3DS);
+            Q3DSEffectAttached *data = effect->attached<Q3DSEffectAttached>();
+            if (data) {
+                it.key()->attached()->visibilityTag = (it.value() && effect->active()) ? Q3DSGraphObjectAttached::Visible
+                                                                                       : Q3DSGraphObjectAttached::Hidden;
+                updateEffectStatus(effect->attached<Q3DSEffectAttached>()->layer3DS);
+            }
         } else if (it.key()->type() == Q3DSGraphObject::Layer) {
             Q3DSLayerNode *layer3DS = static_cast<Q3DSLayerNode *>(it.key());
             Q3DSLayerAttached *data = static_cast<Q3DSLayerAttached *>(layer3DS->attached());
