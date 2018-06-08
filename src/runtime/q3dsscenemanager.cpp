@@ -1940,7 +1940,7 @@ Q3DSCameraNode *Q3DSSceneManager::findFirstCamera(Q3DSLayerNode *layer3DS)
             if (obj->type() == Q3DSGraphObject::Camera) {
                 Q3DSCameraNode *cam = static_cast<Q3DSCameraNode *>(obj);
                 // ### should use globalVisibility (which is only set in buildLayerCamera first...)
-                const bool active = (cam->attached() && cam->attached()->visibilityTag == Q3DSGraphObjectAttached::Visible);
+                const bool active = (cam->attached() && cam->flags().testFlag(Q3DSNode::Active) && cam->attached()->visibilityTag == Q3DSGraphObjectAttached::Visible);
                 if (active) {
                     // Check if camera is on the current slide
                     Q3DSComponentNode *component = cam->attached() ? cam->attached()->component : nullptr;
@@ -3249,7 +3249,7 @@ void Q3DSSceneManager::buildLayerQuadEntity(Q3DSLayerNode *layer3DS, Qt3DCore::Q
     Qt3DCore::QEntity *layerQuadEntity = new Qt3DCore::QEntity(parentEntity);
     layerQuadEntity->setObjectName(QObject::tr("compositor for %1").arg(QString::fromUtf8(layer3DS->id())));
     data->compositorEntity = layerQuadEntity;
-    if (layer3DS->attached()->visibilityTag == Q3DSGraphObjectAttached::Hidden)
+    if (!layer3DS->flags().testFlag(Q3DSNode::Active))
         layerQuadEntity->setEnabled(false);
 
     // QPlaneMesh works here because the compositor shader is provided by
@@ -5624,7 +5624,7 @@ void Q3DSSceneManager::updateEffectStatus(Q3DSLayerNode *layer3DS)
     for (int i = 0; i < count; ++i) {
         Q3DSEffectInstance *eff3DS = layerData->effectData.effects[i];
         Q3DSEffectAttached *effData = static_cast<Q3DSEffectAttached *>(eff3DS->attached());
-        if (effData->visibilityTag == Q3DSGraphObjectAttached::Visible) {
+        if (eff3DS->active() && effData->visibilityTag == Q3DSGraphObjectAttached::Visible) {
             ++activeEffectCount;
             if (activeEffectCount == 1)
                 firstActiveIndex = i;
@@ -5661,7 +5661,7 @@ void Q3DSSceneManager::updateEffectStatus(Q3DSLayerNode *layer3DS)
         Qt3DRender::QAbstractTexture *prevOutput = nullptr;
         for (int i = 0; i < count; ++i) {
             Q3DSEffectInstance *eff3DS = layerData->effectData.effects[i];
-            if (eff3DS->attached()->visibilityTag == Q3DSGraphObjectAttached::Visible) {
+            if (eff3DS->active() && eff3DS->attached()->visibilityTag == Q3DSGraphObjectAttached::Visible) {
                 Q3DSSceneManager::EffectActivationFlags flags = 0;
                 if (i == firstActiveIndex)
                     flags |= Q3DSSceneManager::EffIsFirst;
