@@ -210,7 +210,7 @@ public:
     };
     Q_DECLARE_FLAGS(FrameDirtyFlags, FrameDirtyFlag)
 
-    VisibilityTag visibilityTag = Visible;
+    VisibilityTag visibilityTag = Hidden;
     FrameDirtyFlags frameDirty;
     int frameChangeFlags = 0;
 };
@@ -2004,6 +2004,8 @@ public:
     typedef QHash<QString, bool> ImageBufferMap;
     const ImageBufferMap &imageBuffer() const;
 
+    static void forAllObjects(Q3DSGraphObject *root,
+                              std::function<void(Q3DSGraphObject *)> f);
     static void forAllObjectsInSubTree(Q3DSGraphObject *root,
                                        std::function<void(Q3DSGraphObject *)> f);
     static void forAllObjectsOfType(Q3DSGraphObject *root,

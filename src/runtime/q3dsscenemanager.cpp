@@ -94,6 +94,8 @@
 #include <Qt3DRender/QScissorTest>
 #include <Qt3DRender/QRayCaster>
 
+#include <Qt3DRender/private/qpaintedtextureimage_p.h>
+
 #include <Qt3DAnimation/QClipAnimator>
 #include <Qt3DAnimation/qclock.h>
 
@@ -511,17 +513,30 @@ void Q3DSSceneManager::updateSizes(const QSize &size, qreal dpr, const QRect &vi
     for (auto callback : m_compositorOutputSizeChangeCallbacks)
         callback();
 
-    Q3DSUipPresentation::forAllLayers(m_scene, [=](Q3DSLayerNode *layer3DS) {
-        Q3DSLayerAttached *data = static_cast<Q3DSLayerAttached *>(layer3DS->attached());
-        if (data) {
-            data->parentSize = m_outputPixelSize;
-            data->frameDirty |= Q3DSGraphObjectAttached::LayerDirty;
-            // do it right away if there was no size set yet
-            if (data->parentSize.isEmpty() || forceSynchronous)
-                updateSubTree(m_scene);
-            // Defer otherwise, like it is done for other property changes.
+    bool forceTreeVisit = forceSynchronous;
+    Q3DSUipPresentation::forAllObjects(m_scene, [this, &forceTreeVisit](Q3DSGraphObject *obj) {
+        if (obj->type() == Q3DSGraphObject::Layer) {
+            Q3DSLayerAttached *data = obj->attached<Q3DSLayerAttached>();
+            if (data) {
+                data->parentSize = m_outputPixelSize;
+                data->frameDirty |= Q3DSGraphObjectAttached::LayerDirty;
+                // do it right away if there was no size set yet
+                if (data->parentSize.isEmpty())
+                    forceTreeVisit = true;
+                // Defer otherwise, like it is done for other property changes.
+            }
+        } else if (obj->type() == Q3DSGraphObject::Text) {
+            // Text nodes depend on the device pixel ratio and so
+            // may need to be updated.
+            Q3DSTextAttached *data = obj->attached<Q3DSTextAttached>();
+            if (data) {
+                data->frameDirty = Q3DSGraphObjectAttached::TextDirty;
+                data->frameChangeFlags |= Q3DSTextNode::TextureImageDepChanges;
+            }
         }
     });
+    if (forceTreeVisit)
+        updateSubTree(m_scene);
 }
 
 void Q3DSSceneManager::setCurrentSlide(Q3DSSlide *newSlide, bool flush)
@@ -1662,7 +1677,7 @@ void Q3DSSceneManager::setLayerProperties(Q3DSLayerNode *layer3DS)
         setClearColorForClearBuffers(data->clearBuffers, layer3DS);
 
     if (data->compositorEntity) // may not exist if this is still buildLayer()
-        data->compositorEntity->setEnabled(layer3DS->flags().testFlag(Q3DSNode::Active));
+        data->compositorEntity->setEnabled(layer3DS->flags().testFlag(Q3DSNode::Active) && (data->visibilityTag == Q3DSGraphObjectAttached::Visible));
 
     // IBL Probes
     if (!data->iblProbeData.lightProbeProperties) {
@@ -1925,7 +1940,7 @@ Q3DSCameraNode *Q3DSSceneManager::findFirstCamera(Q3DSLayerNode *layer3DS)
             if (obj->type() == Q3DSGraphObject::Camera) {
                 Q3DSCameraNode *cam = static_cast<Q3DSCameraNode *>(obj);
                 // ### should use globalVisibility (which is only set in buildLayerCamera first...)
-                const bool active = (cam->attached() && cam->attached()->visibilityTag == Q3DSGraphObjectAttached::Visible);
+                const bool active = (cam->attached() && cam->flags().testFlag(Q3DSNode::Active) && cam->attached()->visibilityTag == Q3DSGraphObjectAttached::Visible);
                 if (active) {
                     // Check if camera is on the current slide
                     Q3DSComponentNode *component = cam->attached() ? cam->attached()->component : nullptr;
@@ -2188,7 +2203,10 @@ static const QVector3D qt3ds_shadowCube_dir[6] = {
     QVector3D(0, 0, -1)
 };
 
-void Q3DSSceneManager::updateCubeShadowMapParams(Q3DSLayerAttached::PerLightShadowMapData *d, Q3DSLightNode *light3DS, const QString &lightIndexStr)
+void Q3DSSceneManager::updateCubeShadowMapParams(Q3DSLayerAttached::PerLightShadowMapData *d,
+                                                 Q3DSLightNode *light3DS,
+                                                 const QString &lightIndexStr,
+                                                 int casterIdx)
 {
     Q_ASSERT(light3DS->lightType() != Q3DSLightNode::Directional);
     Q3DSLightAttached *lightData = static_cast<Q3DSLightAttached *>(light3DS->attached());
@@ -2210,6 +2228,10 @@ void Q3DSSceneManager::updateCubeShadowMapParams(Q3DSLayerAttached::PerLightShad
 
     d->shadowCamPropsParam->setName(QLatin1String("camera_properties"));
     d->shadowCamPropsParam->setValue(QVector2D(light3DS->shadowFilter(), light3DS->shadowMapFar()));
+
+    d->materialParams.custMatShadowSamplerIdx = casterIdx; // will end up in shadowIdx
+    d->materialParams.custMatShadowSampler->setName(QLatin1String("shadowCubes[") + QString::number(casterIdx) + QLatin1String("]"));
+    d->materialParams.custMatShadowSampler->setValue(QVariant::fromValue(d->shadowMapTexture));
 }
 
 void Q3DSSceneManager::updateCubeShadowCam(Q3DSLayerAttached::PerLightShadowMapData *d, int faceIdx, Q3DSLightNode *light3DS)
@@ -2268,7 +2290,10 @@ void Q3DSSceneManager::genCubeBlurPassFg(Q3DSLayerAttached::PerLightShadowMapDat
     filter->addParameter(d->shadowCamPropsParam);
 }
 
-void Q3DSSceneManager::updateOrthoShadowMapParams(Q3DSLayerAttached::PerLightShadowMapData *d, Q3DSLightNode *light3DS, const QString &lightIndexStr)
+void Q3DSSceneManager::updateOrthoShadowMapParams(Q3DSLayerAttached::PerLightShadowMapData *d,
+                                                  Q3DSLightNode *light3DS,
+                                                  const QString &lightIndexStr,
+                                                  int casterIdx)
 {
     Q_ASSERT(light3DS->lightType() == Q3DSLightNode::Directional);
 
@@ -2289,6 +2314,10 @@ void Q3DSSceneManager::updateOrthoShadowMapParams(Q3DSLayerAttached::PerLightSha
 
     d->shadowCamPropsParam->setName(QLatin1String("camera_properties"));
     d->shadowCamPropsParam->setValue(QVector2D(light3DS->shadowFilter(), light3DS->shadowMapFar()));
+
+    d->materialParams.custMatShadowSamplerIdx = casterIdx; // will end up in shadowIdx
+    d->materialParams.custMatShadowSampler->setName(QLatin1String("shadowMaps[") + QString::number(casterIdx) + QLatin1String("]"));
+    d->materialParams.custMatShadowSampler->setValue(QVariant::fromValue(d->shadowMapTexture));
 }
 
 void Q3DSSceneManager::updateOrthoShadowCam(Q3DSLayerAttached::PerLightShadowMapData *d, Q3DSLightNode *light3DS, Q3DSLayerAttached *layerData)
@@ -2438,6 +2467,8 @@ void Q3DSSceneManager::updateShadowMapStatus(Q3DSLayerNode *layer3DS, bool *smDi
     Q_ASSERT(layerData);
     const int oldShadowCasterCount = layerData->shadowMapData.shadowCasters.count();
     int lightIdx = 0;
+    int orthoCasterIdx = 0;
+    int cubeCasterIdx = 0;
 
     for (Q3DSLayerAttached::PerLightShadowMapData &d : layerData->shadowMapData.shadowCasters)
         d.active = false;
@@ -2445,7 +2476,12 @@ void Q3DSSceneManager::updateShadowMapStatus(Q3DSLayerNode *layer3DS, bool *smDi
     // Go through the list of visible (eyeball==true) lights and pick the ones with castshadow==true.
     for (Q3DSLightNode *light3DS : qAsConst(layerData->lightsData->lightNodes)) {
         Q_ASSERT(light3DS->flags().testFlag(Q3DSNode::Active));
+        // Note the global indexing for shadow map uniforms too: a casting, a
+        // noncasting, and another shadow casting point light leads to uniforms
+        // like shadowcube1 and shadowcube3. (with the default material)
         const QString lightIndexStr = QString::number(lightIdx++);
+        // On the other hand custom materials need a shadowIdx to index a
+        // shadowMaps or shadowCubes sampler uniform array. Hence ortho/cubeCasterIdx.
 
         if (light3DS->castShadow()) {
             auto it = std::find_if(layerData->shadowMapData.shadowCasters.begin(), layerData->shadowMapData.shadowCasters.end(),
@@ -2579,6 +2615,12 @@ void Q3DSSceneManager::updateShadowMapStatus(Q3DSLayerNode *layer3DS, bool *smDi
                     d->materialParams.shadowMatrixParam = new Qt3DRender::QParameter(layerData->entity);
                 if (!d->materialParams.shadowControlParam)
                     d->materialParams.shadowControlParam = new Qt3DRender::QParameter(layerData->entity);
+                if (!d->materialParams.custMatShadowSampler)
+                    d->materialParams.custMatShadowSampler = new Qt3DRender::QParameter(layerData->entity);
+                if (!layerData->shadowMapData.custMatParams.numShadowCubesParam)
+                    layerData->shadowMapData.custMatParams.numShadowCubesParam = new Qt3DRender::QParameter(layerData->entity);
+                if (!layerData->shadowMapData.custMatParams.numShadowMapsParam)
+                    layerData->shadowMapData.custMatParams.numShadowMapsParam = new Qt3DRender::QParameter(layerData->entity);
 
                 // verify no globally used parameters get parented to this volatile framegraph subtree
                 Q_ASSERT(layerData->opaqueTag->parent());
@@ -2651,7 +2693,7 @@ void Q3DSSceneManager::updateShadowMapStatus(Q3DSLayerNode *layer3DS, bool *smDi
                     }
 
                     // set QParameter names and values
-                    updateCubeShadowMapParams(d, light3DS, lightIndexStr);
+                    updateCubeShadowMapParams(d, light3DS, lightIndexStr, cubeCasterIdx);
                 } else {
                     Qt3DRender::QRenderTargetSelector *shadowRtSelector = new Qt3DRender::QRenderTargetSelector(d->subTreeRoot);
                     Qt3DRender::QRenderTarget *shadowRt = new Qt3DRender::QRenderTarget;
@@ -2703,7 +2745,7 @@ void Q3DSSceneManager::updateShadowMapStatus(Q3DSLayerNode *layer3DS, bool *smDi
                     genOrthoBlurPassFg(d, d->shadowMapTextureTemp, d->shadowMapTexture, QLatin1String("shadowOrthoBlurY"), light3DS);
 
                     // set QParameter names and values
-                    updateOrthoShadowMapParams(d, light3DS, lightIndexStr);
+                    updateOrthoShadowMapParams(d, light3DS, lightIndexStr, orthoCasterIdx);
                 } // if isCube
             } else {
                 // !needsFramegraph -> update the values that could have changed
@@ -2711,13 +2753,30 @@ void Q3DSSceneManager::updateShadowMapStatus(Q3DSLayerNode *layer3DS, bool *smDi
                     for (int faceIdx = 0; faceIdx < 6; ++faceIdx)
                         updateCubeShadowCam(d, faceIdx, light3DS);
 
-                    updateCubeShadowMapParams(d, light3DS, lightIndexStr);
+                    updateCubeShadowMapParams(d, light3DS, lightIndexStr, cubeCasterIdx);
                 } else {
                     updateOrthoShadowCam(d, light3DS, layerData);
-                    updateOrthoShadowMapParams(d, light3DS, lightIndexStr);
+                    updateOrthoShadowMapParams(d, light3DS, lightIndexStr, orthoCasterIdx);
                 }
             }
+
+            if (isCube) {
+                light3DS->attached<Q3DSLightAttached>()->lightSource.shadowIdxParam->setValue(cubeCasterIdx);
+                ++cubeCasterIdx;
+            } else {
+                light3DS->attached<Q3DSLightAttached>()->lightSource.shadowIdxParam->setValue(orthoCasterIdx);
+                ++orthoCasterIdx;
+            }
         } // if light3DS->castShadow
+    }
+
+    if (layerData->shadowMapData.custMatParams.numShadowCubesParam) {
+        layerData->shadowMapData.custMatParams.numShadowCubesParam->setName(QLatin1String("uNumShadowCubes"));
+        layerData->shadowMapData.custMatParams.numShadowCubesParam->setValue(cubeCasterIdx);
+    }
+    if (layerData->shadowMapData.custMatParams.numShadowMapsParam) {
+        layerData->shadowMapData.custMatParams.numShadowMapsParam->setName(QLatin1String("uNumShadowMaps"));
+        layerData->shadowMapData.custMatParams.numShadowMapsParam->setValue(orthoCasterIdx);
     }
 
     // Drop shadow map data for lights that are not casting anymore either due
@@ -3190,7 +3249,7 @@ void Q3DSSceneManager::buildLayerQuadEntity(Q3DSLayerNode *layer3DS, Qt3DCore::Q
     Qt3DCore::QEntity *layerQuadEntity = new Qt3DCore::QEntity(parentEntity);
     layerQuadEntity->setObjectName(QObject::tr("compositor for %1").arg(QString::fromUtf8(layer3DS->id())));
     data->compositorEntity = layerQuadEntity;
-    if (layer3DS->attached()->visibilityTag == Q3DSGraphObjectAttached::Hidden)
+    if (!layer3DS->flags().testFlag(Q3DSNode::Active))
         layerQuadEntity->setEnabled(false);
 
     // QPlaneMesh works here because the compositor shader is provided by
@@ -3842,12 +3901,12 @@ void Q3DSSceneManager::updateGlobals(Q3DSNode *node, UpdateGlobalFlags flags)
         // update the global, inherited opacity
         globalOpacity = clampOpacity(parentData->globalOpacity * (node->localOpacity() / 100.0f));
         // update inherited visibility
-        globalVisibility = node->flags().testFlag(Q3DSNode::Active) && parentData->globalVisibility;
+        globalVisibility = node->flags().testFlag(Q3DSNode::Active) && (parentData->visibilityTag == Q3DSGraphObjectAttached::Visible) && parentData->globalVisibility;
     } else {
         if (!flags.testFlag(UpdateGlobalsSkipTransform))
             globalTransform = data->transform->matrix();
         globalOpacity = clampOpacity(node->localOpacity() / 100.0f);
-        globalVisibility = node->flags().testFlag(Q3DSNode::Active);
+        globalVisibility = node->flags().testFlag(Q3DSNode::Active) && (data->visibilityTag == Q3DSGraphObjectAttached::Visible);
     }
 
     if (!flags.testFlag(UpdateGlobalsSkipTransform) && globalTransform != data->globalTransform) {
@@ -3979,7 +4038,14 @@ Qt3DCore::QEntity *Q3DSSceneManager::buildText(Q3DSTextNode *text3DS, Q3DSLayerN
     data->texture->setMagnificationFilter(Qt3DRender::QAbstractTexture::Linear);
 
     data->textureImage = new Q3DSTextImage(text3DS, m_textRenderer);
+#if QT_VERSION >= QT_VERSION_CHECK(5,11,1)
+    auto texImageD = static_cast<Qt3DRender::QPaintedTextureImagePrivate *>(
+                Qt3DRender::QPaintedTextureImagePrivate::get(data->textureImage));
+    texImageD->m_devicePixelRatio = m_viewportData.viewportDpr;
+    data->textureImage->setSize(sz * m_viewportData.viewportDpr);
+#else
     data->textureImage->setSize(sz);
+#endif
     data->texture->addTextureImage(data->textureImage);
 
     data->textureParam = new Qt3DRender::QParameter;
@@ -4003,15 +4069,30 @@ void Q3DSSceneManager::updateText(Q3DSTextNode *text3DS, bool needsNewImage)
     data->colorParam->setValue(text3DS->color());
 
     if (needsNewImage) {
-        // textstring, leading, tracking
+        // textstring, leading, tracking, ...
         const QSize sz = m_textRenderer->textImageSize(text3DS);
         if (!sz.isEmpty()) {
             data->mesh->setWidth(sz.width());
             data->mesh->setHeight(sz.height());
+#if QT_VERSION >= QT_VERSION_CHECK(5,11,1)
+            const QSize pixelSize = sz * m_viewportData.viewportDpr;
+            auto texImageD = static_cast<Qt3DRender::QPaintedTextureImagePrivate *>(
+                        Qt3DRender::QPaintedTextureImagePrivate::get(data->textureImage));
+            if (data->textureImage->size() != pixelSize
+                    || texImageD->m_devicePixelRatio != m_viewportData.viewportDpr)
+            {
+                texImageD->m_devicePixelRatio = m_viewportData.viewportDpr;
+                // this repaints, no need for update() afterwards
+                data->textureImage->setSize(pixelSize);
+            } else {
+                data->textureImage->update();
+            }
+#else
             if (data->textureImage->size() != sz)
                 data->textureImage->setSize(sz); // this repaints, no need for update() afterwards
             else
                 data->textureImage->update();
+#endif
         }
     }
 }
@@ -4172,13 +4253,17 @@ void Q3DSSceneManager::setLightProperties(Q3DSLightNode *light3DS, bool forceUpd
     else
         ls->heightParam->setValue(0.0f);
 
-    // is this shadow stuff for lightmaps?
-    const float shadowDist = 5000.0f; // camera->clipFar() ### FIXME later
+    // For custom materials. The default material does not use these as it
+    // generates the shader code dynamically and can therefore rely on uniforms
+    // named like shadowcube_<index> and shadowmap_<index>_control. Custom
+    // materials cannot do this and will instead use the shadow control and
+    // matrix from the lights array and use shadowIdx to index the array
+    // uniforms for the samplers.
     if (!ls->shadowControlsParam) {
         ls->shadowControlsParam = new Qt3DRender::QParameter;
         ls->shadowControlsParam->setName(QLatin1String("shadowControls"));
     }
-    ls->shadowControlsParam->setValue(QVector4D(light3DS->shadowBias(), light3DS->shadowFactor(), shadowDist, 0));
+    ls->shadowControlsParam->setValue(QVector4D(light3DS->shadowBias(), light3DS->shadowFactor(), light3DS->shadowMapFar(), 0));
 
     if (!ls->shadowViewParam) {
         ls->shadowViewParam = new Qt3DRender::QParameter;
@@ -4192,8 +4277,8 @@ void Q3DSSceneManager::setLightProperties(Q3DSLightNode *light3DS, bool forceUpd
     if (!ls->shadowIdxParam) {
         ls->shadowIdxParam = new Qt3DRender::QParameter;
         ls->shadowIdxParam->setName(QLatin1String("shadowIdx"));
+        ls->shadowIdxParam->setValue(0); // will get updated later in updateShadowMapStatus(), or stays 0 otherwise
     }
-    ls->shadowIdxParam->setValue(0); // ### FIXME later
 }
 
 Qt3DCore::QEntity *Q3DSSceneManager::buildModel(Q3DSModelNode *model3DS, Q3DSLayerNode *layer3DS, Qt3DCore::QEntity *parent)
@@ -4263,19 +4348,34 @@ Qt3DCore::QEntity *Q3DSSceneManager::buildModel(Q3DSModelNode *model3DS, Q3DSLay
     return entity;
 }
 
-static void addShadowSsaoParams(Q3DSLayerAttached *layerData, QVector<Qt3DRender::QParameter *> *params)
+static void addShadowSsaoParams(Q3DSLayerAttached *layerData, QVector<Qt3DRender::QParameter *> *params, bool isCustomMaterial)
 {
     for (const Q3DSLayerAttached::PerLightShadowMapData &sd : qAsConst(layerData->shadowMapData.shadowCasters)) {
-        if (sd.materialParams.shadowSampler)
-            params->append(sd.materialParams.shadowSampler);
-        if (sd.materialParams.shadowMatrixParam)
-            params->append(sd.materialParams.shadowMatrixParam);
-        if (sd.materialParams.shadowControlParam)
-            params->append(sd.materialParams.shadowControlParam);
+        if (isCustomMaterial) {
+            // ### FIXME QT3DS-1840 - enabling the following crashes on Intel
+#if 0
+            if (sd.materialParams.custMatShadowSampler)
+                params->append(sd.materialParams.custMatShadowSampler);
+#endif
+        } else {
+            if (sd.materialParams.shadowSampler)
+                params->append(sd.materialParams.shadowSampler);
+            if (sd.materialParams.shadowMatrixParam)
+                params->append(sd.materialParams.shadowMatrixParam);
+            if (sd.materialParams.shadowControlParam)
+                params->append(sd.materialParams.shadowControlParam);
+        }
     }
 
     if (layerData->ssaoTextureData.enabled && layerData->ssaoTextureData.ssaoTextureSampler)
         params->append(layerData->ssaoTextureData.ssaoTextureSampler);
+
+    if (isCustomMaterial) {
+        if (layerData->shadowMapData.custMatParams.numShadowCubesParam)
+            params->append(layerData->shadowMapData.custMatParams.numShadowCubesParam);
+        if (layerData->shadowMapData.custMatParams.numShadowMapsParam)
+            params->append(layerData->shadowMapData.custMatParams.numShadowMapsParam);
+    }
 }
 
 void Q3DSSceneManager::buildModelMaterial(Q3DSModelNode *model3DS)
@@ -4367,7 +4467,7 @@ void Q3DSSceneManager::buildModelMaterial(Q3DSModelNode *model3DS)
                     }
                 }
 
-                addShadowSsaoParams(layerData, &params);
+                addShadowSsaoParams(layerData, &params, false);
 
                 // Setup light probe parameters
                 if (defMatData->lightProbeOverrideTexture || modelData->layer3DS->lightProbe()) {
@@ -4447,7 +4547,7 @@ void Q3DSSceneManager::buildModelMaterial(Q3DSModelNode *model3DS)
                     }
                 }
 
-                addShadowSsaoParams(layerData, &params);
+                addShadowSsaoParams(layerData, &params, true);
 
                 // Setup light probe parameters
                 if (custMatData->lightProbeOverrideTexture || modelData->layer3DS->lightProbe()) {
@@ -5524,7 +5624,7 @@ void Q3DSSceneManager::updateEffectStatus(Q3DSLayerNode *layer3DS)
     for (int i = 0; i < count; ++i) {
         Q3DSEffectInstance *eff3DS = layerData->effectData.effects[i];
         Q3DSEffectAttached *effData = static_cast<Q3DSEffectAttached *>(eff3DS->attached());
-        if (effData->visibilityTag == Q3DSGraphObjectAttached::Visible) {
+        if (eff3DS->active() && effData->visibilityTag == Q3DSGraphObjectAttached::Visible) {
             ++activeEffectCount;
             if (activeEffectCount == 1)
                 firstActiveIndex = i;
@@ -5561,7 +5661,7 @@ void Q3DSSceneManager::updateEffectStatus(Q3DSLayerNode *layer3DS)
         Qt3DRender::QAbstractTexture *prevOutput = nullptr;
         for (int i = 0; i < count; ++i) {
             Q3DSEffectInstance *eff3DS = layerData->effectData.effects[i];
-            if (eff3DS->attached()->visibilityTag == Q3DSGraphObjectAttached::Visible) {
+            if (eff3DS->active() && eff3DS->attached()->visibilityTag == Q3DSGraphObjectAttached::Visible) {
                 Q3DSSceneManager::EffectActivationFlags flags = 0;
                 if (i == firstActiveIndex)
                     flags |= Q3DSSceneManager::EffIsFirst;
@@ -6129,8 +6229,14 @@ void Q3DSSceneManager::deactivateEffect(Q3DSEffectInstance *eff3DS, Q3DSLayerNod
         delete effData->outputTexture;
     }
 
+    // TODO: We only restor the visibility tag, layer and entity,
+    // but there might be other things that needs to be kept...
+    const Q3DSGraphObjectAttached::VisibilityTag visibleTag = effData->visibilityTag;
+    Qt3DCore::QEntity *entity = effData->entity;
     *effData = Q3DSEffectAttached();
     effData->layer3DS = layer3DS;
+    effData->visibilityTag = visibleTag;
+    effData->entity = entity;
 }
 
 void Q3DSSceneManager::setupEffectTextureBuffer(Q3DSEffectAttached::TextureBuffer *tb,
@@ -6705,10 +6811,39 @@ void Q3DSSceneManager::updateSubTree(Q3DSGraphObject *obj)
 
     for (auto it = m_pendingObjectVisibility.constBegin(); it != m_pendingObjectVisibility.constEnd(); ++it) {
         if (it.key()->isNode() && it.key()->type() != Q3DSGraphObject::Layer && it.key()->type() != Q3DSGraphObject::Camera) {
-            setNodeVisibility(static_cast<Q3DSNode *>(it.key()), it.value());
+            Q3DSNode *node = static_cast<Q3DSNode *>(it.key());
+            const bool visible = (it.value() && node->flags().testFlag(Q3DSNode::Active));
+            it.key()->attached()->visibilityTag = visible ? Q3DSGraphObjectAttached::Visible
+                                                          : Q3DSGraphObjectAttached::Hidden;
+            setNodeVisibility(node, visible);
+        } else if (it.key()->type() == Q3DSGraphObject::Effect){
+            Q3DSEffectInstance *effect = static_cast<Q3DSEffectInstance *>(it.key());
+            Q3DSEffectAttached *data = effect->attached<Q3DSEffectAttached>();
+            if (data) {
+                it.key()->attached()->visibilityTag = (it.value() && effect->active()) ? Q3DSGraphObjectAttached::Visible
+                                                                                       : Q3DSGraphObjectAttached::Hidden;
+                updateEffectStatus(effect->attached<Q3DSEffectAttached>()->layer3DS);
+            }
+        } else if (it.key()->type() == Q3DSGraphObject::Layer) {
+            Q3DSLayerNode *layer3DS = static_cast<Q3DSLayerNode *>(it.key());
+            Q3DSLayerAttached *data = static_cast<Q3DSLayerAttached *>(layer3DS->attached());
+            if (data && data->compositorEntity) { // may not exist if this is still buildLayer()
+                const bool enabled = it.value() && layer3DS->flags().testFlag(Q3DSNode::Active);
+                it.key()->attached()->visibilityTag = enabled ? Q3DSGraphObjectAttached::Visible
+                                                              : Q3DSGraphObjectAttached::Hidden;
+                data->compositorEntity->setEnabled(enabled);
+            }
+        } else if (it.key()->type() == Q3DSGraphObject::Camera) {
+            Q3DSCameraNode *cam3DS = static_cast<Q3DSCameraNode *>(it.key());
+            Q3DSCameraAttached *data = static_cast<Q3DSCameraAttached *>(cam3DS->attached());
+            if (data) {
+                const bool visible = (it.value() && cam3DS->flags().testFlag(Q3DSNode::Active));
+                it.key()->attached()->visibilityTag = visible ? Q3DSGraphObjectAttached::Visible
+                                                              : Q3DSGraphObjectAttached::Hidden;
+                updateLayerCamera(data->layer3DS);
+            }
         } else {
-            // NOTE: Special handling for e.g., Camera, layers and effects.
-            it.key()->attached()->visibilityTag = (it.value() ? Q3DSGraphObjectAttached::Visible : Q3DSGraphObjectAttached::Hidden);
+            Q_UNREACHABLE();
         }
     }
     m_pendingObjectVisibility.clear();
@@ -7094,7 +7229,7 @@ void Q3DSSceneManager::updateNodeFromChangeFlags(Q3DSNode *node, Qt3DCore::QTran
             // changes get processed after an initial visit of all objects)
             m_pendingObjectVisibility.remove(node);
 
-            const bool active = node->flags().testFlag(Q3DSNode::Active);
+            const bool active = (node->flags().testFlag(Q3DSNode::Active) && (node->attached()->visibilityTag == Q3DSGraphObjectAttached::Visible));
             setNodeVisibility(node, active);
         }
         m_wasDirty = true;

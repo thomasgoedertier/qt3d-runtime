@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<UIP version="4" >
+	<Project >
+		<ProjectSettings author="" company="" presentationWidth="1920" presentationHeight="1080" maintainAspect="False" >
+			<CustomColors count="16" >#ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff</CustomColors>
+		</ProjectSettings>
+		<Classes >
+			<CustomMaterial id="porcelain" name="porcelain" sourcepath="materials/porcelain.material" />
+		</Classes>
+		<Graph >
+			<Scene id="Scene" >
+				<Layer id="Layer" >
+					<Camera id="Camera" />
+					<Light id="Light" />
+					<Model id="Rectangle" >
+						<CustomMaterial id="Default" class="#porcelain" />
+					</Model>
+					<Model id="Cube2" >
+						<Material id="Default_002" name="Default" />
+					</Model>
+				</Layer>
+			</Scene>
+		</Graph>
+		<Logic >
+			<State name="Master Slide" component="#Scene" >
+				<Add ref="#Layer" />
+				<Add ref="#Camera" position="0 300 -600" rotation="20 0 0" />
+				<State id="Scene-Slide1" name="Slide1" >
+					<Add ref="#Light" name="Light" brightness="100" castshadow="True" lightambient="0 0 0" lightdiffuse="0.666667 0 0" lightspecular="0.666667 0 0" lighttype="Point" position="0 203.135 0" rotation="0 0 0" shdwbias="0.001" shdwfactor="100" shdwfilter="1" shdwmapres="11" >
+						<AnimationTrack property="position.x" type="EaseInOut" >0 0 100 100 10 134.027 100 100</AnimationTrack>
+						<AnimationTrack property="position.y" type="EaseInOut" >0 203.135 100 100 10 332.749 100 100</AnimationTrack>
+						<AnimationTrack property="position.z" type="EaseInOut" >0 0 100 100 10 0 100 100</AnimationTrack>
+					</Add>
+					<Add ref="#Rectangle" name="Rectangle" rotation="90 0 0" scale="10 10 1" sourcepath="#Rectangle" />
+					<Add ref="#Default" name="Default" />
+					<Add ref="#Cube2" name="Cube2" position="191.482 50.5886 0" sourcepath="#Cube" />
+					<Add ref="#Default_002" />
+				</State>
+			</State>
+		</Logic>
+	</Project>
+</UIP>
