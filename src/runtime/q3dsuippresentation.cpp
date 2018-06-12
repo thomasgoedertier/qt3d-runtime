@@ -3884,9 +3884,14 @@ void Q3DSUipPresentation::resolveAliases()
 void Q3DSUipPresentation::updateObjectStateForSubTrees()
 {
     forAllObjectsInSubTree(scene(), [](Q3DSGraphObject *obj) {
-        if (obj->type() == Q3DSGraphObject::Layer && !static_cast<Q3DSLayerNode *>(obj)->sourcePath().isEmpty()) {
+        if (obj->type() != Q3DSGraphObject::Layer)
+            return;
+        Q3DSLayerNode *layer = static_cast<Q3DSLayerNode *>(obj);
+        if (!layer->sourcePath().isEmpty()) {
             // Sub-presentation, set all objects to be inactive
-            forAllObjectsInSubTree(obj, [](Q3DSGraphObject *obj) {
+            forAllObjectsInSubTree(obj, [layer](Q3DSGraphObject *obj) {
+                if (obj == layer)
+                    return;
                 obj->m_state = Q3DSGraphObject::Disabled;
             });
         }
