@@ -2777,7 +2777,10 @@ void Q3DSSceneManager::updateShadowMapStatus(Q3DSLayerNode *layer3DS, bool *smDi
                 ++orthoCasterIdx;
                 Q_ASSERT(custMatOrthoShadowMaps.count() == orthoCasterIdx);
             }
-        } // if light3DS->castShadow
+        } else {
+            // non-shadow-casting light
+            light3DS->attached<Q3DSLightAttached>()->lightSource.shadowIdxParam->setValue(-1);
+        }
     }
 
     if (layerData->shadowMapData.custMatParams.numShadowCubesParam)
@@ -4287,7 +4290,7 @@ void Q3DSSceneManager::setLightProperties(Q3DSLightNode *light3DS, bool forceUpd
     if (!ls->shadowIdxParam) {
         ls->shadowIdxParam = new Qt3DRender::QParameter;
         ls->shadowIdxParam->setName(QLatin1String("shadowIdx"));
-        ls->shadowIdxParam->setValue(0); // will get updated later in updateShadowMapStatus(), or stays 0 otherwise
+        ls->shadowIdxParam->setValue(-1); // must be -1 for non-shadow-casting lights
     }
 }
 
