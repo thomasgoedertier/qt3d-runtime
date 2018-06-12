@@ -2205,8 +2205,7 @@ static const QVector3D qt3ds_shadowCube_dir[6] = {
 
 void Q3DSSceneManager::updateCubeShadowMapParams(Q3DSLayerAttached::PerLightShadowMapData *d,
                                                  Q3DSLightNode *light3DS,
-                                                 const QString &lightIndexStr,
-                                                 int casterIdx)
+                                                 const QString &lightIndexStr)
 {
     Q_ASSERT(light3DS->lightType() != Q3DSLightNode::Directional);
     Q3DSLightAttached *lightData = static_cast<Q3DSLightAttached *>(light3DS->attached());
@@ -2228,10 +2227,6 @@ void Q3DSSceneManager::updateCubeShadowMapParams(Q3DSLayerAttached::PerLightShad
 
     d->shadowCamPropsParam->setName(QLatin1String("camera_properties"));
     d->shadowCamPropsParam->setValue(QVector2D(light3DS->shadowFilter(), light3DS->shadowMapFar()));
-
-    d->materialParams.custMatShadowSamplerIdx = casterIdx; // will end up in shadowIdx
-    d->materialParams.custMatShadowSampler->setName(QLatin1String("shadowCubes[") + QString::number(casterIdx) + QLatin1String("]"));
-    d->materialParams.custMatShadowSampler->setValue(QVariant::fromValue(d->shadowMapTexture));
 }
 
 void Q3DSSceneManager::updateCubeShadowCam(Q3DSLayerAttached::PerLightShadowMapData *d, int faceIdx, Q3DSLightNode *light3DS)
@@ -2292,8 +2287,7 @@ void Q3DSSceneManager::genCubeBlurPassFg(Q3DSLayerAttached::PerLightShadowMapDat
 
 void Q3DSSceneManager::updateOrthoShadowMapParams(Q3DSLayerAttached::PerLightShadowMapData *d,
                                                   Q3DSLightNode *light3DS,
-                                                  const QString &lightIndexStr,
-                                                  int casterIdx)
+                                                  const QString &lightIndexStr)
 {
     Q_ASSERT(light3DS->lightType() == Q3DSLightNode::Directional);
 
@@ -2314,10 +2308,6 @@ void Q3DSSceneManager::updateOrthoShadowMapParams(Q3DSLayerAttached::PerLightSha
 
     d->shadowCamPropsParam->setName(QLatin1String("camera_properties"));
     d->shadowCamPropsParam->setValue(QVector2D(light3DS->shadowFilter(), light3DS->shadowMapFar()));
-
-    d->materialParams.custMatShadowSamplerIdx = casterIdx; // will end up in shadowIdx
-    d->materialParams.custMatShadowSampler->setName(QLatin1String("shadowMaps[") + QString::number(casterIdx) + QLatin1String("]"));
-    d->materialParams.custMatShadowSampler->setValue(QVariant::fromValue(d->shadowMapTexture));
 }
 
 void Q3DSSceneManager::updateOrthoShadowCam(Q3DSLayerAttached::PerLightShadowMapData *d, Q3DSLightNode *light3DS, Q3DSLayerAttached *layerData)
@@ -2469,6 +2459,8 @@ void Q3DSSceneManager::updateShadowMapStatus(Q3DSLayerNode *layer3DS, bool *smDi
     int lightIdx = 0;
     int orthoCasterIdx = 0;
     int cubeCasterIdx = 0;
+    QVariantList custMatCubeShadowMaps;
+    QVariantList custMatOrthoShadowMaps;
 
     for (Q3DSLayerAttached::PerLightShadowMapData &d : layerData->shadowMapData.shadowCasters)
         d.active = false;
@@ -2615,12 +2607,24 @@ void Q3DSSceneManager::updateShadowMapStatus(Q3DSLayerNode *layer3DS, bool *smDi
                     d->materialParams.shadowMatrixParam = new Qt3DRender::QParameter(layerData->entity);
                 if (!d->materialParams.shadowControlParam)
                     d->materialParams.shadowControlParam = new Qt3DRender::QParameter(layerData->entity);
-                if (!d->materialParams.custMatShadowSampler)
-                    d->materialParams.custMatShadowSampler = new Qt3DRender::QParameter(layerData->entity);
-                if (!layerData->shadowMapData.custMatParams.numShadowCubesParam)
+
+                // for custom materials
+                if (!layerData->shadowMapData.custMatParams.numShadowCubesParam) {
                     layerData->shadowMapData.custMatParams.numShadowCubesParam = new Qt3DRender::QParameter(layerData->entity);
-                if (!layerData->shadowMapData.custMatParams.numShadowMapsParam)
+                    layerData->shadowMapData.custMatParams.numShadowCubesParam->setName(QLatin1String("uNumShadowCubes"));
+                }
+                if (!layerData->shadowMapData.custMatParams.numShadowMapsParam) {
                     layerData->shadowMapData.custMatParams.numShadowMapsParam = new Qt3DRender::QParameter(layerData->entity);
+                    layerData->shadowMapData.custMatParams.numShadowMapsParam->setName(QLatin1String("uNumShadowMaps"));
+                }
+                if (!layerData->shadowMapData.custMatParams.shadowMapSamplersParam) {
+                    layerData->shadowMapData.custMatParams.shadowMapSamplersParam = new Qt3DRender::QParameter(layerData->entity);
+                    layerData->shadowMapData.custMatParams.shadowMapSamplersParam->setName(QLatin1String("shadowMaps[0]")); // will pass all array elems as one param
+                }
+                if (!layerData->shadowMapData.custMatParams.shadowCubeSamplersParam) {
+                    layerData->shadowMapData.custMatParams.shadowCubeSamplersParam = new Qt3DRender::QParameter(layerData->entity);
+                    layerData->shadowMapData.custMatParams.shadowCubeSamplersParam->setName(QLatin1String("shadowCubes[0]")); // will pass all array elems as one param
+                }
 
                 // verify no globally used parameters get parented to this volatile framegraph subtree
                 Q_ASSERT(layerData->opaqueTag->parent());
@@ -2693,7 +2697,8 @@ void Q3DSSceneManager::updateShadowMapStatus(Q3DSLayerNode *layer3DS, bool *smDi
                     }
 
                     // set QParameter names and values
-                    updateCubeShadowMapParams(d, light3DS, lightIndexStr, cubeCasterIdx);
+                    updateCubeShadowMapParams(d, light3DS, lightIndexStr);
+                    custMatCubeShadowMaps.append(QVariant::fromValue(d->shadowMapTexture));
                 } else {
                     Qt3DRender::QRenderTargetSelector *shadowRtSelector = new Qt3DRender::QRenderTargetSelector(d->subTreeRoot);
                     Qt3DRender::QRenderTarget *shadowRt = new Qt3DRender::QRenderTarget;
@@ -2745,7 +2750,8 @@ void Q3DSSceneManager::updateShadowMapStatus(Q3DSLayerNode *layer3DS, bool *smDi
                     genOrthoBlurPassFg(d, d->shadowMapTextureTemp, d->shadowMapTexture, QLatin1String("shadowOrthoBlurY"), light3DS);
 
                     // set QParameter names and values
-                    updateOrthoShadowMapParams(d, light3DS, lightIndexStr, orthoCasterIdx);
+                    updateOrthoShadowMapParams(d, light3DS, lightIndexStr);
+                    custMatOrthoShadowMaps.append(QVariant::fromValue(d->shadowMapTexture));
                 } // if isCube
             } else {
                 // !needsFramegraph -> update the values that could have changed
@@ -2753,31 +2759,35 @@ void Q3DSSceneManager::updateShadowMapStatus(Q3DSLayerNode *layer3DS, bool *smDi
                     for (int faceIdx = 0; faceIdx < 6; ++faceIdx)
                         updateCubeShadowCam(d, faceIdx, light3DS);
 
-                    updateCubeShadowMapParams(d, light3DS, lightIndexStr, cubeCasterIdx);
+                    updateCubeShadowMapParams(d, light3DS, lightIndexStr);
+                    custMatCubeShadowMaps.append(QVariant::fromValue(d->shadowMapTexture));
                 } else {
                     updateOrthoShadowCam(d, light3DS, layerData);
-                    updateOrthoShadowMapParams(d, light3DS, lightIndexStr, orthoCasterIdx);
+                    updateOrthoShadowMapParams(d, light3DS, lightIndexStr);
+                    custMatOrthoShadowMaps.append(QVariant::fromValue(d->shadowMapTexture));
                 }
             }
 
             if (isCube) {
                 light3DS->attached<Q3DSLightAttached>()->lightSource.shadowIdxParam->setValue(cubeCasterIdx);
                 ++cubeCasterIdx;
+                Q_ASSERT(custMatCubeShadowMaps.count() == cubeCasterIdx);
             } else {
                 light3DS->attached<Q3DSLightAttached>()->lightSource.shadowIdxParam->setValue(orthoCasterIdx);
                 ++orthoCasterIdx;
+                Q_ASSERT(custMatOrthoShadowMaps.count() == orthoCasterIdx);
             }
         } // if light3DS->castShadow
     }
 
-    if (layerData->shadowMapData.custMatParams.numShadowCubesParam) {
-        layerData->shadowMapData.custMatParams.numShadowCubesParam->setName(QLatin1String("uNumShadowCubes"));
+    if (layerData->shadowMapData.custMatParams.numShadowCubesParam)
         layerData->shadowMapData.custMatParams.numShadowCubesParam->setValue(cubeCasterIdx);
-    }
-    if (layerData->shadowMapData.custMatParams.numShadowMapsParam) {
-        layerData->shadowMapData.custMatParams.numShadowMapsParam->setName(QLatin1String("uNumShadowMaps"));
+    if (layerData->shadowMapData.custMatParams.numShadowMapsParam)
         layerData->shadowMapData.custMatParams.numShadowMapsParam->setValue(orthoCasterIdx);
-    }
+    if (layerData->shadowMapData.custMatParams.shadowMapSamplersParam)
+        layerData->shadowMapData.custMatParams.shadowMapSamplersParam->setValue(custMatOrthoShadowMaps);
+    if (layerData->shadowMapData.custMatParams.shadowCubeSamplersParam)
+        layerData->shadowMapData.custMatParams.shadowCubeSamplersParam->setValue(custMatCubeShadowMaps);
 
     // Drop shadow map data for lights that are not casting anymore either due
     // to a castshadow or eyeball property change.
@@ -4351,13 +4361,7 @@ Qt3DCore::QEntity *Q3DSSceneManager::buildModel(Q3DSModelNode *model3DS, Q3DSLay
 static void addShadowSsaoParams(Q3DSLayerAttached *layerData, QVector<Qt3DRender::QParameter *> *params, bool isCustomMaterial)
 {
     for (const Q3DSLayerAttached::PerLightShadowMapData &sd : qAsConst(layerData->shadowMapData.shadowCasters)) {
-        if (isCustomMaterial) {
-            // ### FIXME QT3DS-1840 - enabling the following crashes on Intel
-#if 0
-            if (sd.materialParams.custMatShadowSampler)
-                params->append(sd.materialParams.custMatShadowSampler);
-#endif
-        } else {
+        if (!isCustomMaterial) {
             if (sd.materialParams.shadowSampler)
                 params->append(sd.materialParams.shadowSampler);
             if (sd.materialParams.shadowMatrixParam)
@@ -4375,6 +4379,10 @@ static void addShadowSsaoParams(Q3DSLayerAttached *layerData, QVector<Qt3DRender
             params->append(layerData->shadowMapData.custMatParams.numShadowCubesParam);
         if (layerData->shadowMapData.custMatParams.numShadowMapsParam)
             params->append(layerData->shadowMapData.custMatParams.numShadowMapsParam);
+        if (layerData->shadowMapData.custMatParams.shadowMapSamplersParam)
+            params->append(layerData->shadowMapData.custMatParams.shadowMapSamplersParam);
+        if (layerData->shadowMapData.custMatParams.shadowCubeSamplersParam)
+            params->append(layerData->shadowMapData.custMatParams.shadowCubeSamplersParam);
     }
 }
 

@@ -303,8 +303,6 @@ public:
             //    uniform sampler2D shadowMaps[MAX_NUM_SHADOWS];
             //    uniform samplerCube shadowCubes[MAX_NUM_SHADOWS];
             // which are then indexed by shadowIdx.
-            int custMatShadowSamplerIdx = 0;
-            Qt3DRender::QParameter *custMatShadowSampler = nullptr;
         } materialParams;
         Qt3DRender::QParameter *shadowCamPropsParam = nullptr;
         Qt3DRender::QCamera *shadowCamOrtho = nullptr;
@@ -318,6 +316,9 @@ public:
             // custom materials need a uNumShadowMaps and uNumShadowCubes
             Qt3DRender::QParameter *numShadowMapsParam = nullptr;
             Qt3DRender::QParameter *numShadowCubesParam = nullptr;
+            // and all textures for the 2 arrays of samplers as one param
+            Qt3DRender::QParameter *shadowMapSamplersParam = nullptr;
+            Qt3DRender::QParameter *shadowCubeSamplersParam = nullptr;
         } custMatParams;
     } shadowMapData;
 
@@ -774,11 +775,11 @@ private:
     void updateAoParameters(Q3DSLayerNode *layer3DS);
     void updateSsaoStatus(Q3DSLayerNode *layer3DS, bool *aoDidChange = nullptr);
     void updateShadowMapStatus(Q3DSLayerNode *layer3DS, bool *smDidChange = nullptr);
-    void updateCubeShadowMapParams(Q3DSLayerAttached::PerLightShadowMapData *d, Q3DSLightNode *light3DS, const QString &lightIndexStr, int casterIdx);
+    void updateCubeShadowMapParams(Q3DSLayerAttached::PerLightShadowMapData *d, Q3DSLightNode *light3DS, const QString &lightIndexStr);
     void updateCubeShadowCam(Q3DSLayerAttached::PerLightShadowMapData *d, int faceIdx, Q3DSLightNode *light3DS);
     void genCubeBlurPassFg(Q3DSLayerAttached::PerLightShadowMapData *d, Qt3DRender::QAbstractTexture *inTex,
                            Qt3DRender::QAbstractTexture *outTex, const QString &passName, Q3DSLightNode *light3DS);
-    void updateOrthoShadowMapParams(Q3DSLayerAttached::PerLightShadowMapData *d, Q3DSLightNode *light3DS, const QString &lightIndexStr, int casterIdx);
+    void updateOrthoShadowMapParams(Q3DSLayerAttached::PerLightShadowMapData *d, Q3DSLightNode *light3DS, const QString &lightIndexStr);
     void updateOrthoShadowCam(Q3DSLayerAttached::PerLightShadowMapData *d, Q3DSLightNode *light3DS, Q3DSLayerAttached *layerData);
     void genOrthoBlurPassFg(Q3DSLayerAttached::PerLightShadowMapData *d, Qt3DRender::QAbstractTexture *inTex,
                             Qt3DRender::QAbstractTexture *outTex, const QString &passName, Q3DSLightNode *light3DS);
