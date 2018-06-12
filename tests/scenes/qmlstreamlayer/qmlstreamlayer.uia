@@ -3,6 +3,6 @@
 	<assets initial="qmlstreamlayer">
 		<presentation id="qmlstreamlayer" src="qmlstreamlayer.uip"/>
 		<presentation-qml id="red-fill" args="scripts/RedFill.qml"/>
-		<presentation-qml id="layer" args="scripts\right_rect.qml"/>
+		<presentation-qml id="layer" args="scripts/right_rect.qml"/>
 	</assets>
 </application>
