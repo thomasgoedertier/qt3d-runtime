@@ -6240,14 +6240,24 @@ void Q3DSSceneManager::deactivateEffect(Q3DSEffectInstance *eff3DS, Q3DSLayerNod
         delete effData->outputTexture;
     }
 
-    // TODO: We only restor the visibility tag, layer and entity,
-    // but there might be other things that needs to be kept...
-    const Q3DSGraphObjectAttached::VisibilityTag visibleTag = effData->visibilityTag;
-    Qt3DCore::QEntity *entity = effData->entity;
-    *effData = Q3DSEffectAttached();
+    effData->reset();
     effData->layer3DS = layer3DS;
-    effData->visibilityTag = visibleTag;
-    effData->entity = entity;
+}
+
+void Q3DSEffectAttached::reset()
+{
+    active = false;
+    layer3DS = nullptr;
+    quadEntity = nullptr;
+    quadEntityTag = nullptr;
+    params.clear();
+    appFrameParam = fpsParam = cameraClipRangeParam = nullptr;
+    textureBuffers.clear();
+    passData.clear();
+    sourceDepTextureInfoParams.clear();
+    passFgRoots.clear();
+    sourceTexture = outputTexture = nullptr;
+    ownsOutputTexture = false;
 }
 
 void Q3DSSceneManager::setupEffectTextureBuffer(Q3DSEffectAttached::TextureBuffer *tb,

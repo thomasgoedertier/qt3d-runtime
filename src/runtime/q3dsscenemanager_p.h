@@ -588,6 +588,8 @@ public:
     Qt3DRender::QAbstractTexture *sourceTexture = nullptr; // never owned
     Qt3DRender::QAbstractTexture *outputTexture = nullptr;
     bool ownsOutputTexture = false;
+
+    void reset();
 };
 
 class Q3DSSlideAttached : public Q3DSGraphObjectAttached
