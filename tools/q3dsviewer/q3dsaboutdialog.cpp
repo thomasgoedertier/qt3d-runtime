@@ -137,19 +137,20 @@ void Q3DSAboutDialog::initDialog()
 #endif
 #define QT3DS_BUILD_DATE __DATE__
 #define QT3DS_BUILD_TIME __TIME__
-#else
-#define QT3DS_BUILD_DATE "DATE"
-#define QT3DS_BUILD_TIME "TIME"
-#endif
 
-    // Information about build
     m_ui->m_buildTimestamp->setText(
                 tr("Built on %1 %2").arg(QStringLiteral(QT3DS_BUILD_DATE), QStringLiteral(QT3DS_BUILD_TIME)));
+#else
+    m_ui->m_buildTimestamp->setText(QString());
+    m_ui->m_buildTimestamp->setMaximumHeight(0);
+#endif
+
     m_ui->m_qtVersion->setText(
                 tr("Based on Qt %1 (%2, %3 bit)").arg(
                     QString::fromLatin1(qVersion()),
                     compilerString(),
                     QString::number(QSysInfo::WordSize)));
+
 #ifdef QT3DSTUDIO_REVISION
     m_ui->m_revisionSHA->setText(
                 tr("From revision %1").arg(
