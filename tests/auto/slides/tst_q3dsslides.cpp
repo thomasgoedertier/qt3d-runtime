@@ -86,6 +86,12 @@ private:
     Q3DSSlide *m_componentSlide2 = nullptr;
     Q3DSSlide *m_componentSlide3 = nullptr;
 
+    // Slide 5 ComponentSlides
+    Q3DSSlide *m_componentSlide5MasterSlide = nullptr;
+    Q3DSSlide *m_componentSlide51 = nullptr;
+    Q3DSSlide *m_componentSlide52 = nullptr;
+    Q3DSSlide *m_componentSlide53 = nullptr;
+
     // Deep Component Slides
     Q3DSSlide *m_deepComponentMasterSlide = nullptr;
     Q3DSSlide *m_deepComponentSlide1 = nullptr;
@@ -105,8 +111,9 @@ private:
 
     // Component Objects
     Q3DSModelNode *m_componentMasterCube = nullptr;
-    Q3DSModelNode *m_componentMasterCubeSlide5 = nullptr;
     Q3DSModelNode *m_componentSlide1Cone = nullptr;
+    Q3DSModelNode *m_componentMasterCubeSlide5 = nullptr;
+    Q3DSModelNode *m_componentSlide5Slide1Cone = nullptr;
     Q3DSTextNode *m_componentSlide2Text = nullptr;
     Q3DSComponentNode *m_componentSlide3Component = nullptr;
 
@@ -195,17 +202,28 @@ void tst_Q3DSSlides::initTestCase()
     m_componentSlide3 = static_cast<Q3DSSlide *>(m_componentSlide2->nextSibling());
     QVERIFY(m_componentSlide3);
 
+    m_componentSlide5MasterSlide = m_slide5Component->masterSlide();
+    QVERIFY(m_componentSlide5MasterSlide);
+    m_componentSlide51 = static_cast<Q3DSSlide *>(m_componentSlide5MasterSlide->firstChild());
+    QVERIFY(m_componentSlide51);
+    m_componentSlide52 = static_cast<Q3DSSlide *>(m_componentSlide51->nextSibling());
+    QVERIFY(m_componentSlide52);
+    m_componentSlide53 = static_cast<Q3DSSlide *>(m_componentSlide52->nextSibling());
+    QVERIFY(m_componentSlide53);
+
     // Component Objects
     m_componentMasterCube = getModelWithName(QStringLiteral("ComponentMasterCube"), m_slide3Component);
     QVERIFY(m_componentMasterCube);
-    m_componentMasterCubeSlide5 = getModelWithName(QStringLiteral("ComponentMasterCube"), m_slide5Component);
-    QVERIFY(m_componentMasterCubeSlide5);
     m_componentSlide1Cone = getModelWithName(QStringLiteral("ComponentSlide1Cone"), m_componentMasterCube);
     QVERIFY(m_componentSlide1Cone);
     m_componentSlide2Text = getTextNodeWithName(QStringLiteral("ComponentSlide2Text"), m_slide3Component);
     QVERIFY(m_componentSlide2Text);
     m_componentSlide3Component = getComponentWithName(QStringLiteral("ComponentSlide3Component"), m_slide3Component);
     QVERIFY(m_componentSlide3Component);
+    m_componentMasterCubeSlide5 = getModelWithName(QStringLiteral("ComponentMasterCube"), m_slide5Component);
+    QVERIFY(m_componentMasterCubeSlide5);
+    m_componentSlide5Slide1Cone = getModelWithName(QStringLiteral("ComponentSlide1Cone"), m_componentMasterCubeSlide5);
+    QVERIFY(m_componentSlide5Slide1Cone);
 
     // Deep Component Slides
     m_deepComponentMasterSlide = m_componentSlide3Component->masterSlide();
@@ -587,17 +605,17 @@ void tst_Q3DSSlides::testTimeLineVisibility()
         QVERIFY(updateSpy.wait(5000));
     };
 
-    Q3DSSlide *compMasterSlide = m_slide5Component->masterSlide();
-    Q_ASSERT(compMasterSlide);
-    Q3DSSlidePlayer *compPlayer = compMasterSlide->attached<Q3DSSlideAttached>()->slidePlayer;
+    m_sceneManager->setComponentCurrentSlide(m_componentSlide51);
+    Q_ASSERT(m_componentSlide5MasterSlide == m_slide5Component->masterSlide());
+    Q3DSSlidePlayer *compPlayer = m_componentSlide5MasterSlide->attached<Q3DSSlideAttached>()->slidePlayer;
     compPlayer->stop();
     QVERIFY(compPlayer);
 
     QSignalSpy compPositionChangedSpy(compPlayer, &Q3DSSlidePlayer::positionChanged);
 
-    const auto seekAndWaitForComp = [player, &updateSpy, &compPositionChangedSpy](int value) {
+    const auto seekAndWaitForComp = [compPlayer, &updateSpy, &compPositionChangedSpy](int value) {
         const float t = value;
-        player->seek(t);
+        compPlayer->seek(t);
         QVERIFY(compPositionChangedSpy.wait(5000));
         QVERIFY(updateSpy.wait(5000));
     };
@@ -623,6 +641,8 @@ void tst_Q3DSSlides::testTimeLineVisibility()
     QVERIFY(!isNodeVisible(m_componentMasterCubeSlide5));
 
     seekAndWait(1500);
+    // Sync up the comp player
+    seekAndWaitForComp(1500);
 
     // Everything now visible
     QVERIFY(isNodeVisible(m_masterCylinder));
@@ -636,6 +656,8 @@ void tst_Q3DSSlides::testTimeLineVisibility()
     seekAndWaitForComp(1501);
 
     seekAndWait(2000);
+    // Sync up the comp player
+    seekAndWaitForComp(2000);
 
     // Everything still visible
     QVERIFY(isNodeVisible(m_masterCylinder));
@@ -646,6 +668,8 @@ void tst_Q3DSSlides::testTimeLineVisibility()
     QVERIFY(isNodeVisible(m_componentMasterCubeSlide5));
 
     seekAndWait(2001);
+    // Sync up the comp player
+    seekAndWaitForComp(2001);
 
     // Neither rect nor sphere are visible
     QVERIFY(isNodeVisible(m_masterCylinder));
@@ -656,6 +680,8 @@ void tst_Q3DSSlides::testTimeLineVisibility()
     QVERIFY(isNodeVisible(m_componentMasterCubeSlide5));
 
     seekAndWait(2885);
+    // Sync up the comp player
+    seekAndWaitForComp(2885);
 
     // Neither rect nor sphere are visible
     QVERIFY(isNodeVisible(m_masterCylinder));
@@ -665,7 +691,66 @@ void tst_Q3DSSlides::testTimeLineVisibility()
     QVERIFY(!isNodeVisible(m_slide5Component));
     QVERIFY(!isNodeVisible(m_componentMasterCubeSlide5));
 
+    // Now test time lines that are out of sync
+    // Start by a know state with all visible
+    seekAndWait(1500);
+    // Sync up the comp player
+    seekAndWaitForComp(1500);
+
+    // Everything now visible
+    QVERIFY(isNodeVisible(m_masterCylinder));
+    QVERIFY(isNodeVisible(m_dynamicSphere));
+    QVERIFY(isNodeVisible(m_slide5Rect));
+    QVERIFY(isNodeVisible(m_slide5Sphere));
+    QVERIFY(isNodeVisible(m_slide5Component));
+    QVERIFY(isNodeVisible(m_componentMasterCubeSlide5));
+
+    seekAndWaitForComp(0);
+    QVERIFY(isNodeVisible(m_slide5Component));
+    QVERIFY(!isNodeVisible(m_componentMasterCubeSlide5));
+    QVERIFY(!isNodeVisible(m_componentSlide5Slide1Cone));
+
+    seekAndWaitForComp(1300);
+    QVERIFY(isNodeVisible(m_slide5Component));
+    QVERIFY(isNodeVisible(m_componentMasterCubeSlide5));
+    QVERIFY(isNodeVisible(m_componentSlide5Slide1Cone));
+
+    seekAndWait(3000);
+    QVERIFY(!isNodeVisible(m_slide5Component));
+    // Component nodes should be hidden by parent.
+    QVERIFY(!isNodeVisible(m_componentMasterCubeSlide5));
+    QVERIFY(!isNodeVisible(m_componentSlide5Slide1Cone));
+
+    seekAndWait(1500);
+    QVERIFY(isNodeVisible(m_slide5Component));
+    // Component nodes should be made visible by parent.
+    QVERIFY(isNodeVisible(m_componentMasterCubeSlide5));
+    QVERIFY(isNodeVisible(m_componentSlide5Slide1Cone));
+
+    seekAndWait(3000);
+    QVERIFY(!isNodeVisible(m_slide5Component));
+    // Make the parent make the component nodes hidden again
+    QVERIFY(!isNodeVisible(m_componentMasterCubeSlide5));
+    QVERIFY(!isNodeVisible(m_componentSlide5Slide1Cone));
+
+    seekAndWaitForComp(1000);
+    // Component should not make its nodes visible.
+    QVERIFY(!isNodeVisible(m_componentMasterCubeSlide5));
+    QVERIFY(!isNodeVisible(m_componentSlide5Slide1Cone));
+
+    seekAndWaitForComp(100);
+    // Hidden by component
+    QVERIFY(!isNodeVisible(m_componentMasterCubeSlide5));
+    QVERIFY(!isNodeVisible(m_componentSlide5Slide1Cone));
+
+    seekAndWait(1500);
+    // ... Now make sure the parent doesn't make the component nodes visible!
+    QVERIFY(!isNodeVisible(m_componentMasterCubeSlide5));
+    QVERIFY(!isNodeVisible(m_componentSlide5Slide1Cone));
+
     seekAndWait(0);
+    // Sync up the comp player
+    seekAndWaitForComp(0);
 
     // Back to the beginning
     QVERIFY(isNodeVisible(m_masterCylinder));
@@ -720,20 +805,22 @@ Q3DSTextNode *tst_Q3DSSlides::getTextNodeWithName(const QString &name, Q3DSGraph
 
 bool tst_Q3DSSlides::isNodeVisible(Q3DSNode *node)
 {
-    if (!node) {
+    if (!node)
         return false;
-    }
 
-    auto nodeAttached = static_cast<Q3DSNodeAttached *>(node->attached());
+    auto nodeAttached = node->attached<Q3DSNodeAttached>();
     auto entity = nodeAttached->entity;
     if (!entity)
         return false;
-    auto layerAttached = static_cast<Q3DSLayerAttached *>(nodeAttached->layer3DS->attached());
 
-    if (entity->components().contains(layerAttached->opaqueTag) || entity->components().contains(layerAttached->transparentTag))
-        return true;
+    auto layerAttached = nodeAttached->layer3DS->attached<Q3DSLayerAttached>();
+    Q_ASSERT(layerAttached->opaqueTag || layerAttached->transparentTag);
 
-    return false;
+    const bool visible = (nodeAttached->visibilityTag == Q3DSGraphObjectAttached::Visible);
+    // These should be in sync, or we're in trouble.
+    Q_ASSERT(visible == (entity->components().contains(layerAttached->opaqueTag) || entity->components().contains(layerAttached->transparentTag)));
+
+    return visible;
 }
 
 QTEST_MAIN(tst_Q3DSSlides);
