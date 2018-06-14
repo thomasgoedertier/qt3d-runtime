@@ -61,7 +61,7 @@ class QTabletEvent;
 class QQmlEngine;
 class QQmlComponent;
 class Q3DSInlineQmlSubPresentation;
-class Q3DSViewerSettings;
+class Q3DSViewportSettings;
 
 namespace Qt3DRender {
 class QRenderCapture;
@@ -135,8 +135,8 @@ public:
     Qt3DCore::QAspectEngine *aspectEngine() const;
     Qt3DCore::QEntity *rootEntity() const;
 
-    Q3DSViewerSettings *viewerSettings() const;
-    void setViewerSettings(Q3DSViewerSettings *viewerSettings);
+    Q3DSViewportSettings *viewportSettings() const;
+    void setViewportSettings(Q3DSViewportSettings *viewportSettings);
 
     void setOnDemandRendering(bool enabled);
 
@@ -284,7 +284,7 @@ private:
     BehaviorMap m_behaviorHandles;
 
     bool m_onDemandRendering = false;
-    Q3DSViewerSettings *m_viewerSettings = nullptr;
+    Q3DSViewportSettings *m_viewportSettings = nullptr;
 };
 
 Q_DECLARE_OPERATORS_FOR_FLAGS(Q3DSEngine::Flags)

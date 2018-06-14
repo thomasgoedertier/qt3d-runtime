@@ -27,43 +27,65 @@
 **
 ****************************************************************************/
 
-#ifndef Q3DSVIEWERSETTINGS_P_H
-#define Q3DSVIEWERSETTINGS_P_H
-
-//
-//  W A R N I N G
-//  -------------
-//
-// This file is not part of the Qt API.  It exists purely as an
-// implementation detail.  This header file may change from version to
-// version without notice, or even be removed.
-//
-// We mean it.
-//
-
-#include <private/q3dsruntimeglobal_p.h>
-#include "q3dsviewersettings.h"
-#include <private/qobject_p.h>
-#include <private/q3dsviewportsettings_p.h>
+#include "q3dsviewportsettings_p.h"
 
 QT_BEGIN_NAMESPACE
 
-class Q3DSV_PRIVATE_EXPORT Q3DSViewerSettingsPrivate : public QObjectPrivate
+Q3DSViewportSettings::Q3DSViewportSettings(QObject *parent)
+    : QObject(parent)
 {
-    Q_DECLARE_PUBLIC(Q3DSViewerSettings)
+}
 
-public:
-    static Q3DSViewerSettingsPrivate *get(Q3DSViewerSettings *p) { return p->d_func(); }
+bool Q3DSViewportSettings::matteEnabled() const
+{
+    return m_matteEnabled;
+}
 
-    Q3DSViewportSettings *createViewportSettingsProxy();
+QColor Q3DSViewportSettings::matteColor() const
+{
+    return m_matteColor;
+}
 
-    bool matteEnabled = false;
-    QColor matteColor = QColor(51, 51, 51);
-    bool showRenderStats = false;
-    Q3DSViewerSettings::ShadeMode shadeMode = Q3DSViewerSettings::ShadeModeShaded;
-    Q3DSViewerSettings::ScaleMode scaleMode = Q3DSViewerSettings::ScaleModeFill;
-};
+bool Q3DSViewportSettings::isShowingRenderStats() const
+{
+    return m_showRenderStats;
+}
+
+Q3DSViewportSettings::ScaleMode Q3DSViewportSettings::scaleMode() const
+{
+    return m_scaleMode;
+}
+
+void Q3DSViewportSettings::setMatteEnabled(bool isEnabled)
+{
+    if (m_matteEnabled != isEnabled) {
+        m_matteEnabled = isEnabled;
+        emit matteEnabledChanged();
+    }
+}
+
+void Q3DSViewportSettings::setMatteColor(const QColor &color)
+{
+    if (m_matteColor != color) {
+        m_matteColor = color;
+        emit matteColorChanged();
+    }
+}
+
+void Q3DSViewportSettings::setShowRenderStats(bool show)
+{
+    if (m_showRenderStats != show) {
+        m_showRenderStats = show;
+        emit showRenderStatsChanged();
+    }
+}
+
+void Q3DSViewportSettings::setScaleMode(Q3DSViewportSettings::ScaleMode mode)
+{
+    if (m_scaleMode != mode) {
+        m_scaleMode = mode;
+        emit scaleModeChanged();
+    }
+}
 
 QT_END_NAMESPACE
-
-#endif // Q3DSVIEWERSETTINGS_P_H

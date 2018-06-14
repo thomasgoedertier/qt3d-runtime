@@ -506,7 +506,7 @@ bool Q3DSSurfaceViewerPrivate::createEngine()
         return false;
     }
     engine->setSurface(windowOrOffscreenSurface);
-    engine->setViewerSettings(viewerSettings);
+    engine->setViewportSettings(Q3DSViewerSettingsPrivate::get(viewerSettings)->createViewportSettingsProxy());
 
     qCDebug(lc3DSSurface, "Created engine %p", engine);
 

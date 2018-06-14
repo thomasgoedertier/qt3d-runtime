@@ -34,7 +34,7 @@
 #include "q3dslogging_p.h"
 #include "q3dsinputmanager_p.h"
 #include "q3dsinlineqmlsubpresentation_p.h"
-#include "q3dsviewersettings.h"
+#include "q3dsviewportsettings_p.h"
 
 #include <QLoggingCategory>
 #include <QKeyEvent>
@@ -162,7 +162,7 @@ Q3DSEngine::Q3DSEngine()
         // same for q3ds.input
         const_cast<QLoggingCategory &>(lcInput()).setEnabled(QtDebugMsg, logValueChanges);
     }
-    setViewerSettings(new Q3DSViewerSettings(this));
+    setViewportSettings(new Q3DSViewportSettings(this));
 }
 
 Q3DSEngine::~Q3DSEngine()
@@ -784,8 +784,8 @@ bool Q3DSEngine::buildUipPresentationScene(UipPresentation *pres)
     pres->sceneManager->updateSizes(effectiveSize, effectiveDpr, params.viewport);
 
     // Set matte preferences
-    pres->sceneManager->setMatteEnabled(m_viewerSettings->matteEnabled());
-    pres->sceneManager->setMatteColor(m_viewerSettings->matteColor());
+    pres->sceneManager->setMatteEnabled(m_viewportSettings->matteEnabled());
+    pres->sceneManager->setMatteColor(m_viewportSettings->matteColor());
 
     // Expose update signal
     connect(pres->q3dscene.frameAction, &Qt3DLogic::QFrameAction::triggered, this, [this](float dt) {
@@ -1197,32 +1197,32 @@ Qt3DCore::QEntity *Q3DSEngine::rootEntity() const
     return m_uipPresentations.isEmpty() ? nullptr : m_uipPresentations[0].q3dscene.rootEntity;
 }
 
-Q3DSViewerSettings *Q3DSEngine::viewerSettings() const
+Q3DSViewportSettings *Q3DSEngine::viewportSettings() const
 {
-    return m_viewerSettings;
+    return m_viewportSettings;
 }
 
-void Q3DSEngine::setViewerSettings(Q3DSViewerSettings *viewerSettings)
+void Q3DSEngine::setViewportSettings(Q3DSViewportSettings *viewportSettings)
 {
-    if (m_viewerSettings == viewerSettings)
+    if (m_viewportSettings == viewportSettings)
         return;
 
-    m_viewerSettings = viewerSettings;
-    connect(m_viewerSettings, &Q3DSViewerSettings::showRenderStatsChanged, [this] {
-        setProfileUiVisible(m_viewerSettings->isShowingRenderStats());
+    m_viewportSettings = viewportSettings;
+    connect(m_viewportSettings, &Q3DSViewportSettings::showRenderStatsChanged, [this] {
+        setProfileUiVisible(m_viewportSettings->isShowingRenderStats());
     });
-    connect(m_viewerSettings, &Q3DSViewerSettings::scaleModeChanged, [this] {
+    connect(m_viewportSettings, &Q3DSViewportSettings::scaleModeChanged, [this] {
         // Force a resize
         resize(m_size, m_dpr);
     });
-    connect(m_viewerSettings, &Q3DSViewerSettings::matteEnabledChanged, [this] {
+    connect(m_viewportSettings, &Q3DSViewportSettings::matteEnabledChanged, [this] {
         if (!m_uipPresentations.isEmpty()) {
-            m_uipPresentations[0].sceneManager->setMatteEnabled(m_viewerSettings->matteEnabled());
+            m_uipPresentations[0].sceneManager->setMatteEnabled(m_viewportSettings->matteEnabled());
         }
     });
-    connect(m_viewerSettings, &Q3DSViewerSettings::matteColorChanged, [this] {
+    connect(m_viewportSettings, &Q3DSViewportSettings::matteColorChanged, [this] {
         if (!m_uipPresentations.isEmpty()) {
-            m_uipPresentations[0].sceneManager->setMatteColor(m_viewerSettings->matteColor());
+            m_uipPresentations[0].sceneManager->setMatteColor(m_viewportSettings->matteColor());
         }
     });
 }
@@ -1691,7 +1691,7 @@ void Q3DSEngine::behaviorFrameUpdate(float dt)
 QRect Q3DSEngine::calculateViewport(const QSize &surfaceSize, const QSize &presentationSize) const
 {
     // The top level persentations viewport depends on the scale mode of
-    // the Q3DSViewerSettings. The method returns the viewport rect based
+    // the Q3DSViewportSettings. The method returns the viewport rect based
     // on the current surface size and scale mode.
 
     // We need to have the presentation size
@@ -1699,10 +1699,10 @@ QRect Q3DSEngine::calculateViewport(const QSize &surfaceSize, const QSize &prese
         return QRect();
 
     QRect viewportRect;
-    if (m_viewerSettings->scaleMode() == Q3DSViewerSettings::ScaleModeFill) {
+    if (m_viewportSettings->scaleMode() == Q3DSViewportSettings::ScaleModeFill) {
         // the presentation is always rendered to fill the viewport
         viewportRect = QRect(0, 0, surfaceSize.width(), surfaceSize.height());
-    } else if (m_viewerSettings->scaleMode() == Q3DSViewerSettings::ScaleModeCenter) {
+    } else if (m_viewportSettings->scaleMode() == Q3DSViewportSettings::ScaleModeCenter) {
         // the presentation is rendered at the size specified in Studio. Additional content is cropped,
         // additional space is letterboxed.
         const qreal presHorizontalCenter = presentationSize.width() * 0.5;
@@ -1712,7 +1712,7 @@ QRect Q3DSEngine::calculateViewport(const QSize &surfaceSize, const QSize &prese
         const qreal x = surfaceHorizontalCenter - presHorizontalCenter;
         const qreal y = surfaceVerticalCenter - presVerticalCenter;
         viewportRect = QRect(qFloor(x), qFloor(y), presentationSize.width(), presentationSize.height());
-    } else if (m_viewerSettings->scaleMode() == Q3DSViewerSettings::ScaleModeFit) {
+    } else if (m_viewportSettings->scaleMode() == Q3DSViewportSettings::ScaleModeFit) {
         // the aspect ratio of the presentation is preserved, letterboxing as needed.
         const qreal presentationAspectRatio = qreal(presentationSize.width()) / qreal(presentationSize.height());
         const qreal surfaceAspectRatio = qreal(surfaceSize.width()) / qreal(surfaceSize.height());

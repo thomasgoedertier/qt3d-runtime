@@ -350,7 +350,7 @@ void Q3DSWidgetPrivate::createEngine()
     engine->setAutoToggleProfileUi(false); // up to the app to control this via the API instead
 
     engine->setSurface(q_ptr->window()->windowHandle());
-    engine->setViewerSettings(viewerSettings);
+    engine->setViewportSettings(Q3DSViewerSettingsPrivate::get(viewerSettings)->createViewportSettingsProxy());
     qCDebug(lc3DSWidget, "Created engine %p", engine);
 
     initializePresentationController(engine, presentation);

@@ -44,7 +44,7 @@
 #include <private/q3dsruntimeglobal_p.h>
 #include "q3dswidget.h"
 #include "q3dspresentation_p.h"
-#include "q3dsviewersettings.h"
+#include "q3dsviewersettings_p.h"
 #include <QTimer>
 
 QT_BEGIN_NAMESPACE

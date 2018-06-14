@@ -35,7 +35,8 @@ SOURCES += \
     q3dsinputmanager.cpp \
     q3dsconsolecommands.cpp \
     q3dsinlineqmlsubpresentation.cpp \
-    q3dslogging.cpp
+    q3dslogging.cpp \
+    q3dsviewportsettings.cpp
 
 HEADERS += \
     q3dsruntimeglobal.h \
@@ -75,7 +76,8 @@ HEADERS += \
     q3dsinputmanager_p.h \
     q3dsconsolecommands_p.h \
     q3dsinlineqmlsubpresentation_p.h \
-    q3dslogging_p.h
+    q3dslogging_p.h \
+    q3dsviewportsettings_p.h
 
 qtHaveModule(widgets) {
     QT += widgets

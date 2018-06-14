@@ -34,7 +34,7 @@
 #include <private/q3dsengine_p.h>
 #include <private/q3dsutils_p.h>
 #include <private/q3dsslideplayer_p.h>
-#include <Qt3DStudioRuntime2/Q3DSViewerSettings>
+#include <private/q3dsviewportsettings_p.h>
 #include <QApplication>
 #include <QMenuBar>
 #include <QMenu>
@@ -134,10 +134,10 @@ Q3DStudioMainWindow::Q3DStudioMainWindow(Q3DSWindow *view, Q3DSRemoteDeploymentM
     QAction *showMatte = viewMenu->addAction(tr("Show Matte"));
     addAction(showMatte);
     showMatte->setCheckable(true);
-    showMatte->setChecked(view->engine()->viewerSettings()->matteEnabled());
+    showMatte->setChecked(view->engine()->viewportSettings()->matteEnabled());
     showMatte->setShortcut(QKeySequence(tr("Ctrl+D")));
     connect(showMatte, &QAction::toggled, [=]() {
-        view->engine()->viewerSettings()->setMatteEnabled(showMatte->isChecked());
+        view->engine()->viewportSettings()->setMatteEnabled(showMatte->isChecked());
     });
     QAction *scaleModeAction = new QAction(tr("Scale Mode"));
     addAction(scaleModeAction);
@@ -146,33 +146,33 @@ Q3DStudioMainWindow::Q3DStudioMainWindow(Q3DSWindow *view, Q3DSRemoteDeploymentM
     scaleModeAction->setMenu(scaleModeMenu);
     QAction *scaleModeCenter = new QAction(tr("Center"));
     scaleModeCenter->setCheckable(true);
-    scaleModeCenter->setChecked(view->engine()->viewerSettings()->scaleMode() == Q3DSViewerSettings::ScaleModeCenter);
+    scaleModeCenter->setChecked(view->engine()->viewportSettings()->scaleMode() == Q3DSViewportSettings::ScaleModeCenter);
     scaleModeMenu->addAction(scaleModeCenter);
 
     QAction *scaleModeFit = new QAction(tr("Scale to Fit"));
     scaleModeFit->setCheckable(true);
-    scaleModeFit->setChecked(view->engine()->viewerSettings()->scaleMode() == Q3DSViewerSettings::ScaleModeFit);
+    scaleModeFit->setChecked(view->engine()->viewportSettings()->scaleMode() == Q3DSViewportSettings::ScaleModeFit);
     scaleModeMenu->addAction(scaleModeFit);
 
     QAction *scaleModeFill = new QAction(tr("Scale to Fill"));
     scaleModeFill->setCheckable(true);
-    scaleModeFill->setChecked(view->engine()->viewerSettings()->scaleMode() == Q3DSViewerSettings::ScaleModeFill);
+    scaleModeFill->setChecked(view->engine()->viewportSettings()->scaleMode() == Q3DSViewportSettings::ScaleModeFill);
     scaleModeMenu->addAction(scaleModeFill);
 
     connect(scaleModeFit, &QAction::triggered, [=]() {
-        view->engine()->viewerSettings()->setScaleMode(Q3DSViewerSettings::ScaleModeFit);
+        view->engine()->viewportSettings()->setScaleMode(Q3DSViewportSettings::ScaleModeFit);
         scaleModeCenter->setChecked(false);
         scaleModeFill->setChecked(false);
         scaleModeFit->setChecked(true);
     });
     connect(scaleModeCenter, &QAction::triggered, [=]() {
-        view->engine()->viewerSettings()->setScaleMode(Q3DSViewerSettings::ScaleModeCenter);
+        view->engine()->viewportSettings()->setScaleMode(Q3DSViewportSettings::ScaleModeCenter);
         scaleModeCenter->setChecked(true);
         scaleModeFill->setChecked(false);
         scaleModeFit->setChecked(false);
     });
     connect(scaleModeFill, &QAction::triggered, [=]() {
-        view->engine()->viewerSettings()->setScaleMode(Q3DSViewerSettings::ScaleModeFill);
+        view->engine()->viewportSettings()->setScaleMode(Q3DSViewportSettings::ScaleModeFill);
         scaleModeCenter->setChecked(false);
         scaleModeFill->setChecked(true);
         scaleModeFit->setChecked(false);
@@ -182,15 +182,15 @@ Q3DStudioMainWindow::Q3DStudioMainWindow(Q3DSWindow *view, Q3DSRemoteDeploymentM
         if (scaleModeCenter->isChecked()) {
             scaleModeCenter->setChecked(false);
             scaleModeFit->setChecked(true);
-            view->engine()->viewerSettings()->setScaleMode(Q3DSViewerSettings::ScaleModeFit);
+            view->engine()->viewportSettings()->setScaleMode(Q3DSViewportSettings::ScaleModeFit);
         } else if (scaleModeFit->isChecked()) {
             scaleModeFit->setChecked(false);
             scaleModeFill->setChecked(true);
-            view->engine()->viewerSettings()->setScaleMode(Q3DSViewerSettings::ScaleModeFill);
+            view->engine()->viewportSettings()->setScaleMode(Q3DSViewportSettings::ScaleModeFill);
         } else {
             scaleModeFill->setChecked(false);
             scaleModeCenter->setChecked(true);
-            view->engine()->viewerSettings()->setScaleMode(Q3DSViewerSettings::ScaleModeCenter);
+            view->engine()->viewportSettings()->setScaleMode(Q3DSViewportSettings::ScaleModeCenter);
         }
     });
 

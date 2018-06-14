@@ -240,6 +240,29 @@ void Q3DSViewerSettings::load(const QString &group,
     qWarning() << Q_FUNC_INFO << "not implemented";
 }
 
+Q3DSViewportSettings *Q3DSViewerSettingsPrivate::createViewportSettingsProxy()
+{
+    Q_Q(Q3DSViewerSettings);
+    Q3DSViewportSettings *vp = new Q3DSViewportSettings(q);
+    vp->setShowRenderStats(q->isShowingRenderStats());
+    QObject::connect(q, &Q3DSViewerSettings::showRenderStatsChanged, q, [vp, q] {
+        vp->setShowRenderStats(q->isShowingRenderStats());
+    });
+    vp->setScaleMode(Q3DSViewportSettings::ScaleMode(q->scaleMode()));
+    QObject::connect(q, &Q3DSViewerSettings::scaleModeChanged, q, [vp, q] {
+        vp->setScaleMode(Q3DSViewportSettings::ScaleMode(q->scaleMode()));
+    });
+    vp->setMatteEnabled(q->matteEnabled());
+    QObject::connect(q, &Q3DSViewerSettings::matteEnabledChanged, q, [vp, q] {
+        vp->setMatteEnabled(q->matteEnabled());
+    });
+    vp->setMatteColor(q->matteColor());
+    QObject::connect(q, &Q3DSViewerSettings::matteColorChanged, q, [vp, q] {
+        vp->setMatteColor(q->matteColor());
+    });
+    return vp;
+}
+
 /*!
     \qmltype ViewerSettings
     \instantiates Q3DSViewerSettings

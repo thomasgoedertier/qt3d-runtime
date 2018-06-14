@@ -42,7 +42,7 @@
 #include <QQmlEngine>
 #include <QQmlContext>
 #include <QGuiApplication>
-#include <q3dsviewersettings.h>
+#include <private/q3dsviewersettings_p.h>
 #include <private/q3dsengine_p.h>
 #include <private/q3dsutils_p.h>
 #include <private/q3dslogging_p.h>
@@ -258,7 +258,7 @@ void Q3DSStudio3DItem::componentComplete()
             } else {
                 m_viewerSettings = viewerSettings;
                 if (m_engine)
-                    m_engine->setViewerSettings(m_viewerSettings);
+                    m_engine->setViewportSettings(Q3DSViewerSettingsPrivate::get(m_viewerSettings)->createViewportSettingsProxy());
             }
         }
     }
@@ -360,7 +360,7 @@ void Q3DSStudio3DItem::createEngine()
         }
 
         if (m_viewerSettings)
-            m_engine->setViewerSettings(m_viewerSettings);
+            m_engine->setViewportSettings(Q3DSViewerSettingsPrivate::get(m_viewerSettings)->createViewportSettingsProxy());
 
         qCDebug(lcStudio3D, "created engine %p", m_engine);
 
