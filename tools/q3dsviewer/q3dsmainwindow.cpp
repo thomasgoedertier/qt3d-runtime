@@ -316,7 +316,7 @@ Q3DStudioMainWindow::Q3DStudioMainWindow(Q3DSWindow *view, Q3DSRemoteDeploymentM
     }
 
     QMenu *helpMenu = menuBar()->addMenu(tr("&Help"));
-    helpMenu->addAction(tr("&About"), this, [this]() {
+    helpMenu->addAction(tr("&About"), this, []() {
         Q3DSAboutDialog dialog;
         dialog.exec();
     });
