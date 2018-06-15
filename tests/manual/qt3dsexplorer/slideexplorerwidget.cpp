@@ -225,16 +225,21 @@ void SlideExplorerWidget::handleCurrentSlideChanged(Q3DSSlide *slide)
 
 void SlideExplorerWidget::switchToNextSlide()
 {
-    m_slidePlayer->nextSlide();
+    if (m_slidePlayer)
+        m_slidePlayer->nextSlide();
 }
 
 void SlideExplorerWidget::switchToPrevSlide()
 {
-    m_slidePlayer->previousSlide();
+    if (m_slidePlayer)
+        m_slidePlayer->previousSlide();
 }
 
 void SlideExplorerWidget::playCurrentSlide()
 {
+    if (!m_slidePlayer)
+        return;
+
     Q3DSSlidePlayer::PlayerState state = m_sceneManager->slidePlayer()->state();
     if (state == Q3DSSlidePlayer::PlayerState::Ready
             || state == Q3DSSlidePlayer::PlayerState::Paused
@@ -247,12 +252,14 @@ void SlideExplorerWidget::playCurrentSlide()
 
 void SlideExplorerWidget::stopCurrentSlide()
 {
-    m_slidePlayer->stop();
+    if (m_slidePlayer)
+        m_slidePlayer->stop();
 }
 
 void SlideExplorerWidget::setRate(int rate)
 {
-    m_slidePlayer->setPlaybackRate(float(rate));
+    if (m_slidePlayer)
+        m_slidePlayer->setPlaybackRate(float(rate));
 }
 
 static QMainWindow* getMainWindow()
@@ -265,6 +272,9 @@ static QMainWindow* getMainWindow()
 
 void SlideExplorerWidget::seekInCurrentSlide(int value)
 {
+    if (!m_slidePlayer)
+        return;
+
     m_slidePlayer->seek(value);
     const float seconds = value / 1000.0f;
     getMainWindow()->statusBar()->showMessage(
@@ -273,6 +283,9 @@ void SlideExplorerWidget::seekInCurrentSlide(int value)
 
 void SlideExplorerWidget::setPlayerMode(int value)
 {
+    if (!m_slidePlayer)
+        return;
+
     const auto mode = (value == Qt::Checked) ? Q3DSSlidePlayer::PlayerMode::Viewer
                                              : Q3DSSlidePlayer::PlayerMode::Editor;
     m_slidePlayer->setMode(mode);
@@ -325,8 +338,18 @@ void SlideExplorerWidget::updateModel()
     m_slideModel->setMasterSlide(masterSlide);
 
     // Slide player
-    if (m_sceneManager && !m_slidePlayer) {
-        m_slidePlayer = m_sceneManager->slidePlayer();
+
+    Q3DSSlideAttached *data = masterSlide ? masterSlide->attached<Q3DSSlideAttached>()
+                                          : nullptr;
+    if (!data)
+        return;
+
+    Q3DSSlidePlayer *player = data->slidePlayer;
+    if (m_slidePlayer && m_slidePlayer != player)
+        disconnect(m_slidePlayer);
+
+    if (player) {
+        m_slidePlayer = player;
         setPlayerMode(m_playerModeCheckBox->checkState());
         connect(m_slidePlayer, &Q3DSSlidePlayer::positionChanged, [this](float v) {
             m_slideSeekSlider->blockSignals(true);
@@ -336,6 +359,7 @@ void SlideExplorerWidget::updateModel()
                 QString::number(seconds) + QStringLiteral(" seconds"));
             m_slideSeekSlider->blockSignals(false);
         });
+        handleCurrentSlideChanged(m_slidePlayer->slideDeck()->currentSlide());
         connect(m_slidePlayer, &Q3DSSlidePlayer::slideChanged,
                 this, &SlideExplorerWidget::handleCurrentSlideChanged);
         connect(m_slidePlayer, &Q3DSSlidePlayer::stateChanged,
@@ -345,16 +369,6 @@ void SlideExplorerWidget::updateModel()
             else
                 m_playSlideButton->setText(QLatin1String("Play"));
         });
-
-        Q3DSSlideDeck *slideDeck = m_slidePlayer->slideDeck();
-
-        if (masterSlide && masterSlide != slideDeck->currentSlide()->parent())
-            slideDeck = new Q3DSSlideDeck(masterSlide);
-
-        if (slideDeck) {
-            m_slidePlayer->setSlideDeck(slideDeck);
-            handleCurrentSlideChanged(slideDeck->currentSlide());
-        }
     }
 }
 
