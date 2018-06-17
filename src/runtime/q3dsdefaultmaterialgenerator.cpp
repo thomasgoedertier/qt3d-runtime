@@ -117,7 +117,7 @@ Qt3DRender::QMaterial *Q3DSDefaultMaterialGenerator::generateMaterial(Q3DSDefaul
     for (Qt3DRender::QRenderPass *pass : Q3DSSceneManager::standardRenderPasses(shaderProgram,
                                                                                 layer3DS,
                                                                                 defaultMaterial->blendMode(),
-                                                                                defaultMaterial->displacementmap() != nullptr))
+                                                                                defaultMaterial->displacementMap() != nullptr))
     {
         technique->addRenderPass(pass);
     }
@@ -187,7 +187,7 @@ void Q3DSDefaultMaterialGenerator::fillFeatureSet(Q3DSShaderFeatureSet *features
         enableLightProbe = true;
     if (layer3DS->lightProbe2())
         enableLightProbe2 = true;
-    if (layer3DS->probefov() < 180.0f && enableLightProbe)
+    if (layer3DS->probeFov() < 180.0f && enableLightProbe)
         enableIblFov = true;
 
     // Check for Override in material or referenced material

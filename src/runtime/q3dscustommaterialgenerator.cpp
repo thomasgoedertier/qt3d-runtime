@@ -117,7 +117,7 @@ void Q3DSCustomMaterialGenerator::fillFeatureSet(Q3DSShaderFeatureSet *features,
     if (layer3DS->lightProbe2())
         enableLightProbe2 = true;
 
-    if (layer3DS->probefov() < 180.0f && enableLightProbe)
+    if (layer3DS->probeFov() < 180.0f && enableLightProbe)
         enableIblFov = true;
 
     // Check for Override in material or referenced material

@@ -147,7 +147,7 @@ QVariant TreeModel::data(const QModelIndex &index, int role) const
         return QVariant();
 
     Q3DSGraphObject *item = static_cast<Q3DSGraphObject* >(index.internalPointer());
-    QString typeStr = item->typeAsString();
+    QString typeStr = QString::fromLatin1(item->typeAsString());
     if (item->type() == Q3DSGraphObject::Slide && item == m_root)
         typeStr = QLatin1String("Master Slide");
     QString s = tr("%1 %2").arg(typeStr).arg((quintptr) item, 0, 16);
@@ -157,7 +157,7 @@ QVariant TreeModel::data(const QModelIndex &index, int role) const
 Q3DSGraphExplorer::Q3DSGraphExplorer(Q3DSGraphObject *root, QWidget *parent)
     : QWidget(parent)
 {
-    setWindowTitle(tr("Graph explorer for %1 (%2)").arg((quintptr) root, 0, 16).arg(root->typeAsString()));
+    setWindowTitle(tr("Graph explorer for %1 (%2)").arg((quintptr) root, 0, 16).arg(QString::fromLatin1(root->typeAsString())));
     resize(1024, 768);
 
     QTreeView *tv = new QTreeView;
@@ -203,12 +203,12 @@ Q3DSGraphExplorer::Q3DSGraphExplorer(Q3DSGraphObject *root, QWidget *parent)
     connect(tv->selectionModel(), &QItemSelectionModel::currentChanged, this, [=](const QModelIndex &current, const QModelIndex &) {
         props->clear();
         Q3DSGraphObject *obj = static_cast<Q3DSGraphObject *>(current.internalPointer());
-        QString s = tr("Object %1 of type %2 with %3 children").arg((quintptr) obj, 0, 16).arg(obj->typeAsString()).arg(obj->childCount());
-        const QStringList pnames = obj->propertyNames();
-        const QVariantList pvalues = obj->propertyValues();
+        QString s = tr("Object %1 of type %2 with %3 children").arg((quintptr) obj, 0, 16).arg(QString::fromLatin1(obj->typeAsString())).arg(obj->childCount());
+        const auto pnames = obj->propertyNames();
+        const auto pvalues = obj->propertyValues();
         Q_ASSERT(pnames.count() == pvalues.count());
         for (int i = 0; i < pnames.count(); ++i)
-            s += tr("\n%1: %2").arg(pnames[i]).arg(varStr(pvalues[i]));
+            s += tr("\n%1: %2").arg(QString::fromLatin1(pnames[i])).arg(varStr(pvalues[i]));
         auto diProps = obj->dataInputControlledProperties();
         for (auto it = diProps->cbegin(); it != diProps->cend(); ++it)
             s += tr("\nproperty %2 is controlled by data input entry %1").arg(it.key()).arg(it.value());
@@ -272,13 +272,13 @@ Q3DSGraphExplorer::Q3DSGraphExplorer(Q3DSGraphObject *root, QWidget *parent)
             }
         } else if (obj->type() == Q3DSGraphObject::CustomMaterial) {
             Q3DSCustomMaterialInstance *mat = static_cast<Q3DSCustomMaterialInstance *>(obj);
-            auto props = mat->customProperties();
+            auto props = mat->dynamicProperties();
             s += tr("\n\nThis material has %1 custom properties").arg(props.count());
             for (auto it = props.cbegin(), ite = props.cend(); it != ite; ++it)
                 s += tr("\n%1: %2").arg(it.key()).arg(varStr(it.value()));
         } else if (obj->type() == Q3DSGraphObject::Effect) {
             Q3DSEffectInstance *mat = static_cast<Q3DSEffectInstance *>(obj);
-            auto props = mat->customProperties();
+            auto props = mat->dynamicProperties();
             s += tr("\n\nThis effect has %1 custom properties").arg(props.count());
             for (auto it = props.cbegin(), ite = props.cend(); it != ite; ++it)
                 s += tr("\n%1: %2").arg(it.key()).arg(varStr(it.value()));

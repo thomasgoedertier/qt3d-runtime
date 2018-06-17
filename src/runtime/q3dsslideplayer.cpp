@@ -854,7 +854,7 @@ void Q3DSSlidePlayer::setObjectVisibility(Q3DSGraphObject *obj, bool parentVisib
         nodeActive = (node && node->flags().testFlag(Q3DSNode::Active));
     }
 
-    const bool effectActive = (isEffect && static_cast<Q3DSEffectInstance *>(obj)->active());
+    const bool effectActive = (isEffect && static_cast<Q3DSEffectInstance *>(obj)->eyeballEnabled());
     const bool shouldBeVisible = parentVisible
             && time >= obj->startTime() && time <= obj->endTime()
             && (nodeActive || effectActive);
@@ -957,7 +957,7 @@ void Q3DSSlidePlayer::processPropertyChanges(Q3DSSlide *currentSlide)
             if (foundIt != dynamicPropertyChanges.constEnd())
                 changeList = *foundIt;
             const QString property = track.property().split('.')[0];
-            const auto value = track.target()->propertyValue(property);
+            const auto value = track.target()->property(property.toLatin1());
             changeList.append(Q3DSPropertyChange::fromVariant(property, value));
             dynamicPropertyChanges[track.target()] = changeList;
         }

@@ -40,6 +40,8 @@
 #include <QtMath>
 #include <QImage>
 
+#include <QtCore/qmetaobject.h>
+
 QT_BEGIN_NAMESPACE
 
 namespace Q3DS {
@@ -738,83 +740,129 @@ void Q3DSGraphObject::processEvent(const Event &e)
         m_parent->processEvent(ev);
 }
 
-QString Q3DSGraphObject::typeAsString() const
+QByteArray Q3DSGraphObject::typeAsString() const
 {
-    QString s;
-    switch (type()) {
-    case AnyObject:
-        s = QLatin1String("Unknown");
-        break;
-    case Scene:
-        s = QLatin1String("Scene");
-        break;
-    case Component:
-        s = QLatin1String("Component");
-        break;
-    case Slide:
-        s = QLatin1String("Slide");
-        break;
-    case Image:
-        s = QLatin1String("Image");
-        break;
-    case DefaultMaterial:
-        s = QLatin1String("DefaultMaterial");
-        break;
-    case ReferencedMaterial:
-        s = QLatin1String("ReferencedMaterial");
-        break;
-    case CustomMaterial:
-        s = QLatin1String("CustomMaterial");
-        break;
-    case Effect:
-        s = QLatin1String("Effect");
-        break;
-    case Behavior:
-        s = QLatin1String("Behavior");
-        break;
-    case Layer:
-        s = QLatin1String("Layer");
-        break;
-    case Camera:
-        s = QLatin1String("Camera");
-        break;
-    case Light:
-        s = QLatin1String("Light");
-        break;
-    case Model:
-        s = QLatin1String("Model");
-        break;
-    case Group:
-        s = QLatin1String("Group");
-        break;
-    case Text:
-        s = QLatin1String("Text");
-        break;
-    case Alias:
-        s = QLatin1String("Alias");
-        break;
-    default:
-        s = QLatin1String("UNKNOWN");
-        break;
+    const int idx = metaObject()->indexOfEnumerator("Type");
+    return (idx != -1) ? QByteArray(metaObject()->enumerator(idx).valueToKey(m_type)) : QByteArrayLiteral("Undefined");
+}
+
+QVector<QByteArray> Q3DSGraphObject::propertyNames() const
+{
+    QVector<QByteArray> propertyNames;
+    const int count = extraMetaData()->data.isNull() ? metaObject()->propertyCount()
+                                                     : metaObject()->propertyCount() + extraMetaData()->data->propertyNames.size();
+    propertyNames.reserve(count);
+    for (int i = 0; i != metaObject()->propertyCount(); ++i)
+        propertyNames << metaObject()->property(i).name();
+    if (!extraMetaData()->data.isNull())
+        propertyNames += extraMetaData()->data->propertyNames;
+    return propertyNames;
+}
+
+QVector<QVariant> Q3DSGraphObject::propertyValues() const
+{
+    QVector<QVariant> propertyValues;
+    const int count = extraMetaData()->data.isNull() ? metaObject()->propertyCount()
+                                                     : metaObject()->propertyCount() + extraMetaData()->data->propertyNames.size();
+    propertyValues.reserve(count);
+    for (int i = 0; i != metaObject()->propertyCount(); ++i)
+        propertyValues << metaObject()->property(i).readOnGadget(this);
+    if (!extraMetaData()->data.isNull())
+        propertyValues += extraMetaData()->data->propertyValues;
+    return propertyValues;
+}
+
+QVariant Q3DSGraphObject::property(const char *name)
+{
+    if (!name)
+        return QVariant();
+
+    const int idx = metaObject()->indexOfProperty(name);
+    if (idx != -1)
+        return metaObject()->property(idx).readOnGadget(this);
+
+    if (extraMetaData()->data.isNull())
+        return QVariant();
+
+    const int propIdx = extraMetaData()->data->propertyNames.indexOf(name);
+    if (propIdx != -1)
+        return extraMetaData()->data->propertyValues.at(propIdx);
+
+    return QVariant();
+}
+
+bool Q3DSGraphObject::setProperty(const char *name, const QVariant &v)
+{
+    if (!name)
+        return false;
+
+    const int idx = metaObject()->indexOfProperty(name);
+    if (idx != -1) {
+        metaObject()->property(idx).writeOnGadget(this, v);
+        return true;
     }
-    return s;
+
+    if (extraMetaData()->data.isNull())
+        extraMetaData()->data.reset(new Q3DSObjectExtraMetaData::Data);
+
+    const int propIdx = extraMetaData()->data->propertyNames.indexOf(name);
+    if (propIdx != -1) {
+        if (v.isValid())
+            extraMetaData()->data->propertyValues[propIdx] = v;
+        else
+            extraMetaData()->data->propertyNames.remove(idx);
+    } else if (v.isValid()) {
+        extraMetaData()->data->propertyNames.push_back(name);
+        extraMetaData()->data->propertyValues.push_back(v);
+    }
+
+    return false;
 }
 
-QStringList Q3DSGraphObject::propertyNames() const
+QVector<QByteArray> Q3DSGraphObject::dynamicPropertyNames() const
 {
-    return QStringList() << QLatin1String("id") << QLatin1String("name")
-                         << QLatin1String("starttime") << QLatin1String("endtime");
+    if (extraMetaData()->data.isNull())
+        return  QVector<QByteArray>();
+
+    return extraMetaData()->data->propertyNames;
 }
 
-QVariantList Q3DSGraphObject::propertyValues() const
+QVector<QVariant> Q3DSGraphObject::dynamicPropertyValues() const
 {
-    return QVariantList() << QString::fromUtf8(m_id) << m_name << m_startTime << m_endTime;
+    if (extraMetaData()->data.isNull())
+        return  QVector<QVariant>();
+
+    return extraMetaData()->data->propertyValues;
 }
 
-QVariant Q3DSGraphObject::propertyValue(const QString &name) const
+QVariantMap Q3DSGraphObject::dynamicProperties() const
 {
-    const int idx = propertyNames().indexOf(name);
-    return idx >= 0 ? propertyValues().at(idx) : QVariant();
+    QVariantMap dynProps;
+    const int propCount = extraMetaData()->data.isNull() ? 0
+                                                         : extraMetaData()->data->propertyNames.size();
+    for (int i = 0; i != propCount; ++i) {
+        const auto &name = QString::fromLatin1(extraMetaData()->data->propertyNames.at(i));
+        const auto &value = extraMetaData()->data->propertyValues.at(i);
+        dynProps[name] = value;
+    }
+
+    return dynProps;
+}
+
+Q3DSPropertyChangeList Q3DSGraphObject::applyDynamicProperties(const QVariantMap &v)
+{
+    Q3DSPropertyChangeList changeList;
+    if (extraMetaData()->data.isNull())
+        return changeList;
+
+    for (auto it = v.cbegin(); it != v.cend(); ++it) {
+        const int idx = extraMetaData()->data->propertyNames.indexOf(it.key().toLatin1());
+        if (idx != -1) {
+            extraMetaData()->data->propertyValues[idx] = it.value();
+            changeList.append(Q3DSPropertyChange(it.key()));
+        }
+    }
+    return changeList;
 }
 
 // The property conversion functions all follow the same pattern:
@@ -1181,20 +1229,6 @@ void Q3DSScene::notifyNodeChange(Q3DSGraphObject *obj, Q3DSGraphObject::DirtyFla
     }
 }
 
-QStringList Q3DSScene::propertyNames() const
-{
-    QStringList s = Q3DSGraphObject::propertyNames();
-    s << QLatin1String("bgcolorenable") << QLatin1String("backgroundcolor");
-    return s;
-}
-
-QVariantList Q3DSScene::propertyValues() const
-{
-    QVariantList s = Q3DSGraphObject::propertyValues();
-    s << m_useClearColor << m_clearColor;
-    return s;
-}
-
 Q3DSPropertyChange Q3DSScene::setUseClearColor(bool v)
 {
     return createPropSetter(m_useClearColor, v, "bgcolorenable");
@@ -1431,20 +1465,6 @@ void Q3DSSlide::notifySlideObjectChange(const SlideObjectChange &change)
     }
 }
 
-QStringList Q3DSSlide::propertyNames() const
-{
-    QStringList s = Q3DSGraphObject::propertyNames();
-    s << QLatin1String("playmode") << QLatin1String("initialplaystate");
-    return s;
-}
-
-QVariantList Q3DSSlide::propertyValues() const
-{
-    QVariantList s = Q3DSGraphObject::propertyValues();
-    s << m_playMode << m_initialPlayState;
-    return s;
-}
-
 Q3DSPropertyChange Q3DSSlide::setPlayMode(PlayMode v)
 {
     return createPropSetter(m_playMode, v, "playmode");
@@ -1520,24 +1540,6 @@ void Q3DSImage::resolveReferences(Q3DSUipPresentation &presentation)
         }
         m_sourcePath = presentation.assetFileName(m_sourcePath, nullptr);
     }
-}
-
-QStringList Q3DSImage::propertyNames() const
-{
-    QStringList s = Q3DSGraphObject::propertyNames();
-    s << QLatin1String("sourcepath") << QLatin1String("scaleu") << QLatin1String("scalev")
-      << QLatin1String("mappingmode") << QLatin1String("tilingmodehorz") << QLatin1String("tilingmodevert")
-      << QLatin1String("rotationuv") << QLatin1String("positionu") << QLatin1String("positionv")
-      << QLatin1String("pivotu") << QLatin1String("pivotv") << QLatin1String("subpresentation");
-    return s;
-}
-
-QVariantList Q3DSImage::propertyValues() const
-{
-    QVariantList s = Q3DSGraphObject::propertyValues();
-    s << m_sourcePath << m_scaleU << m_scaleV << m_mappingMode << m_tilingHoriz << m_tilingVert
-      << m_rotationUV << m_positionU << m_positionV << m_pivotU << m_pivotV << m_subPresentation;
-    return s;
 }
 
 namespace  {
@@ -1854,35 +1856,6 @@ int Q3DSDefaultMaterial::mapChangeFlags(const Q3DSPropertyChangeList &changeList
     return changeFlags;
 }
 
-QStringList Q3DSDefaultMaterial::propertyNames() const
-{
-    QStringList s = Q3DSGraphObject::propertyNames();
-    s << QLatin1String("shaderlighting") << QLatin1String("blendmode") << QLatin1String("vertexcolors") << QLatin1String("diffuse")
-      << QLatin1String("diffusemap") << QLatin1String("diffusemap2") << QLatin1String("diffusemap3")
-      << QLatin1String("specularreflection") << QLatin1String("speculartint") << QLatin1String("specularamount")
-      << QLatin1String("specularmap") << QLatin1String("specularmodel")
-      << QLatin1String("specularroughness") << QLatin1String("roughnessmap") << QLatin1String("fresnelpower") << QLatin1String("ior") << QLatin1String("bumpmap")
-      << QLatin1String("normalmap") << QLatin1String("bumpamount") << QLatin1String("displacementmap")
-      << QLatin1String("displaceamount") << QLatin1String("opacity") << QLatin1String("opacitymap") << QLatin1String("emissivecolor")
-      << QLatin1String("emissivepower") << QLatin1String("emissivemap") << QLatin1String("emissivemap2")
-      << QLatin1String("translucencymap") << QLatin1String("translucentfalloff") << QLatin1String("diffuselightwrap")
-      << QLatin1String("lightmapindirect") << QLatin1String("lightmapradiosity") << QLatin1String("lightmapshadow")
-      << QLatin1String("iblprobe");
-    return s;
-}
-
-QVariantList Q3DSDefaultMaterial::propertyValues() const
-{
-    QVariantList s = Q3DSGraphObject::propertyValues();
-    s << m_shaderLighting << m_blendMode << m_vertexColors << m_diffuse << m_diffuseMap_unresolved << m_diffuseMap2_unresolved << m_diffuseMap3_unresolved
-      << m_specularReflection_unresolved << m_specularTint << m_specularAmount << m_specularMap_unresolved << m_specularModel
-      << m_specularRoughness << m_roughnessMap_unresolved << m_fresnelPower << m_ior << m_bumpMap_unresolved << m_normalMap_unresolved << m_bumpAmount << m_displacementMap_unresolved
-      << m_displaceAmount << m_opacity << m_opacityMap_unresolved << m_emissiveColor << m_emissivePower << m_emissiveMap_unresolved << m_emissiveMap2_unresolved
-      << m_translucencyMap_unresolved << m_translucentFalloff << m_diffuseLightWrap
-      << m_lightmapIndirectMap_unresolved << m_lightmapRadiosityMap_unresolved << m_lightmapShadowMap_unresolved << m_lightProbe_unresolved;
-    return s;
-}
-
 Q3DSPropertyChange Q3DSDefaultMaterial::setShaderLighting(ShaderLighting v)
 {
     return createPropSetter(m_shaderLighting, v, "shaderlighting");
@@ -2091,22 +2064,6 @@ void Q3DSReferencedMaterial::resolveReferences(Q3DSUipPresentation &pres)
     resolveRef(m_lightProbe_unresolved, Q3DSGraphObject::Image, &m_lightProbe, pres);
 }
 
-QStringList Q3DSReferencedMaterial::propertyNames() const
-{
-    QStringList s = Q3DSGraphObject::propertyNames();
-    s << QLatin1String("referencedmaterial")
-      << QLatin1String("lightmapindirect") << QLatin1String("lightmapradiosity") << QLatin1String("lightmapshadow") << QLatin1String("iblprobe");
-    return s;
-}
-
-QVariantList Q3DSReferencedMaterial::propertyValues() const
-{
-    QVariantList s = Q3DSGraphObject::propertyValues();
-    s << m_referencedMaterial_unresolved
-      << m_lightmapIndirectMap_unresolved << m_lightmapRadiosityMap_unresolved << m_lightmapShadowMap_unresolved << m_lightProbe_unresolved;
-    return s;
-}
-
 Q3DSPropertyChange Q3DSReferencedMaterial::setReferencedMaterial(Q3DSGraphObject *v)
 {
     return createPropSetter(m_referencedMaterial, v, "referencedmaterial");
@@ -2169,23 +2126,30 @@ void Q3DSCustomMaterialInstance::setProperties(const QXmlStreamAttributes &attrs
         m_pendingCustomProperties.append(Q3DSPropertyChange(attr.name().toString(), attr.value().toString()));
 }
 
-static void updateCustomProperties(const QMap<QString, Q3DSMaterial::PropertyElement> &propMeta,
-                                   QVariantMap *propTab,
-                                   const Q3DSPropertyChangeList &changeList)
-{
-    for (const Q3DSPropertyChange &change : changeList) {
-        auto it = propTab->find(change.nameStr());
-        if (it != propTab->end())
-            *it = Q3DS::convertToVariant(change.valueStr(), propMeta.value(change.nameStr()));
-    }
-}
-
 void Q3DSCustomMaterialInstance::applyPropertyChanges(const Q3DSPropertyChangeList &changeList)
 {
     Q3DSGraphObject::applyPropertyChanges(changeList);
     setProps(changeList, 0);
 
-    updateCustomProperties(m_material.properties(), &m_materialPropertyVals, changeList);
+    QVariantMap propChanges;
+    for (const Q3DSPropertyChange &change : changeList) {
+        const Q3DS::PropertyType type = m_material.properties().value(change.nameStr()).type;
+        propChanges[change.nameStr()] = Q3DS::convertToVariant(change.valueStr(), type);
+    }
+
+    if (!propChanges.isEmpty())
+        applyDynamicProperties(propChanges);
+}
+
+template<typename T>
+void mapCustomPropertyFileNames(const QString &propName, QVariant *prop, const T &propMeta, const Q3DSUipPresentation &pres)
+{
+    Q3DS::PropertyType t = propMeta[propName].type;
+    if (t == Q3DS::Texture) {
+        const QString fn = prop->toString();
+        if (!fn.isEmpty())
+            *prop = pres.assetFileName(fn, nullptr);
+    }
 }
 
 template<typename T>
@@ -2201,30 +2165,7 @@ void mapCustomPropertyFileNames(QVariantMap *propTab, const T &propMeta, const Q
     }
 }
 
-static void fillCustomProperties(const QMap<QString, Q3DSMaterial::PropertyElement> &propMeta,
-                                 QVariantMap *propTab,
-                                 const Q3DSPropertyChangeList &instanceProps,
-                                 const Q3DSUipPresentation &pres)
-{
-    // Take all properties from the metadata and fill them all into the
-    // instance-specific table either with the default value or the
-    // presentation-provided, instance-specific one.
-    for (auto propMetaIt = propMeta.cbegin(), propMetaIte = propMeta.cend(); propMetaIt != propMetaIte; ++propMetaIt) {
-        bool found = false;
-        for (auto it = instanceProps.cbegin(), ite = instanceProps.cend(); it != ite; ++it) {
-            if (it->nameStr() == propMetaIt.key()) {
-                found = true;
-                propTab->insert(it->nameStr(), Q3DS::convertToVariant(it->valueStr(), *propMetaIt));
-                break;
-            }
-        }
-        if (!found)
-            propTab->insert(propMetaIt.key(), Q3DS::convertToVariant(propMetaIt->defaultValue, *propMetaIt));
-    }
 
-    // Fix up the filenames to that no further adjustment is necessary from this point on.
-    mapCustomPropertyFileNames(propTab, propMeta, pres);
-}
 
 void Q3DSCustomMaterialInstance::resolveReferences(Q3DSUipPresentation &pres)
 {
@@ -2233,8 +2174,24 @@ void Q3DSCustomMaterialInstance::resolveReferences(Q3DSUipPresentation &pres)
         m_material = pres.customMaterial(m_material_unresolved.mid(1).toUtf8());
         m_materialIsResolved = true;
         if (!m_material.isNull()) {
-            fillCustomProperties(m_material.properties(), &m_materialPropertyVals,
-                                 m_pendingCustomProperties, pres);
+            // Now add the (dynamic) properties
+            const auto props = m_material.properties();
+            for (auto it = props.cbegin(); it != props.cend(); ++it) {
+                // Fix up the filenames to that no further adjustment is necessary from this point on.
+                QVariant value = Q3DS::convertToVariant(it->defaultValue, *it);
+                mapCustomPropertyFileNames(it.key(), &value, props, pres);
+                setProperty(it.key().toLatin1(), value);
+            }
+
+            // Now go update any pending property values
+            QVariantMap propChanges;
+            std::find_if(m_pendingCustomProperties.cbegin(), m_pendingCustomProperties.cend(), [&props, &propChanges](const Q3DSPropertyChange &change) {
+                const Q3DS::PropertyType type = props.value(change.nameStr()).type;
+                propChanges[change.nameStr()] = Q3DS::convertToVariant(change.valueStr(), type);
+                return false;
+            });
+
+            applyDynamicProperties(propChanges);
             m_pendingCustomProperties.clear();
         }
     }
@@ -2243,22 +2200,6 @@ void Q3DSCustomMaterialInstance::resolveReferences(Q3DSUipPresentation &pres)
     resolveRef(m_lightmapRadiosityMap_unresolved, Q3DSGraphObject::Image, &m_lightmapRadiosityMap, pres);
     resolveRef(m_lightmapShadowMap_unresolved, Q3DSGraphObject::Image, &m_lightmapShadowMap, pres);
     resolveRef(m_lightProbe_unresolved, Q3DSGraphObject::Image, &m_lightProbe, pres);
-}
-
-QStringList Q3DSCustomMaterialInstance::propertyNames() const
-{
-    QStringList s = Q3DSGraphObject::propertyNames();
-    s << QLatin1String("class")
-      << QLatin1String("lightmapindirect") << QLatin1String("lightmapradiosity") << QLatin1String("lightmapshadow") << QLatin1String("iblprobe");
-    return s;
-}
-
-QVariantList Q3DSCustomMaterialInstance::propertyValues() const
-{
-    QVariantList s = Q3DSGraphObject::propertyValues();
-    s << m_material_unresolved
-      << m_lightmapIndirectMap_unresolved << m_lightmapRadiosityMap_unresolved << m_lightmapShadowMap_unresolved << m_lightProbe_unresolved;
-    return s;
 }
 
 Q3DSPropertyChange Q3DSCustomMaterialInstance::setLightmapIndirectMap(Q3DSImage *v)
@@ -2281,16 +2222,6 @@ Q3DSPropertyChange Q3DSCustomMaterialInstance::setLightProbe(Q3DSImage *v)
     return createObjectRefSetter(MEMBER_PAIR(m_lightProbe), v, "iblprobe");
 }
 
-Q3DSPropertyChange Q3DSCustomMaterialInstance::setCustomProperty(const QString &name, const QVariant &value)
-{
-    auto it = m_materialPropertyVals.find(name);
-    if (it != m_materialPropertyVals.end()) {
-        *it = value;
-        return Q3DSPropertyChange(name);
-    }
-    return Q3DSPropertyChange();
-}
-
 Q3DSEffectInstance::Q3DSEffectInstance()
     : Q3DSGraphObject(Q3DSGraphObject::Effect)
 {
@@ -2308,7 +2239,7 @@ void Q3DSEffectInstance::setProps(const V &attrs, PropSetFlags flags)
     const QString typeName = QStringLiteral("Effect");
     parseProperty(attrs, flags, typeName, QStringLiteral("class"), &m_effect_unresolved);
 
-    parseProperty(attrs, flags, typeName, QStringLiteral("eyeball"), &m_active);
+    parseProperty(attrs, flags, typeName, QStringLiteral("eyeball"), &m_eyeballEnabled);
 
     // Different default value.
     parseProperty(attrs, flags, typeName, QStringLiteral("name"), &m_name);
@@ -2326,7 +2257,7 @@ void Q3DSEffectInstance::setProperties(const QXmlStreamAttributes &attrs, PropSe
 
     // If this is on the master slide, store some rollback info.
     if (flags.testFlag(PropSetOnMaster)) {
-        m_masterRollbackList.append(Q3DSPropertyChange(QLatin1String("eyeball"), m_active ? QLatin1String("True")
+        m_masterRollbackList.append(Q3DSPropertyChange(QLatin1String("eyeball"), m_eyeballEnabled ? QLatin1String("True")
                                                                                           : QLatin1String("False")));
 
     }
@@ -2337,7 +2268,15 @@ void Q3DSEffectInstance::applyPropertyChanges(const Q3DSPropertyChangeList &chan
     Q3DSGraphObject::applyPropertyChanges(changeList);
     setProps(changeList, 0);
 
-    updateCustomProperties(m_effect.properties(), &m_effectPropertyVals, changeList);
+    // could be a custom effect property
+    QVariantMap propChanges;
+    for (const Q3DSPropertyChange &change : changeList) {
+        const Q3DS::PropertyType type = m_effect.properties().value(change.nameStr()).type;
+        propChanges[change.nameStr()] = Q3DS::convertToVariant(change.valueStr(), type);
+    }
+
+    if (!propChanges.isEmpty())
+        applyDynamicProperties(propChanges); // Only updates dynamic properties, if they already exists!
 }
 
 void Q3DSEffectInstance::resolveReferences(Q3DSUipPresentation &pres)
@@ -2347,8 +2286,23 @@ void Q3DSEffectInstance::resolveReferences(Q3DSUipPresentation &pres)
         m_effect = pres.effect(m_effect_unresolved.mid(1).toUtf8());
         m_effectIsResolved = true;
         if (!m_effect.isNull()) {
-            fillCustomProperties(m_effect.properties(), &m_effectPropertyVals,
-                                 m_pendingCustomProperties, pres);
+            // Now add the (dynamic) properties
+            const auto props = m_effect.properties();
+            for (auto it = props.cbegin(); it != props.cend(); ++it) {
+                // Fix up the filenames to that no further adjustment is necessary from this point on.
+                QVariant value = Q3DS::convertToVariant(it->defaultValue, *it);
+                mapCustomPropertyFileNames(it.key(), &value, props, pres);
+                setProperty(it.key().toLatin1(), value);
+            }
+
+            // Now go update any pending property values
+            QVariantMap propChanges;
+            std::find_if(m_pendingCustomProperties.cbegin(), m_pendingCustomProperties.cend(), [&props, &propChanges](const Q3DSPropertyChange &change) {
+                const Q3DS::PropertyType type = props.value(change.nameStr()).type;
+                propChanges[change.nameStr()] = Q3DS::convertToVariant(change.valueStr(), type);
+                return false;
+            });
+            applyDynamicProperties(propChanges);
             m_pendingCustomProperties.clear();
         }
     }
@@ -2362,30 +2316,6 @@ int Q3DSEffectInstance::mapChangeFlags(const Q3DSPropertyChangeList &changeList)
             changeFlags |= EyeBallChanges;
     }
     return changeFlags;
-}
-
-QStringList Q3DSEffectInstance::propertyNames() const
-{
-    QStringList s = Q3DSGraphObject::propertyNames();
-    s << QLatin1String("class") << QLatin1String("eyeball");
-    return s;
-}
-
-QVariantList Q3DSEffectInstance::propertyValues() const
-{
-    QVariantList s = Q3DSGraphObject::propertyValues();
-    s << m_effect_unresolved << m_active;
-    return s;
-}
-
-Q3DSPropertyChange Q3DSEffectInstance::setCustomProperty(const QString &name, const QVariant &value)
-{
-    auto it = m_effectPropertyVals.find(name);
-    if (it != m_effectPropertyVals.end()) {
-        *it = value;
-        return Q3DSPropertyChange(name);
-    }
-    return Q3DSPropertyChange();
 }
 
 Q3DSBehaviorInstance::Q3DSBehaviorInstance()
@@ -2405,7 +2335,7 @@ void Q3DSBehaviorInstance::setProps(const V &attrs, PropSetFlags flags)
     const QString typeName = QStringLiteral("Behavior");
     parseProperty(attrs, flags, typeName, QStringLiteral("class"), &m_behavior_unresolved);
 
-    parseProperty(attrs, flags, typeName, QStringLiteral("eyeball"), &m_active);
+    parseProperty(attrs, flags, typeName, QStringLiteral("eyeball"), &m_eyeballEnabled);
 
     // Different default value.
     parseProperty(attrs, flags, typeName, QStringLiteral("name"), &m_name);
@@ -2428,13 +2358,14 @@ void Q3DSBehaviorInstance::applyPropertyChanges(const Q3DSPropertyChangeList &ch
     setProps(changeList, 0);
 
     // could be a custom behavior property
+    QVariantMap propChanges;
     for (const Q3DSPropertyChange &change : changeList) {
-        auto it = m_behaviorPropertyVals.find(change.nameStr());
-        if (it != m_behaviorPropertyVals.end()) {
-            Q3DS::PropertyType type = m_behavior.properties().value(change.nameStr()).type;
-            *it = Q3DS::convertToVariant(change.valueStr(), type);
-        }
+        const Q3DS::PropertyType type = m_behavior.properties().value(change.nameStr()).type;
+        propChanges[change.nameStr()] = Q3DS::convertToVariant(change.valueStr(), type);
     }
+
+    if (!propChanges.isEmpty())
+        applyDynamicProperties(propChanges); // Only updates dynamic properties, if they already exists!
 }
 
 void Q3DSBehaviorInstance::resolveReferences(Q3DSUipPresentation &pres)
@@ -2444,29 +2375,24 @@ void Q3DSBehaviorInstance::resolveReferences(Q3DSUipPresentation &pres)
         m_behavior = pres.behavior(m_behavior_unresolved.mid(1).toUtf8());
         m_behaviorIsResolved = true;
         if (!m_behavior.isNull()) {
-            // Now it's time to fill out the custom property value table.
-            for (auto metaIt = m_behavior.properties().cbegin(), metaItEnd = m_behavior.properties().cend();
-                 metaIt != metaItEnd; ++metaIt)
-            {
-                const QString propertyName = metaIt.key();
-                bool found = false;
-                for (auto instIt = m_pendingCustomProperties.cbegin(), instItEnd = m_pendingCustomProperties.cend();
-                     instIt != instItEnd; ++instIt)
-                {
-                    if (instIt->nameStr() == propertyName) {
-                        found = true;
-                        m_behaviorPropertyVals.insert(propertyName,
-                                                      Q3DS::convertToVariant(instIt->valueStr(), metaIt->type));
-                        break;
-                    }
-                }
-                if (!found)
-                    m_behaviorPropertyVals.insert(propertyName,
-                                                  Q3DS::convertToVariant(metaIt->defaultValue, metaIt->type));
+            // Now add the (dynamic) properties
+            const auto props = m_behavior.properties();
+            for (auto it = props.cbegin(); it != props.cend(); ++it) {
+                const Q3DS::PropertyType type = m_behavior.properties().value(it.key()).type;
+                // Fix up the filenames to that no further adjustment is necessary from this point on.
+                QVariant value = Q3DS::convertToVariant(it->defaultValue, type);
+                mapCustomPropertyFileNames(it.key(), &value, props, pres);
+                setProperty(it.key().toLatin1(), value);
             }
-            // Fix up the filenames to that no further adjustment is necessary from this point on.
-            mapCustomPropertyFileNames(&m_behaviorPropertyVals, m_behavior.properties(), pres);
 
+            // Now go update any pending property values
+            QVariantMap propChanges;
+            std::find_if(m_pendingCustomProperties.cbegin(), m_pendingCustomProperties.cend(), [&props, &propChanges](const Q3DSPropertyChange &change) {
+                const Q3DS::PropertyType type = props.value(change.nameStr()).type;
+                propChanges[change.nameStr()] = Q3DS::convertToVariant(change.valueStr(), type);
+                return false;
+            });
+            applyDynamicProperties(propChanges);
             m_pendingCustomProperties.clear();
         }
     }
@@ -2480,30 +2406,6 @@ int Q3DSBehaviorInstance::mapChangeFlags(const Q3DSPropertyChangeList &changeLis
             changeFlags |= EyeBallChanges;
     }
     return changeFlags;
-}
-
-QStringList Q3DSBehaviorInstance::propertyNames() const
-{
-    QStringList s = Q3DSGraphObject::propertyNames();
-    s << QLatin1String("class") << QLatin1String("eyeball");
-    return s;
-}
-
-QVariantList Q3DSBehaviorInstance::propertyValues() const
-{
-    QVariantList s = Q3DSGraphObject::propertyValues();
-    s << m_behavior_unresolved << m_active;
-    return s;
-}
-
-Q3DSPropertyChange Q3DSBehaviorInstance::setCustomProperty(const QString &name, const QVariant &value)
-{
-    auto it = m_behaviorPropertyVals.find(name);
-    if (it != m_behaviorPropertyVals.end()) {
-        *it = value;
-        return Q3DSPropertyChange(name);
-    }
-    return Q3DSPropertyChange();
 }
 
 Q3DSNode::Q3DSNode(Type type)
@@ -2570,33 +2472,24 @@ int Q3DSNode::mapChangeFlags(const Q3DSPropertyChangeList &changeList)
     return changeFlags;
 }
 
-QStringList Q3DSNode::propertyNames() const
-{
-    QStringList s = Q3DSGraphObject::propertyNames();
-    s << QLatin1String("eyeball") << QLatin1String("ignoresparent")
-      << QLatin1String("rotation") << QLatin1String("position") << QLatin1String("scale")
-      << QLatin1String("pivot") << QLatin1String("opacity")
-      << QLatin1String("boneid") << QLatin1String("rotationorder") << QLatin1String("orientation");
-    return s;
-}
-
-QVariantList Q3DSNode::propertyValues() const
-{
-    QVariantList s = Q3DSGraphObject::propertyValues();
-    s << m_flags.testFlag(Q3DSNode::Active) << m_flags.testFlag(Q3DSNode::IgnoresParentTransform)
-      << m_rotation << m_position << m_scale << m_pivot << m_localOpacity
-      << m_skeletonId << m_rotationOrder << m_orientation;
-    return s;
-}
-
 Q3DSPropertyChange Q3DSNode::setFlag(NodeFlag flag, bool v)
 {
     if (flag == Active) {
-        return createPropFlagSetter(m_flags, flag, v, "eyeball");
+        return setEyeballEnabled(v);
     } else if (flag == IgnoresParentTransform) {
-        return createPropFlagSetter(m_flags, flag, v, "ignoresparent");
+        return setIgnoresParent(v);
     }
     return Q3DSPropertyChange();
+}
+
+Q3DSPropertyChange Q3DSNode::setEyeballEnabled(bool v)
+{
+    return createPropFlagSetter(m_flags, Active, v, "eyeball");
+}
+
+Q3DSPropertyChange Q3DSNode::setIgnoresParent(bool v)
+{
+    return createPropFlagSetter(m_flags, IgnoresParentTransform, v, "ignoresparent");
 }
 
 Q3DSPropertyChange Q3DSNode::setRotation(const QVector3D &v)
@@ -2744,52 +2637,38 @@ int Q3DSLayerNode::mapChangeFlags(const Q3DSPropertyChangeList &changeList)
     return changeFlags;
 }
 
-QStringList Q3DSLayerNode::propertyNames() const
-{
-    QStringList s = Q3DSNode::propertyNames();
-    s << QLatin1String("disabledepthtest") << QLatin1String("disabledepthprepass") << QLatin1String("temporalaa")
-      << QLatin1String("progressiveaa") << QLatin1String("multisampleaa")
-      << QLatin1String("background") << QLatin1String("backgroundcolor")
-      << QLatin1String("blendtype") << QLatin1String("horzfields") << QLatin1String("left") << QLatin1String("leftunits")
-      << QLatin1String("width") << QLatin1String("widthunits")
-      << QLatin1String("right") << QLatin1String("rightunits") << QLatin1String("vertfields")
-      << QLatin1String("top") << QLatin1String("topunits") << QLatin1String("height") << QLatin1String("heightunits")
-      << QLatin1String("bottom") << QLatin1String("bottouUnits") << QLatin1String("sourcepath")
-      << QLatin1String("aostrength") << QLatin1String("aodistance") << QLatin1String("aosoftness")
-      << QLatin1String("aobias") << QLatin1String("aosamplerate") << QLatin1String("aodither")
-      << QLatin1String("shadowstrength") << QLatin1String("shadowdist") << QLatin1String("shadowsoftness")
-      << QLatin1String("shadowbias") << QLatin1String("lightprobe") << QLatin1String("probebright") << QLatin1String("probehorizon")
-      << QLatin1String("provefov") << QLatin1String("lightprobe2") << QLatin1String("probe2fade") << QLatin1String("probe2window") << QLatin1String("probe2pos");
-    return s;
-}
-
-QVariantList Q3DSLayerNode::propertyValues() const
-{
-    QVariantList s = Q3DSNode::propertyValues();
-    s << m_layerFlags.testFlag(Q3DSLayerNode::DisableDepthTest) << m_layerFlags.testFlag(Q3DSLayerNode::DisableDepthPrePass) << m_layerFlags.testFlag(Q3DSLayerNode::TemporalAA)
-      << m_progressiveAA << m_multisampleAA << m_layerBackground << m_backgroundColor
-      << m_blendType << m_horizontalFields << m_left << m_leftUnits << m_width << m_widthUnits
-      << m_right << m_rightUnits << m_verticalFields << m_top << m_topUnits << m_height << m_heightUnits
-      << m_bottom << m_bottomUnits << m_sourcePath << m_shadowStrength << m_shadowDist << m_shadowSoftness
-      << m_aoStrength << m_aoDistance << m_aoSoftness
-      << m_aoBias << m_aoSampleRate << m_aoDither
-      << m_shadowBias << m_lightProbe_unresolved << m_probeBright << m_probeHorizon << m_probeFov << m_lightProbe2_unresolved
-      << m_probe2Fade << m_probe2Window << m_probe2Pos;
-    return s;
-}
-
 Q3DSPropertyChange Q3DSLayerNode::setLayerFlag(Flag flag, bool v)
 {
     if (flag == DisableDepthTest) {
-        return createPropFlagSetter(m_layerFlags, flag, v, "disabledepthtest");
+        return setDepthTestDisabled(v);
     } else if (flag == DisableDepthPrePass) {
-        return createPropFlagSetter(m_layerFlags, flag, v, "disabledepthprepass");
+        return setDepthPrePassDisabled(v);
     } else if (flag == TemporalAA) {
-        return createPropFlagSetter(m_layerFlags, flag, v, "temporalaa");
+        return setTemporalAAEnabled(v);
     } else if (flag == FastIBL) {
-        return createPropFlagSetter(m_layerFlags, flag, v, "fastibl");
+        return setFastIBLEnabled(v);
     }
     return Q3DSPropertyChange();
+}
+
+Q3DSPropertyChange Q3DSLayerNode::setDepthTestDisabled(bool v)
+{
+    return createPropFlagSetter(m_layerFlags, DisableDepthTest, v, "disabledepthtest");
+}
+
+Q3DSPropertyChange Q3DSLayerNode::setDepthPrePassDisabled(bool v)
+{
+    return createPropFlagSetter(m_layerFlags, DisableDepthPrePass, v, "disabledepthprepass");
+}
+
+Q3DSPropertyChange Q3DSLayerNode::setTemporalAAEnabled(bool v)
+{
+    return createPropFlagSetter(m_layerFlags, TemporalAA, v, "temporalaa");
+}
+
+Q3DSPropertyChange Q3DSLayerNode::setFastIBLEnabled(bool v)
+{
+    return createPropFlagSetter(m_layerFlags, FastIBL, v, "fastibl");
 }
 
 Q3DSPropertyChange Q3DSLayerNode::setProgressiveAA(ProgressiveAA v)
@@ -3016,21 +2895,6 @@ void Q3DSCameraNode::applyPropertyChanges(const Q3DSPropertyChangeList &changeLi
     setProps(changeList, 0);
 }
 
-QStringList Q3DSCameraNode::propertyNames() const
-{
-    QStringList s = Q3DSNode::propertyNames();
-    s << QLatin1String("orthographic") << QLatin1String("fov")
-      << QLatin1String("clipnear") << QLatin1String("clipfar") << QLatin1String("scalemode") << QLatin1String("scaleanchor");
-    return s;
-}
-
-QVariantList Q3DSCameraNode::propertyValues() const
-{
-    QVariantList s = Q3DSNode::propertyValues();
-    s << m_orthographic << m_fov << m_clipNear << m_clipFar << m_scaleMode << m_scaleAnchor;
-    return s;
-}
-
 Q3DSPropertyChange Q3DSCameraNode::setOrthographic(bool v)
 {
     return createPropSetter(m_orthographic, v, "orthographic");
@@ -3110,26 +2974,6 @@ void Q3DSLightNode::resolveReferences(Q3DSUipPresentation &pres)
 {
     Q3DSNode::resolveReferences(pres);
     resolveRef(m_scope_unresolved, Q3DSGraphObject::AnyObject, &m_scope, pres);
-}
-
-QStringList Q3DSLightNode::propertyNames() const
-{
-    QStringList s = Q3DSNode::propertyNames();
-    s << QLatin1String("scope") << QLatin1String("lighttype") << QLatin1String("lightdiffuse")
-      << QLatin1String("lightspecular") << QLatin1String("lightambient") << QLatin1String("brightness") << QLatin1String("linearfade")
-      << QLatin1String("expfade") << QLatin1String("areawidth") << QLatin1String("areaheight") << QLatin1String("castshadow")
-      << QLatin1String("shdwfactor") << QLatin1String("shdwfilter") << QLatin1String("shdwmapres") << QLatin1String("shdwbias")
-      << QLatin1String("shdwmapfar") << QLatin1String("shdwmapfov");
-    return s;
-}
-
-QVariantList Q3DSLightNode::propertyValues() const
-{
-    QVariantList s = Q3DSNode::propertyValues();
-    s << m_scope_unresolved << m_lightType << m_lightDiffuse << m_lightSpecular << m_lightAmbient
-      << m_brightness << m_linearFade << m_expFade << m_areaWidth << m_areaHeight << m_castShadow
-      << m_shadowFactor << m_shadowFilter << m_shadowMapRes << m_shadowBias << m_shadowMapFar << m_shadowMapFov;
-    return s;
 }
 
 Q3DSPropertyChange Q3DSLightNode::setLightType(LightType v)
@@ -3268,21 +3112,6 @@ void Q3DSModelNode::resolveReferences(Q3DSUipPresentation &pres)
     }
 }
 
-QStringList Q3DSModelNode::propertyNames() const
-{
-    QStringList s = Q3DSNode::propertyNames();
-    s << QLatin1String("sourcepath") << QLatin1String("poseroot")
-      << QLatin1String("tessellation") << QLatin1String("edgetess") << QLatin1String("innertess");
-    return s;
-}
-
-QVariantList Q3DSModelNode::propertyValues() const
-{
-    QVariantList s = Q3DSNode::propertyValues();
-    s << m_mesh_unresolved << m_skeletonRoot << m_tessellation << m_edgeTess << m_innerTess;
-    return s;
-}
-
 Q3DSPropertyChange Q3DSModelNode::setMesh(const QString &v)
 {
     return createPropSetter(m_mesh_unresolved, v, "sourcepath");
@@ -3334,18 +3163,6 @@ void Q3DSGroupNode::applyPropertyChanges(const Q3DSPropertyChangeList &changeLis
     setProps(changeList, 0);
 }
 
-QStringList Q3DSGroupNode::propertyNames() const
-{
-    QStringList s = Q3DSNode::propertyNames();
-    return s;
-}
-
-QVariantList Q3DSGroupNode::propertyValues() const
-{
-    QVariantList s = Q3DSNode::propertyValues();
-    return s;
-}
-
 Q3DSComponentNode::Q3DSComponentNode()
     : Q3DSNode(Q3DSGraphObject::Component)
 {
@@ -3392,18 +3209,6 @@ void Q3DSComponentNode::setCurrentSlide(Q3DSSlide *slide)
         return;
 
     m_currentSlide = slide;
-}
-
-QStringList Q3DSComponentNode::propertyNames() const
-{
-    QStringList s = Q3DSNode::propertyNames();
-    return s;
-}
-
-QVariantList Q3DSComponentNode::propertyValues() const
-{
-    QVariantList s = Q3DSNode::propertyValues();
-    return s;
 }
 
 Q3DSTextNode::Q3DSTextNode()
@@ -3456,21 +3261,6 @@ int Q3DSTextNode::mapChangeFlags(const Q3DSPropertyChangeList &changeList)
         }
     }
     return changeFlags;
-}
-
-QStringList Q3DSTextNode::propertyNames() const
-{
-    QStringList s = Q3DSNode::propertyNames();
-    s << QLatin1String("textstring") << QLatin1String("textcolor") << QLatin1String("font")
-      << QLatin1String("size") << QLatin1String("horzalign") << QLatin1String("vertalign") << QLatin1String("leading") << QLatin1String("tracking");
-    return s;
-}
-
-QVariantList Q3DSTextNode::propertyValues() const
-{
-    QVariantList s = Q3DSNode::propertyValues();
-    s << m_text << m_color << m_font << m_size << m_horizAlign << m_vertAlign << m_leading << m_tracking;
-    return s;
 }
 
 Q3DSPropertyChange Q3DSTextNode::setText(const QString &v)
@@ -3534,20 +3324,6 @@ void Q3DSAliasNode::resolveReferences(Q3DSUipPresentation &pres)
 {
     Q3DSNode::resolveReferences(pres);
     resolveRef(m_referencedNode_unresolved, Q3DSGraphObject::AnyObject, &m_referencedNode, pres);
-}
-
-QStringList Q3DSAliasNode::propertyNames() const
-{
-    QStringList s = Q3DSNode::propertyNames();
-    s << QLatin1String("referencednode");
-    return s;
-}
-
-QVariantList Q3DSAliasNode::propertyValues() const
-{
-    QVariantList s = Q3DSNode::propertyValues();
-    s << m_referencedNode_unresolved;
-    return s;
 }
 
 Q3DSPropertyChange Q3DSAliasNode::setReferencedNode(Q3DSGraphObject *v)
@@ -3683,12 +3459,12 @@ struct ClonedObject {
     Q3DSGraphObject *clone;
 };
 
-bool isAliasDefinedProperty(const QString &propertyName) {
-    return (propertyName == QStringLiteral("rotation") ||
-            propertyName == QStringLiteral("position") ||
-            propertyName == QStringLiteral("scale") ||
-            propertyName == QStringLiteral("piviot") ||
-            propertyName == QStringLiteral("opacity"));
+bool isAliasDefinedProperty(const QByteArray &propertyName) {
+    return (propertyName == QByteArrayLiteral("rotation") ||
+            propertyName == QByteArrayLiteral("position") ||
+            propertyName == QByteArrayLiteral("scale") ||
+            propertyName == QByteArrayLiteral("piviot") ||
+            propertyName == QByteArrayLiteral("opacity"));
 }
 
 QVector<ClonedObject> cloneObjects(Q3DSGraphObject *target,
@@ -3743,7 +3519,7 @@ QVector<ClonedObject> cloneObjects(Q3DSGraphObject *target,
             // the properties from the Alias node is used for clones
             if (isRoot && isAliasDefinedProperty(propertyName))
                 continue;
-            props.append(Q3DSPropertyChange::fromVariant(propertyName, propertyValue));
+            props.append(Q3DSPropertyChange::fromVariant(QString::fromLatin1(propertyName), propertyValue));
         }
         object->applyPropertyChanges(props);
         object->setName(id);
@@ -3803,7 +3579,7 @@ void cloneStates(Q3DSAliasNode *alias,
                             propertyChangeListCopy = new Q3DSPropertyChangeList;
                             for (auto propertyChange : *propertyChanges) {
                                 const QString propertyName = propertyChange.name().toString();
-                                if (isAliasDefinedProperty(propertyName))
+                                if (isAliasDefinedProperty(propertyName.toLatin1()))
                                     continue;
                                 propertyChangeListCopy->append(Q3DSPropertyChange(propertyChange));
                             }

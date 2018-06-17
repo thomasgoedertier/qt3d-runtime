@@ -679,7 +679,7 @@ void Q3DSProfileView::addBehaviorWindow()
         Q3DSBehaviorInstance *behaviorInstance = static_cast<Q3DSBehaviorInstance *>(obj);
         ImGui::Text("%s", behaviorInstance->id().constData());
         ImGui::NextColumn();
-        ImGui::Text("%s", behaviorInstance->active() ? "true" : "false");
+        ImGui::Text("%s", behaviorInstance->eyeballEnabled() ? "true" : "false");
         ImGui::NextColumn();
         QString err = behaviorInstance->qmlErrorString();
         for (int i = 0; i < err.count(); ++i) {

@@ -198,7 +198,7 @@ QVariant Q3DSPresentationController::handleGetAttribute(const QString &elementPa
         return QVariant();
     }
 
-    return obj->propertyValue(attribute);
+    return obj->property(attribute.toLatin1());
 }
 
 void Q3DSPresentationController::handleSetAttribute(const QString &elementPath, const QString &attributeName, const QVariant &value)

@@ -1641,7 +1641,7 @@ void Q3DSEngine::loadBehaviors()
     qmlRegisterType<Q3DSBehaviorObject, 2>("QtStudio3D.Behavior", 2, 0, "Behavior");
 
     for (const BehavInstDesc &desc : behaviorInstances) {
-        if (desc.behaviorInstance->active()) // skip if eyeball==false
+        if (desc.behaviorInstance->eyeballEnabled()) // skip if eyeball==false
             loadBehaviorInstance(desc.behaviorInstance, desc.presentation);
     }
 }
@@ -1650,7 +1650,7 @@ void Q3DSBehaviorHandle::updateProperties() const
 {
     // Push all custom property values from the behavior instance to the
     // QObject (and so to QML).
-    const QVariantMap props = behaviorInstance->customProperties();
+    const QVariantMap props = behaviorInstance->dynamicProperties();
     for (auto it = props.cbegin(), itEnd = props.cend(); it != itEnd; ++it) {
         const QByteArray name = it.key().toUtf8();
         const QVariant value = it.value();
@@ -1666,7 +1666,7 @@ void Q3DSEngine::behaviorFrameUpdate(float dt)
     for (auto &h : m_behaviorHandles) {
         h.updateProperties();
 
-        const bool active = h.behaviorInstance->active();
+        const bool active = h.behaviorInstance->eyeballEnabled();
 
         if (active && !h.initialized) {
             h.initialized = true;

@@ -61,6 +61,13 @@
 
 QT_BEGIN_NAMESPACE
 
+#define Q3DS_OBJECT \
+    QT_WARNING_PUSH \
+    Q_OBJECT_NO_OVERRIDE_WARNING \
+    public: virtual const QMetaObject *metaObject() const { return &staticMetaObject; } \
+    QT_WARNING_POP \
+    Q_GADGET
+
 class Q3DSUipParser;
 class Q3DSUipPresentation;
 struct Q3DSUipPresentationData;
@@ -249,9 +256,16 @@ Q_DECLARE_OPERATORS_FOR_FLAGS(Q3DSGraphObjectAttached::FrameDirtyFlags)
 
 class Q3DSV_PRIVATE_EXPORT Q3DSGraphObject
 {
+    Q3DS_OBJECT
+    Q_PROPERTY(QByteArray id READ id)
+    Q_PROPERTY(QString name READ name WRITE setName)
+    Q_PROPERTY(qint32 starttime READ startTime WRITE setStartTime)
+    Q_PROPERTY(qint32 endtime READ endTime WRITE setEndTime)
+    Q_PROPERTY(QVariantMap dynamicProperties READ dynamicProperties WRITE applyDynamicProperties)
+
 public:
     enum Type {
-        AnyObject = 0,
+        Asset = 0,
         // direct subtypes
         Scene,
         Slide,
@@ -262,8 +276,7 @@ public:
         Effect,
         Behavior,
         // node subtypes
-        _FirstNodeType = 100,
-        Layer = _FirstNodeType,
+        Layer = 100,
         Camera,
         Light,
         Model,
@@ -272,6 +285,10 @@ public:
         Component,
         Alias
     };
+    Q_ENUM(Type)
+
+    static constexpr Type AnyObject = Type::Asset;
+    static constexpr Type FirstNodeType = Type::Layer;
 
     enum PropSetFlag {
         PropSetDefaults = 0x01,
@@ -319,7 +336,7 @@ public:
     virtual int mapChangeFlags(const Q3DSPropertyChangeList &changeList);
     void notifyPropertyChanges(const Q3DSPropertyChangeList &changeList);
 
-    bool isNode() const { return m_type >= Q3DSGraphObject::_FirstNodeType; }
+    bool isNode() const { return m_type >= FirstNodeType; }
 
     typedef std::function<void(Q3DSGraphObject *, const QSet<QString> &, int)> PropertyChangeCallback;
     int addPropertyChangeObserver(PropertyChangeCallback callback);
@@ -352,10 +369,23 @@ public:
     void removeEventHandler(const QString &event, int callbackId);
     void processEvent(const Event &e);
 
-    QString typeAsString() const;
-    virtual QStringList propertyNames() const;
-    virtual QVariantList propertyValues() const;
-    QVariant propertyValue(const QString &name) const;
+    // Convenience
+    QByteArray typeAsString() const;
+    QVariantMap dynamicProperties() const;
+
+    // Returns complete list of properties (i.e., both static and dynamic properties).
+    QVector<QByteArray> propertyNames() const;
+    QVector<QVariant> propertyValues() const;
+
+    // QObject style
+    QVariant property(const char *name);
+    bool setProperty(const char *name, const QVariant &v);
+    QVector<QByteArray> dynamicPropertyNames() const;
+    QVector<QVariant> dynamicPropertyValues() const;
+
+    // NOTE: Unlike setProperty(), applyDynamicProperties() won't modify
+    // (or add) a property that doesn't already exists.
+    Q3DSPropertyChangeList applyDynamicProperties(const QVariantMap &v);
 
     // Properties
     QByteArray id() const { return m_id; } // always unique
@@ -383,7 +413,18 @@ private:
     Q_DISABLE_COPY(Q3DSGraphObject)
     template<typename V> void setProps(const V &attrs, PropSetFlags flags);
 
-    Type m_type = AnyObject;
+    struct Q3DSObjectExtraMetaData
+    {
+        struct Data {
+            QVector<QByteArray> propertyNames;
+            QVector<QVariant> propertyValues;
+        };
+        QScopedPointer<Data> data;
+    } metaData;
+
+    Q3DSObjectExtraMetaData *extraMetaData() { return &metaData; }
+    const Q3DSObjectExtraMetaData *extraMetaData() const { return &metaData; }
+
     Q3DSGraphObject *m_parent = nullptr;
     Q3DSGraphObject *m_firstChild = nullptr;
     Q3DSGraphObject *m_lastChild = nullptr;
@@ -392,6 +433,7 @@ private:
     QVector<PropertyChangeCallback> m_callbacks;
     Q3DSGraphObjectAttached *m_attached = nullptr;
     DataInputControlledProperties m_dataInputControlledProperties;
+    Type m_type = AnyObject;
     State m_state = Enabled;
 
     friend class Q3DSUipPresentation;
@@ -403,6 +445,9 @@ Q_DECLARE_TYPEINFO(Q3DSGraphObject::Event, Q_MOVABLE_TYPE);
 
 class Q3DSV_PRIVATE_EXPORT Q3DSScene : public Q3DSGraphObject
 {
+    Q3DS_OBJECT
+    Q_PROPERTY(bool bgcolorenable READ useClearColor WRITE setUseClearColor)
+    Q_PROPERTY(QColor backgroundcolor READ clearColor WRITE setClearColor)
 public:
     Q3DSScene();
     ~Q3DSScene();
@@ -412,9 +457,6 @@ public:
     typedef std::function<void(Q3DSScene *, Q3DSGraphObject::DirtyFlag change, Q3DSGraphObject *)> SceneChangeCallback;
     int addSceneChangeObserver(SceneChangeCallback callback);
     void removeSceneChangeObserver(int callbackId);
-
-    QStringList propertyNames() const override;
-    QVariantList propertyValues() const override;
 
     // Properties
     bool useClearColor() const { return m_useClearColor; }
@@ -592,6 +634,11 @@ inline bool operator!=(const Q3DSAction &a, const Q3DSAction &b)
 
 class Q3DSV_PRIVATE_EXPORT Q3DSSlide : public Q3DSGraphObject
 {
+    Q3DS_OBJECT
+    Q_PROPERTY(PlayMode playmode READ playMode WRITE setPlayMode)
+    Q_PROPERTY(InitialPlayState initialplaystate READ initialPlayState WRITE setInitialPlayState)
+    Q_PROPERTY(PlayThrough playthroughto READ playThrough WRITE setPlayThrough)
+    Q_PROPERTY(QVariant playthroughValue READ playThroughValue WRITE setPlayThroughValue)
 public:
     enum PlayMode {
         StopAtEnd = 0,
@@ -600,17 +647,20 @@ public:
         Ping,
         PlayThroughTo
     };
+    Q_ENUM(PlayMode)
 
     enum InitialPlayState {
         Play = 0,
         Pause
     };
+    Q_ENUM(InitialPlayState)
 
     enum PlayThrough {
         Next,
         Previous,
         Value
     };
+    Q_ENUM(PlayThrough)
 
     using PropertyChanges = QHash<Q3DSGraphObject *, Q3DSPropertyChangeList *>;
 
@@ -671,9 +721,6 @@ public:
     int addSlideObjectChangeObserver(SlideObjectChangeCallback callback);
     void removeSlideObjectChangeObserver(int callbackId);
 
-    QStringList propertyNames() const override;
-    QVariantList propertyValues() const override;
-
     // Properties
     PlayMode playMode() const { return m_playMode; }
     InitialPlayState initialPlayState() const { return m_initialPlayState; }
@@ -711,6 +758,19 @@ Q_DECLARE_TYPEINFO(Q3DSSlide::SlideObjectChange, Q_MOVABLE_TYPE);
 
 class Q3DSV_PRIVATE_EXPORT Q3DSImage : public Q3DSGraphObject
 {
+    Q3DS_OBJECT
+    Q_PROPERTY(QString sourcepath READ sourcePath WRITE setSourcePath)
+    Q_PROPERTY(float scaleu READ scaleU WRITE setScaleU)
+    Q_PROPERTY(float scalev READ scaleV WRITE setScaleV)
+    Q_PROPERTY(MappingMode mappingmode READ mappingMode WRITE setMappingMode)
+    Q_PROPERTY(TilingMode tilingmodehorz READ horizontalTiling WRITE setHorizontalTiling)
+    Q_PROPERTY(TilingMode tilingmodevert READ verticalTiling WRITE setVerticalTiling)
+    Q_PROPERTY(float rotationuv READ rotationUV WRITE setRotationUV)
+    Q_PROPERTY(float positionu READ positionU WRITE setPositionU)
+    Q_PROPERTY(float positionv READ positionV WRITE setPositionV)
+    Q_PROPERTY(float pivotu READ pivotU WRITE setPivotU)
+    Q_PROPERTY(float pivotv READ pivotV WRITE setPivotV)
+    Q_PROPERTY(QString subpresentation READ subPresentation WRITE setSubPresentation)
 public:
     enum MappingMode {
         UVMapping = 0,
@@ -718,21 +778,20 @@ public:
         LightProbe,
         IBLOverride
     };
+    Q_ENUM(MappingMode)
 
     enum TilingMode {
         Tiled = 0,
         Mirrored,
         NoTiling
     };
+    Q_ENUM(TilingMode)
 
     Q3DSImage();
 
     void setProperties(const QXmlStreamAttributes &attrs, PropSetFlags flags) override;
     void applyPropertyChanges(const Q3DSPropertyChangeList &changeList) override;
     void resolveReferences(Q3DSUipPresentation &pres) override;
-
-    QStringList propertyNames() const override;
-    QVariantList propertyValues() const override;
 
     void calculateTextureTransform();
     const QMatrix4x4 &textureTransform() const { return m_textureTransform; }
@@ -810,6 +869,17 @@ public:
 
 class Q3DSV_PRIVATE_EXPORT Q3DSNode : public Q3DSGraphObject
 {
+    Q_GADGET
+    Q_PROPERTY(bool eyeball READ eyeballEnabled WRITE setEyeballEnabled)
+    Q_PROPERTY(bool ignoresparent READ ignoresParent WRITE setIgnoresParent)
+    Q_PROPERTY(QVector3D rotation READ rotation WRITE setRotation)
+    Q_PROPERTY(QVector3D position READ position WRITE setPosition)
+    Q_PROPERTY(QVector3D scale READ scale WRITE setScale)
+    Q_PROPERTY(QVector3D pivot READ pivot WRITE setPivot)
+    Q_PROPERTY(float opacity READ localOpacity WRITE setLocalOpacity)
+    Q_PROPERTY(qint32 boneid READ skeletonId WRITE setSkeletonId)
+    Q_PROPERTY(RotationOrder rotationorder READ rotationOrder WRITE setRotationOrder)
+    Q_PROPERTY(Orientation orientation READ orientation WRITE setOrientation)
 public:
     enum NodeFlag {
         Active = 0x01, // eyeball
@@ -831,11 +901,13 @@ public:
         YXZr,
         ZYXr
     };
+    Q_ENUM(RotationOrder)
 
     enum Orientation {
         LeftHanded = 0,
         RightHanded
     };
+    Q_ENUM(Orientation)
 
     enum NodePropertyChanges {
         TransformChanges = 1 << 0,
@@ -852,11 +924,10 @@ public:
 
     const Q3DSPropertyChangeList &masterRollbackList() const { return m_masterRollbackList; }
 
-    QStringList propertyNames() const override;
-    QVariantList propertyValues() const override;
-
-    // Properties
     Flags flags() const { return m_flags; }
+    // Properties
+    bool eyeballEnabled() const { return m_flags.testFlag(Q3DSNode::Active); }
+    bool ignoresParent() const { return m_flags.testFlag(Q3DSNode::IgnoresParentTransform); }
     QVector3D rotation() const { return m_rotation; } // degrees
     QVector3D position() const { return m_position; }
     QVector3D scale() const { return m_scale; }
@@ -867,6 +938,8 @@ public:
     Orientation orientation() const { return m_orientation; }
 
     Q3DSPropertyChange setFlag(NodeFlag flag, bool v);
+    Q3DSPropertyChange setEyeballEnabled(bool v);
+    Q3DSPropertyChange setIgnoresParent(bool v);
     Q3DSPropertyChange setRotation(const QVector3D &v);
     Q3DSPropertyChange setPosition(const QVector3D &v);
     Q3DSPropertyChange setScale(const QVector3D &v);
@@ -914,6 +987,49 @@ public:
 
 class Q3DSV_PRIVATE_EXPORT Q3DSLayerNode : public Q3DSNode
 {
+    Q3DS_OBJECT
+    Q_PROPERTY(bool disabledepthtest READ depthTestDisabled WRITE setDepthTestDisabled)
+    Q_PROPERTY(bool disabledepthprepass READ depthPrePassDisabled WRITE setDepthPrePassDisabled)
+    Q_PROPERTY(bool temporalaa READ temporalAAEnabled WRITE setTemporalAAEnabled)
+    Q_PROPERTY(bool fastibl READ fastIBLEnabled WRITE setFastIBLEnabled)
+    Q_PROPERTY(ProgressiveAA progressiveaa READ progressiveAA WRITE setProgressiveAA)
+    Q_PROPERTY(MultisampleAA multisampleaa READ multisampleAA WRITE setMultisampleAA)
+    Q_PROPERTY(LayerBackground background READ layerBackground WRITE setLayerBackground)
+    Q_PROPERTY(QColor backgroundcolor READ backgroundColor WRITE setBackgroundColor)
+    Q_PROPERTY(BlendType blendtype READ blendType WRITE setBlendType)
+    Q_PROPERTY(HorizontalFields horzfields READ horizontalFields WRITE setHorizontalFields)
+    Q_PROPERTY(float left READ left WRITE setLeft)
+    Q_PROPERTY(Units leftunits READ leftUnits WRITE setLeftUnits)
+    Q_PROPERTY(float width READ width WRITE setWidth)
+    Q_PROPERTY(Units widthunits READ widthUnits WRITE setWidthUnits)
+    Q_PROPERTY(float right READ right WRITE setRight)
+    Q_PROPERTY(Units rightunits READ rightUnits WRITE setRightUnits)
+    Q_PROPERTY(VerticalFields vertfields READ verticalFields WRITE setVerticalFields)
+    Q_PROPERTY(float top READ top WRITE setTop)
+    Q_PROPERTY(Units topunits READ topUnits WRITE setTopUnits)
+    Q_PROPERTY(float height READ height WRITE setHeight)
+    Q_PROPERTY(Units heightunits READ heightUnits WRITE setHeightUnits)
+    Q_PROPERTY(float bottom READ bottom WRITE setBottom)
+    Q_PROPERTY(Units bottouUnits READ bottomUnits WRITE setBottomUnits)
+    Q_PROPERTY(QString sourcepath READ sourcePath WRITE setSourcePath)
+    Q_PROPERTY(float aostrength READ aoStrength WRITE setAoStrength)
+    Q_PROPERTY(float aodistance READ aoDistance WRITE setAoDistance)
+    Q_PROPERTY(float aosoftness READ aoSoftness WRITE setAoSoftness)
+    Q_PROPERTY(float aobias READ aoBias WRITE setAoBias)
+    Q_PROPERTY(qint32 aosamplerate READ aoSampleRate WRITE setAoSampleRate)
+    Q_PROPERTY(bool aodither READ aoDither WRITE setAoDither)
+    Q_PROPERTY(float shadowstrength READ shadowStrength WRITE setShadowStrength)
+    Q_PROPERTY(float shadowdist READ shadowDist WRITE setShadowDist)
+    Q_PROPERTY(float shadowsoftness READ shadowSoftness WRITE setShadowSoftness)
+    Q_PROPERTY(float shadowbias READ shadowBias WRITE setShadowBias)
+    Q_PROPERTY(Q3DSImage * lightprobe READ lightProbe WRITE setLightProbe)
+    Q_PROPERTY(float probebright READ probeBright WRITE setProbeBright)
+    Q_PROPERTY(float probehorizon READ probeHorizon WRITE setProbeHorizon)
+    Q_PROPERTY(float provefov READ probeFov WRITE setProbeFov)
+    Q_PROPERTY(Q3DSImage * lightprobe2 READ lightProbe2 WRITE setLightProbe2)
+    Q_PROPERTY(float probe2fade READ probe2Fade WRITE setProbe2Fade)
+    Q_PROPERTY(float probe2window READ probe2Window WRITE setProbe2Window)
+    Q_PROPERTY(float probe2pos READ probe2Pos WRITE setProbe2Pos)
 public:
     enum Flag {
         DisableDepthTest = 0x01,
@@ -929,6 +1045,7 @@ public:
         PAA4x,
         PAA8x
     };
+    Q_ENUM(ProgressiveAA)
 
     enum MultisampleAA {
         NoMSAA = 0,
@@ -936,12 +1053,14 @@ public:
         MSAA4x,
         SSAA
     };
+    Q_ENUM(MultisampleAA)
 
     enum LayerBackground {
         Transparent = 0,
         SolidColor,
         Unspecified
     };
+    Q_ENUM(LayerBackground)
 
     enum BlendType {
         Normal = 0,
@@ -953,23 +1072,27 @@ public:
         ColorBurn,
         ColorDodge
     };
+    Q_ENUM(BlendType)
 
     enum HorizontalFields {
         LeftWidth = 0,
         LeftRight,
         WidthRight
     };
+    Q_ENUM(HorizontalFields)
 
     enum VerticalFields {
         TopHeight = 0,
         TopBottom,
         HeightBottom
     };
+    Q_ENUM(VerticalFields)
 
     enum Units {
         Percent = 0,
         Pixels
     };
+    Q_ENUM(Units)
 
     enum LayerPropertyChanges {
         AoOrShadowChanges = 1 << Q3DSNode::FIRST_FREE_PROPERTY_CHANGE_BIT,
@@ -984,11 +1107,12 @@ public:
     void resolveReferences(Q3DSUipPresentation &pres) override;
     int mapChangeFlags(const Q3DSPropertyChangeList &changeList) override;
 
-    QStringList propertyNames() const override;
-    QVariantList propertyValues() const override;
-
     // Properties
     Flags layerFlags() const { return m_layerFlags; }
+    bool depthTestDisabled() const { return m_layerFlags.testFlag(DisableDepthTest); }
+    bool depthPrePassDisabled() const { return m_layerFlags.testFlag(DisableDepthPrePass); }
+    bool temporalAAEnabled() const { return m_layerFlags.testFlag(TemporalAA); }
+    bool fastIBLEnabled() const { return m_layerFlags.testFlag(FastIBL); }
     ProgressiveAA progressiveAA() const { return m_progressiveAA; }
     MultisampleAA multisampleAA() const { return m_multisampleAA; }
     LayerBackground layerBackground() const { return m_layerBackground; }
@@ -1023,15 +1147,19 @@ public:
     float shadowBias() const { return m_shadowBias; }
     // IBL
     Q3DSImage *lightProbe() const { return m_lightProbe; }
-    float probebright() const { return m_probeBright; }
-    float probehorizon() const { return m_probeHorizon; }
-    float probefov() const { return m_probeFov; }
+    float probeBright() const { return m_probeBright; }
+    float probeHorizon() const { return m_probeHorizon; }
+    float probeFov() const { return m_probeFov; }
     Q3DSImage *lightProbe2() const { return m_lightProbe2; }
-    float probe2fade() const { return m_probe2Fade; }
-    float probe2window() const { return m_probe2Window; }
-    float probe2pos() const { return m_probe2Pos; }
+    float probe2Fade() const { return m_probe2Fade; }
+    float probe2Window() const { return m_probe2Window; }
+    float probe2Pos() const { return m_probe2Pos; }
 
     Q3DSPropertyChange setLayerFlag(Flag flag, bool v);
+    Q3DSPropertyChange setDepthTestDisabled(bool v);
+    Q3DSPropertyChange setDepthPrePassDisabled(bool v);
+    Q3DSPropertyChange setTemporalAAEnabled(bool v);
+    Q3DSPropertyChange setFastIBLEnabled(bool v);
     Q3DSPropertyChange setProgressiveAA(ProgressiveAA v);
     Q3DSPropertyChange setMultisampleAA(MultisampleAA v);
     Q3DSPropertyChange setLayerBackground(LayerBackground v);
@@ -1176,6 +1304,13 @@ public:
 
 class Q3DSV_PRIVATE_EXPORT Q3DSCameraNode : public Q3DSNode
 {
+    Q3DS_OBJECT
+    Q_PROPERTY(bool orthographic READ orthographic WRITE setOrthographic)
+    Q_PROPERTY(float fov READ fov WRITE setFov)
+    Q_PROPERTY(float clipnear READ clipNear WRITE setClipNear)
+    Q_PROPERTY(float clipfar READ clipFar WRITE setClipFar)
+    Q_PROPERTY(ScaleMode scalemode READ scaleMode WRITE setScaleMode)
+    Q_PROPERTY(ScaleAnchor scaleanchor READ scaleAnchor WRITE setScaleAnchor)
 public:
     enum ScaleMode {
         SameSize = 0,
@@ -1183,6 +1318,7 @@ public:
         FitHorizontal,
         FitVertical
     };
+    Q_ENUM(ScaleMode)
 
     enum ScaleAnchor {
         Center = 0,
@@ -1195,14 +1331,12 @@ public:
         W,
         NW
     };
+    Q_ENUM(ScaleAnchor)
 
     Q3DSCameraNode();
 
     void setProperties(const QXmlStreamAttributes &attrs, PropSetFlags flags) override;
     void applyPropertyChanges(const Q3DSPropertyChangeList &changeList) override;
-
-    QStringList propertyNames() const override;
-    QVariantList propertyValues() const override;
 
     // Properties
     bool orthographic() const { return m_orthographic; }
@@ -1246,21 +1380,37 @@ public:
 
 class Q3DSV_PRIVATE_EXPORT Q3DSLightNode : public Q3DSNode
 {
+    Q3DS_OBJECT
+    Q_PROPERTY(Q3DSGraphObject * scope READ scope WRITE setScope)
+    Q_PROPERTY(LightType lighttype READ lightType WRITE setLightType)
+    Q_PROPERTY(QColor lightdiffuse READ diffuse WRITE setDiffuse)
+    Q_PROPERTY(QColor lightspecular READ specular WRITE setSpecular)
+    Q_PROPERTY(QColor lightambient READ ambient WRITE setAmbient)
+    Q_PROPERTY(float brightness READ brightness WRITE setBrightness)
+    Q_PROPERTY(float linearfade READ linearFade WRITE setLinearFade)
+    Q_PROPERTY(float expfade READ expFade WRITE setExpFade)
+    Q_PROPERTY(float areawidth READ areaWidth WRITE setAreaWidth)
+    Q_PROPERTY(float areaheight READ areaHeight WRITE setAreaHeight)
+    Q_PROPERTY(bool castshadow READ castShadow WRITE setCastShadow)
+    Q_PROPERTY(float shdwfactor READ shadowFactor WRITE setShadowFactor)
+    Q_PROPERTY(float shdwfilter READ shadowFilter WRITE setShadowFilter)
+    Q_PROPERTY(qint32 shdwmapres READ shadowMapRes WRITE setShadowMapRes)
+    Q_PROPERTY(float shdwbias READ shadowBias WRITE setShadowBias)
+    Q_PROPERTY(float shdwmapfar READ shadowMapFar WRITE setShadowMapFar)
+    Q_PROPERTY(float shdwmapfov READ shadowMapFov WRITE setShadowMapFov)
 public:
     enum LightType {
         Directional = 0,
         Point,
         Area
     };
+    Q_ENUM(LightType)
 
     Q3DSLightNode();
 
     void setProperties(const QXmlStreamAttributes &attrs, PropSetFlags flags) override;
     void applyPropertyChanges(const Q3DSPropertyChangeList &changeList) override;
     void resolveReferences(Q3DSUipPresentation &pres) override;
-
-    QStringList propertyNames() const override;
-    QVariantList propertyValues() const override;
 
     // Properties
     LightType lightType() const { return m_lightType; }
@@ -1358,6 +1508,12 @@ public:
 
 class Q3DSV_PRIVATE_EXPORT Q3DSModelNode : public Q3DSNode
 {
+    Q3DS_OBJECT
+    Q_PROPERTY(QString sourcepath READ sourcePath /* setMesh */)
+    Q_PROPERTY(qint32 poseroot READ skeletonRoot WRITE setSkeletonRoot)
+    Q_PROPERTY(Tessellation tessellation READ tessellation WRITE setTessellation)
+    Q_PROPERTY(float edgetess READ edgeTess WRITE setEdgeTess)
+    Q_PROPERTY(float innertess READ innerTess WRITE setInnerTess)
 public:
     enum Tessellation {
         None = 0,
@@ -1365,6 +1521,7 @@ public:
         Phong,
         NPatch
     };
+    Q_ENUM(Tessellation)
 
     enum ModelPropertyChanges {
         MeshChanges = 1 << Q3DSNode::FIRST_FREE_PROPERTY_CHANGE_BIT
@@ -1377,11 +1534,9 @@ public:
     int mapChangeFlags(const Q3DSPropertyChangeList &changeList) override;
     void resolveReferences(Q3DSUipPresentation &pres) override;
 
-    QStringList propertyNames() const override;
-    QVariantList propertyValues() const override;
-
     // Properties
     MeshList mesh() const { return m_mesh; }
+    QString sourcePath() const { return m_mesh_unresolved; }
     qint32 skeletonRoot() const { return m_skeletonRoot; }
     Tessellation tessellation() const { return m_tessellation; }
     float edgeTess() const { return m_edgeTess; }
@@ -1418,16 +1573,12 @@ public:
 
 class Q3DSV_PRIVATE_EXPORT Q3DSGroupNode : public Q3DSNode
 {
+    Q3DS_OBJECT
 public:
     Q3DSGroupNode();
 
     void setProperties(const QXmlStreamAttributes &attrs, PropSetFlags flags) override;
     void applyPropertyChanges(const Q3DSPropertyChangeList &changeList) override;
-
-    QStringList propertyNames() const override;
-    QVariantList propertyValues() const override;
-
-    // Properties
 
 private:
     Q_DISABLE_COPY(Q3DSGroupNode)
@@ -1436,6 +1587,7 @@ private:
 
 class Q3DSV_PRIVATE_EXPORT Q3DSComponentNode : public Q3DSNode
 {
+    Q3DS_OBJECT
 public:
     Q3DSComponentNode();
     ~Q3DSComponentNode();
@@ -1447,11 +1599,6 @@ public:
     Q3DSSlide *masterSlide() const { return m_masterSlide; }
     Q3DSSlide *currentSlide() const { return m_currentSlide; }
     void setCurrentSlide(Q3DSSlide *slide);
-
-    QStringList propertyNames() const override;
-    QVariantList propertyValues() const override;
-
-    // Properties
 
 private:
     Q_DISABLE_COPY(Q3DSComponentNode)
@@ -1466,18 +1613,29 @@ private:
 
 class Q3DSV_PRIVATE_EXPORT Q3DSTextNode : public Q3DSNode
 {
+    Q3DS_OBJECT
+    Q_PROPERTY(QString textstring READ text WRITE setText)
+    Q_PROPERTY(QColor textcolor READ color WRITE setColor)
+    Q_PROPERTY(QString font READ font WRITE setFont)
+    Q_PROPERTY(float size READ size WRITE setSize)
+    Q_PROPERTY(HorizontalAlignment horzalign READ horizontalAlignment WRITE setHorizontalAlignment)
+    Q_PROPERTY(VerticalAlignment vertalign READ verticalAlignment WRITE setVerticalAlignment)
+    Q_PROPERTY(float leading READ leading WRITE setLeading)
+    Q_PROPERTY(float tracking READ tracking WRITE setTracking)
 public:
     enum HorizontalAlignment {
         Left = 0,
         Center,
         Right
     };
+    Q_ENUM(HorizontalAlignment)
 
     enum VerticalAlignment {
         Top = 0,
         Middle,
         Bottom
     };
+    Q_ENUM(VerticalAlignment)
 
     enum TextPropertyChanges {
         TextureImageDepChanges = 1 << Q3DSNode::FIRST_FREE_PROPERTY_CHANGE_BIT
@@ -1488,9 +1646,6 @@ public:
     void setProperties(const QXmlStreamAttributes &attrs, PropSetFlags flags) override;
     void applyPropertyChanges(const Q3DSPropertyChangeList &changeList) override;
     int mapChangeFlags(const Q3DSPropertyChangeList &changeList) override;
-
-    QStringList propertyNames() const override;
-    QVariantList propertyValues() const override;
 
     // Properties
     QString text() const { return m_text; }
@@ -1540,11 +1695,47 @@ public:
 
 class Q3DSV_PRIVATE_EXPORT Q3DSDefaultMaterial : public Q3DSGraphObject
 {
+    Q3DS_OBJECT
+    Q_PROPERTY(ShaderLighting shaderlighting READ shaderLighting WRITE setShaderLighting)
+    Q_PROPERTY(BlendMode blendmode READ blendMode WRITE setBlendMode)
+    Q_PROPERTY(bool vertexcolors READ vertexColors)
+    Q_PROPERTY(QColor diffuse READ diffuse WRITE setDiffuse)
+    Q_PROPERTY(Q3DSImage * diffusemap READ diffuseMap WRITE setDiffuseMap)
+    Q_PROPERTY(Q3DSImage * diffusemap2 READ diffuseMap2 WRITE setDiffuseMap2)
+    Q_PROPERTY(Q3DSImage * diffusemap3 READ diffuseMap3 WRITE setDiffuseMap3)
+    Q_PROPERTY(Q3DSImage * specularreflection READ specularReflection WRITE setSpecularReflection)
+    Q_PROPERTY(QColor speculartint READ specularTint WRITE setSpecularTint)
+    Q_PROPERTY(float specularamount READ specularAmount WRITE setSpecularAmount)
+    Q_PROPERTY(Q3DSImage * specularmap READ specularMap WRITE setSpecularMap)
+    Q_PROPERTY(SpecularModel specularmodel READ specularModel WRITE setSpecularModel)
+    Q_PROPERTY(float specularroughness READ specularRoughness WRITE setSpecularRoughness)
+    Q_PROPERTY(Q3DSImage * roughnessmap READ roughnessMap WRITE setRoughnessMap)
+    Q_PROPERTY(float fresnelpower READ fresnelPower WRITE setFresnelPower)
+    Q_PROPERTY(float ior READ ior WRITE setIor)
+    Q_PROPERTY(Q3DSImage * bumpmap READ bumpMap WRITE setBumpMap)
+    Q_PROPERTY(Q3DSImage * normalmap READ normalMap WRITE setNormalMap)
+    Q_PROPERTY(float bumpamount READ bumpAmount WRITE setBumpAmount)
+    Q_PROPERTY(Q3DSImage * displacementmap READ displacementMap WRITE setDisplacementMap)
+    Q_PROPERTY(float displaceamount READ displaceAmount WRITE setDisplaceAmount)
+    Q_PROPERTY(float opacity READ opacity WRITE setOpacity)
+    Q_PROPERTY(Q3DSImage * opacitymap READ opacityMap WRITE setOpacityMap)
+    Q_PROPERTY(QColor emissivecolor READ emissiveColor WRITE setEmissiveColor)
+    Q_PROPERTY(float emissivepower READ emissivePower WRITE setEmissivePower)
+    Q_PROPERTY(Q3DSImage * emissivemap READ emissiveMap WRITE setEmissiveMap)
+    Q_PROPERTY(Q3DSImage * emissivemap2 READ emissiveMap2 WRITE setEmissiveMap2)
+    Q_PROPERTY(Q3DSImage * translucencymap READ translucencyMap WRITE setTranslucencyMap)
+    Q_PROPERTY(float translucentfalloff READ translucentFalloff)
+    Q_PROPERTY(float diffuselightwrap READ diffuseLightWrap WRITE setDiffuseLightWrap)
+    Q_PROPERTY(Q3DSImage * lightmapindirect READ lightmapIndirectMap WRITE setLightmapIndirectMap)
+    Q_PROPERTY(Q3DSImage * lightmapradiosity READ lightmapRadiosityMap WRITE setLightmapRadiosityMap)
+    Q_PROPERTY(Q3DSImage * lightmapshadow READ lightmapShadowMap WRITE setLightmapShadowMap)
+    Q_PROPERTY(Q3DSImage * iblprobe READ lightProbe WRITE setLightProbe)
 public:
     enum ShaderLighting {
         PixelShaderLighting = 0,
         NoShaderLighting
     };
+    Q_ENUM(ShaderLighting)
 
     enum BlendMode {
         Normal = 0,
@@ -1554,12 +1745,14 @@ public:
         ColorBurn,
         ColorDodge
     };
+    Q_ENUM(BlendMode)
 
     enum SpecularModel {
         DefaultSpecularModel = 0,
         KGGX,
         KWard
     };
+    Q_ENUM(SpecularModel)
 
     enum DefaultMaterialPropertyChanges {
         BlendModeChanges = 1 << 0
@@ -1571,9 +1764,6 @@ public:
     void applyPropertyChanges(const Q3DSPropertyChangeList &changeList) override;
     void resolveReferences(Q3DSUipPresentation &pres) override;
     int mapChangeFlags(const Q3DSPropertyChangeList &changeList) override;
-
-    QStringList propertyNames() const override;
-    QVariantList propertyValues() const override;
 
     // Properties
     ShaderLighting shaderLighting() const { return m_shaderLighting; }
@@ -1595,7 +1785,7 @@ public:
     Q3DSImage *bumpMap() const { return m_bumpMap; }
     Q3DSImage *normalMap() const { return m_normalMap; }
     float bumpAmount() const { return m_bumpAmount; }
-    Q3DSImage *displacementmap() const { return m_displacementMap; }
+    Q3DSImage *displacementMap() const { return m_displacementMap; }
     float displaceAmount() const { return m_displaceAmount; }
     float opacity() const { return m_opacity; }
     Q3DSImage *opacityMap() const { return m_opacityMap; }
@@ -1739,15 +1929,18 @@ public:
 
 class Q3DSV_PRIVATE_EXPORT Q3DSReferencedMaterial : public Q3DSGraphObject
 {
+    Q3DS_OBJECT
+    Q_PROPERTY(Q3DSGraphObject * referencedmaterial READ referencedMaterial WRITE setReferencedMaterial)
+    Q_PROPERTY(Q3DSImage * lightmapindirect READ lightmapIndirectMap WRITE setLightmapIndirectMap)
+    Q_PROPERTY(Q3DSImage * lightmapradiosity READ lightmapRadiosityMap WRITE setLightmapRadiosityMap)
+    Q_PROPERTY(Q3DSImage * lightmapshadow READ lightmapShadowMap WRITE setLightmapShadowMap)
+    Q_PROPERTY(Q3DSImage * iblprobe READ lightProbe WRITE setLightProbe)
 public:
     Q3DSReferencedMaterial();
 
     void setProperties(const QXmlStreamAttributes &attrs, PropSetFlags flags) override;
     void applyPropertyChanges(const Q3DSPropertyChangeList &changeList) override;
     void resolveReferences(Q3DSUipPresentation &pres) override;
-
-    QStringList propertyNames() const override;
-    QVariantList propertyValues() const override;
 
     // Properties
     Q3DSGraphObject *referencedMaterial() const { return m_referencedMaterial; }
@@ -1784,6 +1977,13 @@ private:
 
 class Q3DSV_PRIVATE_EXPORT Q3DSCustomMaterialInstance : public Q3DSGraphObject
 {
+    Q3DS_OBJECT
+    Q_PROPERTY(QString class READ clazz)
+    Q_PROPERTY(const Q3DSCustomMaterial * material READ material /* resolveReferences */)
+    Q_PROPERTY(Q3DSImage * lightmapindirect READ lightmapIndirectMap WRITE setLightmapIndirectMap)
+    Q_PROPERTY(Q3DSImage * lightmapradiosity READ lightmapRadiosityMap WRITE setLightmapRadiosityMap)
+    Q_PROPERTY(Q3DSImage * lightmapshadow READ lightmapShadowMap WRITE setLightmapShadowMap)
+    Q_PROPERTY(Q3DSImage * iblprobe READ lightProbe WRITE setLightProbe)
 public:
     Q3DSCustomMaterialInstance();
     Q3DSCustomMaterialInstance(const Q3DSCustomMaterial &material);
@@ -1792,10 +1992,8 @@ public:
     void applyPropertyChanges(const Q3DSPropertyChangeList &changeList) override;
     void resolveReferences(Q3DSUipPresentation &pres) override;
 
-    QStringList propertyNames() const override;
-    QVariantList propertyValues() const override;
-
     // Properties
+    QString clazz() const { return m_material_unresolved; }
     const Q3DSCustomMaterial *material() const { return &m_material; }
     // lightmaps
     Q3DSImage *lightmapIndirectMap() const { return m_lightmapIndirectMap; }
@@ -1808,12 +2006,6 @@ public:
     Q3DSPropertyChange setLightmapRadiosityMap(Q3DSImage *v);
     Q3DSPropertyChange setLightmapShadowMap(Q3DSImage *v);
     Q3DSPropertyChange setLightProbe(Q3DSImage *v);
-
-    // All custom properties, either with the default or the instance-specific value.
-    // Filenames are already sanitized.
-    QVariantMap customProperties() const { return m_materialPropertyVals; }
-    QVariant customProperty(const QString &name) const { return m_materialPropertyVals.value(name); }
-    Q3DSPropertyChange setCustomProperty(const QString &name, const QVariant &value);
 
 private:
     Q_DISABLE_COPY(Q3DSCustomMaterialInstance)
@@ -1838,6 +2030,9 @@ private:
 
 class Q3DSV_PRIVATE_EXPORT Q3DSEffectInstance : public Q3DSGraphObject
 {
+    Q3DS_OBJECT
+    Q_PROPERTY(QString class READ clazz)
+    Q_PROPERTY(bool eyeball READ eyeballEnabled)
 public:
     enum EffectInstancePropertyChanges {
         EyeBallChanges = 1 << 0
@@ -1851,18 +2046,10 @@ public:
     void resolveReferences(Q3DSUipPresentation &pres) override;
     int mapChangeFlags(const Q3DSPropertyChangeList &changeList) override;
 
-    QStringList propertyNames() const override;
-    QVariantList propertyValues() const override;
-
     // Properties
+    QString clazz() const { return m_effect_unresolved; }
     const Q3DSEffect *effect() const { return &m_effect; }
-    bool active() const { return m_active; }
-
-    // All custom properties, either with the default or the instance-specific value.
-    // Filenames are already sanitized.
-    QVariantMap customProperties() const { return m_effectPropertyVals; }
-    QVariant customProperty(const QString &name) const { return m_effectPropertyVals.value(name); }
-    Q3DSPropertyChange setCustomProperty(const QString &name, const QVariant &value);
+    bool eyeballEnabled() const { return m_eyeballEnabled; }
 
     const Q3DSPropertyChangeList &masterRollbackList() const { return m_masterRollbackList; }
 
@@ -1873,14 +2060,17 @@ private:
     QString m_effect_unresolved;
     Q3DSEffect m_effect;
     bool m_effectIsResolved = false;
-    bool m_active = true;
-    QVariantMap m_effectPropertyVals;
+    bool m_eyeballEnabled = true;
     Q3DSPropertyChangeList m_pendingCustomProperties;
     Q3DSPropertyChangeList m_masterRollbackList;
 };
 
 class Q3DSV_PRIVATE_EXPORT Q3DSBehaviorInstance : public Q3DSGraphObject
 {
+    Q3DS_OBJECT
+    Q_PROPERTY(QString class READ clazz)
+    Q_PROPERTY(bool eyeball READ eyeballEnabled)
+    Q_PROPERTY(const Q3DSBehavior * behavior READ behavior)
 public:
     enum BehaviorInstancePropertyChanges {
         EyeBallChanges = 1 << 0
@@ -1894,19 +2084,13 @@ public:
     void resolveReferences(Q3DSUipPresentation &pres) override;
     int mapChangeFlags(const Q3DSPropertyChangeList &changeList) override;
 
-    QStringList propertyNames() const override;
-    QVariantList propertyValues() const override;
-
     QString qmlErrorString() const { return m_qmlErrorString; }
     void setQmlErrorString(const QString &error) { m_qmlErrorString = error; }
 
     // Properties
     const Q3DSBehavior *behavior() const { return &m_behavior; }
-    bool active() const { return m_active; }
-
-    QVariantMap customProperties() const { return m_behaviorPropertyVals; }
-    QVariant customProperty(const QString &name) const { return m_behaviorPropertyVals.value(name); }
-    Q3DSPropertyChange setCustomProperty(const QString &name, const QVariant &value);
+    QString clazz() const { return m_behavior_unresolved; }
+    bool eyeballEnabled() const { return m_eyeballEnabled; }
 
 private:
     Q_DISABLE_COPY(Q3DSBehaviorInstance)
@@ -1915,7 +2099,7 @@ private:
     QString m_behavior_unresolved;
     Q3DSBehavior m_behavior;
     bool m_behaviorIsResolved = false;
-    bool m_active = true;
+    bool m_eyeballEnabled = true;
     Q3DSPropertyChangeList m_pendingCustomProperties;
     QVariantMap m_behaviorPropertyVals;
     QString m_qmlErrorString;
@@ -1923,15 +2107,14 @@ private:
 
 class Q3DSV_PRIVATE_EXPORT Q3DSAliasNode : public Q3DSNode
 {
+    Q3DS_OBJECT
+    Q_PROPERTY(Q3DSGraphObject * referencednode READ referencedNode WRITE setReferencedNode)
 public:
     Q3DSAliasNode();
 
     void setProperties(const QXmlStreamAttributes &attrs, PropSetFlags flags) override;
     void applyPropertyChanges(const Q3DSPropertyChangeList &changeList) override;
     void resolveReferences(Q3DSUipPresentation &pres) override;
-
-    QStringList propertyNames() const override;
-    QVariantList propertyValues() const override;
 
     // Properties
     Q3DSGraphObject *referencedNode() const { return m_referencedNode; }
@@ -2129,6 +2312,8 @@ inline uint qHash(const Q3DSUipPresentationData::MeshId &key, uint seed = 0) Q_D
 
 QT_END_NAMESPACE
 
+Q_DECLARE_METATYPE(Q3DSGraphObject *)
+Q_DECLARE_METATYPE(Q3DSImage *)
 Q_DECLARE_METATYPE(Q3DSSlide *)
 
 #endif // Q3DSUIPPRESENTATION_P_H

@@ -718,24 +718,24 @@ void tst_Q3DSUipParser::customMaterial()
     QCOMPARE(m->properties().count(), 14);
     QCOMPARE(m->shaders().count(), 1);
 
-    QCOMPARE(mat->customProperties().count(), 14);
-    const QVariantMap &p = mat->customProperties();
+    QCOMPARE(mat->dynamicProperties().count(), 14);
+    const QVariantMap &p = mat->dynamicProperties();
     QVERIFY(p.contains(QStringLiteral("uEnvironmentTexture")));
     QCOMPARE(p.value("uEnvironmentTexture").toString(), QStringLiteral(":/data/maps/materials/spherical_checker.png"));
 
     // "static" custom property setting
     const QString tilingKey = QLatin1String("tiling");
     QVERIFY(p.contains(tilingKey));
-    Q3DSPropertyChange tilingChange = mat->setCustomProperty(tilingKey, QVector3D(1, 2, 3));
-    QCOMPARE(tilingChange.nameStr(), tilingKey);
-    QCOMPARE(mat->customProperties().value(tilingKey).value<QVector3D>(), QVector3D(1, 2, 3));
-    QCOMPARE(mat->customProperty(tilingKey).value<QVector3D>(), QVector3D(1, 2, 3));
+    Q3DSPropertyChangeList tilingChange = mat->applyDynamicProperties({{tilingKey, QVector3D(1, 2, 3)}});
+    QCOMPARE(tilingChange.cbegin()->nameStr(), tilingKey);
+    QCOMPARE(mat->dynamicProperties().value(tilingKey).value<QVector3D>(), QVector3D(1, 2, 3));
+    QCOMPARE(mat->dynamicProperties().value(tilingKey).value<QVector3D>(), QVector3D(1, 2, 3));
 
     // "dynamic" custom property setting
-    tilingChange = Q3DSPropertyChange::fromVariant(tilingKey, QVector3D(4, 5, 6));
+    tilingChange = {Q3DSPropertyChange::fromVariant(tilingKey, QVector3D(4, 5, 6))};
     mat->applyPropertyChanges({ tilingChange });
-    QCOMPARE(mat->customProperties().value(tilingKey).value<QVector3D>(), QVector3D(4, 5, 6));
-    QCOMPARE(mat->customProperty(tilingKey).value<QVector3D>(), QVector3D(4, 5, 6));
+    QCOMPARE(mat->dynamicProperties().value(tilingKey).value<QVector3D>(), QVector3D(4, 5, 6));
+    QCOMPARE(mat->dynamicProperties().value(tilingKey).value<QVector3D>(), QVector3D(4, 5, 6));
 }
 
 void tst_Q3DSUipParser::effect()
@@ -750,21 +750,21 @@ void tst_Q3DSUipParser::effect()
     QCOMPARE(eff->parent(), pres->scene()->firstChild());
 
     Q3DSEffectInstance *e = static_cast<Q3DSEffectInstance *>(eff);
-    QCOMPARE(e->customProperties().count(), 5);
+    QCOMPARE(e->dynamicProperties().count(), 5);
     const QString focusDistanceKey = QLatin1String("FocusDistance");
-    QCOMPARE(e->customProperties().value(focusDistanceKey).toFloat(), 100.0f);
+    QCOMPARE(e->dynamicProperties().value(focusDistanceKey).toFloat(), 100.0f);
 
     // "static" custom property setting
-    Q3DSPropertyChange focusDistanceChange = e->setCustomProperty(focusDistanceKey, 50.0f);
-    QCOMPARE(focusDistanceChange.nameStr(), focusDistanceKey);
-    QCOMPARE(e->customProperties().value(focusDistanceKey).toFloat(), 50.0f);
-    QCOMPARE(e->customProperty(focusDistanceKey).toFloat(), 50.0f);
+    Q3DSPropertyChangeList focusDistanceChange = e->applyDynamicProperties({{focusDistanceKey, 50.0f}});
+    QCOMPARE(focusDistanceChange.cbegin()->nameStr(), focusDistanceKey);
+    QCOMPARE(e->dynamicProperties().value(focusDistanceKey).toFloat(), 50.0f);
+    QCOMPARE(e->dynamicProperties().value(focusDistanceKey).toFloat(), 50.0f);
 
     // "dynamic" custom property setting
-    focusDistanceChange = Q3DSPropertyChange::fromVariant(focusDistanceKey, 20.0f);
+    focusDistanceChange = {Q3DSPropertyChange::fromVariant(focusDistanceKey, 20.0f)};
     e->applyPropertyChanges({ focusDistanceChange });
-    QCOMPARE(e->customProperties().value(focusDistanceKey).toFloat(), 20.0f);
-    QCOMPARE(e->customProperty(focusDistanceKey).toFloat(), 20.0f);
+    QCOMPARE(e->dynamicProperties().value(focusDistanceKey).toFloat(), 20.0f);
+    QCOMPARE(e->dynamicProperties().value(focusDistanceKey).toFloat(), 20.0f);
 }
 
 void tst_Q3DSUipParser::primitiveMeshes()
@@ -1178,24 +1178,24 @@ void tst_Q3DSUipParser::behavior()
 
     // check value given in the uip
     const QString smKey = QLatin1String("startImmediately");
-    QVERIFY(behavInst->customProperties().contains(smKey));
-    QCOMPARE(behavInst->customProperties().value(smKey).toBool(), false);
+    QVERIFY(behavInst->dynamicProperties().contains(smKey));
+    QCOMPARE(behavInst->dynamicProperties().value(smKey).toBool(), false);
 
     // check default value
-    QCOMPARE(behavInst->customProperties().value(QLatin1String("cameraTarget")).toString(),
+    QCOMPARE(behavInst->dynamicProperties().value(QLatin1String("cameraTarget")).toString(),
              QStringLiteral("Scene.Layer.Camera"));
 
     // "static" custom property setting
-    Q3DSPropertyChange smChange = behavInst->setCustomProperty(smKey, false);
-    QCOMPARE(smChange.nameStr(), smKey);
-    QCOMPARE(behavInst->customProperties().value(smKey).toBool(), false);
-    QCOMPARE(behavInst->customProperty(smKey).toBool(), false);
+    Q3DSPropertyChangeList smChange = behavInst->applyDynamicProperties({{smKey, false}});
+    QCOMPARE(smChange.cbegin()->nameStr(), smKey);
+    QCOMPARE(behavInst->dynamicProperties().value(smKey).toBool(), false);
+    QCOMPARE(behavInst->dynamicProperties().value(smKey).toBool(), false);
 
     // "dynamic" custom property setting
-    smChange = Q3DSPropertyChange::fromVariant(smKey, true);
+    smChange = {Q3DSPropertyChange::fromVariant(smKey, true)};
     behavInst->applyPropertyChanges({ smChange });
-    QCOMPARE(behavInst->customProperties().value(smKey).toBool(), true);
-    QCOMPARE(behavInst->customProperty(smKey).toBool(), true);
+    QCOMPARE(behavInst->dynamicProperties().value(smKey).toBool(), true);
+    QCOMPARE(behavInst->dynamicProperties().value(smKey).toBool(), true);
 
     QCOMPARE(b->handlers().count(), 2);
     auto handlers = b->handlers();

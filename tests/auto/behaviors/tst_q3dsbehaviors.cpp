@@ -98,7 +98,7 @@ void tst_Q3DSBehaviors::behaviorLoad()
     auto bi = m_presentation->objectByName<Q3DSBehaviorInstance>(QLatin1String("Behavior instance 1"));
     QVERIFY(bi);
 
-    const QVariantMap props = bi->customProperties();
+    const QVariantMap props = bi->dynamicProperties();
     QCOMPARE(props.value(QLatin1String("target")).toString(), QStringLiteral("Scene.Layer.Camera"));
     QCOMPARE(props.value(QLatin1String("startImmediately")).toBool(), true);
 

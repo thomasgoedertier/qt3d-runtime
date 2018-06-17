@@ -168,10 +168,10 @@ static void dynamicPropertySetter(Q3DSGraphObject *obj, const QVariant &value, c
 {
     if (obj->type() == Q3DSGraphObject::CustomMaterial) {
         Q3DSCustomMaterialInstance *mat3DS = static_cast<Q3DSCustomMaterialInstance *>(obj);
-        mat3DS->setCustomProperty(name, value);
+        mat3DS->applyDynamicProperties(QVariantMap{{name, value}});
     } else if (obj->type() == Q3DSGraphObject::Effect) {
         Q3DSEffectInstance *eff3DS = static_cast<Q3DSEffectInstance *>(obj);
-        eff3DS->setCustomProperty(name, value);
+        eff3DS->applyDynamicProperties(QVariantMap{{name, value}});
     }
 }
 
@@ -179,10 +179,10 @@ static QVariant dynamicPropertyGetter(Q3DSGraphObject *obj, const QString &name)
 {
     if (obj->type() == Q3DSGraphObject::CustomMaterial) {
         Q3DSCustomMaterialInstance *mat3DS = static_cast<Q3DSCustomMaterialInstance *>(obj);
-        return mat3DS->customProperty(name);
+        return mat3DS->dynamicProperties().value(name);
     } else if (obj->type() == Q3DSGraphObject::Effect) {
         Q3DSEffectInstance *eff3DS = static_cast<Q3DSEffectInstance *>(obj);
-        return eff3DS->customProperty(name);
+        return eff3DS->dynamicProperties().value(name);
     }
     return QVariant();
 }
@@ -788,7 +788,7 @@ void Q3DSAnimationManager::updateAnimations(Q3DSSlide *slide, bool editorMode)
         AnimatableTab customMaterialAnimatables;
         for (auto it = customMatAnims.cbegin(), itEnd = customMatAnims.cend(); it != itEnd; ++it) {
             Q3DSCustomMaterialInstance *mat3DS = it.key();
-            gatherDynamicProperties(mat3DS->customProperties(), mat3DS->material()->properties(), &customMaterialAnimatables);
+            gatherDynamicProperties(mat3DS->dynamicProperties(), mat3DS->material()->properties(), &customMaterialAnimatables);
         }
         updateAnimationHelper(customMatAnims, &customMaterialAnimatables, slide, editorMode);
     }
@@ -796,7 +796,7 @@ void Q3DSAnimationManager::updateAnimations(Q3DSSlide *slide, bool editorMode)
         AnimatableTab effectAnimatables;
         for (auto it = effectAnims.cbegin(), itEnd = effectAnims.cend(); it != itEnd; ++it) {
             Q3DSEffectInstance *eff3DS = it.key();
-            gatherDynamicProperties(eff3DS->customProperties(), eff3DS->effect()->properties(), &effectAnimatables);
+            gatherDynamicProperties(eff3DS->dynamicProperties(), eff3DS->effect()->properties(), &effectAnimatables);
         }
         updateAnimationHelper(effectAnims, &effectAnimatables, slide, editorMode);
     }

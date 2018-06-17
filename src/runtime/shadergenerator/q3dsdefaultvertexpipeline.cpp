@@ -515,7 +515,7 @@ struct ShaderGenerator : public Q3DSDefaultMaterialShaderGenerator
     void generateVertexShader()
     {
         // the pipeline opens/closes up the shaders stages
-        vertexGenerator().beginVertexGeneration(m_CurrentMaterial->displacementmap());
+        vertexGenerator().beginVertexGeneration(m_CurrentMaterial->displacementMap());
     }
 
     void generateFragmentShader()
@@ -561,7 +561,7 @@ struct ShaderGenerator : public Q3DSDefaultMaterialShaderGenerator
                 || m_CurrentMaterial->roughnessMap()
                 || m_CurrentMaterial->bumpMap()
                 || m_CurrentMaterial->normalMap()
-                || m_CurrentMaterial->displacementmap()
+                || m_CurrentMaterial->displacementMap()
                 || m_CurrentMaterial->opacityMap()
                 || m_CurrentMaterial->emissiveMap()
                 || lightmapIndirectImage
@@ -575,7 +575,7 @@ struct ShaderGenerator : public Q3DSDefaultMaterialShaderGenerator
         const bool hasEnvMap = mapHasEnvMap(m_CurrentMaterial->diffuseMap())
                 || mapHasEnvMap(m_CurrentMaterial->specularReflection()) // the common case
                 || mapHasEnvMap(m_CurrentMaterial->opacityMap())
-                || mapHasEnvMap(m_CurrentMaterial->displacementmap())
+                || mapHasEnvMap(m_CurrentMaterial->displacementMap())
                 || mapHasEnvMap(m_CurrentMaterial->emissiveMap());
 
         bool enableSSAO = false;

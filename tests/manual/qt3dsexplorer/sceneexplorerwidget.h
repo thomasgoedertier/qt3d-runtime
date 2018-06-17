@@ -70,7 +70,7 @@ private:
     SceneTreeModel *m_sceneModel = nullptr;
 
     // Updates
-    QHash<QString, QtVariantProperty *> m_propertyMap;
+    QHash<QByteArray, QtVariantProperty *> m_propertyMap;
     Q3DSGraphObject *m_currentObject = nullptr;
     int m_updateCallbackIndex = -1;
 };

@@ -63,7 +63,7 @@ static QByteArray unquote(const QByteArray &s)
 static QString printObject(Q3DSGraphObject *obj)
 {
     return QString(QLatin1String("%1 id='%2' name='%3'"))
-            .arg(obj->typeAsString()).arg(QString::fromUtf8(obj->id())).arg(obj->name());
+            .arg(QString::fromLatin1(obj->typeAsString())).arg(QString::fromUtf8(obj->id())).arg(obj->name());
 }
 
 static void graphPrinter(QString *dst, Q3DSGraphObject *obj, int indent)
@@ -109,17 +109,6 @@ static void removeFromSlide_helper(Q3DSGraphObject *obj, Q3DSSlide *slide)
         removeFromSlide_helper(obj, static_cast<Q3DSSlide *>(slide->firstChild()));
         slide = static_cast<Q3DSSlide *>(slide->nextSibling());
     }
-}
-
-static QVariantMap findCustomProperties(Q3DSGraphObject *obj)
-{
-    if (obj->type() == Q3DSGraphObject::CustomMaterial)
-        return static_cast<Q3DSCustomMaterialInstance *>(obj)->customProperties();
-    else if (obj->type() == Q3DSGraphObject::Effect)
-        return static_cast<Q3DSEffectInstance *>(obj)->customProperties();
-    else if (obj->type() == Q3DSGraphObject::Behavior)
-        return static_cast<Q3DSBehaviorInstance *>(obj)->customProperties();
-    return QVariantMap();
 }
 
 void Q3DSConsoleCommands::setupConsole(Q3DSConsole *console)
@@ -224,12 +213,15 @@ void Q3DSConsoleCommands::setupConsole(Q3DSConsole *console)
         if (obj) {
             auto names = obj->propertyNames();
             auto values = obj->propertyValues();
+            const auto customProperties = obj->dynamicProperties();
             for (int i = 0; i < names.count(); ++i) {
+                if (customProperties.contains(QString::fromLatin1(names[i])))
+                    continue;
                 m_console->addMessageFmt(longResponseColor, "%s = %s",
-                                         qPrintable(names[i]),
+                                         names[i].constData(),
                                          qPrintable(Q3DS::convertFromVariant(values[i])));
             }
-            QVariantMap customProperties = findCustomProperties(obj);
+
             if (!customProperties.isEmpty()) {
                 m_console->addMessageFmt(longResponseColor, "\nCustom properties:");
                 for (auto it = customProperties.cbegin(), itEnd = customProperties.cend(); it != itEnd; ++it) {
@@ -296,15 +288,7 @@ void Q3DSConsoleCommands::setupConsole(Q3DSConsole *console)
             const QByteArray name = unquote(splitArgs[1]);
             Q3DSGraphObject *obj = resolveObj(ref);
             if (obj) {
-                const QString nameStr = QString::fromUtf8(name);
-                const int idx = obj->propertyNames().indexOf(nameStr);
-                QVariant value;
-                if (idx >= 0) {
-                    value = obj->propertyValues().at(idx);
-                } else {
-                    QVariantMap customProperties = findCustomProperties(obj);
-                    value = customProperties.value(nameStr);
-                }
+                const QVariant value = obj->property(name);
                 if (!value.isNull()) {
                     const QString v = Q3DS::convertFromVariant(value);
                     m_console->addMessageFmt(responseColor, "%s", qPrintable(v));

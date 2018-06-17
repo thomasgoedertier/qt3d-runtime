@@ -200,21 +200,21 @@ void SceneExplorerWidget::handleSelectionChanged(const QModelIndex &current, con
                 return;
             // Everything here is pretty expensive, but there isn't
             // an easier way to do things yet.
-            const QStringList pnames = object->propertyNames();
-            const QVariantList pvalues = object->propertyValues();
+            const auto pnames = object->propertyNames();
+            const auto pvalues = object->propertyValues();
 
-            for (auto key : keys) {
-                auto property = m_propertyMap.value(key);
+            for (const auto &key : keys) {
+                auto property = m_propertyMap.value(key.toLatin1());
                 if (!property)
                     continue;
-                auto value = pvalues.value(pnames.indexOf(key));
+                auto value = pvalues.value(pnames.indexOf(key.toLatin1()));
                 m_variantManager->setValue(property, value);
             }
         });
 
     // Set the initial settings
-    const QStringList pnames = m_currentObject->propertyNames();
-    const QVariantList pvalues = m_currentObject->propertyValues();
+    const auto pnames = m_currentObject->propertyNames();
+    const auto pvalues = m_currentObject->propertyValues();
     QtProperty *topLevelItem = m_variantManager->addProperty(QtVariantPropertyManager::groupTypeId(), m_currentObject->typeAsString());
     Q_ASSERT(pnames.count() == pvalues.count());
     for (int i = 0; i < pnames.count(); ++i) {

@@ -1702,7 +1702,7 @@ void Q3DSSceneManager::setLayerProperties(Q3DSLayerNode *layer3DS)
         data->iblProbeData.lightProbeProperties = new Qt3DRender::QParameter;
         data->iblProbeData.lightProbeProperties->setName(QLatin1String("light_probe_props"));
     }
-    data->iblProbeData.lightProbeProperties->setValue(QVector4D(0.0f, 0.0f, layer3DS->probehorizon(), layer3DS->probebright() * 0.01f));
+    data->iblProbeData.lightProbeProperties->setValue(QVector4D(0.0f, 0.0f, layer3DS->probeHorizon(), layer3DS->probeBright() * 0.01f));
 
     if (!data->iblProbeData.lightProbe2Properties) {
         data->iblProbeData.lightProbe2Properties = new Qt3DRender::QParameter;
@@ -1715,7 +1715,7 @@ void Q3DSSceneManager::setLayerProperties(Q3DSLayerNode *layer3DS)
         data->iblProbeData.lightProbeOptions->setName(QLatin1String("light_probe_opts"));
 
     }
-    data->iblProbeData.lightProbeOptions->setValue(QVector4D(0.01745329251994329547f * layer3DS->probefov(), 0.0f, 0.0f, 0.0f));
+    data->iblProbeData.lightProbeOptions->setValue(QVector4D(0.01745329251994329547f * layer3DS->probeFov(), 0.0f, 0.0f, 0.0f));
 
     if (layer3DS->lightProbe()) {
         // initialize light probe parameters if necessary
@@ -1799,15 +1799,15 @@ void Q3DSSceneManager::setLayerProperties(Q3DSLayerNode *layer3DS)
 
             data->iblProbeData.lightProbe2Texture->setWrapMode(wrapMode);
 
-            QVector4D probe2Props(layer3DS->probe2window(), layer3DS->probe2pos(), layer3DS->probe2fade(), 1.0f);
+            QVector4D probe2Props(layer3DS->probe2Window(), layer3DS->probe2Pos(), layer3DS->probe2Fade(), 1.0f);
             data->iblProbeData.lightProbe2Properties->setValue(probe2Props);
             const QMatrix4x4 &textureTransform = layer3DS->lightProbe2()->textureTransform();
             const float *m = textureTransform.constData();
-            QVector4D probeProps(m[12], m[13], layer3DS->probehorizon(), layer3DS->probebright() * 0.01f);
+            QVector4D probeProps(m[12], m[13], layer3DS->probeHorizon(), layer3DS->probeBright() * 0.01f);
             data->iblProbeData.lightProbeProperties->setValue(probeProps);
         } else {
             data->iblProbeData.lightProbe2Properties->setValue(QVector4D(0.0f, 0.0f, 0.0f, 0.0f));
-            data->iblProbeData.lightProbeProperties->setValue(QVector4D(0.0f, 0.0f, layer3DS->probehorizon(), layer3DS->probebright() * 0.01f));
+            data->iblProbeData.lightProbeProperties->setValue(QVector4D(0.0f, 0.0f, layer3DS->probeHorizon(), layer3DS->probeBright() * 0.01f));
         }
     }
 }
@@ -4681,7 +4681,7 @@ void Q3DSSceneManager::retagSubMeshes(Q3DSModelNode *model3DS)
                                (defaultMaterial->diffuseMap3() && defaultMaterial->diffuseMap3()->hasTransparency(m_presentation)) ||
                                defaultMaterial->opacityMap() ||
                                defaultMaterial->translucencyMap() ||
-                               defaultMaterial->displacementmap() ||
+                               defaultMaterial->displacementMap() ||
                                defaultMaterial->blendMode() != Q3DSDefaultMaterial::Normal);
             sm.hasTransparency = opacity < 1.0f || hasTransparency;
         } else if (sm.resolvedMaterial->type() == Q3DSGraphObject::CustomMaterial) {
@@ -4943,10 +4943,10 @@ QVector<Qt3DRender::QParameter *> Q3DSSceneManager::prepareDefaultMaterial(Q3DSD
         params.append(data->normalMapParams.parameters());
     }
 
-    if (m->displacementmap()) {
+    if (m->displacementMap()) {
         if (firstRun) {
-            prepareTextureParameters(data->displacementMapParams, QLatin1String("displacementMap"), m->displacementmap());
-            static_cast<Q3DSImageAttached *>(m->displacementmap()->attached())->referencingDefaultMaterials.insert(m);
+            prepareTextureParameters(data->displacementMapParams, QLatin1String("displacementMap"), m->displacementMap());
+            static_cast<Q3DSImageAttached *>(m->displacementMap()->attached())->referencingDefaultMaterials.insert(m);
         }
         params.append(data->displacementMapParams.parameters());
     }
@@ -5129,8 +5129,8 @@ void Q3DSSceneManager::updateDefaultMaterial(Q3DSDefaultMaterial *m, Q3DSReferen
     if (m->normalMap())
         updateTextureParameters(data->normalMapParams, m->normalMap());
 
-    if (m->displacementmap())
-        updateTextureParameters(data->displacementMapParams, m->displacementmap());
+    if (m->displacementMap())
+        updateTextureParameters(data->displacementMapParams, m->displacementMap());
 
     if (m->opacityMap())
         updateTextureParameters(data->opacityMapParams, m->opacityMap());
@@ -5230,12 +5230,12 @@ static void iterateCustomProperties(const QVariantMap &properties,
 
 static inline void forAllCustomProperties(Q3DSCustomMaterialInstance *m, CustomPropertyCallback callback)
 {
-    iterateCustomProperties(m->customProperties(), m->material()->properties(), callback);
+    iterateCustomProperties(m->dynamicProperties(), m->material()->properties(), callback);
 }
 
 static inline void forAllCustomProperties(Q3DSEffectInstance *eff3DS, CustomPropertyCallback callback)
 {
-    iterateCustomProperties(eff3DS->customProperties(), eff3DS->effect()->properties(), callback);
+    iterateCustomProperties(eff3DS->dynamicProperties(), eff3DS->effect()->properties(), callback);
 }
 
 Qt3DRender::QAbstractTexture *Q3DSSceneManager::createCustomPropertyTexture(const Q3DSCustomPropertyParameter &p)
@@ -5680,7 +5680,7 @@ void Q3DSSceneManager::updateEffectStatus(Q3DSLayerNode *layer3DS)
     for (int i = 0; i < count; ++i) {
         Q3DSEffectInstance *eff3DS = layerData->effectData.effects[i];
         Q3DSEffectAttached *effData = static_cast<Q3DSEffectAttached *>(eff3DS->attached());
-        if (eff3DS->active() && effData->visibilityTag == Q3DSGraphObjectAttached::Visible) {
+        if (eff3DS->eyeballEnabled() && effData->visibilityTag == Q3DSGraphObjectAttached::Visible) {
             ++activeEffectCount;
             if (activeEffectCount == 1)
                 firstActiveIndex = i;
@@ -5717,7 +5717,7 @@ void Q3DSSceneManager::updateEffectStatus(Q3DSLayerNode *layer3DS)
         Qt3DRender::QAbstractTexture *prevOutput = nullptr;
         for (int i = 0; i < count; ++i) {
             Q3DSEffectInstance *eff3DS = layerData->effectData.effects[i];
-            if (eff3DS->active() && eff3DS->attached()->visibilityTag == Q3DSGraphObjectAttached::Visible) {
+            if (eff3DS->eyeballEnabled() && eff3DS->attached()->visibilityTag == Q3DSGraphObjectAttached::Visible) {
                 Q3DSSceneManager::EffectActivationFlags flags = 0;
                 if (i == firstActiveIndex)
                     flags |= Q3DSSceneManager::EffIsFirst;
@@ -6898,7 +6898,7 @@ void Q3DSSceneManager::setPendingVisibilities()
             Q3DSEffectInstance *effect = static_cast<Q3DSEffectInstance *>(it.key());
             Q3DSEffectAttached *data = effect->attached<Q3DSEffectAttached>();
             if (data) {
-                it.key()->attached()->visibilityTag = (it.value() && effect->active()) ? Q3DSGraphObjectAttached::Visible
+                it.key()->attached()->visibilityTag = (it.value() && effect->eyeballEnabled()) ? Q3DSGraphObjectAttached::Visible
                                                                                        : Q3DSGraphObjectAttached::Hidden;
                 updateEffectStatus(effect->attached<Q3DSEffectAttached>()->layer3DS);
             }
@@ -7251,7 +7251,7 @@ void Q3DSSceneManager::updateSubTreeRecursive(Q3DSGraphObject *obj)
         if (data && (data->frameDirty & Q3DSGraphObjectAttached::BehaviorDirty)) {
             const bool activeFlagChanges = data->frameChangeFlags & Q3DSBehaviorInstance::EyeBallChanges;
             if (activeFlagChanges) {
-                if (behaviorInstance->active())
+                if (behaviorInstance->eyeballEnabled())
                     m_engine->loadBehaviorInstance(behaviorInstance, m_presentation);
                 else
                     m_engine->unloadBehaviorInstance(behaviorInstance);
