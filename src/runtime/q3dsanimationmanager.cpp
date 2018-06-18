@@ -46,182 +46,30 @@
 
 QT_BEGIN_NAMESPACE
 
-static struct AnimatableExtraMeta {
-    QString type3DS;
-    QString name3DS;
-    Qt3DAnimation::SetterFunc setter;
-    Qt3DAnimation::GetterFunc getter;
-} extraMeta[] = {
-    { QLatin1String("Node"), QLatin1String("position"), &Q3DSNodeAnimator::setPosition, &Q3DSNodeAnimator::getPosition },
-    { QLatin1String("Node"), QLatin1String("rotation"), &Q3DSNodeAnimator::setRotation, &Q3DSNodeAnimator::getRotation },
-    { QLatin1String("Node"), QLatin1String("scale"), &Q3DSNodeAnimator::setScale, &Q3DSNodeAnimator::getScale },
-    { QLatin1String("Node"), QLatin1String("pivot"), &Q3DSNodeAnimator::setPivot, &Q3DSNodeAnimator::getPivot },
-    { QLatin1String("Node"), QLatin1String("opacity"), &Q3DSNodeAnimator::setLocalOpacity, &Q3DSNodeAnimator::getLocalOpacity },
-
-    { QLatin1String("Material"), QLatin1String("diffuse"), &Q3DSDefaultMaterialAnimator::setDiffuse, &Q3DSDefaultMaterialAnimator::getDiffuse },
-    { QLatin1String("Material"), QLatin1String("speculartint"), &Q3DSDefaultMaterialAnimator::setSpecularTint, &Q3DSDefaultMaterialAnimator::getSpecularTint },
-    { QLatin1String("Material"), QLatin1String("specularamount"), &Q3DSDefaultMaterialAnimator::setSpecularAmount, &Q3DSDefaultMaterialAnimator::getSpecularAmount },
-    { QLatin1String("Material"), QLatin1String("specularroughness"), &Q3DSDefaultMaterialAnimator::setSpecularRoughness, &Q3DSDefaultMaterialAnimator::getSpecularRoughness },
-    { QLatin1String("Material"), QLatin1String("fresnelPower"), &Q3DSDefaultMaterialAnimator::setFresnelPower, &Q3DSDefaultMaterialAnimator::getFresnelPower },
-    { QLatin1String("Material"), QLatin1String("displaceamount"), &Q3DSDefaultMaterialAnimator::setDisplaceAmount, &Q3DSDefaultMaterialAnimator::getDisplaceAmount },
-    { QLatin1String("Material"), QLatin1String("opacity"), &Q3DSDefaultMaterialAnimator::setOpacity, &Q3DSDefaultMaterialAnimator::getOpacity },
-    { QLatin1String("Material"), QLatin1String("emissivecolor"), &Q3DSDefaultMaterialAnimator::setEmissiveColor, &Q3DSDefaultMaterialAnimator::getEmissiveColor },
-    { QLatin1String("Material"), QLatin1String("emissivepower"), &Q3DSDefaultMaterialAnimator::setEmissivePower, &Q3DSDefaultMaterialAnimator::getEmissivePower },
-    { QLatin1String("Material"), QLatin1String("bumpamount"), &Q3DSDefaultMaterialAnimator::setBumpAmount, &Q3DSDefaultMaterialAnimator::getBumpAmount },
-    { QLatin1String("Material"), QLatin1String("translucentfalloff"), &Q3DSDefaultMaterialAnimator::setTranslucentFalloff, &Q3DSDefaultMaterialAnimator::getTranslucentFalloff },
-    { QLatin1String("Material"), QLatin1String("diffuselightwrap"), &Q3DSDefaultMaterialAnimator::setDiffuseLightWrap, &Q3DSDefaultMaterialAnimator::getDiffuseLightWrap },
-
-    { QLatin1String("Camera"), QLatin1String("fov"), &Q3DSCameraNodeAnimator::setFov, &Q3DSCameraNodeAnimator::getFov },
-    { QLatin1String("Camera"), QLatin1String("clipnear"), &Q3DSCameraNodeAnimator::setClipNear, &Q3DSCameraNodeAnimator::getClipNear },
-    { QLatin1String("Camera"), QLatin1String("clipfar"), &Q3DSCameraNodeAnimator::setClipFar, &Q3DSCameraNodeAnimator::getClipFar },
-
-    { QLatin1String("Light"), QLatin1String("lightdiffuse"), &Q3DSLightNodeAnimator::setDiffuse, &Q3DSLightNodeAnimator::getDiffuse },
-    { QLatin1String("Light"), QLatin1String("lightspecular"), &Q3DSLightNodeAnimator::setSpecular, &Q3DSLightNodeAnimator::getSpecular },
-    { QLatin1String("Light"), QLatin1String("lightambient"), &Q3DSLightNodeAnimator::setAmbient, &Q3DSLightNodeAnimator::getAmbient },
-    { QLatin1String("Light"), QLatin1String("brightness"), &Q3DSLightNodeAnimator::setBrightness, &Q3DSLightNodeAnimator::getBrightness },
-    { QLatin1String("Light"), QLatin1String("linearfade"), &Q3DSLightNodeAnimator::setLinearFade, &Q3DSLightNodeAnimator::getLinearFade },
-    { QLatin1String("Light"), QLatin1String("expfade"), &Q3DSLightNodeAnimator::setExpFade, &Q3DSLightNodeAnimator::getExpFade },
-    { QLatin1String("Light"), QLatin1String("areawidth"), &Q3DSLightNodeAnimator::setAreaWidth, &Q3DSLightNodeAnimator::getAreaWidth },
-    { QLatin1String("Light"), QLatin1String("areaheight"), &Q3DSLightNodeAnimator::setAreaHeight, &Q3DSLightNodeAnimator::getAreaHeight },
-    { QLatin1String("Light"), QLatin1String("shdwfactor"), &Q3DSLightNodeAnimator::setShadowFactor, &Q3DSLightNodeAnimator::getShadowFactor },
-    { QLatin1String("Light"), QLatin1String("shdwfilter"), &Q3DSLightNodeAnimator::setShadowFilter, &Q3DSLightNodeAnimator::getShadowFilter },
-    { QLatin1String("Light"), QLatin1String("shdwbias"), &Q3DSLightNodeAnimator::setShadowBias, &Q3DSLightNodeAnimator::getShadowBias },
-    { QLatin1String("Light"), QLatin1String("shdwmapfar"), &Q3DSLightNodeAnimator::setShadowMapFar, &Q3DSLightNodeAnimator::getShadowMapFar },
-    { QLatin1String("Light"), QLatin1String("shdwmapfov"), &Q3DSLightNodeAnimator::setShadowMapFov, &Q3DSLightNodeAnimator::getShadowMapFov },
-
-    { QLatin1String("Model"), QLatin1String("edgetess"), &Q3DSModelNodeAnimator::setEdgeTess, &Q3DSModelNodeAnimator::getEdgeTess },
-    { QLatin1String("Model"), QLatin1String("innertess"), &Q3DSModelNodeAnimator::setInnerTess, &Q3DSModelNodeAnimator::getInnerTess },
-
-    { QLatin1String("Text"), QLatin1String("textcolor"), &Q3DSTextNodeAnimator::setColor, &Q3DSTextNodeAnimator::getColor },
-    { QLatin1String("Text"), QLatin1String("leading"), &Q3DSTextNodeAnimator::setLeading, &Q3DSTextNodeAnimator::getLeading },
-    { QLatin1String("Text"), QLatin1String("tracking"), &Q3DSTextNodeAnimator::setTracking, &Q3DSTextNodeAnimator::getTracking },
-
-    { QLatin1String("Image"), QLatin1String("scaleu"), &Q3DSImageAnimator::setScaleU, &Q3DSImageAnimator::getScaleU },
-    { QLatin1String("Image"), QLatin1String("scalev"), &Q3DSImageAnimator::setScaleV, &Q3DSImageAnimator::getScaleV },
-    { QLatin1String("Image"), QLatin1String("rotationuv"), &Q3DSImageAnimator::setRotationUV, &Q3DSImageAnimator::getRotationUV },
-    { QLatin1String("Image"), QLatin1String("positionu"), &Q3DSImageAnimator::setPositionU, &Q3DSImageAnimator::getPositionU },
-    { QLatin1String("Image"), QLatin1String("positionv"), &Q3DSImageAnimator::setPositionV, &Q3DSImageAnimator::getPositionV },
-    { QLatin1String("Image"), QLatin1String("pivotu"), &Q3DSImageAnimator::setPivotU, &Q3DSImageAnimator::getPivotU },
-    { QLatin1String("Image"), QLatin1String("pivotv"), &Q3DSImageAnimator::setPivotV, &Q3DSImageAnimator::getPivotV },
-
-    { QLatin1String("Layer"), QLatin1String("left"), &Q3DSLayerNodeAnimator::setLeft, &Q3DSLayerNodeAnimator::getLeft },
-    { QLatin1String("Layer"), QLatin1String("right"), &Q3DSLayerNodeAnimator::setRight, &Q3DSLayerNodeAnimator::getRight },
-    { QLatin1String("Layer"), QLatin1String("width"), &Q3DSLayerNodeAnimator::setWidth, &Q3DSLayerNodeAnimator::getWidth },
-    { QLatin1String("Layer"), QLatin1String("height"), &Q3DSLayerNodeAnimator::setHeight, &Q3DSLayerNodeAnimator::getHeight },
-    { QLatin1String("Layer"), QLatin1String("top"), &Q3DSLayerNodeAnimator::setTop, &Q3DSLayerNodeAnimator::getTop },
-    { QLatin1String("Layer"), QLatin1String("bottom"), &Q3DSLayerNodeAnimator::setBottom, &Q3DSLayerNodeAnimator::getBottom },
-    { QLatin1String("Layer"), QLatin1String("aostrength"), &Q3DSLayerNodeAnimator::setAoStrength, &Q3DSLayerNodeAnimator::getAoStrength },
-    { QLatin1String("Layer"), QLatin1String("aodistance"), &Q3DSLayerNodeAnimator::setAoDistance, &Q3DSLayerNodeAnimator::getAoDistance },
-    { QLatin1String("Layer"), QLatin1String("aosoftness"), &Q3DSLayerNodeAnimator::setAoSoftness, &Q3DSLayerNodeAnimator::getAoSoftness },
-    { QLatin1String("Layer"), QLatin1String("aobias"), &Q3DSLayerNodeAnimator::setAoBias, &Q3DSLayerNodeAnimator::getAoBias },
-    { QLatin1String("Layer"), QLatin1String("aosamplerate"), &Q3DSLayerNodeAnimator::setAoSampleRate, &Q3DSLayerNodeAnimator::getAoSampleRate },
-    { QLatin1String("Layer"), QLatin1String("shadowstrength"), &Q3DSLayerNodeAnimator::setShadowStrength, &Q3DSLayerNodeAnimator::getShadowStrength },
-    { QLatin1String("Layer"), QLatin1String("shadowdist"), &Q3DSLayerNodeAnimator::setShadowDist, &Q3DSLayerNodeAnimator::getShadowDist },
-    { QLatin1String("Layer"), QLatin1String("shadowsoftness"), &Q3DSLayerNodeAnimator::setShadowSoftness, &Q3DSLayerNodeAnimator::getShadowSoftness },
-    { QLatin1String("Layer"), QLatin1String("shadowbias"), &Q3DSLayerNodeAnimator::setShadowBias, &Q3DSLayerNodeAnimator::getShadowBias },
-    { QLatin1String("Layer"), QLatin1String("probebright"), &Q3DSLayerNodeAnimator::setProbeBright, &Q3DSLayerNodeAnimator::getProbeBright },
-    { QLatin1String("Layer"), QLatin1String("probehorizon"), &Q3DSLayerNodeAnimator::setProbeHorizon, &Q3DSLayerNodeAnimator::getProbeHorizon },
-    { QLatin1String("Layer"), QLatin1String("probefov"), &Q3DSLayerNodeAnimator::setProbeFov, &Q3DSLayerNodeAnimator::getProbeFov },
-    { QLatin1String("Layer"), QLatin1String("probe2fade"), &Q3DSLayerNodeAnimator::setProbe2Fade, &Q3DSLayerNodeAnimator::getProbe2Fade },
-    { QLatin1String("Layer"), QLatin1String("probe2window"), &Q3DSLayerNodeAnimator::setProbe2Window, &Q3DSLayerNodeAnimator::getProbe2Window },
-    { QLatin1String("Layer"), QLatin1String("probe2pos"), &Q3DSLayerNodeAnimator::setProbe2Pos, &Q3DSLayerNodeAnimator::getProbe2Pos }
-
-    // CustomMaterial and Effect are not listed here since they are handled
-    // differently. There all dynamic properties are assumed to be animatable
-    // but they need to be discovered on demand, when the target object is known.
-};
-
-void Q3DSAnimationManager::gatherAnimatableMeta(const QString &type, AnimatableTab *dst)
-{
-    Q3DSDataModelParser *dataModelParser = Q3DSDataModelParser::instance();
-    const QVector<Q3DSDataModelParser::Property> *propMeta = dataModelParser->propertiesForType(type);
-    if (propMeta) {
-        for (const Q3DSDataModelParser::Property &prop : *propMeta) {
-            // Filter out the ones explicitly marked with animatable="False",
-            // although there's still going to be many that will never get animated (enum, Image, etc. types).
-            // There's a second filter below based on extraMeta anyways.
-            if (prop.animatable) {
-                Animatable a;
-                a.name = prop.name;
-                a.type = prop.type;
-                a.componentCount = prop.componentCount;
-
-                bool known = false;
-                const size_t extraCount = sizeof(extraMeta) / sizeof(AnimatableExtraMeta);
-                for (size_t i = 0; i < extraCount; ++i) {
-                    if (extraMeta[i].type3DS == type && extraMeta[i].name3DS == a.name) {
-                        a.setter = extraMeta[i].setter;
-                        a.getter = extraMeta[i].getter;
-                        known = true;
-                        break;
-                    }
-                }
-
-                if (known)
-                    dst->insert(a.name, a);
-            }
-        }
-    }
-}
-
-static void dynamicPropertySetter(Q3DSGraphObject *obj, const QVariant &value, const QString &name)
-{
-    if (obj->type() == Q3DSGraphObject::CustomMaterial) {
-        Q3DSCustomMaterialInstance *mat3DS = static_cast<Q3DSCustomMaterialInstance *>(obj);
-        mat3DS->applyDynamicProperties(QVariantMap{{name, value}});
-    } else if (obj->type() == Q3DSGraphObject::Effect) {
-        Q3DSEffectInstance *eff3DS = static_cast<Q3DSEffectInstance *>(obj);
-        eff3DS->applyDynamicProperties(QVariantMap{{name, value}});
-    }
-}
-
-static QVariant dynamicPropertyGetter(Q3DSGraphObject *obj, const QString &name)
-{
-    if (obj->type() == Q3DSGraphObject::CustomMaterial) {
-        Q3DSCustomMaterialInstance *mat3DS = static_cast<Q3DSCustomMaterialInstance *>(obj);
-        return mat3DS->dynamicProperties().value(name);
-    } else if (obj->type() == Q3DSGraphObject::Effect) {
-        Q3DSEffectInstance *eff3DS = static_cast<Q3DSEffectInstance *>(obj);
-        return eff3DS->dynamicProperties().value(name);
-    }
-    return QVariant();
-}
-
-void Q3DSAnimationManager::gatherDynamicProperties(const QVariantMap &dynProps,
-                                                   const QMap<QString, Q3DSMaterial::PropertyElement> &propMeta,
-                                                   AnimatableTab *dst)
-{
-    // dynProps is the name - value map with the actual (or the default) values for the custom material or effect instance
-    // propMeta is the metadata for all the dynamic properties of the custom material or effect
-    for (auto propIt = dynProps.cbegin(), propItEnd = dynProps.cend(); propIt != propItEnd; ++propIt) {
-        Animatable a;
-        a.name = propIt.key();
-        Q_ASSERT(propMeta.contains(a.name));
-        Q3DSMaterial::PropertyElement prop = propMeta.value(a.name);
-        a.type = prop.type;
-        a.componentCount = prop.componentCount;
-        // Have generic setter/getter implementations (this is possible
-        // due to the 3rd/2nd QString parameter in the signatures).
-        a.setter = dynamicPropertySetter;
-        a.getter = dynamicPropertyGetter;
-        dst->insert(a.name, a);
-    }
-}
-
 class Q3DSAnimationCallback : public Qt3DAnimation::QAnimationCallback
 {
 public:
-    Q3DSAnimationCallback(Q3DSGraphObject *target, const Q3DSAnimationManager::Animatable &animMeta, Q3DSAnimationManager *manager)
-        : m_target(target), m_animMeta(animMeta), m_animationManager(manager) { }
+    Q3DSAnimationCallback(Q3DSGraphObject *target,
+                          Q3DSAnimationManager *manager,
+                          const QMetaProperty &property,
+                          const QString &propertyName,
+                          QVariant::Type type)
+        : m_target(target),
+          m_animationManager(manager),
+          m_property(property),
+          m_propertyName(propertyName),
+          m_type(type) { }
 
     void valueChanged(const QVariant &value) override;
 
 private:
-    QVariant stabilizeAnimatedValue(const QVariant &value, Q3DS::PropertyType type);
+    static QVariant stabilizeAnimatedValue(const QVariant &value, QVariant::Type type);
 
     Q3DSGraphObject *m_target;
-    Q3DSAnimationManager::Animatable m_animMeta;
     Q3DSAnimationManager *m_animationManager;
+    QMetaProperty m_property;
+    QString m_propertyName;
+    QVariant::Type m_type;
 };
 
 void Q3DSAnimationCallback::valueChanged(const QVariant &value)
@@ -231,15 +79,16 @@ void Q3DSAnimationCallback::valueChanged(const QVariant &value)
     // invoked once per frame.
 
     Q3DSAnimationManager::AnimationValueChange change;
-    change.value = stabilizeAnimatedValue(value, m_animMeta.type);
-    change.name = m_animMeta.name;
-    change.setter = m_animMeta.setter;
+    // Don't use the property type/name directly as it might be a dynamic type, i.e., a QVariantMap
+    change.value = stabilizeAnimatedValue(value, m_type);
+    change.property = m_property;
+    change.propertyName = m_propertyName;
     m_animationManager->queueChange(m_target, change);
 }
 
-QVariant Q3DSAnimationCallback::stabilizeAnimatedValue(const QVariant &value, Q3DS::PropertyType type)
+QVariant Q3DSAnimationCallback::stabilizeAnimatedValue(const QVariant &value, QVariant::Type type)
 {
-    if (type == Q3DS::Color && value.type() == QVariant::Vector3D) {
+    if (type == QVariant::Color && value.type() == QVariant::Vector3D) {
         const QVector3D v = value.value<QVector3D>();
         // rgb is already in range [0, 1] but let's make sure the 0 and 1 are really 0 and 1.
         // This avoids confusing QColor when qFuzzyCompare(r, 1.0f) && r > 1.0f
@@ -264,14 +113,12 @@ static int componentSuffixToIndex(const QString &s)
     return -1;
 }
 
-template<class T>
-void Q3DSAnimationManager::updateAnimationHelper(const AnimationTrackListMap<T *> &targets,
-                                                 AnimatableTab *animatables,
+void Q3DSAnimationManager::updateAnimationHelper(const AnimationTrackListMap &targets,
                                                  Q3DSSlide *slide,
                                                  bool editorMode)
 {
     for (auto it = targets.cbegin(), ite = targets.cend(); it != ite; ++it) {
-        T *target = it.key();
+        Q3DSGraphObject *target = it.key();
         Q3DSGraphObjectAttached *data = target->attached();
         Q_ASSERT(data);
         m_activeTargets.insert(target);
@@ -320,10 +167,13 @@ void Q3DSAnimationManager::updateAnimationHelper(const AnimationTrackListMap<T *
         //        <AnimationTrack property="rotation.z" type="EaseInOut" >0 -20.7213 100 100 6.544 -20.7213 100 100 10 -20.7213 100 100</AnimationTrack>
 
         struct ChannelComponents {
-            Animatable meta;
+            QMetaProperty property;
             Qt3DAnimation::QChannelComponent comps[4];
             Qt3DAnimation::QChannel channel;
-            bool dynamic = false;
+            // Type and name will be the real type if it's a dynamic property
+            QVariant::Type propertyType = QVariant::Invalid;
+            bool dynamicTrack = false;
+            bool dynamicProperty = false;
         };
         QHash<QString, ChannelComponents> channelData;
 
@@ -407,15 +257,16 @@ void Q3DSAnimationManager::updateAnimationHelper(const AnimationTrackListMap<T *
         };
 
         static const auto updateDynamicKeyFrame = [](Q3DSAnimationTrack::KeyFrame &keyFrame,
-                                                    AnimatableTab *animatables,
-                                                    Q3DSGraphObject *target,
-                                                    const QStringList &prop) {
+                                                     Q3DSGraphObject *target,
+                                                     const QStringList &prop) {
             qCDebug(lcAnim, "Building dynamic key-frame for %s's property %s", target->id().constData(), qPrintable(prop[0]));
+            const QVariant value = target->property(prop[0].toLatin1());
+            if (!value.isValid())
+                return;
+
             if (prop.count() == 1) {
-                const float value = animatables->value(prop[0]).getter(target, QString::fromLatin1("")).toFloat();
-                keyFrame.value = value;
+                keyFrame.value = value.toFloat();
             } else {
-                const QVariant value = animatables->value(prop[0]).getter(target, QString::fromLatin1(""));
                 qreal x = 0.0, y = 0.0, z = 0.0;
                 if (value.type() == QVariant::Color) {
                     qvariant_cast<QColor>(value).getRgbF(&x, &y, &z);
@@ -440,24 +291,45 @@ void Q3DSAnimationManager::updateAnimationHelper(const AnimationTrackListMap<T *
                 continue;
 
             const QString &propertyName = prop[0];
-            if (!animatables->contains(propertyName))
+            ChannelComponents &channelComponent(channelData[propertyName]);
+            int idx = target->metaObject()->indexOfProperty(propertyName.toLatin1().constData());
+
+            // No property found on object, so check if it's a dynamic property...
+            if (idx == -1) {
+                const auto properties = target->dynamicPropertyNames();
+                idx = properties.indexOf(propertyName.toLatin1());
+                if (idx != -1) {
+                    channelComponent.propertyType = target->dynamicPropertyValues().at(idx).type();
+                    channelComponent.dynamicProperty = true;
+                    // Adjust the property idx, as we'll use it to get the meta-method
+                    // we're using for this property further down
+                    idx = target->metaObject()->indexOfProperty("dynamicProperties");
+                    Q_ASSERT(idx != -1);
+                }
+            }
+
+            if (idx == -1)
                 continue;
 
             auto keyFrames = animationTrack->keyFrames();
             if (keyFrames.isEmpty())
                 continue;
 
-            Animatable *animMeta = &(*animatables)[propertyName];
-            ChannelComponents &channelComponent(channelData[animMeta->name]);
-            channelComponent.meta = *animMeta;
-            channelComponent.dynamic = animationTrack->isDynamic();
+            const QMetaProperty property = target->metaObject()->property(idx);
+            Q_ASSERT(property.isWritable());
+
+            channelComponent.property = property;
+            // Keep the property type in sync
+            if (!channelComponent.dynamicProperty)
+                channelComponent.propertyType = property.type();
+            channelComponent.dynamicTrack = animationTrack->isDynamic();
 
             const auto type = animationTrack->type();
             const bool isDynamic = animationTrack->isDynamic() && !editorMode;
             // If track is marked as dynamic, update the first keyframe so it interpolates from
             // the current position to the next.
             if (isDynamic)
-                updateDynamicKeyFrame(keyFrames[0], animatables, target, prop);
+                updateDynamicKeyFrame(keyFrames[0], target, prop);
             buildKeyFrames(keyFrames, type, channelComponent, prop);
         }
 
@@ -471,7 +343,20 @@ void Q3DSAnimationManager::updateAnimationHelper(const AnimationTrackListMap<T *
             // Now a QChannel can be created.
             chIt->channel.setName(channelName);
 
-            for (int i = 0; i < chIt->meta.componentCount; ++i) {
+            QVariant::Type type = chIt->propertyType;
+            const int componentCount = [type]() {
+                switch (type) {
+                case QVariant::Vector2D:
+                    return 2;
+                case QVariant::Vector3D:
+                    return 3;
+                case QVariant::Color:
+                    return 3;
+                default:
+                    return 1;
+                }
+            }();
+            for (int i = 0; i < componentCount; ++i) {
                 // Leave the component name unset. This way Qt3D will not waste
                 // time on string comparisons for figuring out the right index
                 // (e.g. 1) for e.g. QChannelComponent("BlahBlah Y"), but uses
@@ -500,7 +385,6 @@ void Q3DSAnimationManager::updateAnimationHelper(const AnimationTrackListMap<T *
             clipData.appendChannel(chIt->channel);
 
             // Figure out the QVariant/QMetaType type enum value.
-            int type = Q3DS::animatablePropertyTypeToMetaType(chIt->meta.type);
             if (type == QVariant::Invalid) {
                 qWarning("Cannot map channel type for animated property %s", qPrintable(channelName));
                 continue;
@@ -518,7 +402,7 @@ void Q3DSAnimationManager::updateAnimationHelper(const AnimationTrackListMap<T *
             // Create a mapping with a custom callback.
             QScopedPointer<Qt3DAnimation::QCallbackMapping> mapping(new Qt3DAnimation::QCallbackMapping);
             mapping->setChannelName(channelName);
-            Q3DSAnimationCallback *cb = new Q3DSAnimationCallback(target, chIt->meta, this);
+            Q3DSAnimationCallback *cb = new Q3DSAnimationCallback(target, this, chIt->property, chIt.key(), chIt->propertyType);
             data->animationDataMap[slide]->animationCallbacks.append(cb);
             mapping->setCallback(type, cb, 0);
             mapper->addMapping(mapping.take());
@@ -578,8 +462,9 @@ void Q3DSAnimationManager::clearAnimations(Q3DSSlide *slide)
     cleanUpAnimationData(slide->animations(), slide);
 }
 
-template <typename T>
-static void insertTrack(T &trackList, const Q3DSAnimationTrack &animTrack, bool overWrite)
+static void insertTrack(Q3DSAnimationManager::AnimationTrackList &trackList,
+                        const Q3DSAnimationTrack &animTrack,
+                        bool overWrite)
 {
     if (overWrite) {
         auto it = std::find_if(trackList.begin(), trackList.end(), [&animTrack](const Q3DSAnimationTrack *track) {
@@ -609,19 +494,7 @@ void Q3DSAnimationManager::updateAnimations(Q3DSSlide *slide, bool editorMode)
     if (!hasAnimationData)
         return;
 
-    AnimationTrackListMap<Q3DSDefaultMaterial *> defMatAnims;
-    AnimationTrackListMap<Q3DSCustomMaterialInstance *> customMatAnims;
-    AnimationTrackListMap<Q3DSEffectInstance *> effectAnims;
-    AnimationTrackListMap<Q3DSCameraNode *> camAnims;
-    AnimationTrackListMap<Q3DSLightNode *> lightAnims;
-    AnimationTrackListMap<Q3DSModelNode *> modelAnims;
-    AnimationTrackListMap<Q3DSGroupNode *> groupAnims;
-    AnimationTrackListMap<Q3DSComponentNode *> compAnims;
-    AnimationTrackListMap<Q3DSTextNode *> textAnims;
-    AnimationTrackListMap<Q3DSImage *> imageAnims;
-    AnimationTrackListMap<Q3DSLayerNode *> layerAnims;
-    AnimationTrackListMap<Q3DSAliasNode *> aliasAnims;
-
+    AnimationTrackListMap trackListMap;
     const auto buildTrackListMap = [&](Q3DSSlide *slide, bool overwrite) {
         if (!slide)
             return;
@@ -633,82 +506,7 @@ void Q3DSAnimationManager::updateAnimations(Q3DSSlide *slide, bool editorMode)
             if (target->state() != Q3DSGraphObject::Enabled)
                 continue;
 
-            switch (target->type()) {
-            case Q3DSGraphObject::DefaultMaterial:
-            {
-                Q3DSDefaultMaterial *mat = static_cast<Q3DSDefaultMaterial *>(target);
-                insertTrack(defMatAnims[mat], animTrack, overwrite);
-              }
-                break;
-            case Q3DSGraphObject::CustomMaterial:
-            {
-                Q3DSCustomMaterialInstance *mat = static_cast<Q3DSCustomMaterialInstance *>(target);
-                insertTrack(customMatAnims[mat], animTrack, overwrite);
-            }
-                break;
-            case Q3DSGraphObject::Effect:
-            {
-                Q3DSEffectInstance *mat = static_cast<Q3DSEffectInstance *>(target);
-                insertTrack(effectAnims[mat], animTrack, overwrite);
-            }
-                break;
-            case Q3DSGraphObject::Camera:
-            {
-                Q3DSCameraNode *cam3DS = static_cast<Q3DSCameraNode *>(animTrack.target());
-                insertTrack(camAnims[cam3DS], animTrack, overwrite);
-            }
-                break;
-            case Q3DSGraphObject::Light:
-            {
-                Q3DSLightNode *light3DS = static_cast<Q3DSLightNode *>(animTrack.target());
-                insertTrack(lightAnims[light3DS], animTrack, overwrite);
-            }
-                break;
-            case Q3DSGraphObject::Model:
-            {
-                Q3DSModelNode *model3DS = static_cast<Q3DSModelNode *>(animTrack.target());
-                insertTrack(modelAnims[model3DS], animTrack, overwrite);
-            }
-                break;
-            case Q3DSGraphObject::Group:
-            {
-                Q3DSGroupNode *group3DS = static_cast<Q3DSGroupNode *>(animTrack.target());
-                insertTrack(groupAnims[group3DS], animTrack, overwrite);
-            }
-                break;
-            case Q3DSGraphObject::Component:
-            {
-                Q3DSComponentNode *comp3DS = static_cast<Q3DSComponentNode *>(animTrack.target());
-                insertTrack(compAnims[comp3DS], animTrack, overwrite);
-            }
-                break;
-            case Q3DSGraphObject::Text:
-            {
-                Q3DSTextNode *text3DS = static_cast<Q3DSTextNode *>(animTrack.target());
-                insertTrack(textAnims[text3DS], animTrack, overwrite);
-            }
-                break;
-            case Q3DSGraphObject::Image:
-            {
-                Q3DSImage *image3DS = static_cast<Q3DSImage *>(animTrack.target());
-                insertTrack(imageAnims[image3DS], animTrack, overwrite);
-            }
-                break;
-            case Q3DSGraphObject::Layer:
-            {
-                Q3DSLayerNode *layer3DS = static_cast<Q3DSLayerNode *>(animTrack.target());
-                insertTrack(layerAnims[layer3DS], animTrack, overwrite);
-            }
-                break;
-            case Q3DSGraphObject::Alias:
-            {
-                Q3DSAliasNode *alias3DS = static_cast<Q3DSAliasNode *>(animTrack.target());
-                insertTrack(aliasAnims[alias3DS], animTrack, overwrite);
-            }
-                break;
-            default:
-                break;
-            }
+            insertTrack(trackListMap[target], animTrack, overwrite);
         }
     };
 
@@ -717,96 +515,7 @@ void Q3DSAnimationManager::updateAnimations(Q3DSSlide *slide, bool editorMode)
     buildTrackListMap(masterSlide, false);
     buildTrackListMap(slide, true);
 
-    qCDebug(lcAnim, "Slide %s has %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d animated objects", slide->id().constData(),
-            defMatAnims.count(), customMatAnims.count(), effectAnims.count(), camAnims.count(), lightAnims.count(), modelAnims.count(), groupAnims.count(),
-            compAnims.count(), textAnims.count(), imageAnims.count(), layerAnims.count(), aliasAnims.count());
-
-    if (m_defaultMaterialAnimatables.isEmpty())
-        gatherAnimatableMeta(QLatin1String("Material"), &m_defaultMaterialAnimatables);
-
-    updateAnimationHelper(defMatAnims, &m_defaultMaterialAnimatables, slide, editorMode);
-
-    if (m_cameraAnimatables.isEmpty()) {
-        gatherAnimatableMeta(QLatin1String("Node"), &m_cameraAnimatables);
-        gatherAnimatableMeta(QLatin1String("Camera"), &m_cameraAnimatables);
-    }
-
-    updateAnimationHelper(camAnims, &m_cameraAnimatables, slide, editorMode);
-
-    if (m_lightAnimatables.isEmpty()) {
-        gatherAnimatableMeta(QLatin1String("Node"), &m_lightAnimatables);
-        gatherAnimatableMeta(QLatin1String("Light"), &m_lightAnimatables);
-    }
-
-    updateAnimationHelper(lightAnims, &m_lightAnimatables, slide, editorMode);
-
-    if (m_modelAnimatables.isEmpty()) {
-        gatherAnimatableMeta(QLatin1String("Node"), &m_modelAnimatables);
-        gatherAnimatableMeta(QLatin1String("Model"), &m_modelAnimatables);
-    }
-
-    updateAnimationHelper(modelAnims, &m_modelAnimatables, slide, editorMode);
-
-    if (m_groupAnimatables.isEmpty()) {
-        gatherAnimatableMeta(QLatin1String("Node"), &m_groupAnimatables);
-        gatherAnimatableMeta(QLatin1String("Group"), &m_groupAnimatables);
-    }
-
-    updateAnimationHelper(groupAnims, &m_groupAnimatables, slide, editorMode);
-
-    if (m_componentAnimatables.isEmpty())
-        gatherAnimatableMeta(QLatin1String("Node"), &m_componentAnimatables);
-
-    updateAnimationHelper(compAnims, &m_componentAnimatables, slide, editorMode);
-
-    if (m_textAnimatables.isEmpty()) {
-        gatherAnimatableMeta(QLatin1String("Node"), &m_textAnimatables);
-        gatherAnimatableMeta(QLatin1String("Text"), &m_textAnimatables);
-    }
-
-    updateAnimationHelper(textAnims, &m_textAnimatables, slide, editorMode);
-
-    if (m_imageAnimatables.isEmpty())
-        gatherAnimatableMeta(QLatin1String("Image"), &m_imageAnimatables);
-
-    updateAnimationHelper(imageAnims, &m_imageAnimatables, slide, editorMode);
-
-    if (m_layerAnimatables.isEmpty())
-        gatherAnimatableMeta(QLatin1String("Layer"), &m_layerAnimatables);
-
-    updateAnimationHelper(layerAnims, &m_layerAnimatables, slide, editorMode);
-
-    if (m_aliasAnimatables.isEmpty()) {
-        gatherAnimatableMeta(QLatin1String("Node"), &m_aliasAnimatables);
-        gatherAnimatableMeta(QLatin1String("Alias"), &m_aliasAnimatables);
-    }
-
-    updateAnimationHelper(aliasAnims, &m_aliasAnimatables, slide, editorMode);
-
-    // custom materials and effects need special handling due to their dynamic properties
-    if (!customMatAnims.isEmpty()) {
-        AnimatableTab customMaterialAnimatables;
-        for (auto it = customMatAnims.cbegin(), itEnd = customMatAnims.cend(); it != itEnd; ++it) {
-            Q3DSCustomMaterialInstance *mat3DS = it.key();
-            gatherDynamicProperties(mat3DS->dynamicProperties(), mat3DS->material()->properties(), &customMaterialAnimatables);
-        }
-        updateAnimationHelper(customMatAnims, &customMaterialAnimatables, slide, editorMode);
-    }
-    if (!effectAnims.isEmpty()) {
-        AnimatableTab effectAnimatables;
-        for (auto it = effectAnims.cbegin(), itEnd = effectAnims.cend(); it != itEnd; ++it) {
-            Q3DSEffectInstance *eff3DS = it.key();
-            gatherDynamicProperties(eff3DS->dynamicProperties(), eff3DS->effect()->properties(), &effectAnimatables);
-        }
-        updateAnimationHelper(effectAnims, &effectAnimatables, slide, editorMode);
-    }
-}
-
-QDebug operator<<(QDebug dbg, const Q3DSAnimationManager::Animatable &a)
-{
-    QDebugStateSaver saver(dbg);
-    dbg.nospace() << "Animatable(" << a.name << ' ' << a.type << ' ' << a.componentCount << " )";
-    return dbg;
+    updateAnimationHelper(trackListMap, slide, editorMode);
 }
 
 void Q3DSAnimationManager::applyChanges()
@@ -826,9 +535,13 @@ void Q3DSAnimationManager::applyChanges()
         Q3DSPropertyChangeList changeList;
         while (it != m_changes.cend() && it.key() == target) {
             if (Q_UNLIKELY(animDebug))
-                qDebug() << "animate:" << target->id() << it->name << it->value;
-            it->setter(target, it->value, it->name);
-            changeList.append(Q3DSPropertyChange(it->name));
+                qDebug() << "animate:" << target->id() << it->propertyName << it->value;
+            if (it->property.type() == QVariant::Map) {
+                it->property.writeOnGadget(target, QVariantMap{{it->propertyName, it->value}});
+            } else {
+                it->property.writeOnGadget(target, it->value);
+            }
+            changeList.append(Q3DSPropertyChange(it->propertyName));
             ++it;
         }
         if (!changeList.isEmpty())

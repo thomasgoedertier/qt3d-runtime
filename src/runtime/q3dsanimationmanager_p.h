@@ -43,6 +43,7 @@
 
 #include "q3dsslideplayer_p.h"
 #include "q3dsuippresentation_p.h"
+#include <QtCore/qmetaobject.h>
 #include <QDebug>
 
 QT_BEGIN_NAMESPACE
@@ -50,57 +51,29 @@ QT_BEGIN_NAMESPACE
 class Q3DSAnimationManager
 {
 public:
+    using AnimationTrackList = QVector<const Q3DSAnimationTrack *>;
+    using AnimationTrackListMap = QHash<Q3DSGraphObject *, AnimationTrackList>;
+
     void updateAnimations(Q3DSSlide *slide, bool editorMode = false);
     void clearAnimations(Q3DSSlide *slide);
     void applyChanges();
     void clearPendingChanges();
     void objectAboutToBeRemovedFromScene(Q3DSGraphObject *obj);
 
-    struct Animatable {
-        QString name;
-        Q3DS::PropertyType type = Q3DS::Unknown;
-        int componentCount = 0;
-        Qt3DAnimation::SetterFunc setter;
-        Qt3DAnimation::GetterFunc getter;
-    };
-
     struct AnimationValueChange {
         QVariant value;
-        QString name;
-        Qt3DAnimation::SetterFunc setter;
+        QString propertyName;
+        QMetaProperty property;
     };
 
     void queueChange(Q3DSGraphObject *target, const AnimationValueChange &change);
 
 private:
-    typedef QHash<QString, Animatable> AnimatableTab;
-    using AnimationTrackList = QVector<const Q3DSAnimationTrack *>;
-    template <typename T>
-    using AnimationTrackListMap = QHash<T, AnimationTrackList>;
-
-
-    void gatherAnimatableMeta(const QString &type, AnimatableTab *dst);
-    void gatherDynamicProperties(const QVariantMap &dynProps,
-                                 const QMap<QString, Q3DSMaterial::PropertyElement> &propMeta,
-                                 AnimatableTab *dst);
-    template<class T>
-    void updateAnimationHelper(const AnimationTrackListMap<T *> &targets,
-                               AnimatableTab *animatables,
+    void updateAnimationHelper(const AnimationTrackListMap &targets,
                                Q3DSSlide *slide,
                                bool editorMode);
 
     void buildClipAnimator(Q3DSSlide *slide);
-
-    AnimatableTab m_defaultMaterialAnimatables;
-    AnimatableTab m_cameraAnimatables;
-    AnimatableTab m_lightAnimatables;
-    AnimatableTab m_modelAnimatables;
-    AnimatableTab m_groupAnimatables;
-    AnimatableTab m_componentAnimatables;
-    AnimatableTab m_textAnimatables;
-    AnimatableTab m_imageAnimatables;
-    AnimatableTab m_layerAnimatables;
-    AnimatableTab m_aliasAnimatables;
 
     QMultiHash<Q3DSGraphObject *, AnimationValueChange> m_changes;
 
@@ -108,11 +81,6 @@ private:
 
     friend class Q3DSAnimationCallback;
 };
-
-inline bool operator==(const Q3DSAnimationManager::Animatable &a, const Q3DSAnimationManager::Animatable &b) { return a.name == b.name; }
-inline bool operator!=(const Q3DSAnimationManager::Animatable &a, const Q3DSAnimationManager::Animatable &b) { return !(a == b); }
-inline uint qHash(const Q3DSAnimationManager::Animatable &a, uint seed = 0) { return qHash(a.name, seed); }
-QDebug operator<<(QDebug dbg, const Q3DSAnimationManager::Animatable &a);
 
 QT_END_NAMESPACE
 
