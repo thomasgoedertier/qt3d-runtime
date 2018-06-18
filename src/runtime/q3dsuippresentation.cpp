@@ -3248,18 +3248,24 @@ void Q3DSModelNode::applyPropertyChanges(const Q3DSPropertyChangeList &changeLis
     setProps(changeList, 0);
 }
 
+int Q3DSModelNode::mapChangeFlags(const Q3DSPropertyChangeList &changeList)
+{
+    int changeFlags = Q3DSNode::mapChangeFlags(changeList);
+    for (auto it = changeList.cbegin(), itEnd = changeList.cend(); it != itEnd; ++it) {
+        if (it->nameStr() == QStringLiteral("sourcepath"))
+            changeFlags |= MeshChanges;
+    }
+    return changeFlags;
+}
+
 void Q3DSModelNode::resolveReferences(Q3DSUipPresentation &pres)
 {
     Q3DSNode::resolveReferences(pres);
-    if (!m_mesh_unresolved.isEmpty())
-        updateMesh(pres);
-}
-
-void Q3DSModelNode::updateMesh(Q3DSUipPresentation &pres)
-{
-    int part = 1;
-    const QString fn = pres.assetFileName(m_mesh_unresolved, &part);
-    m_mesh = pres.mesh(fn, part);
+    if (!m_mesh_unresolved.isEmpty()) {
+        int part = 1;
+        const QString fn = pres.assetFileName(m_mesh_unresolved, &part);
+        m_mesh = pres.mesh(fn, part);
+    }
 }
 
 QStringList Q3DSModelNode::propertyNames() const
@@ -3277,11 +3283,9 @@ QVariantList Q3DSModelNode::propertyValues() const
     return s;
 }
 
-Q3DSPropertyChange Q3DSModelNode::setMesh(const QString &v, Q3DSUipPresentation &pres)
+Q3DSPropertyChange Q3DSModelNode::setMesh(const QString &v)
 {
-    const auto result = createPropSetter(m_mesh_unresolved, v, "sourcepath");
-    updateMesh(pres);
-    return result;
+    return createPropSetter(m_mesh_unresolved, v, "sourcepath");
 }
 
 Q3DSPropertyChange Q3DSModelNode::setSkeletonRoot(int v)
@@ -4311,6 +4315,46 @@ void Q3DSUipPresentation::forAllImages(std::function<void (Q3DSImage *)> f)
         if (obj->type() == Q3DSGraphObject::Image)
             f(static_cast<Q3DSImage *>(obj));
     }
+}
+
+Q3DSGraphObject *Q3DSUipPresentation::newObject(const char *type, const QByteArray &id)
+{
+    Q3DSGraphObject *obj = nullptr;
+
+    if (type == QStringLiteral("Scene"))
+        obj = newObject<Q3DSScene>(id);
+    else if (type == QStringLiteral("Slide"))
+        obj = newObject<Q3DSSlide>(id);
+    else if (type == QStringLiteral("Image"))
+        obj = newObject<Q3DSImage>(id);
+    else if (type == QStringLiteral("DefaultMaterial"))
+        obj = newObject<Q3DSDefaultMaterial>(id);
+    else if (type == QStringLiteral("ReferencedMaterial"))
+        obj = newObject<Q3DSReferencedMaterial>(id);
+    else if (type == QStringLiteral("CustomMaterial"))
+        obj = newObject<Q3DSCustomMaterialInstance>(id);
+    else if (type == QStringLiteral("Effect"))
+        obj = newObject<Q3DSEffectInstance>(id);
+    else if (type == QStringLiteral("Behavior"))
+        obj = newObject<Q3DSBehaviorInstance>(id);
+    else if (type == QStringLiteral("Layer"))
+        obj = newObject<Q3DSLayerNode>(id);
+    else if (type == QStringLiteral("Camera"))
+        obj = newObject<Q3DSCameraNode>(id);
+    else if (type == QStringLiteral("Light"))
+        obj = newObject<Q3DSLightNode>(id);
+    else if (type == QStringLiteral("Model"))
+        obj = newObject<Q3DSModelNode>(id);
+    else if (type == QStringLiteral("Group"))
+        obj = newObject<Q3DSGroupNode>(id);
+    else if (type == QStringLiteral("Text"))
+        obj = newObject<Q3DSTextNode>(id);
+    else if (type == QStringLiteral("Component"))
+        obj = newObject<Q3DSComponentNode>(id);
+    else if (type == QStringLiteral("Alias"))
+        obj = newObject<Q3DSAliasNode>(id);
+
+    return obj;
 }
 
 QT_END_NAMESPACE

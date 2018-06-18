@@ -215,6 +215,12 @@ Q3DStudioMainWindow::Q3DStudioMainWindow(Q3DSWindow *view, Q3DSRemoteDeploymentM
         engine->setProfileUiVisible(!engine->isProfileUiVisible());
     }, Qt::Key_F10);
     addAction(showDebugView);
+    QAction *showConsole = profileSubMenu->addAction(tr("Toggle &console"), this, [view] {
+        view->requestActivate(); // get key events flowing right away even without any click
+        Q3DSEngine *engine = view->engine();
+        engine->setProfileUiVisible(!engine->isProfileUiVisible(), true);
+    }, Qt::Key_QuoteLeft);
+    addAction(showConsole);
     QAction *scaleUpDebugView = profileSubMenu->addAction(tr("Scale in-scene debug view up"), this, [view] {
         Q3DSEngine *engine = view->engine();
         engine->configureProfileUi(engine->profileUiScaleFactor() + 0.2f);

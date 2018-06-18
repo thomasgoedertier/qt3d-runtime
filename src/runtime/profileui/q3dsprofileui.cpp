@@ -76,6 +76,7 @@ private:
     void addLogWindow();
     void addConsoleWindow();
     void addFrameGraphWindow();
+    void addQt3DSceneGraphWindow();
     void addAlterSceneStuff();
     void showNumberInput(const QString &diName);
     void showVec2Input(const QString &diName);
@@ -85,6 +86,7 @@ private:
     Q3DSProfiler *selectedProfiler() const;
     bool isFiltered(const QString &s) const;
     void addFrameGraphNode(Qt3DRender::QFrameGraphNode *fg, const QSet<Qt3DRender::QFrameGraphNode *> &stopNodes);
+    void addQt3DSceneGraphNode(Qt3DCore::QEntity *e);
 
     Q3DSProfiler *m_profiler;
     Q3DSProfileUi::ConsoleInitFunc m_consoleInitFunc;
@@ -108,6 +110,7 @@ private:
     bool m_logFilterEnabled[MAX_LOG_FILTER_ENTRIES];
     bool m_dataInputWindowOpen = false;
     bool m_frameGraphWindowOpen = false;
+    bool m_qt3dSceneGraphWindowOpen = false;
     QHash<QString, QByteArray> m_dataInputTextBuf;
     QHash<QString, float> m_dataInputFloatBuf;
     QHash<QString, QVector2D> m_dataInputVec2Buf;
@@ -300,6 +303,8 @@ void Q3DSProfileView::frame()
             m_qt3dObjectsWindowOpen = !m_qt3dObjectsWindowOpen;
         if (ImGui::Button("Qt 3D frame graph"))
             m_frameGraphWindowOpen = !m_frameGraphWindowOpen;
+        if (ImGui::Button("Qt 3D scene graph"))
+            m_qt3dSceneGraphWindowOpen = !m_qt3dSceneGraphWindowOpen;
         if (ImGui::Button("Behavior list"))
             m_behaviorWindowOpen = !m_behaviorWindowOpen;
     }
@@ -326,6 +331,9 @@ void Q3DSProfileView::frame()
 
     if (m_frameGraphWindowOpen)
         addFrameGraphWindow();
+
+    if (m_qt3dSceneGraphWindowOpen)
+        addQt3DSceneGraphWindow();
 }
 
 void Q3DSProfileView::addQt3DObjectsWindow()
@@ -836,6 +844,60 @@ void Q3DSProfileView::addFrameGraphWindow()
                 "(cached layers are excluded since these do not re-render)");
     ImGui::Separator();
     addFrameGraphNode(selectedProfiler()->frameGraphRoot(), selectedProfiler()->frameGraphStopNodes());
+
+    ImGui::End();
+}
+
+void Q3DSProfileView::addQt3DSceneGraphNode(Qt3DCore::QEntity *e)
+{
+    QByteArray label = QString(QLatin1String("%1 (0x%2) %3"))
+            .arg(QString::fromUtf8(e->metaObject()->className()))
+            .arg((quintptr) e, 0, 16)
+            .arg(e->objectName())
+            .toUtf8();
+    auto components = e->components();
+    if (!components.isEmpty()) {
+        QString s = QLatin1String(" [");
+        for (auto c : components) {
+            QString compName = QString::fromUtf8(c->metaObject()->className());
+            const int colColPos = compName.lastIndexOf(QLatin1String("::"));
+            if (colColPos >= 0)
+                compName = compName.mid(colColPos + 2);
+            s += compName + QLatin1String(" ");
+        }
+        s += QLatin1String("]");
+        label += s.toUtf8();
+    }
+
+    int f = 0;
+    QVarLengthArray<Qt3DCore::QEntity *, 32> children;
+
+    for (QObject *obj : e->children()) {
+        auto child = qobject_cast<Qt3DCore::QEntity *>(obj);
+        if (child)
+            children.append(child);
+    }
+
+    if (children.isEmpty())
+        f |= ImGuiTreeNodeFlags_Leaf;
+
+    if (ImGui::TreeNodeEx(label.constData(), f)) {
+        for (auto child : children)
+            addQt3DSceneGraphNode(child);
+        ImGui::TreePop();
+    }
+}
+
+void Q3DSProfileView::addQt3DSceneGraphWindow()
+{
+    ImGui::SetNextWindowSize(ImVec2(500, 400), ImGuiCond_FirstUseEver);
+    ImGui::Begin("Qt 3D scene graph", &m_qt3dSceneGraphWindowOpen, ImGuiWindowFlags_NoSavedSettings);
+
+    addPresentationSelector();
+    ImGui::Text("Entity graph for the above presentation\n(NB main includes non-layer roots for other pres. as well)");
+    ImGui::Separator();
+    for (auto e : selectedProfiler()->qt3dSceneGraphRoots())
+        addQt3DSceneGraphNode(e);
 
     ImGui::End();
 }

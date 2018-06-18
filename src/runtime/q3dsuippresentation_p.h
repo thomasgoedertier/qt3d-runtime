@@ -972,7 +972,9 @@ public:
     };
 
     enum LayerPropertyChanges {
-        AoOrShadowChanges = 1 << Q3DSNode::FIRST_FREE_PROPERTY_CHANGE_BIT
+        AoOrShadowChanges = 1 << Q3DSNode::FIRST_FREE_PROPERTY_CHANGE_BIT,
+        LayerContentSubTreeChanges = 1 << (Q3DSNode::FIRST_FREE_PROPERTY_CHANGE_BIT + 1),
+        LayerContentSubTreeLightsChange = 1 << (Q3DSNode::FIRST_FREE_PROPERTY_CHANGE_BIT + 2)
     };
 
     Q3DSLayerNode();
@@ -1364,10 +1366,15 @@ public:
         NPatch
     };
 
+    enum ModelPropertyChanges {
+        MeshChanges = 1 << Q3DSNode::FIRST_FREE_PROPERTY_CHANGE_BIT
+    };
+
     Q3DSModelNode();
 
     void setProperties(const QXmlStreamAttributes &attrs, PropSetFlags flags) override;
     void applyPropertyChanges(const Q3DSPropertyChangeList &changeList) override;
+    int mapChangeFlags(const Q3DSPropertyChangeList &changeList) override;
     void resolveReferences(Q3DSUipPresentation &pres) override;
 
     QStringList propertyNames() const override;
@@ -1380,7 +1387,7 @@ public:
     float edgeTess() const { return m_edgeTess; }
     float innerTess() const { return m_innerTess; }
 
-    Q3DSPropertyChange setMesh(const QString &v, Q3DSUipPresentation &pres);
+    Q3DSPropertyChange setMesh(const QString &v);
     Q3DSPropertyChange setSkeletonRoot(int v);
     Q3DSPropertyChange setTessellation(Tessellation v);
     Q3DSPropertyChange setEdgeTess(float v);
@@ -1389,7 +1396,6 @@ public:
 private:
     Q_DISABLE_COPY(Q3DSModelNode)
     template<typename V> void setProps(const V &attrs, PropSetFlags flags);
-    void updateMesh(Q3DSUipPresentation &pres);
     friend class Q3DSModelNodeAnimator;
 
     QString m_mesh_unresolved;
@@ -1510,14 +1516,14 @@ private:
     template<typename V> void setProps(const V &attrs, PropSetFlags flags);
     friend class Q3DSTextNodeAnimator;
 
-    QString m_text;
-    QColor m_color;
-    QString m_font;
-    float m_size;
-    HorizontalAlignment m_horizAlign;
-    VerticalAlignment m_vertAlign;
-    float m_leading;
-    float m_tracking;
+    QString m_text = QStringLiteral("Text");
+    QColor m_color = Qt::white;
+    QString m_font = QStringLiteral("TitilliumWeb-Regular");
+    float m_size = 36;
+    HorizontalAlignment m_horizAlign = Center;
+    VerticalAlignment m_vertAlign = Middle;
+    float m_leading = 0;
+    float m_tracking = 0;
 };
 
 class Q3DSV_PRIVATE_EXPORT Q3DSTextNodeAnimator
@@ -2047,6 +2053,8 @@ public:
         if (obj->parent())
             obj->parent()->removeChildNode(obj);
     }
+
+    Q3DSGraphObject *newObject(const char *type, const QByteArray &id);
     void resolveAliases();
     void updateObjectStateForSubTrees();
     void addImplicitPropertyChanges();

@@ -183,6 +183,7 @@ void Q3DSImguiManager::resizePool(CmdListEntry *e, int newSize)
         for (int i = oldSize; i < newSize; ++i) {
             CmdEntry *ecmd = &e->cmds[i];
             Qt3DCore::QEntity *entity = new Qt3DCore::QEntity(m_rootEntity);
+            entity->setObjectName(QString(QLatin1String("imgui entity %1 for cmdlist %2")).arg(i).arg((quintptr) e, 0, 16));
             entity->addComponent(m_outputInfo.guiTag);
             Qt3DRender::QMaterial *material = buildMaterial(&ecmd->scissor);
             entity->addComponent(material);

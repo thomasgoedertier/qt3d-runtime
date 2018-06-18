@@ -176,6 +176,11 @@ Q3DSProfiler *Q3DSProfiler::mainPresentationProfiler()
     return m_mainProfiler ? m_mainProfiler : this;
 }
 
+void Q3DSProfiler::reportQt3DSceneGraphRoot(Qt3DCore::QEntity *rootEntity)
+{
+    m_qt3dSceneGraphRoots.append(rootEntity);
+}
+
 void Q3DSProfiler::reportFrameGraphRoot(Qt3DRender::QFrameGraphNode *fgNode)
 {
     m_frameGraphRoot = fgNode;

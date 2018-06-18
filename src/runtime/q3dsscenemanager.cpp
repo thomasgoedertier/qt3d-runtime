@@ -679,7 +679,8 @@ Q3DSSceneManager::Scene Q3DSSceneManager::buildScene(Q3DSUipPresentation *presen
 
     // Kick off the Qt3D scene.
     m_rootEntity = new Qt3DCore::QEntity;
-    m_rootEntity->setObjectName(QLatin1String("root"));
+    m_rootEntity->setObjectName(QString(QLatin1String("non-layer root for presentation %1")).arg(m_presentation->name()));
+    m_profiler->reportQt3DSceneGraphRoot(m_rootEntity);
 
     static const auto createSlideAttached = [](Q3DSSlide *slide, Qt3DCore::QEntity *entity) {
         if (!slide->attached()) {
@@ -1126,8 +1127,18 @@ void Q3DSSceneManager::buildLayer(Q3DSLayerNode *layer3DS,
     Qt3DRender::QFrameGraphNode *effectRoot = new Qt3DRender::QFrameGraphNode(mainTechniqueSelector);
     new Qt3DRender::QNoDraw(effectRoot);
 
+    Qt3DCore::QEntity *layerSceneRootEntity = new Qt3DCore::QEntity(rtSelector);
+    layerSceneRootEntity->setObjectName(QObject::tr("root for %1").arg(QString::fromUtf8(layer3DS->id())));
+    m_profiler->reportQt3DSceneGraphRoot(layerSceneRootEntity);
+
     Q3DSLayerAttached *layerData = new Q3DSLayerAttached;
-    layerData->entity = m_rootEntity; // must set an entity to to make Q3DSLayerNode properties animatable, just use the root
+    // Must set an entity to make Q3DSLayerNode properties animatable.
+    // also, this must be the general purpose "root" (### why?)
+    layerData->entity = m_rootEntity;
+    // The entity tree corresponding to 3DS nodes lives under a separate,
+    // per-layer "root" entity, to allow easy cleanup in case the layer goes
+    // away later on.
+    layerData->layerSceneRootEntity = layerSceneRootEntity;
     layerData->layer3DS = layer3DS;
     layerData->layerFgRoot = layerFgRoot;
     layerData->layerFgRootParent = layerFgRoot->parentNode();
@@ -1157,20 +1168,15 @@ void Q3DSSceneManager::buildLayer(Q3DSLayerNode *layer3DS,
 
     // Now add the scene contents.
     Q3DSGraphObject *obj = layer3DS->firstChild();
-    Qt3DCore::QEntity *layerSceneRootEntity = nullptr;
     m_componentNodeStack.clear();
     m_componentNodeStack.push(nullptr);
     while (obj) {
-        if (!layerSceneRootEntity) {
-            layerSceneRootEntity = new Qt3DCore::QEntity(rtSelector);
-            layerSceneRootEntity->setObjectName(QObject::tr("root for %1").arg(QString::fromUtf8(layer3DS->id())));
-        }
         buildLayerScene(obj, layer3DS, layerSceneRootEntity);
         obj = obj->nextSibling();
     }
 
     // Setup picking for layer
-    if (layerSceneRootEntity) {
+    if (layer3DS->firstChild()) {
         auto rayCaster = new Qt3DRender::QRayCaster(layerSceneRootEntity);
         rayCaster->setFilterMode(Qt3DRender::QAbstractRayCaster::AcceptAnyMatchingLayers);
         rayCaster->addLayer(layerData->opaqueTag);
@@ -3260,7 +3266,7 @@ void Q3DSSceneManager::buildLayerQuadEntity(Q3DSLayerNode *layer3DS, Qt3DCore::Q
     Q3DSLayerAttached *data = static_cast<Q3DSLayerAttached *>(layer3DS->attached());
     Q_ASSERT(data);
     Qt3DCore::QEntity *layerQuadEntity = new Qt3DCore::QEntity(parentEntity);
-    layerQuadEntity->setObjectName(QObject::tr("compositor for %1").arg(QString::fromUtf8(layer3DS->id())));
+    layerQuadEntity->setObjectName(QObject::tr("compositor quad for %1").arg(QString::fromUtf8(layer3DS->id())));
     data->compositorEntity = layerQuadEntity;
     if (!layer3DS->flags().testFlag(Q3DSNode::Active))
         layerQuadEntity->setEnabled(false);
@@ -3687,6 +3693,8 @@ void Q3DSSceneManager::initNonNode(Q3DSGraphObject *obj)
         obj->setAttached(new Q3DSBehaviorAttached);
 }
 
+// Recursively builds the Qt3D scene for the given node tree under a layer. (or
+// sub-tree, when called in response to a dynamic scene change with DirtyNodeAdded).
 void Q3DSSceneManager::buildLayerScene(Q3DSGraphObject *obj, Q3DSLayerNode *layer3DS, Qt3DCore::QEntity *parent)
 {
     if (!obj)
@@ -4296,14 +4304,35 @@ void Q3DSSceneManager::setLightProperties(Q3DSLightNode *light3DS, bool forceUpd
 
 Qt3DCore::QEntity *Q3DSSceneManager::buildModel(Q3DSModelNode *model3DS, Q3DSLayerNode *layer3DS, Qt3DCore::QEntity *parent)
 {
-    Q3DSModelAttached *data = new Q3DSModelAttached;
-    model3DS->setAttached(data);
+    model3DS->setAttached(new Q3DSModelAttached);
+
+    model3DS->addPropertyChangeObserver(std::bind(&Q3DSSceneManager::handlePropertyChange, this,
+                                                  std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
+    model3DS->addEventHandler(QString(), std::bind(&Q3DSSceneManager::handleEvent, this, std::placeholders::_1));
 
     Qt3DCore::QEntity *entity = new Qt3DCore::QEntity(parent);
     entity->setObjectName(QObject::tr("model %1").arg(QString::fromUtf8(model3DS->id())));
     initEntityForNode(entity, model3DS, layer3DS);
 
-    // Get List of Materials
+    const MeshList meshList = model3DS->mesh();
+    if (meshList.isEmpty()) // e.g. a default constructed Q3DSModelNode, do nothing else for now
+        return entity;
+
+    rebuildModelSubMeshes(model3DS);
+
+    return entity;
+}
+
+void Q3DSSceneManager::rebuildModelSubMeshes(Q3DSModelNode *model3DS)
+{
+    Q3DSModelAttached *modelData = static_cast<Q3DSModelAttached *>(model3DS->attached());
+
+    if (!modelData->subMeshes.isEmpty()) {
+        for (const Q3DSModelAttached::SubMesh &sm : modelData->subMeshes)
+            delete sm.entity;
+        modelData->subMeshes.clear();
+    }
+
     QVector<Q3DSGraphObject *> materials;
     for (int i = 0; i < model3DS->childCount(); ++i) {
         Q3DSGraphObject *child = model3DS->childAtIndex(i);
@@ -4313,13 +4342,17 @@ Qt3DCore::QEntity *Q3DSSceneManager::buildModel(Q3DSModelNode *model3DS, Q3DSLay
             materials.append(child);
     }
 
-    MeshList meshList = model3DS->mesh();
-    if (meshList.isEmpty())
-        return entity;
-
-    const int meshCount = meshList.count();
-    Q_ASSERT(materials.count() == meshCount);
-    Q3DSModelAttached *modelData = static_cast<Q3DSModelAttached *>(model3DS->attached());
+    const MeshList meshList = model3DS->mesh();
+    int meshCount = meshList.count();
+    if (materials.count() != meshCount) {
+        const int actualCount = qMin(meshCount, materials.count());
+        qCDebug(lcScene, "Model %s has %d submeshes but %d materials, this is wrong. Creating %d submeshes.",
+                model3DS->id().constData(),
+                meshCount,
+                materials.count(),
+                actualCount);
+        meshCount = actualCount;
+    }
     modelData->subMeshes.reserve(meshCount);
 
     for (int i = 0; i < meshCount; ++i) {
@@ -4328,14 +4361,15 @@ Qt3DCore::QEntity *Q3DSSceneManager::buildModel(Q3DSModelNode *model3DS, Q3DSLay
         // Now this is tricky. The presentation caches the meshes which means
         // we cannot just let the mesh to be parented to the entity (in the
         // addComponent). For now keep meshes alive by parenting them to
-        // something else.
+        // something else. May need something more sophisticated later
+        // (reference counting? proper LRU cache behavior?).
         mesh->setParent(m_rootEntity);
         m_profiler->trackNewObject(mesh, Q3DSProfiler::MeshObject,
                                    "Mesh %d for model %s", i, model3DS->id().constData());
 
         Q3DSModelAttached::SubMesh sm;
         sm.mesh = mesh;
-        sm.entity = new Qt3DCore::QEntity(entity);
+        sm.entity = new Qt3DCore::QEntity(modelData->entity);
         sm.entity->setObjectName(QObject::tr("model %1 submesh #%2").arg(QString::fromUtf8(model3DS->id())).arg(i));
         sm.entity->addComponent(mesh);
         sm.material = material;
@@ -4353,12 +4387,6 @@ Qt3DCore::QEntity *Q3DSSceneManager::buildModel(Q3DSModelNode *model3DS, Q3DSLay
 
     // update submesh entities wrt opaque vs transparent
     retagSubMeshes(model3DS);
-
-    model3DS->addPropertyChangeObserver(std::bind(&Q3DSSceneManager::handlePropertyChange, this,
-                                                  std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
-    model3DS->addEventHandler(QString(), std::bind(&Q3DSSceneManager::handleEvent, this, std::placeholders::_1));
-
-    return entity;
 }
 
 static void addShadowSsaoParams(Q3DSLayerAttached *layerData, QVector<Qt3DRender::QParameter *> *params, bool isCustomMaterial)
@@ -6671,6 +6699,13 @@ void Q3DSSceneManager::updateModel(Q3DSModelNode *model3DS)
             }
         }
     }
+
+    if (data->frameChangeFlags & Q3DSModelNode::MeshChanges) {
+        model3DS->resolveReferences(*m_presentation); // make mesh() return the new submesh list
+        qCDebug(lcPerf, "Rebuilding submeshes for %s", model3DS->id().constData());
+        rebuildModelSubMeshes(model3DS);
+        rebuildModelMaterial(model3DS);
+    }
 }
 
 // This method is used to get the lights based on the scope of current object
@@ -7124,6 +7159,10 @@ void Q3DSSceneManager::updateSubTreeRecursive(Q3DSGraphObject *obj)
                     true); // include hidden ones too
                 }
             }
+            // regen light/shadow/materials when a light was added/removed under the layer
+            if (data->frameChangeFlags & Q3DSLayerNode::LayerContentSubTreeLightsChange)
+                m_subTreeWithDirtyLights.insert(layer3DS);
+            // LayerContentSubTreeChanges needs no special handling here, just set the dirty like for everything else
             m_wasDirty = true;
             markLayerForObjectDirty(layer3DS);
         }
@@ -7833,33 +7872,93 @@ void Q3DSSceneManager::handleSceneChange(Q3DSScene *, Q3DSGraphObject::DirtyFlag
 {
     if (change == Q3DSGraphObject::DirtyNodeAdded) {
         if (obj->isNode()) {
-            if (obj->type() != Q3DSGraphObject::Layer) {
+            if (obj->type() != Q3DSGraphObject::Layer && obj->type() != Q3DSGraphObject::Camera) {
                 Q3DSGraphObject *parent = obj->parent();
                 Q_ASSERT(parent);
                 Q_ASSERT(parent->attached());
-                Q3DSLayerNode *layer3DS = nullptr;
                 Q3DSGraphObject *o = parent;
                 while (o && o->type() != Q3DSGraphObject::Layer)
                     o = o->parent();
-                Q_ASSERT(o);
-                layer3DS = static_cast<Q3DSLayerNode *>(o);
-                buildLayerScene(obj, layer3DS, parent->attached()->entity);
-                qCDebug(lcScene) << "Dyn.added" << obj->attached()->entity;
-                if (obj->type() == Q3DSGraphObject::Model)
-                    buildModelMaterial(static_cast<Q3DSModelNode *>(obj));
+
+                Q3DSLayerNode *layer3DS = static_cast<Q3DSLayerNode *>(o);
+                if (layer3DS)
+                    addLayerContent(obj, parent, layer3DS);
             }
+            // ### layers need further considerations, not handled yet
         }
     } else if (change == Q3DSGraphObject::DirtyNodeRemoved) {
         if (obj->isNode()) {
             if (obj->type() != Q3DSGraphObject::Layer) {
+                Q3DSGraphObject *parent = obj->parent();
+                Q_ASSERT(parent);
+                Q3DSGraphObject *o = parent;
+                while (o && o->type() != Q3DSGraphObject::Layer)
+                    o = o->parent();
+
                 qCDebug(lcScene) << "Dyn.removing" << obj->attached()->entity;
                 Q3DSUipPresentation::forAllObjectsInSubTree(obj, [this](Q3DSGraphObject *objOrChild) {
                     m_slidePlayer->objectAboutToBeRemovedFromScene(objOrChild);
                 });
                 delete obj->attached()->entity;
+
+                Q3DSLayerNode *layer3DS = static_cast<Q3DSLayerNode *>(o);
+                if (layer3DS)
+                    removeLayerContent(obj, layer3DS);
             }
         }
     }
+}
+
+static void markLayerAsContentChanged(Q3DSLayerNode *layer3DS, int change = Q3DSLayerNode::LayerContentSubTreeChanges)
+{
+    Q3DSLayerAttached *data = layer3DS->attached<Q3DSLayerAttached>();
+    data->frameDirty |= Q3DSGraphObjectAttached::LayerDirty;
+    data->frameChangeFlags |= change;
+}
+
+void Q3DSSceneManager::addLayerContent(Q3DSGraphObject *obj, Q3DSGraphObject *parent, Q3DSLayerNode *layer3DS)
+{
+    // obj can have children, process the entire subtree recursively
+
+    // When parenting to a node like model, text, or group, use the corresponding entity as the parent.
+    Qt3DCore::QEntity *parentEntity = parent->attached()->entity;
+    // However, in some cases 'entity' is merely m_rootEntity. Use a more appropriate one.
+    if (parent->type() == Q3DSGraphObject::Layer)
+        parentEntity = parent->attached<Q3DSLayerAttached>()->layerSceneRootEntity;
+
+    // phase 1
+    buildLayerScene(obj, layer3DS, parentEntity);
+    qCDebug(lcScene) << "Dyn.added" << obj->attached()->entity;
+
+    // phase 2
+    bool needsEffectUpdate = false;
+    Q3DSUipPresentation::forAllObjectsInSubTree(obj, [this, layer3DS, &needsEffectUpdate](Q3DSGraphObject *objOrChild) {
+        switch (objOrChild->type()) {
+        case Q3DSGraphObject::Model:
+            buildModelMaterial(static_cast<Q3DSModelNode *>(objOrChild));
+            break;
+        case Q3DSGraphObject::Light:
+            markLayerAsContentChanged(layer3DS, Q3DSLayerNode::LayerContentSubTreeLightsChange);
+            break;
+        case Q3DSGraphObject::Effect:
+            needsEffectUpdate = true;
+            break;
+        default:
+            break;
+        }
+    });
+    if (needsEffectUpdate)
+        updateEffectStatus(layer3DS);
+
+    // ensure layer gets dirtied
+    markLayerAsContentChanged(layer3DS);
+}
+
+void Q3DSSceneManager::removeLayerContent(Q3DSGraphObject *obj, Q3DSLayerNode *layer3DS)
+{
+    markLayerAsContentChanged(layer3DS);
+    if (obj->type() == Q3DSGraphObject::Light)
+        markLayerAsContentChanged(layer3DS, Q3DSLayerNode::LayerContentSubTreeLightsChange);
 }
 
 QT_END_NAMESPACE

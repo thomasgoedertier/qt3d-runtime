@@ -206,6 +206,7 @@ public:
         // layers always have light data
         lightsData.reset(new Q3DSNodeAttached::LightsData);
     }
+    Qt3DCore::QEntity *layerSceneRootEntity = nullptr;
     Qt3DCore::QEntity *compositorEntity = nullptr;
     Qt3DRender::QFrameGraphNode *layerFgRoot = nullptr;
     Qt3DCore::QNode *layerFgRootParent = nullptr;
@@ -738,7 +739,6 @@ public:
 
     Q3DSInputManager *inputManager() { return m_inputManager; }
 
-    // for testing from the viewer - to be moved private later
     void setDepthTextureEnabled(Q3DSLayerNode *layer3DS, bool enabled);
     void rebuildModelMaterial(Q3DSModelNode *model3DS);
 
@@ -811,6 +811,7 @@ private:
     void setLightProperties(Q3DSLightNode *light3DS, bool forceUpdate = false);
 
     Qt3DCore::QEntity *buildModel(Q3DSModelNode *model3DS, Q3DSLayerNode *layer3DS, Qt3DCore::QEntity *parent);
+    void rebuildModelSubMeshes(Q3DSModelNode *model3DS);
     void buildModelMaterial(Q3DSModelNode *model3DS);
     void retagSubMeshes(Q3DSModelNode *model3DS);
     void prepareTextureParameters(Q3DSTextureParameters &textureParameters, const QString &name, Q3DSImage *image3DS);
@@ -864,6 +865,8 @@ private:
     void setNodeVisibility(Q3DSNode *node, bool visible);
 
     void handleSceneChange(Q3DSScene *scene, Q3DSGraphObject::DirtyFlag change, Q3DSGraphObject *obj);
+    void addLayerContent(Q3DSGraphObject *obj, Q3DSGraphObject *parent, Q3DSLayerNode *layer3DS);
+    void removeLayerContent(Q3DSGraphObject *obj, Q3DSLayerNode *layer3DS);
 
     void handleEvent(const Q3DSGraphObject::Event &e);
     void flushEventQueue();

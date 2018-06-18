@@ -136,19 +136,25 @@ void Q3DSConsoleCommands::setupConsole(Q3DSConsole *console)
         m_console->addMessageFmt(longResponseColor,
                                "help - Shows this text.\n"
                                "clear - Clears the console. [R]\n"
+                               "\n"
                                "presentations - Lists all presentations. (main+sub) [R]\n"
                                "pres(id) - Changes to the given presentation. (id == the id from the .uia or main) Default is main. [R]\n"
+                               "\n"
                                "scenegraph - Prints the scene graph in the current presentation. [R]\n"
                                "scenegraph(obj) - Prints the scene graph subtree starting from the given object in the current presentation. [R]\n"
                                "slidegraph - Prints the slide graph in the current presentation. [R]\n"
                                "slidegraph(obj) - Prints the slide graph in the given component node. [R]\n"
+                               "datainput - Lists data input entry - object connections. [R]\n"
+                               "\n"
                                "properties(obj) - Prints the properties for the given object. [R]\n"
                                "info(obj) - Prints additional properties for the given object (node or slide). [R]\n"
                                "get(obj, property) - Prints the property value. [R]\n"
                                "set(obj, property, value) - Applies and notifies a change to the given property. [R]\n"
-                               "datainput - Lists data input entry - object connections. [R]\n"
+                               "\n"
+                               "object(id, name, type, parentObj, slide) - Creates a new object. (type == Model, DefaultMaterial, etc.) [R]\n"
+                               "primitive(id, name, source, parentObj, slide) - Adds a model node with a default material. (source == #Cube, #Cone, etc.) [R]\n"
                                "kill(obj) - Removes a node from the scene graph (and from the slides' object list). [R]\n"
-                               "primitive(id, name, source, parentObj, slide) - Adds a model node with one default material. (source == #Cube, #Cone, etc.) [R]\n"
+                               "\n"
                                "record - Switches to recording mode.\n"
                                "immed - Switches to immediate mode (the default).\n"
                                "prgnew - Clears recorded commands and switches to recording mode.\n"
@@ -351,10 +357,11 @@ void Q3DSConsoleCommands::setupConsole(Q3DSConsole *console)
             const QString source = QString::fromUtf8(unquote(splitArgs[2]));
             Q3DSGraphObject *parent = resolveObj(splitArgs[3]);
             Q3DSSlide *slide = static_cast<Q3DSSlide *>(resolveObj(splitArgs[4]));
-            if (parent) {
+            if (parent && slide) {
                 Q3DSModelNode *model = m_currentPresentation->newObject<Q3DSModelNode>(id);
                 model->setName(name);
-                model->setMesh(source, *m_currentPresentation);
+                model->setMesh(source);
+                model->resolveReferences(*m_currentPresentation);
                 const QByteArray matId = id + QByteArrayLiteral("_material");
                 Q3DSDefaultMaterial *mat = m_currentPresentation->newObject<Q3DSDefaultMaterial>(matId);
                 mat->setName(QString::fromUtf8(matId));
@@ -365,6 +372,29 @@ void Q3DSConsoleCommands::setupConsole(Q3DSConsole *console)
                 // change notification to the scene manager
                 parent->appendChildNode(model);
                 m_console->addMessageFmt(responseColor, "Added");
+            }
+        }
+    }, Q3DSConsole::CmdRecordable));
+    m_console->addCommand(Q3DSConsole::makeCommand("object", [this](const QByteArray &args) {
+        QByteArrayList splitArgs = args.split(',');
+        if (splitArgs.count() >= 5) {
+            const QByteArray id = unquote(splitArgs[0]);
+            const QString name = QString::fromUtf8(unquote(splitArgs[1]));
+            const QByteArray type = unquote(splitArgs[2]);
+            Q3DSGraphObject *parent = resolveObj(splitArgs[3]);
+            Q3DSSlide *slide = static_cast<Q3DSSlide *>(resolveObj(splitArgs[4]));
+            if (parent && slide) {
+                Q3DSGraphObject *obj = m_currentPresentation->newObject(type.constData(), id);
+                if (obj) {
+                    obj->setName(name);
+                    slide->addObject(obj);
+                    // adding to parent must be the last, since it triggers a scene
+                    // change notification to the scene manager
+                    parent->appendChildNode(obj);
+                    m_console->addMessageFmt(responseColor, "Added");
+                } else {
+                    m_console->addMessageFmt(errorColor, "Unknown type '%s'", qPrintable(type));
+                }
             }
         }
     }, Q3DSConsole::CmdRecordable));

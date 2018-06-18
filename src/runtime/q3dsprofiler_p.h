@@ -54,6 +54,10 @@ class Q3DSSceneManager;
 class Q3DSUipPresentation;
 class Q3DSMesh;
 
+namespace Qt3DCore {
+class QEntity;
+}
+
 namespace Qt3DRender {
 class QFrameGraphNode;
 }
@@ -121,6 +125,8 @@ public:
     const QVector<Q3DSProfiler *> *subPresentationProfilers() const { return &m_subPresProfilers; }
     Q3DSProfiler *mainPresentationProfiler();
 
+    void reportQt3DSceneGraphRoot(Qt3DCore::QEntity *rootEntity); // there can be multiple ones
+    QVector<Qt3DCore::QEntity *> qt3dSceneGraphRoots() const { return m_qt3dSceneGraphRoots; }
     void reportFrameGraphRoot(Qt3DRender::QFrameGraphNode *fgNode);
     void reportFrameGraphStopNode(Qt3DRender::QFrameGraphNode *fgNode);
     Qt3DRender::QFrameGraphNode *frameGraphRoot() const { return m_frameGraphRoot; }
@@ -161,6 +167,7 @@ private:
     QStringList m_log;
     bool m_logChanged = false;
     Q3DSProfiler *m_mainProfiler = nullptr;
+    QVector<Qt3DCore::QEntity *> m_qt3dSceneGraphRoots;
     Qt3DRender::QFrameGraphNode *m_frameGraphRoot = nullptr;
     QSet<Qt3DRender::QFrameGraphNode *> m_fgStopNodes;
 

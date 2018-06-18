@@ -1436,10 +1436,10 @@ void Q3DSEngine::requestGrab()
     }
 }
 
-void Q3DSEngine::setProfileUiVisible(bool visible)
+void Q3DSEngine::setProfileUiVisible(bool visible, bool openLogAndConsole)
 {
     if (!m_uipPresentations.isEmpty() && m_uipPresentations[0].sceneManager)
-        m_uipPresentations[0].sceneManager->setProfileUiVisible(visible);
+        m_uipPresentations[0].sceneManager->setProfileUiVisible(visible, openLogAndConsole);
 }
 
 void Q3DSEngine::configureProfileUi(float scale)

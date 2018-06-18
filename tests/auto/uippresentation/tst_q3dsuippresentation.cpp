@@ -155,7 +155,8 @@ void tst_Q3DSUipPresentation::makePresentation(Q3DSUipPresentation &presentation
     model1->setName(QLatin1String("my little cube"));
     // A model needs a mesh. Meshes are retrieved via
     // Q3DSUipPresentation::mesh() which loads or returns a cached one.
-    model1->setMesh(QLatin1String("#Cube"), presentation); // let's use a built-in primitive
+    model1->setMesh(QLatin1String("#Cube")); // let's use a built-in primitive
+    model1->resolveReferences(presentation);
     layer1->appendChildNode(model1);
     QCOMPARE(model1->previousSibling(), light1);
     QCOMPARE(model1->parent(), layer1);
@@ -272,7 +273,8 @@ void tst_Q3DSUipPresentation::sceneChangeNotification()
     int obsId = scene->addSceneChangeObserver(obs);
 
     Q3DSModelNode *model2 = presentation.newObject<Q3DSModelNode>("model2");
-    model2->setMesh(QLatin1String("#Cylinder"), presentation);
+    model2->setMesh(QLatin1String("#Cylinder"));
+    model2->resolveReferences(presentation);
     Q3DSDefaultMaterial *mat2 = presentation.newObject<Q3DSDefaultMaterial>("mat2");
     // this will not cause a notification since model2 does not have a parent
     // and so is not associated with the scene yet

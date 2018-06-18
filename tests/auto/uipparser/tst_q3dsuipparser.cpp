@@ -801,7 +801,8 @@ void tst_Q3DSUipParser::primitiveMeshes()
     QVERIFY(m.first()->vertexCount() > 0);
 
     // test changing using the "static" setter
-    cylinder->setMesh(QLatin1String("#Cone"), *pres.data());
+    cylinder->setMesh(QLatin1String("#Cone"));
+    cylinder->resolveReferences(*pres.data());
     // can just compare the MeshLists due to presentation's caching
     QCOMPARE(cylinder->mesh(), cone->mesh());
 

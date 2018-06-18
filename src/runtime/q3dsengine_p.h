@@ -173,7 +173,7 @@ public:
 #endif
 
     void setAutoToggleProfileUi(bool enabled) { m_autoToggleProfileUi = enabled; }
-    void setProfileUiVisible(bool visible);
+    void setProfileUiVisible(bool visible, bool openLogAndConsole = false);
     bool isProfileUiVisible() const;
     void configureProfileUi(float scale);
     float profileUiScaleFactor() const { return m_profileUiScale; }
