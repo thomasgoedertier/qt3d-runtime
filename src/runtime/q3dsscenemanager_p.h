@@ -910,6 +910,7 @@ private:
     bool m_layerCaching = true;
     bool m_layerUncachePending = false;
     QSet<Q3DSSceneManager *> m_layerCacheDeps;
+    bool m_hasQmlSubPresAsTextureMap = false;
     Q3DSViewportData m_viewportData;
 
     friend class Q3DSFrameUpdater;

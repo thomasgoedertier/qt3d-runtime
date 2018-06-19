@@ -4750,10 +4750,12 @@ void Q3DSSceneManager::setImageTextureFromSubPresentation(Qt3DRender::QParameter
         qCDebug(lcScene, "Directing subpresentation %s to image %s",
                 qPrintable(image->subPresentation()), image->id().constData());
         sampler->setValue(QVariant::fromValue(it->colorTex));
-        if (it->sceneManager) { // QML subpresentations will not have a scenemanager
-            qCDebug(lcPerf, "Using a subpresentation as texture map (not as layer) makes layer caching in main presentation less efficient");
+        qCDebug(lcPerf, "Using a subpresentation as texture map (not as layer) makes layer caching in main presentation less efficient");
+        // QML subpresentations will not have a scenemanager
+        if (it->sceneManager)
             m_layerCacheDeps.insert(it->sceneManager);
-        }
+        else
+            m_hasQmlSubPresAsTextureMap = true;
     } else {
         qCDebug(lcScene, "Subpresentation %s for image %s not found",
                 qPrintable(image->subPresentation()), image->id().constData());
@@ -6945,6 +6947,10 @@ void Q3DSSceneManager::prepareNextFrame()
                 break;
             }
         }
+        // Any QML subpresentations used as texture map disables layer caching
+        // altogether since we have no idea when their content changes.
+        if (m_hasQmlSubPresAsTextureMap)
+            subDirty = true;
 
         if (!layerData->wasDirty && !m_layerUncachePending && !subDirty) {
             ++layerData->nonDirtyRenderCount;
