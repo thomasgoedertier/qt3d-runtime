@@ -829,11 +829,15 @@ void Q3DSSlidePlayer::setSlideTime(Q3DSSlide *slide, float time)
             if ((!obj->isNode() && !isEffect))
                 continue;
 
-            Q3DSNode *node = static_cast<Q3DSNode *>(obj);
-            if (node && !node->attached())
-                continue;
+            bool nodeActive = false;
+            if (obj->isNode()) {
+                Q3DSNode *node = static_cast<Q3DSNode *>(obj);
+                if (node && !node->attached())
+                    continue;
 
-            const bool nodeActive = (node && node->flags().testFlag(Q3DSNode::Active));
+                nodeActive = (node && node->flags().testFlag(Q3DSNode::Active));
+            }
+
             const bool effectActive = (isEffect && static_cast<Q3DSEffectInstance *>(obj)->active());
             const bool shouldBeVisible = parentVisible
                     && time >= obj->startTime() && time <= obj->endTime()
