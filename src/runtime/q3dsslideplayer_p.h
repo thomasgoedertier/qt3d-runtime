@@ -104,6 +104,7 @@ public:
     void setMode(PlayerMode mode);
     PlayerMode mode() const { return m_mode; }
 
+    void objectAboutToBeAddedToScene(Q3DSGraphObject *obj);
     void objectAboutToBeRemovedFromScene(Q3DSGraphObject *obj);
 
 public Q_SLOTS:
@@ -144,6 +145,7 @@ private:
 
     // TODO: Move out to a "slide manager"?
     void sendPositionChanged(Q3DSSlide *slide, float pos);
+    void setObjectVisibility(Q3DSGraphObject *obj, bool parentVisible, bool forceUpdate, float time);
     void updateObjectVisibility(Q3DSGraphObject *obj, bool visible);
     bool isSlideVisible(Q3DSSlide *slide);
     void processPropertyChanges(Q3DSSlide *currentSlide);

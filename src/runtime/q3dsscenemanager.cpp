@@ -7897,7 +7897,10 @@ void Q3DSSceneManager::handleSceneChange(Q3DSScene *, Q3DSGraphObject::DirtyFlag
 
                 qCDebug(lcScene) << "Dyn.removing" << obj->attached()->entity;
                 Q3DSUipPresentation::forAllObjectsInSubTree(obj, [this](Q3DSGraphObject *objOrChild) {
-                    m_slidePlayer->objectAboutToBeRemovedFromScene(objOrChild);
+                    Q3DSSlidePlayer *slidePlayer = m_slidePlayer;
+                    if (objOrChild->attached()->component)
+                        slidePlayer = objOrChild->attached()->component->masterSlide()->attached<Q3DSSlideAttached>()->slidePlayer;
+                    slidePlayer->objectAboutToBeRemovedFromScene(objOrChild);
                 });
                 delete obj->attached()->entity;
 
@@ -7946,6 +7949,12 @@ void Q3DSSceneManager::addLayerContent(Q3DSGraphObject *obj, Q3DSGraphObject *pa
         default:
             break;
         }
+
+        Q3DSSlidePlayer *slidePlayer = m_slidePlayer;
+        if (objOrChild->attached()->component)
+            slidePlayer = objOrChild->attached()->component->masterSlide()->attached<Q3DSSlideAttached>()->slidePlayer;
+
+        slidePlayer->objectAboutToBeAddedToScene(objOrChild);
     });
     if (needsEffectUpdate)
         updateEffectStatus(layer3DS);
