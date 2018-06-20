@@ -7547,6 +7547,15 @@ void Q3DSSceneManager::changeSlideByDirection(Q3DSGraphObject *sceneOrComponent,
     slidePlayer->reload();
 }
 
+Q3DSSlide *Q3DSSceneManager::currentSlideForSceneOrComponent(Q3DSGraphObject *sceneOrComponent) const
+{
+    Q3DSSlide *slide = currentSlide();
+    if (sceneOrComponent->type() == Q3DSGraphObject::Component)
+        slide = static_cast<Q3DSComponentNode *>(sceneOrComponent)->currentSlide();
+
+    return slide;
+}
+
 void Q3DSSceneManager::goToTime(Q3DSGraphObject *sceneOrComponent, float milliseconds)
 {
     Q3DSSlidePlayer *slidePlayer = m_slidePlayer;

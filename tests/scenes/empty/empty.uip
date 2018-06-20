@@ -18,6 +18,7 @@
 				<Add ref="#Camera" position="0 0 -600" rotation="0 0 0" />
 				<Add ref="#Light" />
 				<State id="Scene-Slide1" name="Slide1" />
+				<State id="Scene-Slide2" name="Slide2" playthroughto="Previous" />
 			</State>
 		</Logic>
 	</Project>

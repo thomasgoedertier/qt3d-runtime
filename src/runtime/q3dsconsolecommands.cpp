@@ -151,6 +151,9 @@ void Q3DSConsoleCommands::setupConsole(Q3DSConsole *console)
                                "get(obj, property) - Prints the property value. [R]\n"
                                "set(obj, property, value) - Applies and notifies a change to the given property. [R]\n"
                                "\n"
+                               "slide(ctxObj) - Prints the current slide on the time context (scene or component object). [R]\n"
+                               "setslide(ctxObj, name) - Changes the current slide on the time context (scene or component object). [R]\n"
+                               "\n"
                                "object(id, name, type, parentObj, slide) - Creates a new object. (type == Model, DefaultMaterial, etc.) [R]\n"
                                "primitive(id, name, source, parentObj, slide) - Adds a model node with a default material. (source == #Cube, #Cone, etc.) [R]\n"
                                "kill(obj) - Removes a node from the scene graph (and from the slides' object list). [R]\n"
@@ -329,6 +332,27 @@ void Q3DSConsoleCommands::setupConsole(Q3DSConsole *console)
                 for (const QString &propName : it.value()->dataInputControlledProperties()->values(it.key()))
                     m_console->addMessageFmt(longResponseColor, "    %s", qPrintable(propName));
             }
+        }
+    }, Q3DSConsole::CmdRecordable));
+    m_console->addCommand(Q3DSConsole::makeCommand("slide", [this](const QByteArray &args) {
+        Q3DSGraphObject *ctx = resolveObj(args);
+        if (!ctx)
+            return;
+        Q3DSSlide *slide = m_currentSceneManager->currentSlideForSceneOrComponent(ctx);
+        if (slide)
+            m_console->addMessageFmt(responseColor, "Current slide is %s", qPrintable(printObject(slide)));
+        else
+            m_console->addMessageFmt(errorColor, "No slide (invalid context?)");
+    }, Q3DSConsole::CmdRecordable));
+    m_console->addCommand(Q3DSConsole::makeCommand("setslide", [this](const QByteArray &args) {
+        QByteArrayList splitArgs = args.split(',');
+        if (splitArgs.count() >= 2) {
+            Q3DSGraphObject *ctx = resolveObj(splitArgs[0]);
+            if (!ctx)
+                return;
+            QString slideName = QString::fromUtf8(unquote(splitArgs[1]));
+            m_currentSceneManager->changeSlideByName(ctx, slideName);
+            m_console->addMessageFmt(responseColor, "Changed");
         }
     }, Q3DSConsole::CmdRecordable));
     m_console->addCommand(Q3DSConsole::makeCommand("kill", [this](const QByteArray &args) {
