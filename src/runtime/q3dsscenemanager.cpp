@@ -536,7 +536,7 @@ void Q3DSSceneManager::updateSizes(const QSize &size, qreal dpr, const QRect &vi
         }
     });
     if (forceTreeVisit)
-        updateSubTree(m_scene);
+        syncScene();
 }
 
 void Q3DSSceneManager::setCurrentSlide(Q3DSSlide *newSlide, bool flush)
@@ -552,7 +552,7 @@ void Q3DSSceneManager::setCurrentSlide(Q3DSSlide *newSlide, bool flush)
     m_slidePlayer->slideDeck()->setCurrentSlide(index);
     if (flush || m_slidePlayer->state() != Q3DSSlidePlayer::PlayerState::Playing) {
         m_slidePlayer->setSlideTime(newSlide, 0.0f);
-        updateSubTree(m_scene);
+        syncScene();
     }
 }
 
@@ -566,7 +566,7 @@ void Q3DSSceneManager::setComponentCurrentSlide(Q3DSSlide *newSlide, bool flush)
     data->slidePlayer->slideDeck()->setCurrentSlide(index);
     if (flush || data->slidePlayer->state() != Q3DSSlidePlayer::PlayerState::Playing) {
         data->slidePlayer->setSlideTime(newSlide, 0.0f);
-        updateSubTree(m_scene);
+        syncScene();
     }
 }
 
@@ -823,7 +823,12 @@ Q3DSSceneManager::Scene Q3DSSceneManager::buildScene(Q3DSUipPresentation *presen
     }
 
     // We now set of slide handling, updating object visibility etc.
+    qCDebug(lcScene, "Kicking off slide system");
     m_slidePlayer->setSlideDeck(slideDeck);
+
+    // Force processing the initial set of object visibility changes generated
+    // by the slideplayer as we need this now, do not wait until the first frame action.
+    setPendingVisibilities();
 
     // Listen to future changes to the scene graph.
     m_scene->addSceneChangeObserver(std::bind(&Q3DSSceneManager::handleSceneChange,
@@ -835,6 +840,7 @@ Q3DSSceneManager::Scene Q3DSSceneManager::buildScene(Q3DSUipPresentation *presen
     // measure the time from the end of scene building to the invocation of the first frame action
     m_frameUpdater->startTimeFirstFrame();
 
+    qCDebug(lcScene, "buildScene done");
     return sc;
 }
 
@@ -1190,7 +1196,9 @@ void Q3DSSceneManager::buildLayer(Q3DSLayerNode *layer3DS,
         layerData->layerRayCaster = rayCaster;
     }
 
-    // Find the active camera for this layer and set it up
+    // Find the active camera for this layer and set it up (but note that there
+    // may be none if this is the initial scene build where the slideplayer has
+    // not yet been initialized).
     setActiveLayerCamera(findFirstCamera(layer3DS), layer3DS);
 
     setLayerProperties(layer3DS);
@@ -1813,8 +1821,11 @@ Qt3DRender::QCamera *Q3DSSceneManager::buildCamera(Q3DSCameraNode *cam3DS, Q3DSL
     data->camera = camera;
     data->layer3DS = layer3DS;
     cam3DS->setAttached(data);
-    // make sure data->entity, globalTransform, etc. are usable
-    setNodeProperties(cam3DS, camera, data->transform, NodePropUpdateAttached);
+    // Make sure data->entity, globalTransform, etc. are usable. Note however
+    // that during the initial scene building globalVisibility will typically
+    // be false at this stage due to the slideplayer only generating visibility
+    // changes later on.
+    setNodeProperties(cam3DS, camera, data->transform, NodePropUpdateAttached | NodePropUpdateGlobalsRecursively);
     setCameraProperties(cam3DS, Q3DSNode::TransformChanges);
     cam3DS->addPropertyChangeObserver(std::bind(&Q3DSSceneManager::handlePropertyChange, this,
                                                  std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
@@ -1897,23 +1908,22 @@ void Q3DSSceneManager::setCameraProperties(Q3DSCameraNode *camNode, int changeFl
 }
 
 // Returns true if the camera actually changed
-bool Q3DSSceneManager::setActiveLayerCamera(Q3DSCameraNode *camara3DS, Q3DSLayerNode *layer3DS)
+bool Q3DSSceneManager::setActiveLayerCamera(Q3DSCameraNode *cam3DS, Q3DSLayerNode *layer3DS)
 {
     Q3DSLayerAttached *layerData = static_cast<Q3DSLayerAttached *>(layer3DS->attached());
-    if (layerData->cam3DS != camara3DS) {
-        layerData->cam3DS = camara3DS;
-        if (camara3DS) {
-            Q3DSCameraAttached *activeCameraData = static_cast<Q3DSCameraAttached *>(camara3DS->attached());
+    if (layerData->cam3DS != cam3DS) {
+        layerData->cam3DS = cam3DS;
+        if (cam3DS) {
+            Q3DSCameraAttached *activeCameraData = static_cast<Q3DSCameraAttached *>(cam3DS->attached());
             layerData->cameraSelector->setCamera(activeCameraData->camera);
         } else {
             layerData->cameraSelector->setCamera(nullptr);
         }
 
-        if (camara3DS) {
-            setCameraProperties(camara3DS, Q3DSNode::TransformChanges);
-            layerData->cameraPropertiesParam->setValue(QVector2D(camara3DS->clipNear(), camara3DS->clipFar()));
+        if (cam3DS) {
+            setCameraProperties(cam3DS, Q3DSNode::TransformChanges);
+            layerData->cameraPropertiesParam->setValue(QVector2D(cam3DS->clipNear(), cam3DS->clipFar()));
         }
-
 
         // may not have a valid size yet
         if (!layerData->layerSize.isEmpty()) {
@@ -1923,24 +1933,13 @@ bool Q3DSSceneManager::setActiveLayerCamera(Q3DSCameraNode *camara3DS, Q3DSLayer
 
         layerData->wasDirty = true;
 
-        qCDebug(lcScene, "Layer %s uses camera %s", layer3DS->id().constData(), camara3DS ? camara3DS->id().constData() : "null");
+        qCDebug(lcScene, "Layer %s uses camera %s", layer3DS->id().constData(), cam3DS ? cam3DS->id().constData() : "null");
         return true;
     }
     return false;
 }
 
-void Q3DSSceneManager::updateLayerCamera(Q3DSLayerNode *layer3DS)
-{
-    if (setActiveLayerCamera(findFirstCamera(layer3DS), layer3DS)) {
-        // Camera has changed -> trigger a property value update
-        // for effects since they may rely on the camera clip range.
-        auto layerData = static_cast<Q3DSLayerAttached *>(layer3DS->attached());
-        for (Q3DSEffectInstance *eff3DS : layerData->effectData.effects)
-            updateEffect(eff3DS);
-    }
-}
-
-// layers use the first Active (eyeball on) camera for rendering
+// layers use the first active camera for rendering
 Q3DSCameraNode *Q3DSSceneManager::findFirstCamera(Q3DSLayerNode *layer3DS)
 {
     // Pick the first active camera encountered when walking depth-first.
@@ -1949,8 +1948,7 @@ Q3DSCameraNode *Q3DSSceneManager::findFirstCamera(Q3DSLayerNode *layer3DS)
         while (obj) {
             if (obj->type() == Q3DSGraphObject::Camera) {
                 Q3DSCameraNode *cam = static_cast<Q3DSCameraNode *>(obj);
-                // ### should use globalVisibility (which is only set in buildLayerCamera first...)
-                const bool active = (cam->attached() && cam->flags().testFlag(Q3DSNode::Active) && cam->attached()->visibilityTag == Q3DSGraphObjectAttached::Visible);
+                const bool active = cam->attached() && cam->attached<Q3DSCameraAttached>()->globalVisibility;
                 if (active) {
                     // Check if camera is on the current slide
                     Q3DSComponentNode *component = cam->attached() ? cam->attached()->component : nullptr;
@@ -2334,6 +2332,9 @@ void Q3DSSceneManager::updateOrthoShadowCam(Q3DSLayerAttached::PerLightShadowMap
     // For example, if the default camera at 0,0,-600 is used,
     // then the shadow camera's position will be 0,0,N where N
     // is something based on the real camera's frustum.
+
+    if (!layerData->cam3DS) // ok to do nothing assuming there will be another updateShadowMapStatus call once the camera is known
+        return;
 
     Q3DSCameraAttached *sceneCamData = static_cast<Q3DSCameraAttached *>(layerData->cam3DS->attached());
     Qt3DRender::QCamera *sceneCamera = sceneCamData->camera;
@@ -3945,6 +3946,13 @@ void Q3DSSceneManager::updateGlobals(Q3DSNode *node, UpdateGlobalFlags flags)
     if (globalVisibility != data->globalVisibility) {
         data->globalVisibility = globalVisibility;
         data->frameDirty.setFlag(Q3DSGraphObjectAttached::GlobalVisibilityDirty, true);
+    }
+
+    if (data->frameDirty.testFlag(Q3DSGraphObjectAttached::GlobalTransformDirty)
+            || data->frameDirty.testFlag(Q3DSGraphObjectAttached::GlobalOpacityDirty)
+            || data->frameDirty.testFlag(Q3DSGraphObjectAttached::GlobalVisibilityDirty))
+    {
+        handleNodeGlobalChange(node);
     }
 
     if (flags.testFlag(UpdateGlobalsRecursively)) {
@@ -6825,15 +6833,15 @@ void Q3DSSceneManager::handlePropertyChange(Q3DSGraphObject *obj, const QSet<QSt
         break;
     }
 
-    // Note the lack of call to updateSubTree(). That happens in a QFrameAction once per frame.
+    // Note the lack of call to syncScene(). That happens in a QFrameAction once per frame.
 }
 
-void Q3DSSceneManager::updateSubTree(Q3DSGraphObject *obj)
+void Q3DSSceneManager::syncScene()
 {
     m_subTreeWithDirtyLights.clear();
     m_pendingDefMatRebuild.clear();
 
-    updateSubTreeRecursive(obj);
+    updateSubTreeRecursive(m_scene);
 
     for (Q3DSGraphObject *subtreeObject : m_subTreeWithDirtyLights) {
         // Attempt to update all buffers, if some do not exist (null) that's fine too.
@@ -6871,13 +6879,18 @@ void Q3DSSceneManager::updateSubTree(Q3DSGraphObject *obj)
         }
     }
 
+    setPendingVisibilities();
+}
+
+void Q3DSSceneManager::setPendingVisibilities()
+{
     for (auto it = m_pendingObjectVisibility.constBegin(); it != m_pendingObjectVisibility.constEnd(); ++it) {
         if (it.key()->isNode() && it.key()->type() != Q3DSGraphObject::Layer && it.key()->type() != Q3DSGraphObject::Camera) {
             Q3DSNode *node = static_cast<Q3DSNode *>(it.key());
             const bool visible = (it.value() && node->flags().testFlag(Q3DSNode::Active));
             it.key()->attached()->visibilityTag = visible ? Q3DSGraphObjectAttached::Visible
                                                           : Q3DSGraphObjectAttached::Hidden;
-            setNodeVisibility(node, visible);
+            setNodeVisibility(node, visible); // will call updateGlobals() as well
         } else if (it.key()->type() == Q3DSGraphObject::Effect){
             Q3DSEffectInstance *effect = static_cast<Q3DSEffectInstance *>(it.key());
             Q3DSEffectAttached *data = effect->attached<Q3DSEffectAttached>();
@@ -6893,6 +6906,7 @@ void Q3DSSceneManager::updateSubTree(Q3DSGraphObject *obj)
                 const bool enabled = it.value() && layer3DS->flags().testFlag(Q3DSNode::Active);
                 it.key()->attached()->visibilityTag = enabled ? Q3DSGraphObjectAttached::Visible
                                                               : Q3DSGraphObjectAttached::Hidden;
+                updateGlobals(layer3DS, UpdateGlobalsRecursively | UpdateGlobalsSkipTransform);
                 data->compositorEntity->setEnabled(enabled);
             }
         } else if (it.key()->type() == Q3DSGraphObject::Camera) {
@@ -6902,12 +6916,14 @@ void Q3DSSceneManager::updateSubTree(Q3DSGraphObject *obj)
                 const bool visible = (it.value() && cam3DS->flags().testFlag(Q3DSNode::Active));
                 it.key()->attached()->visibilityTag = visible ? Q3DSGraphObjectAttached::Visible
                                                               : Q3DSGraphObjectAttached::Hidden;
-                updateLayerCamera(data->layer3DS);
+                updateGlobals(cam3DS, UpdateGlobalsRecursively | UpdateGlobalsSkipTransform);
+                // leave rechoosing the camera to handleNodeGlobalChange()
             }
         } else {
             Q_UNREACHABLE();
         }
     }
+
     m_pendingObjectVisibility.clear();
 }
 
@@ -6950,7 +6966,7 @@ void Q3DSSceneManager::prepareNextFrame()
         static_cast<Q3DSLayerAttached *>(layer3DS->attached())->wasDirty = false;
     });
 
-    updateSubTree(m_scene);
+    syncScene();
 
     qint64 nextFrameNo = m_frameUpdater->frameCounter() + 1;
     Q3DSUipPresentation::forAllLayers(m_scene, [this, nextFrameNo](Q3DSLayerNode *layer3DS) {
@@ -7134,13 +7150,15 @@ void Q3DSSceneManager::updateSubTreeRecursive(Q3DSGraphObject *obj)
         Q3DSCameraAttached *data = static_cast<Q3DSCameraAttached *>(cam3DS->attached());
         if (data) {
             updateNodeFromChangeFlags(cam3DS, data->transform, data->frameChangeFlags);
+            // no need for special EyeballChanges handling, updateNodeFromChangeFlags took care of that
             if (data->frameDirty & Q3DSGraphObjectAttached::CameraDirty) {
-                // Change the camera if necessary
-                if (data->frameChangeFlags & Q3DSNode::EyeballChanges) {
-                    updateLayerCamera(data->layer3DS);
-                }
                 setCameraProperties(cam3DS, data->frameChangeFlags); // handles both Node- and Camera-level properties
                 setLayerCameraSizeProperties(data->layer3DS);
+                // (orthographic) shadow maps, ssao texture, effects all rely on camera properties like clip range
+                updateShadowMapStatus(data->layer3DS);
+                updateSsaoStatus(data->layer3DS);
+                for (Q3DSEffectInstance *eff3DS : data->layer3DS->attached<Q3DSLayerAttached>()->effectData.effects)
+                    updateEffect(eff3DS);
                 m_wasDirty = true;
                 markLayerForObjectDirty(cam3DS);
             }
@@ -7275,10 +7293,12 @@ void Q3DSSceneManager::updateSubTreeRecursive(Q3DSGraphObject *obj)
 
 void Q3DSSceneManager::updateNodeFromChangeFlags(Q3DSNode *node, Qt3DCore::QTransform *transform, int changeFlags)
 {
+    bool didUpdateGlobals = false;
     if ((changeFlags & Q3DSNode::TransformChanges)
             || (changeFlags & Q3DSNode::OpacityChanges))
     {
         setNodeProperties(node, nullptr, transform, NodePropUpdateGlobalsRecursively);
+        didUpdateGlobals = true;
         m_wasDirty = true;
         markLayerForObjectDirty(node);
     }
@@ -7293,14 +7313,21 @@ void Q3DSSceneManager::updateNodeFromChangeFlags(Q3DSNode *node, Qt3DCore::QTran
                 rootObject = lightNode->scope();
             gatherLights(lightData->layer3DS);
             m_subTreeWithDirtyLights.insert(rootObject);
-        } else if (node->type() != Q3DSGraphObject::Camera) {
+            if (!didUpdateGlobals)
+                updateGlobals(node, UpdateGlobalsRecursively | UpdateGlobalsSkipTransform);
+        } else if (node->type() == Q3DSGraphObject::Camera) {
+            if (!didUpdateGlobals) {
+                // also triggers rechoosing the layer's camera when calling back handleNodeGlobalChange()
+                updateGlobals(node, UpdateGlobalsRecursively | UpdateGlobalsSkipTransform);
+            }
+        } else {
             // Drop whatever is queued since that was based on now-invalid
             // input. (important when entering slides, where eyball property
             // changes get processed after an initial visit of all objects)
             m_pendingObjectVisibility.remove(node);
 
             const bool active = (node->flags().testFlag(Q3DSNode::Active) && (node->attached()->visibilityTag == Q3DSGraphObjectAttached::Visible));
-            setNodeVisibility(node, active);
+            setNodeVisibility(node, active); // will call updateGlobals() as well
         }
         m_wasDirty = true;
         markLayerForObjectDirty(node);
@@ -7878,6 +7905,26 @@ void Q3DSSceneManager::runAction(const Q3DSAction &action)
     default:
         Q_UNREACHABLE();
         break;
+    }
+}
+
+void Q3DSSceneManager::handleNodeGlobalChange(Q3DSNode *node)
+{
+    // called when updateGlobals changes a global* value, giving a chance to act
+
+    Q3DSGraphObjectAttached::FrameDirtyFlags dirty = node->attached()->frameDirty;
+
+    if (dirty.testFlag(Q3DSGraphObjectAttached::GlobalVisibilityDirty)) {
+        if (node->type() == Q3DSGraphObject::Camera) {
+            Q3DSCameraAttached *data = node->attached<Q3DSCameraAttached>();
+            if (setActiveLayerCamera(findFirstCamera(data->layer3DS), data->layer3DS)) {
+                // (orthographic) shadow maps, ssao texture, effects all rely on camera properties like clip range
+                updateShadowMapStatus(data->layer3DS);
+                updateSsaoStatus(data->layer3DS);
+                for (Q3DSEffectInstance *eff3DS : data->layer3DS->attached<Q3DSLayerAttached>()->effectData.effects)
+                    updateEffect(eff3DS);
+            }
+        }
     }
 }
 

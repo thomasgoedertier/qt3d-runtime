@@ -794,7 +794,6 @@ private:
     Qt3DRender::QCamera *buildCamera(Q3DSCameraNode *cam3DS, Q3DSLayerNode *layer3DS, Qt3DCore::QEntity *parent);
     void setCameraProperties(Q3DSCameraNode *camNode, int changeFlags);
     bool setActiveLayerCamera(Q3DSCameraNode *cam3DS, Q3DSLayerNode *layer3DS);
-    void updateLayerCamera(Q3DSLayerNode *layer3DS);
     Q3DSCameraNode *findFirstCamera(Q3DSLayerNode *layer3DS);
 
     Qt3DCore::QTransform *initEntityForNode(Qt3DCore::QEntity *entity, Q3DSNode *node, Q3DSLayerNode *layer3DS);
@@ -859,12 +858,14 @@ private:
     void handlePropertyChange(Q3DSGraphObject *obj, const QSet<QString> &keys, int changeFlags);
     void updateNodeFromChangeFlags(Q3DSNode *node, Qt3DCore::QTransform *transform, int changeFlags);
     void updateSubTreeRecursive(Q3DSGraphObject *obj);
-    void updateSubTree(Q3DSGraphObject *obj);
+    void setPendingVisibilities();
+    void syncScene();
     void prepareNextFrame();
 
     bool isComponentVisible(Q3DSComponentNode *component);
     void setNodeVisibility(Q3DSNode *node, bool visible);
 
+    void handleNodeGlobalChange(Q3DSNode *node);
     void handleSceneChange(Q3DSScene *scene, Q3DSGraphObject::DirtyFlag change, Q3DSGraphObject *obj);
     void addLayerContent(Q3DSGraphObject *obj, Q3DSGraphObject *parent, Q3DSLayerNode *layer3DS);
     void removeLayerContent(Q3DSGraphObject *obj, Q3DSLayerNode *layer3DS);

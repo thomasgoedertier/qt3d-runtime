@@ -755,7 +755,7 @@ void Q3DSSlidePlayer::handleCurrentSlideChanged(Q3DSSlide *slide,
         else
             m_component->setCurrentSlide(slide);
 
-        m_sceneManager->updateSubTree(m_sceneManager->m_scene);
+        m_sceneManager->syncScene();
 
         qint32 startTime = 0;
         qint32 endTime = 0;
