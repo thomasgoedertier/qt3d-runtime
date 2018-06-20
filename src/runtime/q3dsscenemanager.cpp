@@ -546,6 +546,8 @@ void Q3DSSceneManager::setCurrentSlide(Q3DSSlide *newSlide, bool flush)
         return;
 
     const int index = m_slidePlayer->slideDeck()->indexOfSlide(newSlide);
+    if (index == -1 && !newSlide->parent()) // silently refuse to change to the master slide
+        return;
     Q_ASSERT(index != -1);
     m_slidePlayer->slideDeck()->setCurrentSlide(index);
     if (flush || m_slidePlayer->state() != Q3DSSlidePlayer::PlayerState::Playing) {
@@ -558,6 +560,8 @@ void Q3DSSceneManager::setComponentCurrentSlide(Q3DSSlide *newSlide, bool flush)
 {
     Q3DSSlideAttached *data = newSlide->attached<Q3DSSlideAttached>();
     const int index = data->slidePlayer->slideDeck()->indexOfSlide(newSlide);
+    if (index == -1 && !newSlide->parent()) // silently refuse to change to the master slide
+        return;
     Q_ASSERT(index != -1);
     data->slidePlayer->slideDeck()->setCurrentSlide(index);
     if (flush || data->slidePlayer->state() != Q3DSSlidePlayer::PlayerState::Playing) {
