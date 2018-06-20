@@ -193,6 +193,9 @@ void tst_Q3DSUipPresentation::basic()
     Q3DSUipPresentation presentation;
     makePresentation(presentation);
 
+    // see if objects with duplicate ids get rejected
+    QCOMPARE(presentation.newObject<Q3DSScene>("scene"), nullptr);
+
     // quick tests for object and objectByName
 
     auto model1 = presentation.object<Q3DSModelNode>("model1");

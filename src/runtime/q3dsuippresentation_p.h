@@ -1987,7 +1987,7 @@ public:
     void setScene(Q3DSScene *p);
     void setMasterSlide(Q3DSSlide *p);
 
-    void registerObject(const QByteArray &id, Q3DSGraphObject *p); // covers both the scene and slide graphs
+    bool registerObject(const QByteArray &id, Q3DSGraphObject *p); // covers both the scene and slide graphs
     void unregisterObject(const QByteArray &id);
 
     template <typename T = Q3DSGraphObject>
@@ -2041,8 +2041,7 @@ public:
     template<typename T> T *newObject(const QByteArray &id)
     {
         T *obj = new T;
-        registerObject(id, obj); // also sets obj->id
-        return obj;
+        return registerObject(id, obj) ? obj : nullptr; // also sets obj->id
     }
 
     void unlinkObject(Q3DSGraphObject *obj)

@@ -357,22 +357,26 @@ void Q3DSConsoleCommands::setupConsole(Q3DSConsole *console)
             const QString source = QString::fromUtf8(unquote(splitArgs[2]));
             Q3DSGraphObject *parent = resolveObj(splitArgs[3]);
             Q3DSSlide *slide = static_cast<Q3DSSlide *>(resolveObj(splitArgs[4]));
-            if (parent && slide) {
-                Q3DSModelNode *model = m_currentPresentation->newObject<Q3DSModelNode>(id);
-                model->setName(name);
-                model->setMesh(source);
-                model->resolveReferences(*m_currentPresentation);
-                const QByteArray matId = id + QByteArrayLiteral("_material");
-                Q3DSDefaultMaterial *mat = m_currentPresentation->newObject<Q3DSDefaultMaterial>(matId);
-                mat->setName(QString::fromUtf8(matId));
-                model->appendChildNode(mat);
-                slide->addObject(model);
-                slide->addObject(mat);
-                // adding to parent must be the last, since it triggers a scene
-                // change notification to the scene manager
-                parent->appendChildNode(model);
-                m_console->addMessageFmt(responseColor, "Added");
-            }
+            if (!parent || !slide)
+                return;
+            Q3DSModelNode *model = m_currentPresentation->newObject<Q3DSModelNode>(id);
+            if (!model)
+                return;
+            model->setName(name);
+            model->setMesh(source);
+            model->resolveReferences(*m_currentPresentation);
+            const QByteArray matId = id + QByteArrayLiteral("_material");
+            Q3DSDefaultMaterial *mat = m_currentPresentation->newObject<Q3DSDefaultMaterial>(matId);
+            if (!mat)
+                return;
+            mat->setName(QString::fromUtf8(matId));
+            model->appendChildNode(mat);
+            slide->addObject(model);
+            slide->addObject(mat);
+            // adding to parent must be the last, since it triggers a scene
+            // change notification to the scene manager
+            parent->appendChildNode(model);
+            m_console->addMessageFmt(responseColor, "Added");
         }
     }, Q3DSConsole::CmdRecordable));
     m_console->addCommand(Q3DSConsole::makeCommand("object", [this](const QByteArray &args) {
@@ -383,18 +387,18 @@ void Q3DSConsoleCommands::setupConsole(Q3DSConsole *console)
             const QByteArray type = unquote(splitArgs[2]);
             Q3DSGraphObject *parent = resolveObj(splitArgs[3]);
             Q3DSSlide *slide = static_cast<Q3DSSlide *>(resolveObj(splitArgs[4]));
-            if (parent && slide) {
-                Q3DSGraphObject *obj = m_currentPresentation->newObject(type.constData(), id);
-                if (obj) {
-                    obj->setName(name);
-                    slide->addObject(obj);
-                    // adding to parent must be the last, since it triggers a scene
-                    // change notification to the scene manager
-                    parent->appendChildNode(obj);
-                    m_console->addMessageFmt(responseColor, "Added");
-                } else {
-                    m_console->addMessageFmt(errorColor, "Unknown type '%s'", qPrintable(type));
-                }
+            if (!parent || !slide)
+                return;
+            Q3DSGraphObject *obj = m_currentPresentation->newObject(type.constData(), id);
+            if (obj) {
+                obj->setName(name);
+                slide->addObject(obj);
+                // adding to parent must be the last, since it triggers a scene
+                // change notification to the scene manager
+                parent->appendChildNode(obj);
+                m_console->addMessageFmt(responseColor, "Added");
+            } else {
+                m_console->addMessageFmt(errorColor, "Unknown type or duplicate id");
             }
         }
     }, Q3DSConsole::CmdRecordable));

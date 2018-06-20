@@ -4058,14 +4058,15 @@ void Q3DSUipPresentation::registerImageBuffer(const QString &sourcePath, bool ha
     d->imageBuffers[sourcePath] = hasTransparency;
 }
 
-void Q3DSUipPresentation::registerObject(const QByteArray &id, Q3DSGraphObject *p)
+bool Q3DSUipPresentation::registerObject(const QByteArray &id, Q3DSGraphObject *p)
 {
     if (d->objects.contains(id)) {
         qWarning("Q3DSUipPresentation: Multiple registrations for object id '%s'", id.constData());
-        return;
+        return false;
     }
     p->m_id = id;
     d->objects[id] = p;
+    return true;
 }
 
 void Q3DSUipPresentation::unregisterObject(const QByteArray &id)
