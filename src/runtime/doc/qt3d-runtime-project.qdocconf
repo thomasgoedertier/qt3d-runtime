@@ -17,7 +17,10 @@ headerdirs              += ../../imports/studio3d
 sourcedirs              += ../behaviorapi
 headerdirs              += ../behaviorapi
 
-depends = qtcore qtgui qtwidgets qtqml qtquick qtdoc qt3dcore qt3drender qt3dlogic qt3danimation
+depends = qtcore qtgui qtwidgets qtqml qtquick qtquickcontrols2 qt3dstudio qtdoc qt3d
+
+# TODO: remove these once they're no longer needed
+depends += qt3dcore qt3drender qt3dlogic qt3danimation
 
 qhp.projects            = Qt3DStudioRuntime2
 
@@ -50,7 +53,10 @@ qhp.Qt3DStudioRuntime2.subprojects.classes.sortPages  = true
 # Add an .html file with sidebar content, used in the online style
 HTML.stylesheets             += style/qt5-sidebar.html
 
-navigation.homepage            = Qt 3D Studio Runtime
+navigation.homepage            = "Qt 3D Studio Index"
+navigation.hometitle           = "Qt 3D Studio"
+navigation.landingpage         = "Qt 3D Studio Runtime"
+navigation.landingtitle        = Runtime
 navigation.cppclassespage      = Qt 3D Studio Runtime C++ Classes
 navigation.qmltypespage        = Qt 3D Studio Runtime QML Types
 buildversion                   = "Qt 3D Studio Runtime 2.0 Manual"
