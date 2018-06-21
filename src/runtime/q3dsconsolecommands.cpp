@@ -29,6 +29,7 @@
 
 #include "q3dsconsolecommands_p.h"
 #include "q3dsscenemanager_p.h"
+#include "q3dsslideplayer_p.h"
 #if QT_CONFIG(q3ds_profileui)
 #include "profileui/q3dsconsole_p.h"
 #endif
@@ -277,6 +278,14 @@ void Q3DSConsoleCommands::setupConsole(Q3DSConsole *console)
                 m_console->addMessageFmt(longResponseColor, "Objects belonging to this slide:\n");
                 for (Q3DSGraphObject *slideObj : slide->objects())
                     m_console->addMessageFmt(longResponseColor, "  %s\n", qPrintable(printObject(slideObj)));
+                qint32 startTime = 0, endTime = 0;
+                Q3DSSlideUtils::getStartAndEndTime(slide, &startTime, &endTime);
+                m_console->addMessageFmt(longResponseColor, "Start time: %d End time: %d\n", startTime, endTime);
+                Q3DSSlidePlayer *slidePlayer = slide->parent()
+                        ? static_cast<Q3DSSlide *>(slide->parent())->attached<Q3DSSlideAttached>()->slidePlayer
+                        : slide->attached<Q3DSSlideAttached>()->slidePlayer;
+                if (slidePlayer)
+                    m_console->addMessageFmt(longResponseColor, "Play position: %f\n", slidePlayer->position());
             }
         }
     }, Q3DSConsole::CmdRecordable));

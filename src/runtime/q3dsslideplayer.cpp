@@ -985,12 +985,12 @@ void Q3DSSlidePlayer::processPropertyChanges(Q3DSSlide *currentSlide)
         });
     }
 
-    // Filter out properties that we needs to be marked dirty, i.e., eyeball changes.
+    // Set the property values
     const auto &propertyChanges = currentSlide->propertyChanges();
     for (auto it = propertyChanges.cbegin(); it != propertyChanges.cend(); ++it)
         it.key()->applyPropertyChanges(*it.value());
 
-    // Now update the propeties from dynamic property values
+    // Now update the properties from dynamic property values
     for (auto it = dynamicPropertyChanges.cbegin(), ite = dynamicPropertyChanges.cend(); it != ite; ++it)
         it.key()->applyPropertyChanges(it.value());
 }

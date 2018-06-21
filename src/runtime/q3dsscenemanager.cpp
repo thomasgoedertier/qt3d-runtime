@@ -7328,9 +7328,12 @@ void Q3DSSceneManager::updateNodeFromChangeFlags(Q3DSNode *node, Qt3DCore::QTran
             // input. (important when entering slides, where eyball property
             // changes get processed after an initial visit of all objects)
             m_pendingObjectVisibility.remove(node);
-
-            const bool active = (node->flags().testFlag(Q3DSNode::Active) && (node->attached()->visibilityTag == Q3DSGraphObjectAttached::Visible));
-            setNodeVisibility(node, active); // will call updateGlobals() as well
+            // This is an explicit eyeball change via the API or the console,
+            // so update both visibilityTag and the QLayer tags based on
+            // eyeball (and nothing else). The slide/animation system does not
+            // use this path, that queues visibilityTag changes via
+            // m_pendingObjectVisibility instead.
+            setNodeVisibility(node, node->flags().testFlag(Q3DSNode::Active)); // will call updateGlobals() as well
         }
         m_wasDirty = true;
         markLayerForObjectDirty(node);
