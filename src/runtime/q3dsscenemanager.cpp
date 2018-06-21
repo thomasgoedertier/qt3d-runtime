@@ -3927,12 +3927,15 @@ void Q3DSSceneManager::updateGlobals(Q3DSNode *node, UpdateGlobalFlags flags)
         // update the global, inherited opacity
         globalOpacity = clampOpacity(parentData->globalOpacity * (node->localOpacity() / 100.0f));
         // update inherited visibility
-        globalVisibility = node->flags().testFlag(Q3DSNode::Active) && (parentData->visibilityTag == Q3DSGraphObjectAttached::Visible) && parentData->globalVisibility;
+        globalVisibility = node->flags().testFlag(Q3DSNode::Active)
+                && data->visibilityTag == Q3DSGraphObjectAttached::Visible
+                && parentData->globalVisibility;
     } else {
         if (!flags.testFlag(UpdateGlobalsSkipTransform))
             globalTransform = data->transform->matrix();
         globalOpacity = clampOpacity(node->localOpacity() / 100.0f);
-        globalVisibility = node->flags().testFlag(Q3DSNode::Active) && (data->visibilityTag == Q3DSGraphObjectAttached::Visible);
+        globalVisibility = node->flags().testFlag(Q3DSNode::Active)
+                && data->visibilityTag == Q3DSGraphObjectAttached::Visible;
     }
 
     if (!flags.testFlag(UpdateGlobalsSkipTransform) && globalTransform != data->globalTransform) {
