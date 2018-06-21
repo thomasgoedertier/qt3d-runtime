@@ -4322,37 +4322,37 @@ Q3DSGraphObject *Q3DSUipPresentation::newObject(const char *type, const QByteArr
 {
     Q3DSGraphObject *obj = nullptr;
 
-    if (type == QStringLiteral("Scene"))
+    if (type == QByteArrayLiteral("Scene"))
         obj = newObject<Q3DSScene>(id);
-    else if (type == QStringLiteral("Slide"))
+    else if (type == QByteArrayLiteral("Slide"))
         obj = newObject<Q3DSSlide>(id);
-    else if (type == QStringLiteral("Image"))
+    else if (type == QByteArrayLiteral("Image"))
         obj = newObject<Q3DSImage>(id);
-    else if (type == QStringLiteral("DefaultMaterial"))
+    else if (type == QByteArrayLiteral("DefaultMaterial"))
         obj = newObject<Q3DSDefaultMaterial>(id);
-    else if (type == QStringLiteral("ReferencedMaterial"))
+    else if (type == QByteArrayLiteral("ReferencedMaterial"))
         obj = newObject<Q3DSReferencedMaterial>(id);
-    else if (type == QStringLiteral("CustomMaterial"))
+    else if (type == QByteArrayLiteral("CustomMaterial"))
         obj = newObject<Q3DSCustomMaterialInstance>(id);
-    else if (type == QStringLiteral("Effect"))
+    else if (type == QByteArrayLiteral("Effect"))
         obj = newObject<Q3DSEffectInstance>(id);
-    else if (type == QStringLiteral("Behavior"))
+    else if (type == QByteArrayLiteral("Behavior"))
         obj = newObject<Q3DSBehaviorInstance>(id);
-    else if (type == QStringLiteral("Layer"))
+    else if (type == QByteArrayLiteral("Layer"))
         obj = newObject<Q3DSLayerNode>(id);
-    else if (type == QStringLiteral("Camera"))
+    else if (type == QByteArrayLiteral("Camera"))
         obj = newObject<Q3DSCameraNode>(id);
-    else if (type == QStringLiteral("Light"))
+    else if (type == QByteArrayLiteral("Light"))
         obj = newObject<Q3DSLightNode>(id);
-    else if (type == QStringLiteral("Model"))
+    else if (type == QByteArrayLiteral("Model"))
         obj = newObject<Q3DSModelNode>(id);
-    else if (type == QStringLiteral("Group"))
+    else if (type == QByteArrayLiteral("Group"))
         obj = newObject<Q3DSGroupNode>(id);
-    else if (type == QStringLiteral("Text"))
+    else if (type == QByteArrayLiteral("Text"))
         obj = newObject<Q3DSTextNode>(id);
-    else if (type == QStringLiteral("Component"))
+    else if (type == QByteArrayLiteral("Component"))
         obj = newObject<Q3DSComponentNode>(id);
-    else if (type == QStringLiteral("Alias"))
+    else if (type == QByteArrayLiteral("Alias"))
         obj = newObject<Q3DSAliasNode>(id);
 
     return obj;
