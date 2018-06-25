@@ -171,7 +171,7 @@ QVector<Qt3DRender::QTextureImageDataPtr> Q3DSImageManager::load(const QUrl &sou
         qCDebug(lcPerf, "Image loaded in %lld ms", t.elapsed());
         result << data;
 
-        if (flags.testFlag(GenerateMipMapsForIBL)) {
+        if (flags.testFlag(GenerateMipMapsForIBL) && data->mipLevels() == 1) {
             // IBL needs special mipmap generation. This could be done
             // asynchronously but the we rely on the previous level in each step so
             // it's not a good fit unfortunately. So do it all here. Also,
@@ -245,7 +245,7 @@ void Q3DSImageManager::setSource(Qt3DRender::QAbstractTexture *tex, const QUrl &
         info.format = Qt3DRender::QAbstractTexture::TextureFormat(imageData[0]->format());
         m_metadata.insert(tex, info);
 
-        if (info.flags.testFlag(GenerateMipMapsForIBL)) {
+        if (imageData.count() > 1) {
             tex->setMagnificationFilter(Qt3DRender::QAbstractTexture::Linear);
             tex->setMinificationFilter(Qt3DRender::QAbstractTexture::LinearMipMapLinear);
             tex->setGenerateMipMaps(false);
