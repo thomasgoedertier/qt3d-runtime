@@ -2165,8 +2165,6 @@ void mapCustomPropertyFileNames(QVariantMap *propTab, const T &propMeta, const Q
     }
 }
 
-
-
 void Q3DSCustomMaterialInstance::resolveReferences(Q3DSUipPresentation &pres)
 {
     // changing the material class dynamically is not supported. do it only once.
@@ -2174,7 +2172,7 @@ void Q3DSCustomMaterialInstance::resolveReferences(Q3DSUipPresentation &pres)
         m_material = pres.customMaterial(m_material_unresolved.mid(1).toUtf8());
         m_materialIsResolved = true;
         if (!m_material.isNull()) {
-            // Now add the (dynamic) properties
+            // Now add the (dynamic) properties with the default values first.
             const auto props = m_material.properties();
             for (auto it = props.cbegin(); it != props.cend(); ++it) {
                 // Fix up the filenames to that no further adjustment is necessary from this point on.
@@ -2185,12 +2183,11 @@ void Q3DSCustomMaterialInstance::resolveReferences(Q3DSUipPresentation &pres)
 
             // Now go update any pending property values
             QVariantMap propChanges;
-            std::find_if(m_pendingCustomProperties.cbegin(), m_pendingCustomProperties.cend(), [&props, &propChanges](const Q3DSPropertyChange &change) {
+            for (const Q3DSPropertyChange &change : m_pendingCustomProperties) {
                 const Q3DS::PropertyType type = props.value(change.nameStr()).type;
                 propChanges[change.nameStr()] = Q3DS::convertToVariant(change.valueStr(), type);
-                return false;
-            });
-
+            }
+            mapCustomPropertyFileNames(&propChanges, props, pres);
             applyDynamicProperties(propChanges);
             m_pendingCustomProperties.clear();
         }
@@ -2286,7 +2283,7 @@ void Q3DSEffectInstance::resolveReferences(Q3DSUipPresentation &pres)
         m_effect = pres.effect(m_effect_unresolved.mid(1).toUtf8());
         m_effectIsResolved = true;
         if (!m_effect.isNull()) {
-            // Now add the (dynamic) properties
+            // Now add the (dynamic) properties with the default values first.
             const auto props = m_effect.properties();
             for (auto it = props.cbegin(); it != props.cend(); ++it) {
                 // Fix up the filenames to that no further adjustment is necessary from this point on.
@@ -2297,11 +2294,11 @@ void Q3DSEffectInstance::resolveReferences(Q3DSUipPresentation &pres)
 
             // Now go update any pending property values
             QVariantMap propChanges;
-            std::find_if(m_pendingCustomProperties.cbegin(), m_pendingCustomProperties.cend(), [&props, &propChanges](const Q3DSPropertyChange &change) {
+            for (const Q3DSPropertyChange &change : m_pendingCustomProperties) {
                 const Q3DS::PropertyType type = props.value(change.nameStr()).type;
                 propChanges[change.nameStr()] = Q3DS::convertToVariant(change.valueStr(), type);
-                return false;
-            });
+            }
+            mapCustomPropertyFileNames(&propChanges, props, pres);
             applyDynamicProperties(propChanges);
             m_pendingCustomProperties.clear();
         }
@@ -2375,7 +2372,7 @@ void Q3DSBehaviorInstance::resolveReferences(Q3DSUipPresentation &pres)
         m_behavior = pres.behavior(m_behavior_unresolved.mid(1).toUtf8());
         m_behaviorIsResolved = true;
         if (!m_behavior.isNull()) {
-            // Now add the (dynamic) properties
+            // Now add the (dynamic) properties with the default values first.
             const auto props = m_behavior.properties();
             for (auto it = props.cbegin(); it != props.cend(); ++it) {
                 const Q3DS::PropertyType type = m_behavior.properties().value(it.key()).type;
@@ -2387,11 +2384,11 @@ void Q3DSBehaviorInstance::resolveReferences(Q3DSUipPresentation &pres)
 
             // Now go update any pending property values
             QVariantMap propChanges;
-            std::find_if(m_pendingCustomProperties.cbegin(), m_pendingCustomProperties.cend(), [&props, &propChanges](const Q3DSPropertyChange &change) {
+            for (const Q3DSPropertyChange &change : m_pendingCustomProperties) {
                 const Q3DS::PropertyType type = props.value(change.nameStr()).type;
                 propChanges[change.nameStr()] = Q3DS::convertToVariant(change.valueStr(), type);
-                return false;
-            });
+            }
+            mapCustomPropertyFileNames(&propChanges, props, pres);
             applyDynamicProperties(propChanges);
             m_pendingCustomProperties.clear();
         }

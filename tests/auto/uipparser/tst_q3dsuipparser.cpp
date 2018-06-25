@@ -71,6 +71,7 @@ private slots:
     void action();
     void behavior();
     void alias();
+    void customPropertyTextureSourceResolve();
 
 private:
     QString presName = QLatin1String("pres");
@@ -1293,6 +1294,41 @@ void tst_Q3DSUipParser::alias()
     QCOMPARE(componentAlias2->parent(), component2);
     QCOMPARE(componentAlias2->referencedNode(), cubeNode);
 
+}
+
+void tst_Q3DSUipParser::customPropertyTextureSourceResolve()
+{
+    Q3DSUipParser parser;
+    QScopedPointer<Q3DSUipPresentation> pres(parser.parse(QLatin1String(":/data/eff16.uip"), QByteArrayLiteral("main")));
+    QVERIFY(pres.data());
+
+    auto eff = pres->object<Q3DSEffectInstance>(QByteArrayLiteral("FullScreenTextureOverlay_001"));
+    QVERIFY(eff);
+
+    QCOMPARE(eff->propertyNames().count(), 9); // 7 standard, 2 dynamic
+    QCOMPARE(eff->dynamicPropertyNames().count(), 2);
+    QCOMPARE(eff->dynamicPropertyValues().count(), 2);
+
+    QSet<QString> expectedNames { QLatin1String("id"), QLatin1String("name"), QLatin1String("starttime"), QLatin1String("endtime"),
+                                  QLatin1String("dynamicProperties"), QLatin1String("class"), QLatin1String("eyeball"),
+                                  QLatin1String("Overlay"), QLatin1String("overlay_repeat") };
+    QSet<QString> actualNames;
+    for (const QString &s : eff->propertyNames())
+        actualNames.insert(s);
+
+    QCOMPARE(expectedNames, actualNames);
+
+    QVariant overlayTextureSource = eff->property("Overlay");
+    QVERIFY(!overlayTextureSource.isNull());
+
+    int pos = eff->dynamicPropertyNames().indexOf(QByteArrayLiteral("Overlay"));
+    QVERIFY(pos >= 0);
+    QCOMPARE(eff->dynamicPropertyValues()[pos].toString(), overlayTextureSource.toString());
+
+    // now test the actual normalization
+    QString fn = overlayTextureSource.toString();
+    // original is "maps/effects/noise.dds", the path we have here should have an absolute path
+    QVERIFY(fn.startsWith(QLatin1String(":/data/")));
 }
 
 #include <tst_q3dsuipparser.moc>

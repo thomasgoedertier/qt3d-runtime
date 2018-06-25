@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<UIP version="4" >
+	<Project >
+		<ProjectSettings author="" company="" presentationWidth="1280" presentationHeight="720" maintainAspect="False" >
+			<CustomColors count="16" >#ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff</CustomColors>
+		</ProjectSettings>
+		<Classes >
+			<Effect id="FullScreenTextureOverlay" name="FullScreenTextureOverlay" sourcepath="FullScreenTextureOverlay.effect" />
+		</Classes>
+		<Graph >
+			<Scene id="Scene" >
+				<Layer id="Layer" >
+					<Camera id="Camera" />
+					<Light id="Light" />
+				</Layer>
+				<Layer id="Layer16" >
+					<Camera id="Camera_015" />
+					<Light id="Light_015" />
+					<Model id="Cube_015" >
+						<Material id="Default_030" name="Default" />
+					</Model>
+					<Model id="Sphere_015" >
+						<Material id="Default_031" name="Default" />
+					</Model>
+					<Effect id="FullScreenTextureOverlay_001" class="#FullScreenTextureOverlay" />
+				</Layer>
+			</Scene>
+		</Graph>
+		<Logic >
+			<State name="Master Slide" component="#Scene" >
+				<Add ref="#Layer" height="10" multisampleaa="4x" width="10" />
+				<Add ref="#Camera" />
+				<Add ref="#Light" />
+				<State id="Scene-Slide1" name="Slide1" >
+					<Add ref="#Layer16" name="Layer16" height="10" left="50" top="10" width="10" />
+					<Add ref="#Camera_015" />
+					<Add ref="#Light_015" />
+					<Add ref="#Cube_015" name="Cube" position="-296.053 33.0374 0" rotation="-22.9052 -70.9856 10.3556" scale="2 2 2" sourcepath="#Cube" >
+						<AnimationTrack property="rotation.x" type="EaseInOut" >0 -22.9052 100 100 10 -22.905 100 100</AnimationTrack>
+						<AnimationTrack property="rotation.y" type="EaseInOut" >0 -70.9856 100 100 10 200 100 100</AnimationTrack>
+						<AnimationTrack property="rotation.z" type="EaseInOut" >0 10.3556 100 100 10 10.356 100 100</AnimationTrack>
+					</Add>
+					<Add ref="#Default_030" />
+					<Add ref="#Sphere_015" name="Sphere" position="192.771 17.3205 0" rotation="71.3254 -100.135 -168.32" scale="2.5 2 2" sourcepath="#Sphere" >
+						<AnimationTrack property="rotation.x" type="EaseInOut" >0 71.3254 100 100 10 71.325 100 100</AnimationTrack>
+						<AnimationTrack property="rotation.y" type="EaseInOut" >0 -100.135 100 100 10 300 100 100</AnimationTrack>
+						<AnimationTrack property="rotation.z" type="EaseInOut" >0 -168.32 100 100 10 -168.32 100 100</AnimationTrack>
+					</Add>
+					<Add ref="#Default_031" />
+					<Add ref="#FullScreenTextureOverlay_001" name="FullScreenTextureOverlay" Overlay="maps/effects/noise.dds" />
+				</State>
+			</State>
+		</Logic>
+	</Project>
+</UIP>
