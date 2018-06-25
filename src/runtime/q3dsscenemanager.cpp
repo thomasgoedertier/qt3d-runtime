@@ -4768,10 +4768,8 @@ void Q3DSSceneManager::updateTextureParameters(Q3DSTextureParameters &texturePar
 
     Qt3DRender::QAbstractTexture *texture = textureParameters.sampler->value().value<Qt3DRender::QAbstractTexture *>();
     Q_ASSERT(texture);
-    texture->setGenerateMipMaps(true);
-    texture->setMagnificationFilter(Qt3DRender::QAbstractTexture::Linear);
-    texture->setMinificationFilter(Qt3DRender::QAbstractTexture::LinearMipMapLinear);
     texture->setWrapMode(wrapMode);
+    // min/mag are already set at this point
 
     const QMatrix4x4 &textureTransform = image->textureTransform();
     const float *m = textureTransform.constData();

@@ -133,45 +133,58 @@ QVector<Qt3DRender::QTextureImageDataPtr> Q3DSImageManager::load(const QUrl &sou
     t.start();
     qCDebug(lcScene, "Loading image %s", qPrintable(sourceStr));
 
-    Qt3DRender::QTextureImageDataPtr data;
+    // Loaders are expected to provide a separate textureimage per mip level,
+    // because individual textureimages added to an abstracttexture via
+    // addTextureImage do not support providing a multiple mip level data in
+    // one texture image. At the sime time we cannot use QTextureGenerator via
+    // the public API so are stuck with individual textureimages.
+    QVector<Qt3DRender::QTextureImageDataPtr> result;
 
     const QString suffix = QFileInfo(sourceStr).suffix().toLower();
     if (suffix == QStringLiteral("hdr")) {
         QFile f(sourceStr);
         if (f.open(QIODevice::ReadOnly)) {
-            data = q3ds_loadHdr(&f);
+            Qt3DRender::QTextureImageDataPtr data = q3ds_loadHdr(&f);
+            result << data;
             f.close();
         }
     } else if (suffix == QStringLiteral("pkm")) {
         QFile f(sourceStr);
         if (f.open(QIODevice::ReadOnly)) {
-            data = q3ds_loadPkm(&f);
+            Qt3DRender::QTextureImageDataPtr data = q3ds_loadPkm(&f);
+            result << data;
             f.close();
         }
     } else if (suffix == QStringLiteral("dds")) {
         QFile f(sourceStr);
         if (f.open(QIODevice::ReadOnly)) {
-            data = q3ds_loadDds(&f);
+            Qt3DRender::QTextureImageDataPtr data = q3ds_loadDds(&f);
+            result << data;
+            f.close();
+        }
+    } else if (suffix == QStringLiteral("ktx")) {
+        QFile f(sourceStr);
+        if (f.open(QIODevice::ReadOnly)) {
+            result = q3ds_loadKtx(&f);
             f.close();
         }
     }
 
-    if (!data) {
+    if (result.isEmpty()) {
         QImage image(sourceStr);
         if (!image.isNull()) {
-            data = Qt3DRender::QTextureImageDataPtr::create();
+            Qt3DRender::QTextureImageDataPtr data = Qt3DRender::QTextureImageDataPtr::create();
             data->setImage(image.mirrored());
+            result << data;
         }
     }
 
     m_ioTime += t.elapsed();
 
-    QVector<Qt3DRender::QTextureImageDataPtr> result;
-    if (data) {
-        qCDebug(lcPerf, "Image loaded in %lld ms", t.elapsed());
-        result << data;
+    if (!result.isEmpty()) {
+        qCDebug(lcPerf, "Image loaded (%d mip levels) in %lld ms", result.count(), t.elapsed());
 
-        if (flags.testFlag(GenerateMipMapsForIBL) && data->mipLevels() == 1) {
+        if (flags.testFlag(GenerateMipMapsForIBL) && result.count() == 1) {
             // IBL needs special mipmap generation. This could be done
             // asynchronously but the we rely on the previous level in each step so
             // it's not a good fit unfortunately. So do it all here. Also,
@@ -179,6 +192,7 @@ QVector<Qt3DRender::QTextureImageDataPtr> Q3DSImageManager::load(const QUrl &sou
             // but there's no public API for that, have to stick with
             // QTextureImageDataGenerator.
             t.restart();
+            Qt3DRender::QTextureImageDataPtr data = result.first();
             int w = data->width();
             int h = data->height();
             const int maxDim = w > h ? w : h;
@@ -202,6 +216,11 @@ QVector<Qt3DRender::QTextureImageDataPtr> Q3DSImageManager::load(const QUrl &sou
                 mipImageData->setLayers(1);
                 mipImageData->setDepth(1);
                 mipImageData->setFaces(1);
+                // again, make no mistake: not setting 1 does not actually
+                // allow providing multiple mip level data in one texture image
+                // due to the bizarre API design of Qt3D. (the behavior is
+                // logical, technically, but the API over all is not) So
+                // separate textureimages is the only way to go.
                 mipImageData->setMipLevels(1);
                 mipImageData->setPixelFormat(data->pixelFormat());
                 mipImageData->setPixelType(data->pixelType());
@@ -245,10 +264,16 @@ void Q3DSImageManager::setSource(Qt3DRender::QAbstractTexture *tex, const QUrl &
         info.format = Qt3DRender::QAbstractTexture::TextureFormat(imageData[0]->format());
         m_metadata.insert(tex, info);
 
+        tex->setMagnificationFilter(Qt3DRender::QAbstractTexture::Linear);
+        tex->setMinificationFilter(Qt3DRender::QAbstractTexture::LinearMipMapLinear);
         if (imageData.count() > 1) {
-            tex->setMagnificationFilter(Qt3DRender::QAbstractTexture::Linear);
-            tex->setMinificationFilter(Qt3DRender::QAbstractTexture::LinearMipMapLinear);
             tex->setGenerateMipMaps(false);
+            if (!info.wasCached)
+                qCDebug(lcScene, "%s provided mipmaps", qPrintable(source.toLocalFile()));
+        } else {
+            tex->setGenerateMipMaps(true);
+            if (!info.wasCached)
+                qCDebug(lcScene, "%s provided no mipmaps, autogenerating", qPrintable(source.toLocalFile()));
         }
 
         for (int i = 0; i < imageData.count(); ++i)

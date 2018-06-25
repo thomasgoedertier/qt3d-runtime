@@ -798,6 +798,8 @@ inline Qt3DRender::QTextureImageDataPtr q3ds_loadDds(QIODevice *source)
     imageData->setTarget(target);
 
     // mip levels
+    // ### this is broken, mip levels > 0 will be ignored, see Q3DSImageManager::load()
+    // should be refactored to return multiple QTextureImageDataPtrs, one per mip level.
     imageData->setMipLevels(mipLevelCount);
 
     // texture format
@@ -813,6 +815,144 @@ inline Qt3DRender::QTextureImageDataPtr q3ds_loadDds(QIODevice *source)
     imageData->setFaces(faces);
 
     return imageData;
+}
+
+static inline quint32 q3ds_alignedOffset(quint32 offset, quint32 byteAlign)
+{
+    return (offset + byteAlign - 1) & ~(byteAlign - 1);
+}
+
+static inline quint32 q3ds_blockSizeForTextureFormat(QOpenGLTexture::TextureFormat format)
+{
+    switch (format) {
+    case QOpenGLTexture::RGB8_ETC1:
+    case QOpenGLTexture::RGB8_ETC2:
+    case QOpenGLTexture::SRGB8_ETC2:
+    case QOpenGLTexture::RGB8_PunchThrough_Alpha1_ETC2:
+    case QOpenGLTexture::SRGB8_PunchThrough_Alpha1_ETC2:
+    case QOpenGLTexture::R11_EAC_UNorm:
+    case QOpenGLTexture::R11_EAC_SNorm:
+        return 8;
+
+    default:
+        return 16;
+    }
+}
+
+inline QVector<Qt3DRender::QTextureImageDataPtr> q3ds_loadKtx(QIODevice *source)
+{
+    static const int KTX_IDENTIFIER_LENGTH = 12;
+    static const char ktxIdentifier[KTX_IDENTIFIER_LENGTH] = { '\xAB', 'K', 'T', 'X', ' ', '1', '1', '\xBB', '\r', '\n', '\x1A', '\n' };
+    static const quint32 platformEndianIdentifier = 0x04030201;
+    static const quint32 inversePlatformEndianIdentifier = 0x01020304;
+
+    struct KTXHeader {
+        quint8 identifier[KTX_IDENTIFIER_LENGTH];
+        quint32 endianness;
+        quint32 glType;
+        quint32 glTypeSize;
+        quint32 glFormat;
+        quint32 glInternalFormat;
+        quint32 glBaseInternalFormat;
+        quint32 pixelWidth;
+        quint32 pixelHeight;
+        quint32 pixelDepth;
+        quint32 numberOfArrayElements;
+        quint32 numberOfFaces;
+        quint32 numberOfMipmapLevels;
+        quint32 bytesOfKeyValueData;
+    };
+
+    KTXHeader header;
+    QVector<Qt3DRender::QTextureImageDataPtr> result;
+    if (source->read(reinterpret_cast<char *>(&header), sizeof(header)) != sizeof(header)
+            || qstrncmp(reinterpret_cast<char *>(header.identifier), ktxIdentifier, KTX_IDENTIFIER_LENGTH) != 0
+            || (header.endianness != platformEndianIdentifier && header.endianness != inversePlatformEndianIdentifier))
+    {
+        return result;
+    }
+
+    const bool isInverseEndian = (header.endianness == inversePlatformEndianIdentifier);
+    auto decode = [isInverseEndian](quint32 val) {
+        return isInverseEndian ? qbswap<quint32>(val) : val;
+    };
+
+    const bool isCompressed = decode(header.glType) == 0 && decode(header.glFormat) == 0 && decode(header.glTypeSize) == 1;
+    if (!isCompressed) {
+        qWarning("Uncompressed ktx texture data is not supported");
+        return result;
+    }
+
+    if (decode(header.numberOfArrayElements) != 0) {
+        qWarning("Array ktx textures not supported");
+        return result;
+    }
+
+    if (decode(header.pixelDepth) != 0) {
+        qWarning("Only 2D and cube ktx textures are supported");
+        return result;
+    }
+
+    const int bytesToSkip = decode(header.bytesOfKeyValueData);
+    if (source->read(bytesToSkip).count() != bytesToSkip) {
+        qWarning("Unexpected end of ktx data");
+        return result;
+    }
+
+    // now for each mipmap level we have (arrays and 3d textures not supported here)
+    // uint32 imageSize
+    // for each array element
+    //   for each face
+    //     for each z slice
+    //       compressed data
+    //     padding so that each face data starts at an offset that is a multiple of 4
+    // padding so that each imageSize starts at an offset that is a multiple of 4
+
+    QByteArray rawData = source->readAll();
+    if (rawData.count() < 4) {
+        qWarning("Unexpected end of ktx data");
+        return result;
+    }
+
+    const char *basep = rawData.constData();
+    const char *p = basep;
+    const int level0Width = decode(header.pixelWidth);
+    const int level0Height = decode(header.pixelHeight);
+    int faceCount = decode(header.numberOfFaces);
+    const int mipMapLevels = decode(header.numberOfMipmapLevels);
+    auto createImageData = [=](const QByteArray &compressedData) {
+        Qt3DRender::QTextureImageDataPtr imageData = Qt3DRender::QTextureImageDataPtr::create();
+        imageData->setTarget(faceCount == 6 ? QOpenGLTexture::TargetCubeMap : QOpenGLTexture::Target2D);
+        imageData->setFormat(QOpenGLTexture::TextureFormat(decode(header.glInternalFormat)));
+        imageData->setWidth(level0Width);
+        imageData->setHeight(level0Height);
+        imageData->setLayers(1);
+        imageData->setDepth(1);
+        // separate textureimage per face and per mipmap
+        imageData->setFaces(1);
+        imageData->setMipLevels(1);
+        imageData->setPixelFormat(QOpenGLTexture::NoSourceFormat);
+        imageData->setPixelType(QOpenGLTexture::NoPixelType);
+        imageData->setData(compressedData, q3ds_blockSizeForTextureFormat(imageData->format()), true);
+        return imageData;
+    };
+
+    // ### proper support for cubemaps should be implemented at some point
+    if (faceCount > 1) {
+        qWarning("Multiple faces (cubemaps) not currently supported in ktx");
+        faceCount = 1;
+    }
+
+    for (int mip = 0; mip < mipMapLevels; ++mip) {
+        int imageSize = *reinterpret_cast<const quint32 *>(p);
+        p += 4;
+        for (int face = 0; face < faceCount; ++face) {
+            result << createImageData(QByteArray(p, imageSize));
+            p = basep + q3ds_alignedOffset(p + imageSize - basep, 4);
+        }
+    }
+
+    return result;
 }
 
 QT_END_NAMESPACE
