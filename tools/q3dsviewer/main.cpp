@@ -125,11 +125,10 @@ int main(int argc, char *argv[])
     engine->setFlags(flags);
 
     // Setup Remote Viewer
-    QScopedPointer<Q3DSRemoteDeploymentManager> remote(new Q3DSRemoteDeploymentManager(engine.data()));
     int port = 36000;
     if (cmdLineParser.isSet(remoteOption))
         port = cmdLineParser.value(remoteOption).toInt();
-    remote->setConnectionPort(port);
+    QScopedPointer<Q3DSRemoteDeploymentManager> remote(new Q3DSRemoteDeploymentManager(engine.data(), port, !noWidgets));
     if (fn.isEmpty()) {
         remote->startServer();
         remote->showConnectionSetup();

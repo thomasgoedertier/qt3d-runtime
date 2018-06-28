@@ -50,7 +50,7 @@ public:
         RemoteProject
     };
 
-    explicit Q3DSRemoteDeploymentManager(Q3DSEngine *engine, int port = 36000);
+    explicit Q3DSRemoteDeploymentManager(Q3DSEngine *engine, int port, bool hasWidgets);
     ~Q3DSRemoteDeploymentManager();
 
     void setConnectionPort(int port);
@@ -82,6 +82,7 @@ private:
     Q3DSEngine *m_engine = nullptr;
     Q3DSRemoteDeploymentServer *m_server = nullptr;
     int m_port;
+    bool m_hasWidgets;
     QString m_errorMessage;
     State m_state = LocalProject;
     QTimer m_connectionInfoTimer;

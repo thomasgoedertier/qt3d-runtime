@@ -42,9 +42,10 @@ QString c_connectionErrorDataInput() { return QStringLiteral("errorInfo"); }
 
 QT_BEGIN_NAMESPACE
 
-Q3DSRemoteDeploymentManager::Q3DSRemoteDeploymentManager(Q3DSEngine *engine, int port)
+Q3DSRemoteDeploymentManager::Q3DSRemoteDeploymentManager(Q3DSEngine *engine, int port, bool hasWidgets)
     : m_engine(engine)
     , m_port(port)
+    , m_hasWidgets(hasWidgets)
 {
     // setup the server
     m_server = new Q3DSRemoteDeploymentServer(m_port, this);
@@ -200,11 +201,15 @@ void Q3DSRemoteDeploymentManager::setupConnectionScene()
 
 QString Q3DSRemoteDeploymentManager::generateConnectionInfo()
 {
-    return QObject::tr("Use IP: %1 and Port: %2\n"
-                     "in Qt 3D Studio Editor to connect to this viewer.\n\n"
-                     "Use File/Open... to open a local presentation.")
-                  .arg(m_server->hostAddress().toString())
+    QString msg = QObject::tr("Use IP: %1 and Port: %2\n"
+                              "in Qt 3D Studio Editor to connect to this viewer.\n\n")
+            .arg(m_server->hostAddress().toString())
             .arg(QString::number(m_port));
+
+    if (m_hasWidgets)
+        msg += QObject::tr("Use File/Open... to open a local presentation.");
+
+    return msg;
 }
 
 void Q3DSRemoteDeploymentManager::setErrorMessage(const QString &errorString)
