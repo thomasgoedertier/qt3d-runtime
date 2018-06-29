@@ -1088,7 +1088,12 @@ void Q3DSSlidePlayer::objectAboutToBeAddedToScene(Q3DSGraphObject *obj)
             parentVisible = (m_component->attached()->visibilityTag == Q3DSGraphObjectAttached::Visible);
     }
 
-    setObjectVisibility(obj, parentVisible, false, position());
+    float time = -1.0f;
+    Q3DSSlide *slide = m_data.slideDeck->currentSlide();
+    if (slide && (slide->objects().contains(obj) || static_cast<Q3DSSlide *>(slide->parent())->objects().contains(obj)))
+        time = position();
+
+    setObjectVisibility(obj, parentVisible, true, time);
 }
 
 void Q3DSSlidePlayer::objectAboutToBeRemovedFromScene(Q3DSGraphObject *obj)
