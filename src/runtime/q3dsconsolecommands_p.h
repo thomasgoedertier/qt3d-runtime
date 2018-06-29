@@ -57,6 +57,8 @@ public:
 
     void setupConsole(Q3DSConsole *console);
 
+    void runBootScript();
+
 private:
     void setCurrentPresentation(Q3DSSceneManager *sceneManager);
     Q3DSGraphObject *resolveObj(const QByteArray &ref, bool showErrorWhenNotFound = true);

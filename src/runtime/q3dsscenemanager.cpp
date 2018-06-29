@@ -855,6 +855,7 @@ Q3DSSceneManager::Scene Q3DSSceneManager::buildScene(Q3DSUipPresentation *presen
 void Q3DSSceneManager::finalizeMainScene(const QVector<Q3DSSubPresentation> &subPresentations)
 {
     Q_ASSERT(!m_flags.testFlag(SubPresentation));
+    qCDebug(lcScene, "finalizeMainScene");
 
     m_subPresentations = subPresentations;
 
@@ -886,6 +887,11 @@ void Q3DSSceneManager::finalizeMainScene(const QVector<Q3DSSubPresentation> &sub
             continue;
         m_profiler->registerSubPresentationProfiler(subPres.sceneManager->m_profiler);
     }
+
+#if QT_CONFIG(q3ds_profileui)
+    if (!m_flags.testFlag(SubPresentation))
+        m_consoleCommands->runBootScript();
+#endif
 }
 
 static Qt3DRender::QSortPolicy *opaquePassSortPolicy(Qt3DCore::QNode *parent = nullptr)

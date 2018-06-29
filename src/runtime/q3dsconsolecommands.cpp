@@ -30,12 +30,14 @@
 #include "q3dsconsolecommands_p.h"
 #include "q3dsscenemanager_p.h"
 #include "q3dsslideplayer_p.h"
+#include "q3dslogging_p.h"
 #if QT_CONFIG(q3ds_profileui)
 #include "profileui/q3dsconsole_p.h"
 #endif
 
 #include <QFile>
 #include <QDir>
+#include <QTimer>
 
 #include <Qt3DRender/QParameter>
 
@@ -518,6 +520,45 @@ Q3DSGraphObject *Q3DSConsoleCommands::resolveObj(const QByteArray &ref, bool sho
         m_console->addMessageFmt(errorColor, "Object '%s' not found", r.constData());
 
     return obj;
+}
+
+void Q3DSConsoleCommands::runBootScript()
+{
+#if QT_CONFIG(q3ds_profileui)
+    static const bool bootScriptEnabled = qEnvironmentVariableIsSet("Q3DS_BOOTSCRIPT");
+    if (!bootScriptEnabled)
+        return;
+
+    auto run = [this] {
+        QScopedPointer<Q3DSConsole> tempConsole;
+        if (!m_console) {
+            // Create a temporary instance in case the console view was not yet
+            // invoked by the user. An eventual invocation will call setupConsole()
+            // again (with m_console being unused in the meantime) so this is safe.
+            tempConsole.reset(new Q3DSConsole);
+            setupConsole(tempConsole.data());
+        }
+
+        QFile f(QLatin1String("autoexec.drgscr"));
+        if (f.exists()) {
+            qCDebug(lcScene, "Running boot script");
+            if (f.open(QIODevice::ReadOnly | QIODevice::Text)) {
+                while (!f.atEnd()) {
+                    QByteArray line = f.readLine().trimmed();
+                    if (!line.isEmpty() && !line.startsWith(QByteArrayLiteral("//")))
+                        m_console->runRecordedCommand(line);
+                }
+            }
+        }
+    };
+
+    static const int bootScriptTimeout = qEnvironmentVariableIntValue("Q3DS_BOOTSCRIPT");
+    // 0 = run immediately after building the scene, otherwise seconds to delay
+    if (bootScriptTimeout == 0)
+        run();
+    else
+        QTimer::singleShot(bootScriptTimeout * 1000, run);
+#endif
 }
 
 QT_END_NAMESPACE
