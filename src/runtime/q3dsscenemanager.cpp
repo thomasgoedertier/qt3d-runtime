@@ -5249,6 +5249,8 @@ Qt3DRender::QAbstractTexture *Q3DSSceneManager::createCustomPropertyTexture(cons
         Q3DSImageManager::instance().setSource(texture, QUrl::fromLocalFile(source));
     }
 
+    // now override the defaults set in setSource() with whatever the metadata specifies
+
     switch (p.meta.magFilterType) {
     case Q3DSMaterial::Nearest:
         texture->setMagnificationFilter(Qt3DRender::QAbstractTexture::Nearest);
