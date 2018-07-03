@@ -833,6 +833,7 @@ private:
     void updateEffect(Q3DSEffectInstance *eff3DS);
     void updateEffectForNextFrame(Q3DSEffectInstance *eff3DS, qint64 nextFrameNo);
     void gatherLights(Q3DSLayerNode *layer);
+    void updateLightsParams(const QVector<Q3DSNodeAttached::LightsData *> &lights, Q3DSNodeAttached::LightsData *dst);
     void updateLightsBuffer(const QVector<Q3DSLightSource> &lights, Qt3DRender::QBuffer *uniformBuffer);
     void updateModel(Q3DSModelNode *model3DS);
     QVector<Q3DSNodeAttached::LightsData *> getLightsDataForNode(Q3DSGraphObject *object);

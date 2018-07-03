@@ -4483,20 +4483,9 @@ void Q3DSSceneManager::buildModelMaterial(Q3DSModelNode *model3DS)
                     params.append(layerData->cameraPropertiesParam);
 
                 // Setup ambient light total
-                QVector3D lightAmbientTotal;
-                for (auto lightsDataSub : lights) {
-                    for (auto light : lightsDataSub->lightNodes) {
-                        lightAmbientTotal += QVector3D(light->ambient().redF(),
-                                                       light->ambient().greenF(),
-                                                       light->ambient().blueF());
-                    }
-                }
 
                 if (lightsData) {
-                    if (!lightsData->lightAmbientTotalParamenter)
-                        lightsData->lightAmbientTotalParamenter = new Qt3DRender::QParameter;
-                    lightsData->lightAmbientTotalParamenter->setName(QLatin1String("light_ambient_total"));
-                    lightsData->lightAmbientTotalParamenter->setValue(lightAmbientTotal);
+                    updateLightsParams(lights, lightsData);
                     params.append(lightsData->lightAmbientTotalParamenter);
 
                     if (!m_gfxLimits.useGles2Path) {
@@ -6626,6 +6615,25 @@ QVector<Qt3DRender::QParameter*> Q3DSSceneManager::prepareSeparateLightUniforms(
     return params;
 }
 
+void Q3DSSceneManager::updateLightsParams(const QVector<Q3DSNodeAttached::LightsData *> &lights, Q3DSNodeAttached::LightsData *dst)
+{
+    QVector3D lightAmbientTotal;
+    for (auto lightsDataSub : lights) {
+        for (auto light : lightsDataSub->lightNodes) {
+            lightAmbientTotal += QVector3D(light->ambient().redF(),
+                                           light->ambient().greenF(),
+                                           light->ambient().blueF());
+        }
+    }
+
+    if (!dst->lightAmbientTotalParamenter) {
+        dst->lightAmbientTotalParamenter = new Qt3DRender::QParameter;
+        dst->lightAmbientTotalParamenter->setName(QLatin1String("light_ambient_total"));
+    }
+
+    dst->lightAmbientTotalParamenter->setValue(lightAmbientTotal);
+}
+
 void Q3DSSceneManager::updateLightsBuffer(const QVector<Q3DSLightSource> &lights, Qt3DRender::QBuffer *uniformBuffer)
 {
     if (!uniformBuffer) // no models in the layer -> no buffers -> handle gracefully
@@ -6846,6 +6854,8 @@ void Q3DSSceneManager::syncScene()
 
     updateSubTreeRecursive(m_scene);
 
+    QSet<Q3DSModelNode *> needsRebuild;
+
     for (Q3DSGraphObject *subtreeObject : m_subTreeWithDirtyLights) {
         // Attempt to update all buffers, if some do not exist (null) that's fine too.
         auto lights = getLightsDataForNode(subtreeObject);
@@ -6853,6 +6863,7 @@ void Q3DSSceneManager::syncScene()
         QVector<Q3DSLightSource> allLights;
         QVector<Q3DSLightSource> nonAreaLights;
         QVector<Q3DSLightSource> areaLights;
+
         if (!lights.isEmpty()) {
             Q3DSNodeAttached::LightsData *lightsData = lights.first();
             for (auto light : lights) {
@@ -6870,17 +6881,36 @@ void Q3DSSceneManager::syncScene()
         updateShadowMapStatus(layer3DS, &smDidChange);
         if (smDidChange) {
             Q3DSUipPresentation::forAllModels(layer3DS->firstChild(),
-                                           [this](Q3DSModelNode *model3DS) { rebuildModelMaterial(model3DS); },
+                                           [&needsRebuild](Q3DSModelNode *model3DS) { needsRebuild.insert(model3DS); },
                                            true); // include hidden ones too
+        }
+
+        // in addition to shadow or ssao changes, the default material's shader
+        // code is dependent on the number of lights as well
+        bool hasDefaultMaterial = false;
+        Q3DSUipPresentation::forAllObjectsInSubTree(subtreeObject, [&hasDefaultMaterial, &needsRebuild](Q3DSGraphObject *obj) {
+            if (obj->type() == Q3DSGraphObject::DefaultMaterial) {
+                hasDefaultMaterial = true;
+                if (obj->parent() && obj->parent()->type() == Q3DSGraphObject::Model) // this could probably have been an assert
+                    needsRebuild.insert(static_cast<Q3DSModelNode *>(obj->parent()));
+            }
+        });
+        if (hasDefaultMaterial) {
+            // update uniforms like ambient total
+            if (!lights.isEmpty())
+                updateLightsParams(lights, lights.first());
         }
     }
 
     for (Q3DSDefaultMaterial *mat3DS : m_pendingDefMatRebuild) {
         if (Q3DSDefaultMaterialAttached *matData = static_cast<Q3DSDefaultMaterialAttached *>(mat3DS->attached())) {
             for (auto it = matData->perModelData.cbegin(), itEnd = matData->perModelData.cend(); it != itEnd; ++it)
-                rebuildModelMaterial(it.key());
+                needsRebuild.insert(it.key());
         }
     }
+
+    for (Q3DSModelNode *model3DS : needsRebuild)
+        rebuildModelMaterial(model3DS);
 
     setPendingVisibilities();
 }
