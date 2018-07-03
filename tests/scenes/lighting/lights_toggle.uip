@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<UIP version="4" >
+	<Project >
+		<ProjectSettings author="" company="" presentationWidth="1366" presentationHeight="768" maintainAspect="False" >
+			<CustomColors count="16" >#ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff</CustomColors>
+		</ProjectSettings>
+		<Graph >
+			<Scene id="Scene" backgroundcolor="0.929412 0.956863 0.34902" >
+				<Layer id="Layer" >
+					<Light id="Light2" />
+					<Camera id="Camera" />
+					<Light id="Light" />
+					<Model id="Cylinder" >
+						<Material id="Default" name="Default" />
+					</Model>
+					<Model id="Cube" >
+						<Material id="Default_001" name="Default" />
+					</Model>
+					<Text id="Text" />
+					<Text id="Text3" />
+					<Text id="Text2" />
+					<Text id="Text4" />
+				</Layer>
+			</Scene>
+		</Graph>
+		<Logic >
+			<State name="Master Slide" component="#Scene" >
+				<Add ref="#Layer" />
+				<Add ref="#Camera" position="0 0 -600" rotation="0 0 0" />
+				<Add ref="#Light" />
+				<State id="Scene-Slide1" name="Slide1" >
+					<Add ref="#Light2" name="Light2" lighttype="Point" position="-164.184 128.1 0" />
+					<Add ref="#Cylinder" name="Cylinder" sourcepath="#Cylinder" />
+					<Add ref="#Default" />
+					<Add ref="#Cube" name="Cube" position="-314.836 12.6296 0" sourcepath="#Cube" />
+					<Add ref="#Default_001" />
+					<Add ref="#Text" name="Text" font="TitilliumWeb-Regular" position="-309.424 179.52 0" textcolor="1 0.333333 0.333333" textstring="Light 1 off" >
+						<Action id="Text-Action" eyeball="True" triggerObject="#Text" event="onPressureDown" targetObject="#Light" handler="Set Property" >
+							<HandlerArgument name="Property Name" type="String" argtype="Property" value="eyeball" />
+							<HandlerArgument name="Property Value" type="Bool" argtype="Dependent" />
+						</Action>
+					</Add>
+					<Add ref="#Text3" name="Text3" font="TitilliumWeb-Regular" position="-313.935 248.08 0" textcolor="1 0.333333 0.333333" textstring="Light 1 on" >
+						<Action id="Text3-Action" eyeball="True" triggerObject="#Text3" event="onPressureDown" targetObject="#Light" handler="Set Property" >
+							<HandlerArgument name="Property Name" type="String" argtype="Property" value="eyeball" />
+							<HandlerArgument name="Property Value" type="Bool" argtype="Dependent" value="True" />
+						</Action>
+					</Add>
+					<Add ref="#Text2" name="Text2" font="TitilliumWeb-Regular" position="-17.14 171.401 0" textcolor="1 0.607843 0.12549" textstring="Light 2 off" >
+						<Action id="Text2-Action" eyeball="True" triggerObject="#Text2" event="onPressureDown" targetObject="#Light2" handler="Set Property" >
+							<HandlerArgument name="Property Name" type="String" argtype="Property" value="eyeball" />
+							<HandlerArgument name="Property Value" type="Bool" argtype="Dependent" />
+						</Action>
+					</Add>
+					<Add ref="#Text4" name="Text4" font="TitilliumWeb-Regular" position="-18.0421 246.276 0" textcolor="1 0.607843 0.12549" textstring="Light 2 on" >
+						<Action id="Text4-Action" eyeball="True" triggerObject="#Text4" event="onPressureDown" targetObject="#Light2" handler="Set Property" >
+							<HandlerArgument name="Property Name" type="String" argtype="Property" value="eyeball" />
+							<HandlerArgument name="Property Value" type="Bool" argtype="Dependent" value="True" />
+						</Action>
+					</Add>
+				</State>
+			</State>
+		</Logic>
+	</Project>
+</UIP>
