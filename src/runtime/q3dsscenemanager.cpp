@@ -4763,7 +4763,7 @@ void Q3DSSceneManager::updateTextureParameters(Q3DSTextureParameters &texturePar
     const QMatrix4x4 &textureTransform = image->textureTransform();
     const float *m = textureTransform.constData();
 
-    QVector3D offsets(m[12], m[13], 0.0f); // ### z = isPremultiplied?
+    QVector3D offsets(m[12], m[13], image->hasPremultipliedAlpha() ? 1 : 0);
     textureParameters.offsets->setValue(offsets);
 
     QVector4D rotations(m[0], m[4], m[1], m[5]);
@@ -5533,7 +5533,8 @@ void Q3DSSceneManager::buildEffect(Q3DSEffectInstance *eff3DS, Q3DSLayerNode *la
 static inline void setTextureInfoUniform(Qt3DRender::QParameter *param, Qt3DRender::QAbstractTexture *texture)
 {
     const QSize size = Q3DSImageManager::instance().size(texture);
-    param->setValue(QVector4D(size.width(), size.height(), 0, 0)); // ### 3rd value is isPremultiplied, is that correct?
+    const bool isPremultiplied = false;
+    param->setValue(QVector4D(size.width(), size.height(), isPremultiplied ? 1 : 0, 0));
 }
 
 static inline Qt3DRender::QParameter *makePropertyUniform(const QString &name, const QString &value, const Q3DSMaterial::PropertyElement &propMeta)
@@ -6456,9 +6457,10 @@ void Q3DSSceneManager::updateEffectForNextFrame(Q3DSEffectInstance *eff3DS, qint
     effData->appFrameParam->setValue(float(nextFrameNo));
     effData->fpsParam->setValue(60.0f); // heh
     for (const auto &pd : effData->passData) {
+        const bool isPremultiplied = false;
         pd.texture0InfoParam->setValue(QVector4D(pd.passInput->width(),
                                                  pd.passInput->height(),
-                                                 0, // ### isPremultiplied?
+                                                 isPremultiplied ? 1 : 0,
                                                  0));
         pd.destSizeParam->setValue(QVector2D(pd.passOutput->width(), pd.passOutput->height()));
     }

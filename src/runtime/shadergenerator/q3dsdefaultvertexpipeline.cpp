@@ -1048,11 +1048,11 @@ struct ShaderGenerator : public Q3DSDefaultMaterialShaderGenerator
                 fragmentShader << "\ttexture_color.xyz *= fresnelColor;" << "\n";
             }
 
-            //TODO determine if the texture is premultipled by checking its format
-            if (true) //if premultiplied
+            if (img->hasPremultipliedAlpha()) {
                 fragmentShader << "\ttexture_color.rgb = texture_color.a > 0.0 ? "
                                   "texture_color.rgb / texture_color.a : vec3( 0, 0, 0 );"
                                << "\n";
+            }
         };
 
         if (hasImage) {

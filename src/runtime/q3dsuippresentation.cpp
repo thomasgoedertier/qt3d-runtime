@@ -1668,6 +1668,14 @@ bool Q3DSImage::hasTransparency(Q3DSUipPresentation *presentation)
     return m_hasTransparency;
 }
 
+bool Q3DSImage::hasPremultipliedAlpha() const
+{
+    if (!m_subPresentation.isEmpty())
+        return true;
+
+    return false;
+}
+
 void Q3DSImage::calculateTextureTransform()
 {
     m_textureTransform.setToIdentity();

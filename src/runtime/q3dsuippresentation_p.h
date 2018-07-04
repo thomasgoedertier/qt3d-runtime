@@ -787,6 +787,7 @@ public:
     const QMatrix4x4 &textureTransform() const { return m_textureTransform; }
 
     bool hasTransparency(Q3DSUipPresentation *presentation);
+    bool hasPremultipliedAlpha() const;
 
     // Properties
     QString sourcePath() const { return m_sourcePath; } // already adjusted, can be opened as-is
