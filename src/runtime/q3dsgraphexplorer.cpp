@@ -215,8 +215,8 @@ Q3DSGraphExplorer::Q3DSGraphExplorer(Q3DSGraphObject *root, QWidget *parent)
         if (obj->isNode() && obj->type() != Q3DSGraphObject::Camera) {
             Q3DSNodeAttached *attached = static_cast<Q3DSNodeAttached *>(obj->attached());
             if (attached && attached->transform) {
-                s += tr("\n\nAttached generic node data:\nglobalOpacity: %1\nglobalVisibility: %2\nRight-handed local transform: ")
-                        .arg(attached->globalOpacity).arg(attached->globalVisibility);
+                s += tr("\n\nAttached generic node data:\nglobalOpacity: %1\nglobalLogicalVisibility: %2\nglobalEffectiveVisibility: %3\nRight-handed local transform: ")
+                        .arg(attached->globalOpacity).arg(attached->globalLogicalVisibility).arg(attached->globalEffectiveVisibility);
                 s += tr("T: %1 R: %2 S: %3")
                         .arg(varStr(attached->transform->translation()))
                         .arg((varStr(attached->transform->rotation().toEulerAngles())))

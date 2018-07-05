@@ -194,7 +194,8 @@ public:
     Qt3DCore::QTransform *transform = nullptr;
     QMatrix4x4 globalTransform;
     float globalOpacity = 1;
-    bool globalVisibility = true;
+    bool globalLogicalVisibility = true; // eyeball
+    bool globalEffectiveVisibility = true; // eyeball + visibilityTag
     Q3DSLayerNode *layer3DS = nullptr;
     QScopedPointer<LightsData> lightsData;
 };

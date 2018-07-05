@@ -1948,7 +1948,7 @@ Q3DSCameraNode *Q3DSSceneManager::findFirstCamera(Q3DSLayerNode *layer3DS)
         while (obj) {
             if (obj->type() == Q3DSGraphObject::Camera) {
                 Q3DSCameraNode *cam = static_cast<Q3DSCameraNode *>(obj);
-                const bool active = cam->attached() && cam->attached<Q3DSCameraAttached>()->globalVisibility;
+                const bool active = cam->attached() && cam->attached<Q3DSCameraAttached>()->globalEffectiveVisibility;
                 if (active) {
                     // Check if camera is on the current slide
                     Q3DSComponentNode *component = cam->attached() ? cam->attached()->component : nullptr;
@@ -3917,7 +3917,8 @@ void Q3DSSceneManager::updateGlobals(Q3DSNode *node, UpdateGlobalFlags flags)
 
     QMatrix4x4 globalTransform;
     float globalOpacity;
-    bool globalVisibility;
+    bool globalLogicalVisibility;
+    bool globalEffectiveVisibility;
 
     if (parentData) {
         if (!flags.testFlag(UpdateGlobalsSkipTransform)) {
@@ -3927,14 +3928,16 @@ void Q3DSSceneManager::updateGlobals(Q3DSNode *node, UpdateGlobalFlags flags)
         // update the global, inherited opacity
         globalOpacity = clampOpacity(parentData->globalOpacity * (node->localOpacity() / 100.0f));
         // update inherited visibility
-        globalVisibility = node->flags().testFlag(Q3DSNode::Active)
+        globalLogicalVisibility = node->flags().testFlag(Q3DSNode::Active) && parentData->globalLogicalVisibility;
+        globalEffectiveVisibility = node->flags().testFlag(Q3DSNode::Active)
                 && data->visibilityTag == Q3DSGraphObjectAttached::Visible
-                && parentData->globalVisibility;
+                && parentData->globalEffectiveVisibility;
     } else {
         if (!flags.testFlag(UpdateGlobalsSkipTransform))
             globalTransform = data->transform->matrix();
         globalOpacity = clampOpacity(node->localOpacity() / 100.0f);
-        globalVisibility = node->flags().testFlag(Q3DSNode::Active)
+        globalLogicalVisibility = node->flags().testFlag(Q3DSNode::Active);
+        globalEffectiveVisibility = node->flags().testFlag(Q3DSNode::Active)
                 && data->visibilityTag == Q3DSGraphObjectAttached::Visible;
     }
 
@@ -3946,11 +3949,18 @@ void Q3DSSceneManager::updateGlobals(Q3DSNode *node, UpdateGlobalFlags flags)
         data->globalOpacity = globalOpacity;
         data->frameDirty.setFlag(Q3DSGraphObjectAttached::GlobalOpacityDirty, true);
     }
-    if (globalVisibility != data->globalVisibility) {
-        data->globalVisibility = globalVisibility;
+    if (globalLogicalVisibility != data->globalLogicalVisibility
+            || globalEffectiveVisibility != data->globalEffectiveVisibility)
+    {
+        data->globalLogicalVisibility = globalLogicalVisibility;
+        data->globalEffectiveVisibility = globalEffectiveVisibility;
         data->frameDirty.setFlag(Q3DSGraphObjectAttached::GlobalVisibilityDirty, true);
     }
 
+    // Now frameDirty has the relevant bits set only when the corresponding
+    // value has actually changed. Based on this, it is time to put the rolling
+    // effect of these inherited values into action (e.g. when an ancestor goes
+    // invisible, the children should go invisible as well).
     if (data->frameDirty.testFlag(Q3DSGraphObjectAttached::GlobalTransformDirty)
             || data->frameDirty.testFlag(Q3DSGraphObjectAttached::GlobalOpacityDirty)
             || data->frameDirty.testFlag(Q3DSGraphObjectAttached::GlobalVisibilityDirty))
@@ -4679,7 +4689,7 @@ void Q3DSSceneManager::retagSubMeshes(Q3DSModelNode *model3DS)
             sm.hasTransparency = opacity < 1.0f || matDesc->materialHasTransparency() || matDesc->materialHasRefraction();
         }
 
-        if (data->globalVisibility) {
+        if (data->globalEffectiveVisibility) {
             Qt3DRender::QLayer *newTag = sm.hasTransparency ? layerData->transparentTag : layerData->opaqueTag;
             if (!sm.entity->components().contains(newTag)) {
                 Qt3DRender::QLayer *prevTag = newTag == layerData->transparentTag ? layerData->opaqueTag : layerData->transparentTag;
@@ -7962,6 +7972,9 @@ void Q3DSSceneManager::handleNodeGlobalChange(Q3DSNode *node)
                 for (Q3DSEffectInstance *eff3DS : data->layer3DS->attached<Q3DSLayerAttached>()->effectData.effects)
                     updateEffect(eff3DS);
             }
+        } else if (node->type() != Q3DSGraphObject::Layer) {
+            const bool isVisible = node->attached<Q3DSNodeAttached>()->globalEffectiveVisibility;
+            m_pendingObjectVisibility.insert(node, isVisible);
         }
     }
 }

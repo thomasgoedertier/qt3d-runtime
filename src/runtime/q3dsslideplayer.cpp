@@ -851,7 +851,11 @@ void Q3DSSlidePlayer::setObjectVisibility(Q3DSGraphObject *obj, bool parentVisib
         if (node && !node->attached())
             return;
 
-        nodeActive = (node && node->flags().testFlag(Q3DSNode::Active));
+        if (node) {
+            nodeActive = node->flags().testFlag(Q3DSNode::Active);
+            if (node->parent() && node->parent()->isNode())
+                nodeActive &= node->parent()->attached<Q3DSNodeAttached>()->globalLogicalVisibility;
+        }
     }
 
     const bool effectActive = (isEffect && static_cast<Q3DSEffectInstance *>(obj)->eyeballEnabled());

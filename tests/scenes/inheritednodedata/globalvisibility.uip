@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<UIP version="4" >
+	<Project >
+		<ProjectSettings author="" company="" presentationWidth="1366" presentationHeight="768" maintainAspect="False" >
+			<CustomColors count="16" >#ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff #ffffff</CustomColors>
+		</ProjectSettings>
+		<Classes >
+			<Behavior id="globalvisibility" name="globalvisibility" sourcepath="globalvisibility.qml" />
+		</Classes>
+		<Graph >
+			<Scene id="Scene" backgroundcolor="0.360784 0.627451 0.956863" >
+				<Layer id="Layer" >
+					<Camera id="Camera" />
+					<Light id="Light" />
+					<Model id="Cube" >
+						<Behavior id="globalvisibility_001" class="#globalvisibility" />
+						<Material id="Default" name="Default" />
+						<Model id="Cone" >
+							<Model id="Cylinder" >
+								<Material id="Default_001" name="Default" />
+							</Model>
+							<Material id="Default_002" name="Default" />
+						</Model>
+					</Model>
+					<Text id="Text" />
+					<Text id="Text2" />
+					<Text id="Text4" />
+					<Text id="Text3" />
+					<Text id="Text5" />
+					<Model id="Sphere" >
+						<Material id="Default_003" name="Default" />
+						<Model id="Sphere2" >
+							<Material id="Default_004" name="Default" />
+							<Model id="Sphere3" >
+								<Material id="Default_005" name="Default" />
+							</Model>
+						</Model>
+					</Model>
+					<Text id="Text6" />
+					<Text id="Text7" />
+					<Text id="Text8" />
+					<Text id="Text9" />
+					<Text id="Text10" />
+					<Text id="Text11" />
+					<Text id="Text12" />
+				</Layer>
+			</Scene>
+		</Graph>
+		<Logic >
+			<State name="Master Slide" component="#Scene" >
+				<Add ref="#Layer" />
+				<Add ref="#Camera" position="0 0 -600" rotation="0 0 0" />
+				<Add ref="#Light" />
+				<State id="Scene-Slide1" name="Slide1" playmode="Looping" >
+					<Add ref="#Cube" name="Cube" position="13.422 -44.1103 23.3646" rotation="-25.8866 9.61909 -21.2157" scale="2.23726 1.72021 1" sourcepath="#Cube" >
+						<AnimationTrack property="rotation.x" type="EaseInOut" >0 -25.8866 100 100 10 -25.887 100 100</AnimationTrack>
+						<AnimationTrack property="rotation.y" type="EaseInOut" >0 9.61909 100 100 10 360 100 100</AnimationTrack>
+						<AnimationTrack property="rotation.z" type="EaseInOut" >0 -21.2157 100 100 10 -21.216 100 100</AnimationTrack>
+					</Add>
+					<Add ref="#globalvisibility_001" name="globalvisibility" />
+					<Add ref="#Default" />
+					<Add ref="#Cone" name="Cone" sourcepath="#Cone" />
+					<Add ref="#Cylinder" name="Cylinder" position="74.4106 125.685 -3.24249e-05" scale="0.540356 0.564928 1" sourcepath="#Cylinder" />
+					<Add ref="#Default_001" />
+					<Add ref="#Default_002" />
+					<Add ref="#Text" name="Text" font="TitilliumWeb-Regular" position="-475.412 224.626 0" textstring="Cube eyeball -&gt; 0" >
+						<Action id="Text-Action" eyeball="True" triggerObject="#Text" event="onPressureDown" targetObject="#globalvisibility_001" handler="cube_eyeball_0" />
+					</Add>
+					<Add ref="#Text2" name="Text2" font="TitilliumWeb-Regular" opacity="99" position="-474.51 166.891 0" textstring="Cube eyeball -&gt; 1" >
+						<Action id="Text2-Action" eyeball="True" triggerObject="#Text2" event="onPressureDown" targetObject="#globalvisibility_001" handler="cube_eyeball_1" />
+					</Add>
+					<Add ref="#Text4" name="Text4" font="TitilliumWeb-Regular" opacity="99" position="-470 54.1273 0" textstring="Cone eyeball -&gt; 1" >
+						<Action id="Text4-Action" eyeball="True" triggerObject="#Text4" event="onPressureDown" targetObject="#globalvisibility_001" handler="cone_eyeball_1" />
+					</Add>
+					<Add ref="#Text3" name="Text3" font="TitilliumWeb-Regular" opacity="99" position="-472.706 112.764 0" textstring="Cone eyeball -&gt; 0" >
+						<Action id="Text3-Action" eyeball="True" triggerObject="#Text3" event="onPressureDown" targetObject="#globalvisibility_001" handler="cone_eyeball_0" />
+					</Add>
+					<Add ref="#Text5" name="Text5" font="TitilliumWeb-Regular" position="23.6989 303.109 15.1224" textstring="Hierarchy is Cube - Cone - Cylinder" />
+					<Add ref="#Text7" name="Text7" font="TitilliumWeb-Regular" position="-490.748 -12.6296 0" textstring="Next slide" >
+						<Action id="Text7-Action" eyeball="True" triggerObject="#Text7" event="onPressureDown" targetObject="#Scene" handler="Next Slide" />
+					</Add>
+					<Add ref="#Text9" name="Text9" font="TitilliumWeb-Regular" position="-562.917 326.876 68.9938" textcolor="1 0.952941 0.431373" textstring="Click:" />
+				</State>
+				<State id="Scene-Slide2" name="Slide2" playthroughto="Previous" >
+					<Add ref="#Sphere" name="Sphere" position="-74.8751 -37.8886 0" sourcepath="#Sphere" />
+					<Add ref="#Default_003" />
+					<Add ref="#Sphere2" name="Sphere2" position="48.714 71.2667 0" sourcepath="#Sphere" />
+					<Add ref="#Default_004" />
+					<Add ref="#Sphere3" name="Sphere3" position="54.1266 63.1477 0" sourcepath="#Sphere" />
+					<Add ref="#Default_005" />
+					<Add ref="#Text6" name="Text6" font="TitilliumWeb-Regular" position="-19.8464 273.339 0" textstring="Hierarchy is Sphere - Sphere - Sphere" />
+					<Add ref="#Text8" name="Text8" font="TitilliumWeb-Regular" position="-472.706 73.071 0" textstring="Previous slide" >
+						<Action id="Text8-Action" eyeball="True" triggerObject="#Text8" event="onPressureDown" targetObject="#Scene" handler="Previous Slide" />
+					</Add>
+					<Add ref="#Text10" name="Text10" font="TitilliumWeb-Regular" position="-562.917 326.876 68.9938" textcolor="1 0.952941 0.431373" textstring="Click:" />
+					<Add ref="#Text11" name="Text11" font="TitilliumWeb-Regular" position="-442.936 193.954 0" textstring="Sphere 2 eyeball -&gt; 0" >
+						<Action id="Text11-Action" eyeball="True" triggerObject="#Text11" event="onPressureDown" targetObject="#globalvisibility_001" handler="sphere2_eyeball_0" />
+					</Add>
+					<Add ref="#Text12" name="Text12" font="TitilliumWeb-Regular" position="-442.034 130.806 0" textstring="Sphere 2 eyeball -&gt; 1" >
+						<Action id="Text12-Action" eyeball="True" triggerObject="#Text12" event="onPressureDown" targetObject="#globalvisibility_001" handler="sphere2_eyeball_1" />
+					</Add>
+				</State>
+			</State>
+		</Logic>
+	</Project>
+</UIP>
