@@ -6867,14 +6867,16 @@ void Q3DSSceneManager::handlePropertyChange(Q3DSGraphObject *obj, const QSet<QSt
 
 void Q3DSSceneManager::syncScene()
 {
-    m_subTreeWithDirtyLights.clear();
+    m_subTreesWithDirtyLights.clear();
     m_pendingDefMatRebuild.clear();
 
     updateSubTreeRecursive(m_scene);
 
     QSet<Q3DSModelNode *> needsRebuild;
 
-    for (Q3DSGraphObject *subtreeObject : m_subTreeWithDirtyLights) {
+    for (const SubTreeWithDirtyLight &dl : m_subTreesWithDirtyLights) {
+        Q3DSGraphObject *subtreeObject = dl.first;
+        const bool lightVisibilityChanged = dl.second;
         // Attempt to update all buffers, if some do not exist (null) that's fine too.
         auto lights = getLightsDataForNode(subtreeObject);
 
@@ -6903,14 +6905,16 @@ void Q3DSSceneManager::syncScene()
                                            true); // include hidden ones too
         }
 
-        // in addition to shadow or ssao changes, the default material's shader
-        // code is dependent on the number of lights as well
         bool hasDefaultMaterial = false;
-        Q3DSUipPresentation::forAllObjectsInSubTree(subtreeObject, [&hasDefaultMaterial, &needsRebuild](Q3DSGraphObject *obj) {
+        Q3DSUipPresentation::forAllObjectsInSubTree(subtreeObject, [&hasDefaultMaterial, &needsRebuild, lightVisibilityChanged](Q3DSGraphObject *obj) {
             if (obj->type() == Q3DSGraphObject::DefaultMaterial) {
                 hasDefaultMaterial = true;
-                if (obj->parent() && obj->parent()->type() == Q3DSGraphObject::Model) // this could probably have been an assert
-                    needsRebuild.insert(static_cast<Q3DSModelNode *>(obj->parent()));
+                // in addition to shadow or ssao changes, the default material's shader
+                // code is dependent on the number of lights as well, so may need to rebuild materials...
+                if (lightVisibilityChanged) { // ...but only when it's sure the number of lights has changed
+                    if (obj->parent() && obj->parent()->type() == Q3DSGraphObject::Model) // this could probably have been an assert
+                        needsRebuild.insert(static_cast<Q3DSModelNode *>(obj->parent()));
+                }
             }
         });
         if (hasDefaultMaterial) {
@@ -7171,9 +7175,9 @@ void Q3DSSceneManager::updateSubTreeRecursive(Q3DSGraphObject *obj)
                 setLightProperties(light3DS);
                 if (!(data->frameChangeFlags & Q3DSNode::EyeballChanges)) {// already done if eyeball changed
                     if (light3DS->scope() && isLightScopeValid(light3DS->scope(), data->layer3DS))
-                        m_subTreeWithDirtyLights.insert(light3DS->scope());
+                        m_subTreesWithDirtyLights.insert(SubTreeWithDirtyLight(light3DS->scope(), false));
                     else
-                        m_subTreeWithDirtyLights.insert(data->layer3DS);
+                        m_subTreesWithDirtyLights.insert(SubTreeWithDirtyLight(data->layer3DS, false));
                 }
                 m_wasDirty = true;
                 markLayerForObjectDirty(light3DS);
@@ -7234,7 +7238,7 @@ void Q3DSSceneManager::updateSubTreeRecursive(Q3DSGraphObject *obj)
             }
             // regen light/shadow/materials when a light was added/removed under the layer
             if (data->frameChangeFlags & Q3DSLayerNode::LayerContentSubTreeLightsChange)
-                m_subTreeWithDirtyLights.insert(layer3DS);
+                m_subTreesWithDirtyLights.insert(SubTreeWithDirtyLight(layer3DS, true));
             // LayerContentSubTreeChanges needs no special handling here, just set the dirty like for everything else
             m_wasDirty = true;
             markLayerForObjectDirty(layer3DS);
@@ -7363,7 +7367,7 @@ void Q3DSSceneManager::updateNodeFromChangeFlags(Q3DSNode *node, Qt3DCore::QTran
             if (lightNode->scope() && isLightScopeValid(lightNode->scope(), lightData->layer3DS))
                 rootObject = lightNode->scope();
             gatherLights(lightData->layer3DS);
-            m_subTreeWithDirtyLights.insert(rootObject);
+            m_subTreesWithDirtyLights.insert(SubTreeWithDirtyLight(rootObject, true));
             if (!didUpdateGlobals)
                 updateGlobals(node, UpdateGlobalsRecursively | UpdateGlobalsSkipTransform);
         } else if (node->type() == Q3DSGraphObject::Camera) {

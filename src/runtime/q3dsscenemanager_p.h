@@ -892,7 +892,8 @@ private:
     Q3DSCustomMaterialGenerator *m_customMaterialGen;
     Q3DSTextMaterialGenerator *m_textMatGen;
     Q3DSTextRenderer *m_textRenderer;
-    QSet<Q3DSGraphObject *> m_subTreeWithDirtyLights;
+    using SubTreeWithDirtyLight = QPair<Q3DSGraphObject *, bool>;
+    QSet<SubTreeWithDirtyLight> m_subTreesWithDirtyLights;
     QSet<Q3DSDefaultMaterial *> m_pendingDefMatRebuild;
     QHash<Q3DSGraphObject *, bool> m_pendingObjectVisibility;
     Qt3DRender::QLayer *m_fsQuadTag = nullptr;
