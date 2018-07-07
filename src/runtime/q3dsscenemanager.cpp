@@ -1143,8 +1143,9 @@ void Q3DSSceneManager::buildLayer(Q3DSLayerNode *layer3DS,
     Qt3DRender::QFrameGraphNode *effectRoot = new Qt3DRender::QFrameGraphNode(mainTechniqueSelector);
     new Qt3DRender::QNoDraw(effectRoot);
 
-    Qt3DCore::QEntity *layerSceneRootEntity = new Qt3DCore::QEntity(rtSelector);
+    Qt3DCore::QEntity *layerSceneRootEntity = new Qt3DCore::QEntity;
     layerSceneRootEntity->setObjectName(QObject::tr("root for %1").arg(QString::fromUtf8(layer3DS->id())));
+    layerSceneRootEntity->setParent(rtSelector); // the separate setParent() call is intentional here, see QTBUG-69352
     m_profiler->reportQt3DSceneGraphRoot(layerSceneRootEntity);
 
     Q3DSLayerAttached *layerData = new Q3DSLayerAttached;
@@ -3276,8 +3277,9 @@ void Q3DSSceneManager::buildLayerQuadEntity(Q3DSLayerNode *layer3DS, Qt3DCore::Q
 {
     Q3DSLayerAttached *data = static_cast<Q3DSLayerAttached *>(layer3DS->attached());
     Q_ASSERT(data);
-    Qt3DCore::QEntity *layerQuadEntity = new Qt3DCore::QEntity(parentEntity);
+    Qt3DCore::QEntity *layerQuadEntity = new Qt3DCore::QEntity;
     layerQuadEntity->setObjectName(QObject::tr("compositor quad for %1").arg(QString::fromUtf8(layer3DS->id())));
+    layerQuadEntity->setParent(parentEntity); // the separate setParent() call is intentional here, see QTBUG-69352
     data->compositorEntity = layerQuadEntity;
     if (!layer3DS->flags().testFlag(Q3DSNode::Active))
         layerQuadEntity->setEnabled(false);
@@ -3640,8 +3642,9 @@ Qt3DCore::QEntity *Q3DSSceneManager::buildFsQuad(const FsQuadParams &info)
     Q_ASSERT(info.tag);
     Q_ASSERT(info.passNames.count() == info.passProgs.count());
 
-    Qt3DCore::QEntity *fsQuadEntity = new Qt3DCore::QEntity(info.parentEntity);
+    Qt3DCore::QEntity *fsQuadEntity = new Qt3DCore::QEntity;
     fsQuadEntity->setObjectName(QLatin1String("fullscreen quad"));
+    fsQuadEntity->setParent(info.parentEntity); // the separate setParent() call is intentional here, see QTBUG-69352
 
     // The shaders should be prepared for Qt3D attribute names...
     Qt3DExtras::QPlaneMesh *mesh = new Qt3DExtras::QPlaneMesh;
@@ -3989,8 +3992,9 @@ Qt3DCore::QEntity *Q3DSSceneManager::buildGroup(Q3DSGroupNode *group3DS, Q3DSLay
     Q3DSGroupAttached *data = new Q3DSGroupAttached;
     group3DS->setAttached(data);
 
-    Qt3DCore::QEntity *group = new Qt3DCore::QEntity(parent);
+    Qt3DCore::QEntity *group = new Qt3DCore::QEntity;
     group->setObjectName(QObject::tr("group %1").arg(QString::fromUtf8(group3DS->id())));
+    group->setParent(parent); // the separate setParent() call is intentional here, see QTBUG-69352
     initEntityForNode(group, group3DS, layer3DS);
 
     group3DS->addPropertyChangeObserver(std::bind(&Q3DSSceneManager::handlePropertyChange, this,
@@ -4005,8 +4009,9 @@ Qt3DCore::QEntity *Q3DSSceneManager::buildComponent(Q3DSComponentNode *comp3DS, 
     Q3DSComponentAttached *data = new Q3DSComponentAttached;
     comp3DS->setAttached(data);
 
-    Qt3DCore::QEntity *comp = new Qt3DCore::QEntity(parent);
+    Qt3DCore::QEntity *comp = new Qt3DCore::QEntity;
     comp->setObjectName(QObject::tr("component %1").arg(QString::fromUtf8(comp3DS->id())));
+    comp->setParent(parent); // the separate setParent() call is intentional here, see QTBUG-69352
     initEntityForNode(comp, comp3DS, layer3DS);
 
     comp3DS->addPropertyChangeObserver(std::bind(&Q3DSSceneManager::handlePropertyChange, this,
@@ -4021,8 +4026,9 @@ Qt3DCore::QEntity *Q3DSSceneManager::buildAlias(Q3DSAliasNode *alias3DS, Q3DSLay
     Q3DSAliasAttached *data = new Q3DSAliasAttached;
     alias3DS->setAttached(data);
 
-    auto aliasEntity = new Qt3DCore::QEntity(parent);
+    auto aliasEntity = new Qt3DCore::QEntity;
     aliasEntity->setObjectName(QObject::tr("alias %1").arg(QString::fromUtf8(alias3DS->id())));
+    aliasEntity->setParent(parent); // the separate setParent() call is intentional here, see QTBUG-69352
     initEntityForNode(aliasEntity, alias3DS, layer3DS);
 
     alias3DS->addPropertyChangeObserver(std::bind(&Q3DSSceneManager::handlePropertyChange, this,
@@ -4056,8 +4062,9 @@ Qt3DCore::QEntity *Q3DSSceneManager::buildText(Q3DSTextNode *text3DS, Q3DSLayerN
     Q3DSTextAttached *data = new Q3DSTextAttached;
     text3DS->setAttached(data);
 
-    Qt3DCore::QEntity *entity = new Qt3DCore::QEntity(parent);
+    Qt3DCore::QEntity *entity = new Qt3DCore::QEntity;
     entity->setObjectName(QObject::tr("text %1").arg(QString::fromUtf8(text3DS->id())));
+    entity->setParent(parent); // the separate setParent() call is intentional here, see QTBUG-69352
     initEntityForNode(entity, text3DS, layer3DS);
 
     text3DS->addPropertyChangeObserver(std::bind(&Q3DSSceneManager::handlePropertyChange, this,
@@ -4154,8 +4161,9 @@ Qt3DCore::QEntity *Q3DSSceneManager::buildLight(Q3DSLightNode *light3DS, Q3DSLay
     Q3DSLightAttached *data = new Q3DSLightAttached;
     light3DS->setAttached(data);
 
-    Qt3DCore::QEntity *entity = new Qt3DCore::QEntity(parent);
+    Qt3DCore::QEntity *entity = new Qt3DCore::QEntity;
     entity->setObjectName(QObject::tr("light %1").arg(QString::fromUtf8(light3DS->id())));
+    entity->setParent(parent); // the separate setParent() call is intentional here, see QTBUG-69352
     initEntityForNode(entity, light3DS, layer3DS);
 
     setLightProperties(light3DS, true);
@@ -4341,8 +4349,9 @@ Qt3DCore::QEntity *Q3DSSceneManager::buildModel(Q3DSModelNode *model3DS, Q3DSLay
                                                   std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
     model3DS->addEventHandler(QString(), std::bind(&Q3DSSceneManager::handleEvent, this, std::placeholders::_1));
 
-    Qt3DCore::QEntity *entity = new Qt3DCore::QEntity(parent);
+    Qt3DCore::QEntity *entity = new Qt3DCore::QEntity;
     entity->setObjectName(QObject::tr("model %1").arg(QString::fromUtf8(model3DS->id())));
+    entity->setParent(parent); // the separate setParent() call is intentional here, see QTBUG-69352
     initEntityForNode(entity, model3DS, layer3DS);
 
     const MeshList meshList = model3DS->mesh();
@@ -4400,8 +4409,9 @@ void Q3DSSceneManager::rebuildModelSubMeshes(Q3DSModelNode *model3DS)
 
         Q3DSModelAttached::SubMesh sm;
         sm.mesh = mesh;
-        sm.entity = new Qt3DCore::QEntity(modelData->entity);
+        sm.entity = new Qt3DCore::QEntity;
         sm.entity->setObjectName(QObject::tr("model %1 submesh #%2").arg(QString::fromUtf8(model3DS->id())).arg(i));
+        sm.entity->setParent(modelData->entity); // the separate setParent() call is intentional here, see QTBUG-69352
         sm.entity->addComponent(mesh);
         sm.material = material;
         sm.resolvedMaterial = material;
