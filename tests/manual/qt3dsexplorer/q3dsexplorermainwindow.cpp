@@ -31,6 +31,8 @@
 
 #include <private/q3dswindow_p.h>
 #include <private/q3dsengine_p.h>
+#include <private/q3dsremotedeploymentmanager_p.h>
+#include <private/q3dsviewportsettings_p.h>
 #include <QApplication>
 #include <QMenuBar>
 #include <QMenu>
@@ -54,12 +56,14 @@ QString Q3DSExplorerMainWindow::fileFilter()
     return tr("All Supported Formats (*.uia *.uip);;Studio UI Presentation (*.uip);;Application File (*.uia);;All Files (*)");
 }
 
-Q3DSExplorerMainWindow::Q3DSExplorerMainWindow(Q3DSWindow *view, QWidget *parent)
+Q3DSExplorerMainWindow::Q3DSExplorerMainWindow(Q3DSWindow *view, Q3DSRemoteDeploymentManager *remote, QWidget *parent)
     : QMainWindow(parent)
     , m_view(view)
 {
     QWidget *wrapper = QWidget::createWindowContainer(view);
     setCentralWidget(wrapper);
+
+    connect(view->engine(), &Q3DSEngine::presentationLoaded, this, &Q3DSExplorerMainWindow::updatePresentation);
 
     // Add Dock Widgets
     auto slideDockWidget = new QDockWidget("Presentation", this);
@@ -85,12 +89,21 @@ Q3DSExplorerMainWindow::Q3DSExplorerMainWindow(Q3DSWindow *view, QWidget *parent
         QString fn = QFileDialog::getOpenFileName(this, tr("Open"), QString(), fileFilter());
         if (!fn.isEmpty()) {
             view->engine()->setSource(fn);
-            updatePresentation();
+            if (remote)
+                remote->setState(Q3DSRemoteDeploymentManager::LocalProject);
         }
     }, QKeySequence::Open);
+    if (remote)
+        fileMenu->addAction(tr("Remote Setup"), this, [remote] {
+            remote->showConnectionSetup();
+        });
     fileMenu->addAction(tr("&Reload"), this, [=] {
+        // Don't reload if on the ConnectionInfo screen
+        if (remote &&
+            remote->state() != Q3DSRemoteDeploymentManager::LocalProject &&
+            remote->state() != Q3DSRemoteDeploymentManager::RemoteProject)
+            return;
         view->engine()->setSource(view->engine()->source());
-        updatePresentation();
     }, QKeySequence::Refresh);
     fileMenu->addAction(tr("E&xit"), this, &QWidget::close);
 
@@ -108,6 +121,70 @@ Q3DSExplorerMainWindow::Q3DSExplorerMainWindow(Q3DSWindow *view, QWidget *parent
             wrapper->setMaximumSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX);
         }
     });
+    QAction *showMatte = viewMenu->addAction(tr("Show Matte"));
+    addAction(showMatte);
+    showMatte->setCheckable(true);
+    showMatte->setChecked(view->engine()->viewportSettings()->matteEnabled());
+    showMatte->setShortcut(QKeySequence(tr("Ctrl+D")));
+    connect(showMatte, &QAction::toggled, [=]() {
+        view->engine()->viewportSettings()->setMatteEnabled(showMatte->isChecked());
+    });
+    QAction *scaleModeAction = new QAction(tr("Scale Mode"));
+    addAction(scaleModeAction);
+    scaleModeAction->setShortcut(QKeySequence(tr("Ctrl+Shift+S")));
+    QMenu *scaleModeMenu = new QMenu();
+    scaleModeAction->setMenu(scaleModeMenu);
+    QAction *scaleModeCenter = new QAction(tr("Center"));
+    scaleModeCenter->setCheckable(true);
+    scaleModeCenter->setChecked(view->engine()->viewportSettings()->scaleMode() == Q3DSViewportSettings::ScaleModeCenter);
+    scaleModeMenu->addAction(scaleModeCenter);
+
+    QAction *scaleModeFit = new QAction(tr("Scale to Fit"));
+    scaleModeFit->setCheckable(true);
+    scaleModeFit->setChecked(view->engine()->viewportSettings()->scaleMode() == Q3DSViewportSettings::ScaleModeFit);
+    scaleModeMenu->addAction(scaleModeFit);
+
+    QAction *scaleModeFill = new QAction(tr("Scale to Fill"));
+    scaleModeFill->setCheckable(true);
+    scaleModeFill->setChecked(view->engine()->viewportSettings()->scaleMode() == Q3DSViewportSettings::ScaleModeFill);
+    scaleModeMenu->addAction(scaleModeFill);
+
+    connect(scaleModeFit, &QAction::triggered, [=]() {
+        view->engine()->viewportSettings()->setScaleMode(Q3DSViewportSettings::ScaleModeFit);
+        scaleModeCenter->setChecked(false);
+        scaleModeFill->setChecked(false);
+        scaleModeFit->setChecked(true);
+    });
+    connect(scaleModeCenter, &QAction::triggered, [=]() {
+        view->engine()->viewportSettings()->setScaleMode(Q3DSViewportSettings::ScaleModeCenter);
+        scaleModeCenter->setChecked(true);
+        scaleModeFill->setChecked(false);
+        scaleModeFit->setChecked(false);
+    });
+    connect(scaleModeFill, &QAction::triggered, [=]() {
+        view->engine()->viewportSettings()->setScaleMode(Q3DSViewportSettings::ScaleModeFill);
+        scaleModeCenter->setChecked(false);
+        scaleModeFill->setChecked(true);
+        scaleModeFit->setChecked(false);
+    });
+    connect(scaleModeAction, &QAction::triggered, [=]() {
+        // toggle between the 3 scale modes
+        if (scaleModeCenter->isChecked()) {
+            scaleModeCenter->setChecked(false);
+            scaleModeFit->setChecked(true);
+            view->engine()->viewportSettings()->setScaleMode(Q3DSViewportSettings::ScaleModeFit);
+        } else if (scaleModeFit->isChecked()) {
+            scaleModeFit->setChecked(false);
+            scaleModeFill->setChecked(true);
+            view->engine()->viewportSettings()->setScaleMode(Q3DSViewportSettings::ScaleModeFill);
+        } else {
+            scaleModeFill->setChecked(false);
+            scaleModeCenter->setChecked(true);
+            view->engine()->viewportSettings()->setScaleMode(Q3DSViewportSettings::ScaleModeCenter);
+        }
+    });
+
+    viewMenu->addMenu(scaleModeMenu);
 
     QAction *renderOnDemand = viewMenu->addAction(tr("&Render on demand only"));
     renderOnDemand->setCheckable(true);
@@ -126,10 +203,33 @@ Q3DSExplorerMainWindow::Q3DSExplorerMainWindow(Q3DSWindow *view, QWidget *parent
         else
             qDeleteAll(p);
     });
+    QMenu *profileSubMenu = new QMenu(tr("&Profile and Debug"));
+    QAction *showDebugView = profileSubMenu->addAction(tr("Toggle in-scene &debug view"), this, [view] {
+        Q3DSEngine *engine = view->engine();
+        engine->setProfileUiVisible(!engine->isProfileUiVisible());
+    }, Qt::Key_F10);
+    addAction(showDebugView);
+    QAction *showConsole = profileSubMenu->addAction(tr("Toggle &console"), this, [view] {
+        view->requestActivate(); // get key events flowing right away even without any click
+        Q3DSEngine *engine = view->engine();
+        engine->setProfileUiVisible(!engine->isProfileUiVisible(), true);
+    }, Qt::Key_QuoteLeft);
+    addAction(showConsole);
+    QAction *scaleUpDebugView = profileSubMenu->addAction(tr("Scale in-scene debug view up"), this, [view] {
+        Q3DSEngine *engine = view->engine();
+        engine->configureProfileUi(engine->profileUiScaleFactor() + 0.2f);
+    }, QKeySequence(QLatin1String("Ctrl+F10")));
+    addAction(scaleUpDebugView);
+    QAction *scaleDownDebugView = profileSubMenu->addAction(tr("Scale in-scene debug view down"), this, [view] {
+        Q3DSEngine *engine = view->engine();
+        engine->configureProfileUi(engine->profileUiScaleFactor() - 0.2f);
+    }, QKeySequence(QLatin1String("Alt+F10")));
+    addAction(scaleDownDebugView);
+    devMenu->addMenu(profileSubMenu);
 
     QMenu *helpMenu = menuBar()->addMenu(tr("&Help"));
     helpMenu->addAction(tr("&About"), this, [this]() {
-        QMessageBox::about(this, tr("About q3dsviewer"), tr("Qt 3D Studio Viewer 2.0"));
+        QMessageBox::about(this, tr("About q3dsexplorer"), tr("Qt 3D Studio Explorer 2.0"));
     });
     helpMenu->addAction(tr("About &Qt"), qApp, &QApplication::aboutQt);
 

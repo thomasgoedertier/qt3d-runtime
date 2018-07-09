@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2017 The Qt Company Ltd.
+** Copyright (C) 2018 The Qt Company Ltd.
 ** Contact: http://www.qt.io/licensing/
 **
 ** This file is part of Qt 3D Studio.
@@ -28,15 +28,25 @@
 ****************************************************************************/
 
 #include "q3dsexplorermainwindow.h"
+
 #include <QApplication>
 #include <QCommandLineParser>
 #include <QFileDialog>
+
 #include <private/q3dsengine_p.h>
 #include <private/q3dswindow_p.h>
 #include <private/q3dsutils_p.h>
+#include <private/q3dsviewportsettings_p.h>
+#include <private/q3dsremotedeploymentmanager_p.h>
 
 int main(int argc, char *argv[])
 {
+    QCoreApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
+    QCoreApplication::setOrganizationName(QStringLiteral("The Qt Company"));
+    QCoreApplication::setOrganizationDomain(QStringLiteral("qt.io"));
+    QCoreApplication::setApplicationName(QStringLiteral("Qt 3D Scene Explorer"));
+    QCoreApplication::setApplicationVersion(QStringLiteral("2.0"));
+
     QApplication app(argc, argv);
     QSurfaceFormat::setDefaultFormat(Q3DS::surfaceFormat());
 
@@ -47,20 +57,27 @@ int main(int argc, char *argv[])
     cmdLineParser.addOption(msaaOption);
     QCommandLineOption noProfOption({ "p", "no-profile" }, QObject::tr("Opens presentation without profiling enabled"));
     cmdLineParser.addOption(noProfOption);
+    QCommandLineOption remoteOption("port",
+                                    QObject::tr("Sets the <port> to listen on in remote connection mode. The default <port> is 36000."),
+                                    QObject::tr("port"), QLatin1String("36000"));
+    cmdLineParser.addOption(remoteOption);
+    QCommandLineOption autoExitOption({ "x", "exitafter" }, QObject::tr("Exit after <n> seconds."), QObject::tr("n"), QLatin1String("5"));
+    cmdLineParser.addOption(autoExitOption);
+    QCommandLineOption scaleModeOption("scalemode",
+                                       QObject::tr("Specifies scaling mode.\n"
+                                       "The default value is 'center'."),
+                                       QObject::tr("center|fit|fill"),
+                                       QStringLiteral("center"));
+    cmdLineParser.addOption(scaleModeOption);
+    QCommandLineOption matteColorOption("mattecolor",
+                                        QObject::tr("Specifies custom matte color\n"
+                                        "using #000000 syntax.\n"
+                                        "For example, white matte: #ffffff"),
+                                        QObject::tr("color"), QStringLiteral("#333333"));
+    cmdLineParser.addOption(matteColorOption);
     cmdLineParser.process(app);
 
     QStringList fn = cmdLineParser.positionalArguments();
-    if (fn.isEmpty()) {
-        QString fileName = QFileDialog::getOpenFileName(nullptr, QObject::tr("Open"),
-                                                        QString(), Q3DSExplorerMainWindow::fileFilter());
-        if (!fileName.isEmpty())
-            fn.append(fileName);
-    }
-
-    if (fn.isEmpty()) {
-        Q3DSUtils::showMessage(QObject::tr("No file specified."));
-        return 0;
-    }
 
     Q3DSEngine::Flags flags = 0;
     if (cmdLineParser.isSet(msaaOption))
@@ -69,20 +86,51 @@ int main(int argc, char *argv[])
         flags |= Q3DSEngine::EnableProfiling;
 
     QScopedPointer<Q3DSEngine> engine(new Q3DSEngine);
-    engine->setAutoStart(false);
     QScopedPointer<Q3DSWindow> view(new Q3DSWindow);
     view->setEngine(engine.data());
     engine->setFlags(flags);
-    if (!engine->setSource(fn.first()))
-        return 0;
+
+    // Setup Remote Viewer
+    int port = 36000;
+    if (cmdLineParser.isSet(remoteOption))
+        port = cmdLineParser.value(remoteOption).toInt();
+    QScopedPointer<Q3DSRemoteDeploymentManager> remote(new Q3DSRemoteDeploymentManager(engine.data(), port, true));
+    if (fn.isEmpty()) {
+        remote->startServer();
+        remote->showConnectionSetup();
+    } else {
+        // Try and set the source for the engine
+        if (!engine->setSource(fn.first()))
+            return 0;
+    }
+
+    // Setup Viewport Settings
+    Q3DSViewportSettings *viewportSettings = new Q3DSViewportSettings;
+    engine->setViewportSettings(viewportSettings);
+    viewportSettings->setMatteEnabled(true);
+    viewportSettings->setScaleMode(Q3DSViewportSettings::ScaleModeCenter);
+    if (cmdLineParser.isSet(scaleModeOption)) {
+        const QString scaleMode = cmdLineParser.value(scaleModeOption);
+        if (scaleMode == QStringLiteral("center"))
+            viewportSettings->setScaleMode(Q3DSViewportSettings::ScaleModeCenter);
+        else if (scaleMode == QStringLiteral("fit"))
+            viewportSettings->setScaleMode(Q3DSViewportSettings::ScaleModeFit);
+        else
+            viewportSettings->setScaleMode(Q3DSViewportSettings::ScaleModeFill);
+    }
+    if (cmdLineParser.isSet(matteColorOption))
+        viewportSettings->setMatteColor(cmdLineParser.value(matteColorOption));
 
     QScopedPointer<Q3DSExplorerMainWindow> mw;
-    mw.reset(new Q3DSExplorerMainWindow(view.take()));
+    mw.reset(new Q3DSExplorerMainWindow(view.take(), remote.data()));
     mw->show();
 
     int r = app.exec();
 
     // make sure the engine is destroyed before the view (which is owned by mw by now)
     engine.reset();
+#ifdef Q3DSVIEWER_WIDGETS
+    delete mw;
+#endif
     return r;
 }

@@ -39,17 +39,19 @@ class SlideExplorerWidget;
 class SceneExplorerWidget;
 class Q3DSComponentNode;
 class ManualPresentationTest;
+class Q3DSRemoteDeploymentManager;
 
 class Q3DSExplorerMainWindow : public QMainWindow
 {
     Q_OBJECT
 public:
-    explicit Q3DSExplorerMainWindow(Q3DSWindow *view, QWidget *parent = 0);
+    explicit Q3DSExplorerMainWindow(Q3DSWindow *view, Q3DSRemoteDeploymentManager *remote = nullptr, QWidget *parent = 0);
     ~Q3DSExplorerMainWindow();
 
-    void updatePresentation();
-
     static QString fileFilter();
+
+public Q_SLOTS:
+    void updatePresentation();
 
 private Q_SLOTS:
     void handleComponentSelected(Q3DSComponentNode *component);
