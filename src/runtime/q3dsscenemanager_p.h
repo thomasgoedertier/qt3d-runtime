@@ -487,6 +487,8 @@ public:
         };
     };
     QHash<Q3DSModelNode *, PerModelData> perModelData;
+
+    bool prepared = false;
 };
 
 Q_DECLARE_TYPEINFO(Q3DSMaterialAttached::PerModelData, Q_MOVABLE_TYPE);
@@ -600,6 +602,7 @@ public:
     Q3DSSlidePlayer *slidePlayer = nullptr;
     Qt3DAnimation::QClipAnimator *animator = nullptr;
     QVector<Qt3DAnimation::QClipAnimator *> animators;
+    int slideObjectChangeObserverIndex = -1;
 };
 
 class Q3DSImageAttached : public Q3DSGraphObjectAttached
@@ -773,7 +776,6 @@ private:
     void setLayerCameraSizeProperties(Q3DSLayerNode *layer3DS, const QVector2D &offset = QVector2D());
     void setLayerSizeProperties(Q3DSLayerNode *layer3DS);
     void setLayerProperties(Q3DSLayerNode *layer3DS);
-    void initNonNode(Q3DSGraphObject *obj);
     void buildLayerScene(Q3DSGraphObject *obj, Q3DSLayerNode *layer3DS, Qt3DCore::QEntity *parent);
     void setSsaoTextureEnabled(Q3DSLayerNode *layer3DS, bool enabled);
     void updateAoParameters(Q3DSLayerNode *layer3DS);
@@ -839,6 +841,11 @@ private:
     void updateModel(Q3DSModelNode *model3DS);
     QVector<Q3DSNodeAttached::LightsData *> getLightsDataForNode(Q3DSGraphObject *object);
     QVector<Qt3DRender::QParameter *> prepareSeparateLightUniforms(const QVector<Q3DSLightSource> &allLights, const QString &lightsUniformName);
+
+    void initBehaviorInstance(Q3DSBehaviorInstance *behaviorInstance);
+    void initImage(Q3DSImage *image);
+    void initDefaultMaterial(Q3DSDefaultMaterial *m);
+    void initCustomMaterial(Q3DSCustomMaterialInstance *m);
 
     void buildLayerQuadEntity(Q3DSLayerNode *layer3DS, Qt3DCore::QEntity *parentEntity, Qt3DRender::QLayer *tag,
                               BuildLayerQuadFlags flags, int layerDepth = 0);

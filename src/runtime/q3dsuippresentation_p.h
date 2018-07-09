@@ -217,6 +217,8 @@ public:
     VisibilityTag visibilityTag = Hidden;
     FrameDirtyFlags frameDirty;
     int frameChangeFlags = 0;
+    int propertyChangeObserverIndex = -1;
+    int eventObserverIndex = -1;
 };
 
 Q_DECLARE_OPERATORS_FOR_FLAGS(Q3DSGraphObjectAttached::FrameDirtyFlags)

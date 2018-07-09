@@ -699,13 +699,13 @@ Q3DSSceneManager::Scene Q3DSSceneManager::buildScene(Q3DSUipPresentation *presen
 
     // Create the attached data object(s) and register for change notifications
     createSlideAttached(m_masterSlide, m_rootEntity);
-    m_masterSlide->addSlideObjectChangeObserver(std::bind(&Q3DSSceneManager::handleSlideObjectChange,
-                                                          this, std::placeholders::_1, std::placeholders::_2));
+    m_masterSlide->attached<Q3DSSlideAttached>()->slideObjectChangeObserverIndex = m_masterSlide->addSlideObjectChangeObserver(
+                std::bind(&Q3DSSceneManager::handleSlideObjectChange, this, std::placeholders::_1, std::placeholders::_2));
     Q3DSSlide *subslide = static_cast<Q3DSSlide *>(m_masterSlide->firstChild());
     while (subslide) {
         createSlideAttached(subslide, m_rootEntity);
-        subslide->addSlideObjectChangeObserver(std::bind(&Q3DSSceneManager::handleSlideObjectChange,
-                                                         this, std::placeholders::_1, std::placeholders::_2));
+        subslide->attached<Q3DSSlideAttached>()->slideObjectChangeObserverIndex = subslide->addSlideObjectChangeObserver(
+                    std::bind(&Q3DSSceneManager::handleSlideObjectChange, this, std::placeholders::_1, std::placeholders::_2));
         subslide = static_cast<Q3DSSlide *>(subslide->nextSibling());
     }
 
@@ -754,15 +754,8 @@ Q3DSSceneManager::Scene Q3DSSceneManager::buildScene(Q3DSUipPresentation *presen
     m_fsQuadTag = new Qt3DRender::QLayer(m_rootEntity);
     m_fsQuadTag->setObjectName(QLatin1String("Fullscreen quad pass"));
 
-    // Prepare image objects (these are non-nodes and not covered in layer building below).
-    m_presentation->forAllImages([this](Q3DSImage *image) {
-        Q3DSImageAttached *data = new Q3DSImageAttached;
-        data->entity = m_rootEntity; // must set an entity to to make Q3DSImage properties animatable, just use the root
-        image->setAttached(data);
-        image->addPropertyChangeObserver(std::bind(&Q3DSSceneManager::handlePropertyChange, this,
-                                                   std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
-        image->addEventHandler(QString(), std::bind(&Q3DSSceneManager::handleEvent, this, std::placeholders::_1));
-    });
+    // Prepare image objects. This must be done up-front.
+    m_presentation->forAllImages([this](Q3DSImage *image) { initImage(image); });
 
     // Build the (offscreen) Qt3D scene
     Qt3DRender::QFrameGraphNode *layerContainerFg = new Qt3DRender::QFrameGraphNode(frameGraphRoot);
@@ -774,11 +767,11 @@ Q3DSSceneManager::Scene Q3DSSceneManager::buildScene(Q3DSUipPresentation *presen
             buildSubPresentationLayer(layer3DS, m_outputPixelSize);
     });
 
-    // The Scene object may have non-layer children, for example behavior instances.
+    // The Scene object may have non-layer children.
     Q3DSGraphObject *sceneChild = m_scene->firstChild();
     while (sceneChild) {
-        if (sceneChild->type() != Q3DSGraphObject::Layer)
-            initNonNode(sceneChild);
+        if (sceneChild->type() == Q3DSGraphObject::Behavior)
+            initBehaviorInstance(static_cast<Q3DSBehaviorInstance *>(sceneChild));
         sceneChild = sceneChild->nextSibling();
     }
 
@@ -1223,9 +1216,9 @@ void Q3DSSceneManager::buildLayer(Q3DSLayerNode *layer3DS,
 
     setLayerProperties(layer3DS);
 
-    layer3DS->addPropertyChangeObserver(std::bind(&Q3DSSceneManager::handlePropertyChange, this,
-                                                  std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
-    layer3DS->addEventHandler(QString(), std::bind(&Q3DSSceneManager::handleEvent, this, std::placeholders::_1));
+    layerData->propertyChangeObserverIndex = layer3DS->addPropertyChangeObserver(
+                std::bind(&Q3DSSceneManager::handlePropertyChange, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
+    layerData->eventObserverIndex = layer3DS->addEventHandler(QString(), std::bind(&Q3DSSceneManager::handleEvent, this, std::placeholders::_1));
 
     // Phase 2: deferred stuff
 
@@ -1847,9 +1840,9 @@ Qt3DRender::QCamera *Q3DSSceneManager::buildCamera(Q3DSCameraNode *cam3DS, Q3DSL
     // changes later on.
     setNodeProperties(cam3DS, camera, data->transform, NodePropUpdateAttached | NodePropUpdateGlobalsRecursively);
     setCameraProperties(cam3DS, Q3DSNode::TransformChanges);
-    cam3DS->addPropertyChangeObserver(std::bind(&Q3DSSceneManager::handlePropertyChange, this,
-                                                 std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
-    cam3DS->addEventHandler(QString(), std::bind(&Q3DSSceneManager::handleEvent, this, std::placeholders::_1));
+    data->propertyChangeObserverIndex = cam3DS->addPropertyChangeObserver(
+                std::bind(&Q3DSSceneManager::handlePropertyChange, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
+    data->eventObserverIndex = cam3DS->addEventHandler(QString(), std::bind(&Q3DSSceneManager::handleEvent, this, std::placeholders::_1));
     return camera;
 }
 
@@ -3708,16 +3701,47 @@ Qt3DCore::QEntity *Q3DSSceneManager::buildFsQuad(const FsQuadParams &info)
     return fsQuadEntity;
 }
 
-void Q3DSSceneManager::initNonNode(Q3DSGraphObject *obj)
+void Q3DSSceneManager::initBehaviorInstance(Q3DSBehaviorInstance *behaviorInstance)
 {
-    obj->addPropertyChangeObserver(std::bind(&Q3DSSceneManager::handlePropertyChange, this,
-                                             std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
-    obj->addEventHandler(QString(), std::bind(&Q3DSSceneManager::handleEvent, this, std::placeholders::_1));
+    Q3DSBehaviorAttached *data = new Q3DSBehaviorAttached;
+    behaviorInstance->setAttached(data);
 
-    // behaviors' attached object is handled here since behavior instances may
-    // never hit buildLayerScene if the parent is the Scene
-    if (obj->type() == Q3DSGraphObject::Behavior)
-        obj->setAttached(new Q3DSBehaviorAttached);
+    data->propertyChangeObserverIndex = behaviorInstance->addPropertyChangeObserver(
+                std::bind(&Q3DSSceneManager::handlePropertyChange, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
+    data->eventObserverIndex = behaviorInstance->addEventHandler(QString(), std::bind(&Q3DSSceneManager::handleEvent, this, std::placeholders::_1));
+}
+
+void Q3DSSceneManager::initImage(Q3DSImage *image)
+{
+    Q3DSImageAttached *data = new Q3DSImageAttached;
+    data->entity = m_rootEntity; // must set an entity to to make Q3DSImage properties animatable, just use the root
+    image->setAttached(data);
+
+    data->propertyChangeObserverIndex = image->addPropertyChangeObserver(
+                std::bind(&Q3DSSceneManager::handlePropertyChange, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
+    data->eventObserverIndex = image->addEventHandler(QString(), std::bind(&Q3DSSceneManager::handleEvent, this, std::placeholders::_1));
+}
+
+void Q3DSSceneManager::initDefaultMaterial(Q3DSDefaultMaterial *m)
+{
+    Q3DSDefaultMaterialAttached *data = new Q3DSDefaultMaterialAttached;
+    // the real work is deferred to prepareDefaultMaterial()
+    m->setAttached(data);
+
+    data->propertyChangeObserverIndex = m->addPropertyChangeObserver(
+                std::bind(&Q3DSSceneManager::handlePropertyChange, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
+    data->eventObserverIndex = m->addEventHandler(QString(), std::bind(&Q3DSSceneManager::handleEvent, this, std::placeholders::_1));
+}
+
+void Q3DSSceneManager::initCustomMaterial(Q3DSCustomMaterialInstance *m)
+{
+    Q3DSCustomMaterialAttached *data = new Q3DSCustomMaterialAttached;
+    // the real work is deferred to prepareCustomMaterial()
+    m->setAttached(data);
+
+    data->propertyChangeObserverIndex = m->addPropertyChangeObserver(
+                std::bind(&Q3DSSceneManager::handlePropertyChange, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
+    data->eventObserverIndex = m->addEventHandler(QString(), std::bind(&Q3DSSceneManager::handleEvent, this, std::placeholders::_1));
 }
 
 // Recursively builds the Qt3D scene for the given node tree under a layer. (or
@@ -3736,10 +3760,25 @@ void Q3DSSceneManager::buildLayerScene(Q3DSGraphObject *obj, Q3DSLayerNode *laye
     };
 
     if (!obj->isNode()) {
-        initNonNode(obj);
-
-        if (obj->type() == Q3DSGraphObject::Effect)
+        switch (obj->type()) {
+        case Q3DSGraphObject::Image:
+            // already done, nothing to do here
+            break;
+        case Q3DSGraphObject::Effect:
             buildEffect(static_cast<Q3DSEffectInstance *>(obj), layer3DS);
+            break;
+        case Q3DSGraphObject::Behavior:
+            initBehaviorInstance(static_cast<Q3DSBehaviorInstance *>(obj));
+            break;
+        case Q3DSGraphObject::DefaultMaterial:
+            initDefaultMaterial(static_cast<Q3DSDefaultMaterial *>(obj));
+            break;
+        case Q3DSGraphObject::CustomMaterial:
+            initCustomMaterial(static_cast<Q3DSCustomMaterialInstance *>(obj));
+            break;
+        default:
+            break;
+        }
 
         if (obj->attached())
             obj->attached()->component = m_componentNodeStack.top();
@@ -4010,9 +4049,9 @@ Qt3DCore::QEntity *Q3DSSceneManager::buildGroup(Q3DSGroupNode *group3DS, Q3DSLay
     group->setParent(parent); // the separate setParent() call is intentional here, see QTBUG-69352
     initEntityForNode(group, group3DS, layer3DS);
 
-    group3DS->addPropertyChangeObserver(std::bind(&Q3DSSceneManager::handlePropertyChange, this,
-                                                  std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
-    group3DS->addEventHandler(QString(), std::bind(&Q3DSSceneManager::handleEvent, this, std::placeholders::_1));
+    data->propertyChangeObserverIndex = group3DS->addPropertyChangeObserver(
+                std::bind(&Q3DSSceneManager::handlePropertyChange, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
+    data->eventObserverIndex = group3DS->addEventHandler(QString(), std::bind(&Q3DSSceneManager::handleEvent, this, std::placeholders::_1));
 
     return group;
 }
@@ -4027,9 +4066,9 @@ Qt3DCore::QEntity *Q3DSSceneManager::buildComponent(Q3DSComponentNode *comp3DS, 
     comp->setParent(parent); // the separate setParent() call is intentional here, see QTBUG-69352
     initEntityForNode(comp, comp3DS, layer3DS);
 
-    comp3DS->addPropertyChangeObserver(std::bind(&Q3DSSceneManager::handlePropertyChange, this,
-                                                 std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
-    comp3DS->addEventHandler(QString(), std::bind(&Q3DSSceneManager::handleEvent, this, std::placeholders::_1));
+    data->propertyChangeObserverIndex = comp3DS->addPropertyChangeObserver(
+                std::bind(&Q3DSSceneManager::handlePropertyChange, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
+    data->eventObserverIndex = comp3DS->addEventHandler(QString(), std::bind(&Q3DSSceneManager::handleEvent, this, std::placeholders::_1));
 
     return comp;
 }
@@ -4044,9 +4083,9 @@ Qt3DCore::QEntity *Q3DSSceneManager::buildAlias(Q3DSAliasNode *alias3DS, Q3DSLay
     aliasEntity->setParent(parent); // the separate setParent() call is intentional here, see QTBUG-69352
     initEntityForNode(aliasEntity, alias3DS, layer3DS);
 
-    alias3DS->addPropertyChangeObserver(std::bind(&Q3DSSceneManager::handlePropertyChange, this,
-                                                  std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
-    alias3DS->addEventHandler(QString(), std::bind(&Q3DSSceneManager::handleEvent, this, std::placeholders::_1));
+    data->propertyChangeObserverIndex = alias3DS->addPropertyChangeObserver(
+                std::bind(&Q3DSSceneManager::handlePropertyChange, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
+    data->eventObserverIndex = alias3DS->addEventHandler(QString(), std::bind(&Q3DSSceneManager::handleEvent, this, std::placeholders::_1));
 
     return aliasEntity;
 }
@@ -4080,9 +4119,9 @@ Qt3DCore::QEntity *Q3DSSceneManager::buildText(Q3DSTextNode *text3DS, Q3DSLayerN
     entity->setParent(parent); // the separate setParent() call is intentional here, see QTBUG-69352
     initEntityForNode(entity, text3DS, layer3DS);
 
-    text3DS->addPropertyChangeObserver(std::bind(&Q3DSSceneManager::handlePropertyChange, this,
-                                                 std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
-    text3DS->addEventHandler(QString(), std::bind(&Q3DSSceneManager::handleEvent, this, std::placeholders::_1));
+    data->propertyChangeObserverIndex = text3DS->addPropertyChangeObserver(
+                std::bind(&Q3DSSceneManager::handlePropertyChange, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
+    data->eventObserverIndex = text3DS->addEventHandler(QString(), std::bind(&Q3DSSceneManager::handleEvent, this, std::placeholders::_1));
 
     QSize sz = m_textRenderer->textImageSize(text3DS);
     if (sz.isEmpty())
@@ -4181,9 +4220,9 @@ Qt3DCore::QEntity *Q3DSSceneManager::buildLight(Q3DSLightNode *light3DS, Q3DSLay
 
     setLightProperties(light3DS, true);
 
-    light3DS->addPropertyChangeObserver(std::bind(&Q3DSSceneManager::handlePropertyChange, this,
-                                                  std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
-    light3DS->addEventHandler(QString(), std::bind(&Q3DSSceneManager::handleEvent, this, std::placeholders::_1));
+    data->propertyChangeObserverIndex = light3DS->addPropertyChangeObserver(
+                std::bind(&Q3DSSceneManager::handlePropertyChange, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
+    data->eventObserverIndex = light3DS->addEventHandler(QString(), std::bind(&Q3DSSceneManager::handleEvent, this, std::placeholders::_1));
 
     return entity;
 }
@@ -4356,11 +4395,12 @@ void Q3DSSceneManager::setLightProperties(Q3DSLightNode *light3DS, bool forceUpd
 
 Qt3DCore::QEntity *Q3DSSceneManager::buildModel(Q3DSModelNode *model3DS, Q3DSLayerNode *layer3DS, Qt3DCore::QEntity *parent)
 {
-    model3DS->setAttached(new Q3DSModelAttached);
+    Q3DSModelAttached *data = new Q3DSModelAttached;
+    model3DS->setAttached(data);
 
-    model3DS->addPropertyChangeObserver(std::bind(&Q3DSSceneManager::handlePropertyChange, this,
-                                                  std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
-    model3DS->addEventHandler(QString(), std::bind(&Q3DSSceneManager::handleEvent, this, std::placeholders::_1));
+    data->propertyChangeObserverIndex = model3DS->addPropertyChangeObserver(
+                std::bind(&Q3DSSceneManager::handlePropertyChange, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
+    data->eventObserverIndex = model3DS->addEventHandler(QString(), std::bind(&Q3DSSceneManager::handleEvent, this, std::placeholders::_1));
 
     Qt3DCore::QEntity *entity = new Qt3DCore::QEntity;
     entity->setObjectName(QObject::tr("model %1").arg(QString::fromUtf8(model3DS->id())));
@@ -4839,11 +4879,11 @@ QVector<Qt3DRender::QParameter *> Q3DSSceneManager::prepareDefaultMaterial(Q3DSD
     // complete in any case, but returning QParameters that were returned
     // before for a different model3DS is fine.
 
-    const bool firstRun = !m->attached();
-    if (firstRun)
-        m->setAttached(new Q3DSDefaultMaterialAttached);
-
     Q3DSDefaultMaterialAttached *data = static_cast<Q3DSDefaultMaterialAttached *>(m->attached());
+    const bool firstRun = !data->prepared;
+    if (firstRun)
+        data->prepared = true;
+
     Q3DSModelAttached *modelData = static_cast<Q3DSModelAttached *>(model3DS->attached());
     QVector<Qt3DRender::QParameter *> params;
 
@@ -5334,11 +5374,11 @@ QVector<Qt3DRender::QParameter *> Q3DSSceneManager::prepareCustomMaterial(Q3DSCu
 {
     // this function can be called more than once for the same 'm' (with a different 'model3DS' each time)
 
-    const bool firstRun = !m->attached();
-    if (firstRun)
-        m->setAttached(new Q3DSCustomMaterialAttached);
-
     Q3DSCustomMaterialAttached *data = static_cast<Q3DSCustomMaterialAttached *>(m->attached());
+    const bool firstRun = !data->prepared;
+    if (firstRun)
+        data->prepared = true;
+
     Q3DSModelAttached *modelData = static_cast<Q3DSModelAttached *>(model3DS->attached());
 
     if (firstRun)
@@ -8045,6 +8085,15 @@ void Q3DSSceneManager::handleSceneChange(Q3DSScene *, Q3DSGraphObject::DirtyFlag
                     if (objOrChild->attached()->component)
                         slidePlayer = objOrChild->attached()->component->masterSlide()->attached<Q3DSSlideAttached>()->slidePlayer;
                     slidePlayer->objectAboutToBeRemovedFromScene(objOrChild);
+                    Q3DSGraphObjectAttached *data = objOrChild->attached();
+                    if (data->propertyChangeObserverIndex >= 0) {
+                        objOrChild->removePropertyChangeObserver(data->propertyChangeObserverIndex);
+                        data->propertyChangeObserverIndex = -1;
+                    }
+                    if (data->eventObserverIndex >= 0) {
+                        objOrChild->removeEventHandler(QString(), data->eventObserverIndex);
+                        data->eventObserverIndex = -1;
+                    }
                 });
                 delete obj->attached()->entity;
 
@@ -8079,6 +8128,10 @@ void Q3DSSceneManager::addLayerContent(Q3DSGraphObject *obj, Q3DSGraphObject *pa
     // be up-to-date without a resolve. Avoid this.
     Q3DSUipPresentation::forAllObjectsInSubTree(obj, [this](Q3DSGraphObject *objOrChild) {
         objOrChild->resolveReferences(*m_presentation);
+
+        // Image objects must be prepared in advance.
+        if (objOrChild->type() == Q3DSGraphObject::Image)
+            initImage(static_cast<Q3DSImage *>(objOrChild));
     });
 
     // phase 1
@@ -8127,8 +8180,16 @@ void Q3DSSceneManager::handleSlideGraphChange(Q3DSSlide *master, Q3DSGraphObject
     // called when a slide (a child of the master slide) is added or removed
 
     Q_UNUSED(master);
-    Q_UNUSED(change);
-    Q_UNUSED(slide);
+
+    if (change == Q3DSGraphObject::DirtyNodeAdded) {
+        // ###
+    } else if (change == Q3DSGraphObject::DirtyNodeRemoved) {
+        Q3DSSlideAttached *data = slide->attached<Q3DSSlideAttached>();
+        if (data->slideObjectChangeObserverIndex >= 0) {
+            slide->removeSlideObjectChangeObserver(data->slideObjectChangeObserverIndex);
+            data->slideObjectChangeObserverIndex = -1;
+        }
+    }
 }
 
 void Q3DSSceneManager::handleSlideObjectChange(Q3DSSlide *slide, const Q3DSSlide::SlideObjectChange &change)
