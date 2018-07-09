@@ -247,18 +247,22 @@ void Q3DSConsoleCommands::setupConsole(Q3DSConsole *console)
             if (obj->isNode()) {
                 Q3DSNode *node = static_cast<Q3DSNode *>(obj);
                 auto d = obj->attached<Q3DSNodeAttached>();
-                m_console->addMessageFmt(longResponseColor, "Global transform: %s\nGlobal opacity: %f\n"
-                                         "Local logical visibility (eyeball): %d\n"
-                                         "Global logical visibility (inherited eyeball): %d\n"
-                                         "Local effective visibility (eyeball+slide): %d\n"
-                                         "Global effective visibility (inherited eyeball+slide): %d\n",
-                                         qPrintable(printMatrix(d->globalTransform)),
-                                         d->globalOpacity,
-                                         node->flags().testFlag(Q3DSNode::Active),
-                                         d->globalLogicalVisibility,
-                                         node->flags().testFlag(Q3DSNode::Active) && d->visibilityTag == Q3DSGraphObjectAttached::Visible,
-                                         d->globalEffectiveVisibility);
-                if (d->lightsData) {
+                if (d) {
+                    m_console->addMessageFmt(longResponseColor, "Global transform: %s\nGlobal opacity: %f\n"
+                                                                "Local logical visibility (eyeball): %d\n"
+                                                                "Global logical visibility (inherited eyeball): %d\n"
+                                                                "Local effective visibility (eyeball+slide): %d\n"
+                                                                "Global effective visibility (inherited eyeball+slide): %d\n",
+                                             qPrintable(printMatrix(d->globalTransform)),
+                                             d->globalOpacity,
+                                             node->flags().testFlag(Q3DSNode::Active),
+                                             d->globalLogicalVisibility,
+                                             node->flags().testFlag(Q3DSNode::Active) && d->visibilityTag == Q3DSGraphObjectAttached::Visible,
+                                             d->globalEffectiveVisibility);
+                } else {
+                    m_console->addMessageFmt(longResponseColor, "No attached object. (node not in scene?)");
+                }
+                if (d && d->lightsData) {
                     auto printLightSources = [this](const QVector<Q3DSLightSource> &lightSources) {
                         for (int i = 0; i < lightSources.count(); ++i) {
                             const Q3DSLightSource &lightSource(lightSources.at(i));
