@@ -8073,6 +8073,14 @@ void Q3DSSceneManager::addLayerContent(Q3DSGraphObject *obj, Q3DSGraphObject *pa
     if (parent->type() == Q3DSGraphObject::Layer)
         parentEntity = parent->attached<Q3DSLayerAttached>()->layerSceneRootEntity;
 
+    // First make sure all properties are resolved; f.ex. a model with
+    // sourcepath changed before attaching the node to a scene will not
+    // generate a MeshChanges prop.change, and so the actual mesh will not
+    // be up-to-date without a resolve. Avoid this.
+    Q3DSUipPresentation::forAllObjectsInSubTree(obj, [this](Q3DSGraphObject *objOrChild) {
+        objOrChild->resolveReferences(*m_presentation);
+    });
+
     // phase 1
     buildLayerScene(obj, layer3DS, parentEntity);
     qCDebug(lcScene) << "Dyn.added" << obj->attached()->entity;
@@ -8095,7 +8103,7 @@ void Q3DSSceneManager::addLayerContent(Q3DSGraphObject *obj, Q3DSGraphObject *pa
         }
 
         Q3DSSlidePlayer *slidePlayer = m_slidePlayer;
-        if (objOrChild->attached()->component)
+        if (objOrChild->attached() && objOrChild->attached()->component)
             slidePlayer = objOrChild->attached()->component->masterSlide()->attached<Q3DSSlideAttached>()->slidePlayer;
 
         slidePlayer->objectAboutToBeAddedToScene(objOrChild);

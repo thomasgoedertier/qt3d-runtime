@@ -146,9 +146,12 @@ void Q3DSConsoleCommands::setupConsole(Q3DSConsole *console)
                                "slide(ctxObj) - Prints the current slide on the time context (scene or component object). [R]\n"
                                "setslide(ctxObj, name) - Changes the current slide on the time context (scene or component object). [R]\n"
                                "\n"
-                               "object(id, name, type, parentObj, slide) - Creates a new object. (type == Model, DefaultMaterial, etc.) [R]\n"
-                               "primitive(id, name, source, parentObj, slide) - Adds a model node with a default material. (source == #Cube, #Cone, etc.) [R]\n"
+                               "object(id, name, type, parentObj, slide) - Creates a new object. (type == Model, DefaultMaterial, ...; parent and slide may be null) [R]\n"
+                               "primitive(id, name, source, parentObj, slide) - Shortcut to add a model with a default material. (source == #Cube, #Cone, etc.) [R]\n"
+                               "setparent(obj, parentObj) - Sets the parent (only valid when object()/primitive() was called with parentObj == null) [R]\n"
                                "kill(obj) - Removes a node from the scene graph (and from the slides' object list). [R]\n"
+                               "objslideadd(obj, slide) - Associates the object with the given slide. [R]\n"
+                               "objslideremove(obj, slide) - Removes the object from the slide's objject list. [R]\n"
                                "\n"
                                "record - Switches to recording mode.\n"
                                "immed - Switches to immediate mode (the default).\n"
@@ -363,7 +366,7 @@ void Q3DSConsoleCommands::setupConsole(Q3DSConsole *console)
         if (obj) {
             // Unlink (incl. all children) from the slide.
             Q3DSSlide *slide = m_currentPresentation->masterSlide();
-            if (obj->attached()->component)
+            if (obj->attached() && obj->attached()->component)
                 slide = obj->attached()->component->masterSlide();
             Q3DSUipPresentation::forAllObjectsInSubTree(obj, [slide](Q3DSGraphObject *objOrChild) {
                 removeFromSlide_helper(objOrChild, slide);
@@ -384,8 +387,6 @@ void Q3DSConsoleCommands::setupConsole(Q3DSConsole *console)
             const QString source = QString::fromUtf8(unquote(splitArgs[2]));
             Q3DSGraphObject *parent = resolveObj(splitArgs[3]);
             Q3DSSlide *slide = static_cast<Q3DSSlide *>(resolveObj(splitArgs[4]));
-            if (!parent || !slide)
-                return;
             Q3DSModelNode *model = m_currentPresentation->newObject<Q3DSModelNode>(id);
             if (!model)
                 return;
@@ -398,11 +399,14 @@ void Q3DSConsoleCommands::setupConsole(Q3DSConsole *console)
                 return;
             mat->setName(QString::fromUtf8(matId));
             model->appendChildNode(mat);
-            slide->addObject(model);
-            slide->addObject(mat);
+            if (slide) {
+                slide->addObject(model);
+                slide->addObject(mat);
+            }
             // adding to parent must be the last, since it triggers a scene
             // change notification to the scene manager
-            parent->appendChildNode(model);
+            if (parent)
+                parent->appendChildNode(model);
             m_console->addMessageFmt(responseColor, "Added");
         }
     }, Q3DSConsole::CmdRecordable));
@@ -414,18 +418,51 @@ void Q3DSConsoleCommands::setupConsole(Q3DSConsole *console)
             const QByteArray type = unquote(splitArgs[2]);
             Q3DSGraphObject *parent = resolveObj(splitArgs[3]);
             Q3DSSlide *slide = static_cast<Q3DSSlide *>(resolveObj(splitArgs[4]));
-            if (!parent || !slide)
-                return;
             Q3DSGraphObject *obj = m_currentPresentation->newObject(type.constData(), id);
             if (obj) {
                 obj->setName(name);
-                slide->addObject(obj);
+                if (slide)
+                    slide->addObject(obj);
                 // adding to parent must be the last, since it triggers a scene
                 // change notification to the scene manager
-                parent->appendChildNode(obj);
+                if (parent)
+                    parent->appendChildNode(obj);
                 m_console->addMessageFmt(responseColor, "Added");
             } else {
                 m_console->addMessageFmt(errorColor, "Unknown type or duplicate id");
+            }
+        }
+    }, Q3DSConsole::CmdRecordable));
+    m_console->addCommand(Q3DSConsole::makeCommand("setparent", [this](const QByteArray &args) {
+        QByteArrayList splitArgs = args.split(',');
+        if (splitArgs.count() >= 2) {
+            Q3DSGraphObject *obj = resolveObj(splitArgs[0]);
+            Q3DSGraphObject *parent = resolveObj(splitArgs[1]);
+            if (obj && parent) {
+                parent->appendChildNode(obj);
+                m_console->addMessageFmt(responseColor, "Appended as child node");
+            }
+        }
+    }, Q3DSConsole::CmdRecordable));
+    m_console->addCommand(Q3DSConsole::makeCommand("objslideadd", [this](const QByteArray &args) {
+        QByteArrayList splitArgs = args.split(',');
+        if (splitArgs.count() >= 2) {
+            Q3DSGraphObject *obj = resolveObj(splitArgs[0]);
+            Q3DSSlide *slide = static_cast<Q3DSSlide *>(resolveObj(splitArgs[1]));
+            if (obj && slide) {
+                slide->addObject(obj);
+                m_console->addMessageFmt(responseColor, "Added to slide object list");
+            }
+        }
+    }, Q3DSConsole::CmdRecordable));
+    m_console->addCommand(Q3DSConsole::makeCommand("objslideremove", [this](const QByteArray &args) {
+        QByteArrayList splitArgs = args.split(',');
+        if (splitArgs.count() >= 2) {
+            Q3DSGraphObject *obj = resolveObj(splitArgs[0]);
+            Q3DSSlide *slide = static_cast<Q3DSSlide *>(resolveObj(splitArgs[1]));
+            if (obj && slide) {
+                slide->removeObject(obj);
+                m_console->addMessageFmt(responseColor, "Removed from slide object list");
             }
         }
     }, Q3DSConsole::CmdRecordable));
@@ -513,6 +550,8 @@ Q3DSGraphObject *Q3DSConsoleCommands::resolveObj(const QByteArray &ref, bool sho
 
     if (r.startsWith('#'))
         obj = m_currentPresentation->object(r.mid(1));
+    else if (r == QByteArrayLiteral("null"))
+        return nullptr;
     else
         obj = m_currentPresentation->objectByName(QString::fromUtf8(r));
 
