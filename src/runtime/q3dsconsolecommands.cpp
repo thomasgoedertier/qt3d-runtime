@@ -148,7 +148,7 @@ void Q3DSConsoleCommands::setupConsole(Q3DSConsole *console)
                                "\n"
                                "object(id, name, type, parentObj, slide) - Creates a new object. (type == Model, DefaultMaterial, ...; parent and slide may be null) [R]\n"
                                "primitive(id, name, source, parentObj, slide) - Shortcut to add a model with a default material. (source == #Cube, #Cone, etc.) [R]\n"
-                               "setparent(obj, parentObj) - Sets the parent (only valid when object()/primitive() was called with parentObj == null) [R]\n"
+                               "setparent(obj, parentObj) - Sets the parent (may be null). [R]\n"
                                "kill(obj) - Removes a node from the scene graph (and from the slides' object list). [R]\n"
                                "objslideadd(obj, slide) - Associates the object with the given slide. [R]\n"
                                "objslideremove(obj, slide) - Removes the object from the slide's objject list. [R]\n"
@@ -438,9 +438,20 @@ void Q3DSConsoleCommands::setupConsole(Q3DSConsole *console)
         if (splitArgs.count() >= 2) {
             Q3DSGraphObject *obj = resolveObj(splitArgs[0]);
             Q3DSGraphObject *parent = resolveObj(splitArgs[1]);
-            if (obj && parent) {
-                parent->appendChildNode(obj);
-                m_console->addMessageFmt(responseColor, "Appended as child node");
+            if (obj) {
+                if (parent) {
+                    if (obj->parent() != parent) {
+                        if (obj->parent())
+                            obj->parent()->removeChildNode(obj);
+                        parent->appendChildNode(obj);
+                        m_console->addMessageFmt(responseColor, "Reparented");
+                    }
+                } else {
+                    if (obj->parent()) {
+                        obj->parent()->removeChildNode(obj);
+                        m_console->addMessageFmt(responseColor, "Unparented");
+                    }
+                }
             }
         }
     }, Q3DSConsole::CmdRecordable));

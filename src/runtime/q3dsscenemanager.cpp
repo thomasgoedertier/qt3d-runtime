@@ -8081,11 +8081,13 @@ void Q3DSSceneManager::handleSceneChange(Q3DSScene *, Q3DSGraphObject::DirtyFlag
 
                 qCDebug(lcScene) << "Dyn.removing" << obj->attached()->entity;
                 Q3DSUipPresentation::forAllObjectsInSubTree(obj, [this](Q3DSGraphObject *objOrChild) {
-                    Q3DSSlidePlayer *slidePlayer = m_slidePlayer;
-                    if (objOrChild->attached()->component)
-                        slidePlayer = objOrChild->attached()->component->masterSlide()->attached<Q3DSSlideAttached>()->slidePlayer;
-                    slidePlayer->objectAboutToBeRemovedFromScene(objOrChild);
                     Q3DSGraphObjectAttached *data = objOrChild->attached();
+                    if (!data)
+                        return;
+                    Q3DSSlidePlayer *slidePlayer = m_slidePlayer;
+                    if (data->component)
+                        slidePlayer = data->component->masterSlide()->attached<Q3DSSlideAttached>()->slidePlayer;
+                    slidePlayer->objectAboutToBeRemovedFromScene(objOrChild);
                     if (data->propertyChangeObserverIndex >= 0) {
                         objOrChild->removePropertyChangeObserver(data->propertyChangeObserverIndex);
                         data->propertyChangeObserverIndex = -1;
@@ -8101,6 +8103,11 @@ void Q3DSSceneManager::handleSceneChange(Q3DSScene *, Q3DSGraphObject::DirtyFlag
                 if (layer3DS)
                     removeLayerContent(obj, layer3DS);
             }
+        }
+        // bye bye attached; it will get recreated in case obj gets added back later on
+        if (obj->attached()) {
+            delete obj->attached();
+            obj->setAttached(nullptr);
         }
     }
 }
@@ -8189,6 +8196,8 @@ void Q3DSSceneManager::handleSlideGraphChange(Q3DSSlide *master, Q3DSGraphObject
             slide->removeSlideObjectChangeObserver(data->slideObjectChangeObserverIndex);
             data->slideObjectChangeObserverIndex = -1;
         }
+        delete data;
+        slide->setAttached(nullptr);
     }
 }
 
