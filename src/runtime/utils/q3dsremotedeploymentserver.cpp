@@ -27,7 +27,7 @@
 **
 ****************************************************************************/
 
-#include "q3dsremotedeploymentserver.h"
+#include "q3dsremotedeploymentserver_p.h"
 
 #include <QtNetwork>
 

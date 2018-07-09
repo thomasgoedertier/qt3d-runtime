@@ -27,15 +27,15 @@
 **
 ****************************************************************************/
 
-#include "q3dsremotedeploymentmanager.h"
-#include "q3dsremotedeploymentserver.h"
+#include "q3dsremotedeploymentmanager_p.h"
+#include "q3dsremotedeploymentserver_p.h"
 #include <private/q3dsengine_p.h>
 
 #include <Q3DSPresentation>
 #include <Q3DSDataInput>
 
 namespace {
-QString c_introPresentation() { return QStringLiteral(":/resources/intro/Intro.uia"); }
+QString c_introPresentation() { return QStringLiteral(":/q3ds/res/intro/Intro.uia"); }
 QString c_connectionTextDataInput() { return QStringLiteral("connectionInfo"); }
 QString c_connectionErrorDataInput() { return QStringLiteral("errorInfo"); }
 }

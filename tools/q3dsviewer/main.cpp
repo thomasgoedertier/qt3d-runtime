@@ -36,14 +36,13 @@
 #endif
 #include <QTimer>
 
-#include "q3dsremotedeploymentmanager.h"
-
 #include <QCommandLineParser>
 #include <QStandardPaths>
 #include <private/q3dsengine_p.h>
 #include <private/q3dswindow_p.h>
 #include <private/q3dsutils_p.h>
 #include <private/q3dsviewportsettings_p.h>
+#include <private/q3dsremotedeploymentmanager_p.h>
 
 QT_BEGIN_NAMESPACE
 class Q3DStudioMainWindow;

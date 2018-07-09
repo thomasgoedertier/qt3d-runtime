@@ -28,13 +28,13 @@
 ****************************************************************************/
 
 #include "q3dsmainwindow.h"
-#include "q3dsremotedeploymentmanager.h"
 #include "q3dsaboutdialog.h"
 #include <private/q3dswindow_p.h>
 #include <private/q3dsengine_p.h>
 #include <private/q3dsutils_p.h>
 #include <private/q3dsslideplayer_p.h>
 #include <private/q3dsviewportsettings_p.h>
+#include <private/q3dsremotedeploymentmanager_p.h>
 #include <QApplication>
 #include <QMenuBar>
 #include <QMenu>

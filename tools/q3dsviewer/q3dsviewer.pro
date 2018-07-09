@@ -13,9 +13,7 @@ qtHaveModule(widgets):!boot2qt {
     FORMS += q3dsaboutdialog.ui
 }
 
-SOURCES += main.cpp \
-    q3dsremotedeploymentserver.cpp \
-    q3dsremotedeploymentmanager.cpp
+SOURCES += main.cpp
 
 RC_ICONS = resources/images/3D-studio-viewer.ico
 ICON = resources/images/viewer.icns
@@ -29,10 +27,6 @@ android {
 }
 
 CONFIG += app_bundle
-
-HEADERS += \
-    q3dsremotedeploymentserver.h \
-    q3dsremotedeploymentmanager.h
 
 RESOURCES += \
     resources.qrc

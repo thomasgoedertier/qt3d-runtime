@@ -30,6 +30,19 @@
 #ifndef Q3DSREMOTEDEPLOYMENTMANAGER_H
 #define Q3DSREMOTEDEPLOYMENTMANAGER_H
 
+//
+//  W A R N I N G
+//  -------------
+//
+// This file is not part of the Qt API.  It exists purely as an
+// implementation detail.  This header file may change from version to
+// version without notice, or even be removed.
+//
+// We mean it.
+//
+
+#include <private/q3dsruntimeglobal_p.h>
+
 #include <QObject>
 #include <QTimer>
 
@@ -38,7 +51,7 @@ QT_BEGIN_NAMESPACE
 class Q3DSEngine;
 class Q3DSRemoteDeploymentServer;
 
-class Q3DSRemoteDeploymentManager : public QObject
+class Q3DSV_PRIVATE_EXPORT Q3DSRemoteDeploymentManager : public QObject
 {
     Q_OBJECT
 public:

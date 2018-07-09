@@ -102,6 +102,8 @@
         <file alias="res/effectlib/weightedLayer.glsllib">../../res/effectlib/weightedLayer.glsllib</file>
         <file alias="res/effectlib/wireframeCM.glsllib">../../res/effectlib/wireframeCM.glsllib</file>
         <file alias="res/Font/TitilliumWeb-Regular.ttf">../../res/Font/TitilliumWeb-Regular.ttf</file>
+        <file alias="res/intro/Intro.uia">../../res/intro/Intro.uia</file>
+        <file alias="res/intro/Intro.uip">../../res/intro/Intro.uip</file>
         <file alias="res/primitives/Cone.mesh">../../res/primitives/Cone.mesh</file>
         <file alias="res/primitives/Cube.mesh">../../res/primitives/Cube.mesh</file>
         <file alias="res/primitives/Cylinder.mesh">../../res/primitives/Cylinder.mesh</file>
