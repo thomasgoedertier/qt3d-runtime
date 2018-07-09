@@ -671,13 +671,16 @@ Q3DSSceneManager::Scene Q3DSSceneManager::buildScene(Q3DSUipPresentation *presen
     if (!m_flags.testFlag(SubPresentation))
         Q3DSShaderManager::instance().setProfiler(m_profiler);
 
-    // Enter the first slide. (apply property changes from master+first)
+    if (!m_scene) {
+        qWarning("Q3DSSceneManager: No scene?");
+        return Scene();
+    }
     if (!m_masterSlide) {
-        qWarning("Q3DSSceneBuilder: No master slide?");
+        qWarning("Q3DSSceneManager: No master slide?");
         return Scene();
     }
     if (!m_masterSlide->firstChild()) {
-        qWarning("Q3DSSceneBuilder: No slides?");
+        qWarning("Q3DSSceneManager: No slides?");
         return Scene();
     }
 
@@ -694,11 +697,17 @@ Q3DSSceneManager::Scene Q3DSSceneManager::buildScene(Q3DSUipPresentation *presen
         }
     };
 
-    // Create the attached data object(s)
+    // Create the attached data object(s) and register for change notifications
     createSlideAttached(m_masterSlide, m_rootEntity);
-    const int count = m_masterSlide->childCount();
-    for (int i = 0; i < count; ++i)
-        createSlideAttached(static_cast<Q3DSSlide *>(m_masterSlide->childAtIndex(i)), m_rootEntity);
+    m_masterSlide->addSlideObjectChangeObserver(std::bind(&Q3DSSceneManager::handleSlideObjectChange,
+                                                          this, std::placeholders::_1, std::placeholders::_2));
+    Q3DSSlide *subslide = static_cast<Q3DSSlide *>(m_masterSlide->firstChild());
+    while (subslide) {
+        createSlideAttached(subslide, m_rootEntity);
+        subslide->addSlideObjectChangeObserver(std::bind(&Q3DSSceneManager::handleSlideObjectChange,
+                                                         this, std::placeholders::_1, std::placeholders::_2));
+        subslide = static_cast<Q3DSSlide *>(subslide->nextSibling());
+    }
 
     Q3DSSlideDeck *slideDeck = new Q3DSSlideDeck(m_masterSlide);
     m_currentSlide = slideDeck->currentSlide();
@@ -833,6 +842,10 @@ Q3DSSceneManager::Scene Q3DSSceneManager::buildScene(Q3DSUipPresentation *presen
     // Listen to future changes to the scene graph.
     m_scene->addSceneChangeObserver(std::bind(&Q3DSSceneManager::handleSceneChange,
                                               this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
+
+    // And the "slide graph" (more like slide list).
+    m_masterSlide->addSlideGraphChangeObserver(std::bind(&Q3DSSceneManager::handleSlideGraphChange,
+                                                         this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
 
     // And for events too.
     m_scene->addEventHandler(QString(), std::bind(&Q3DSSceneManager::handleEvent, this, std::placeholders::_1));
@@ -8099,6 +8112,21 @@ void Q3DSSceneManager::removeLayerContent(Q3DSGraphObject *obj, Q3DSLayerNode *l
     markLayerAsContentChanged(layer3DS);
     if (obj->type() == Q3DSGraphObject::Light)
         markLayerAsContentChanged(layer3DS, Q3DSLayerNode::LayerContentSubTreeLightsChange);
+}
+
+void Q3DSSceneManager::handleSlideGraphChange(Q3DSSlide *master, Q3DSGraphObject::DirtyFlag change, Q3DSSlide *slide)
+{
+    // called when a slide (a child of the master slide) is added or removed
+
+    Q_UNUSED(master);
+    Q_UNUSED(change);
+    Q_UNUSED(slide);
+}
+
+void Q3DSSceneManager::handleSlideObjectChange(Q3DSSlide *slide, const Q3DSSlide::SlideObjectChange &change)
+{
+    Q_UNUSED(slide);
+    Q_UNUSED(change);
 }
 
 QT_END_NAMESPACE

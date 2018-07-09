@@ -871,6 +871,8 @@ private:
     void handleSceneChange(Q3DSScene *scene, Q3DSGraphObject::DirtyFlag change, Q3DSGraphObject *obj);
     void addLayerContent(Q3DSGraphObject *obj, Q3DSGraphObject *parent, Q3DSLayerNode *layer3DS);
     void removeLayerContent(Q3DSGraphObject *obj, Q3DSLayerNode *layer3DS);
+    void handleSlideGraphChange(Q3DSSlide *master, Q3DSGraphObject::DirtyFlag change, Q3DSSlide *slide);
+    void handleSlideObjectChange(Q3DSSlide *slide, const Q3DSSlide::SlideObjectChange &change);
 
     void handleEvent(const Q3DSGraphObject::Event &e);
     void flushEventQueue();
