@@ -1078,7 +1078,7 @@ void Q3DSSlidePlayer::onSlideFinished(Q3DSSlide *slide)
     setInternalState(state);
 }
 
-void Q3DSSlidePlayer::objectAboutToBeAddedToScene(Q3DSGraphObject *obj)
+void Q3DSSlidePlayer::evaluateDynamicObjectVisibility(Q3DSGraphObject *obj)
 {
     bool parentVisible = true;
     // If this is a component player, then check if the component is visible.
@@ -1100,9 +1100,26 @@ void Q3DSSlidePlayer::objectAboutToBeAddedToScene(Q3DSGraphObject *obj)
     setObjectVisibility(obj, parentVisible, true, time);
 }
 
+void Q3DSSlidePlayer::objectAboutToBeAddedToScene(Q3DSGraphObject *obj)
+{
+    evaluateDynamicObjectVisibility(obj);
+}
+
 void Q3DSSlidePlayer::objectAboutToBeRemovedFromScene(Q3DSGraphObject *obj)
 {
     m_animationManager->objectAboutToBeRemovedFromScene(obj);
+}
+
+void Q3DSSlidePlayer::objectAddedToSlide(Q3DSGraphObject *obj, Q3DSSlide *slide)
+{
+    qDebug(lcSlidePlayer) << "Dyn.added object" << obj->id() << "to slide" << slide->id();
+    evaluateDynamicObjectVisibility(obj);
+}
+
+void Q3DSSlidePlayer::objectRemovedFromSlide(Q3DSGraphObject *obj, Q3DSSlide *slide)
+{
+    qDebug(lcSlidePlayer) << "Dyn.removed object" << obj->id() << "from slide" << slide->id();
+    evaluateDynamicObjectVisibility(obj);
 }
 
 QT_END_NAMESPACE

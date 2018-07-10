@@ -7051,7 +7051,10 @@ void Q3DSSceneManager::setPendingVisibilities()
                 // leave rechoosing the camera to handleNodeGlobalChange()
             }
         } else {
-            Q_UNREACHABLE();
+            // nothing to do for materials, the slideplayer may try to manage
+            // visibility of those as well (since they are typically in the
+            // slides' objects() lists) but on the scene level that is
+            // meaningless.
         }
     }
 
@@ -8065,33 +8068,34 @@ void Q3DSSceneManager::handleNodeGlobalChange(Q3DSNode *node)
     }
 }
 
+static Q3DSLayerNode *findLayerForObjectInScene(Q3DSGraphObject *obj)
+{
+    // This does not rely on attached->layer3DS since the attached object is
+    // simply not built yet when adding an object to the scene.
+
+    Q3DSGraphObject *p = obj->parent();
+    while (p && p->type() != Q3DSGraphObject::Layer)
+        p = p->parent();
+
+    return static_cast<Q3DSLayerNode *>(p);
+}
+
 void Q3DSSceneManager::handleSceneChange(Q3DSScene *, Q3DSGraphObject::DirtyFlag change, Q3DSGraphObject *obj)
 {
     if (change == Q3DSGraphObject::DirtyNodeAdded) {
         if (obj->isNode()) {
             if (obj->type() != Q3DSGraphObject::Layer && obj->type() != Q3DSGraphObject::Camera) {
-                Q3DSGraphObject *parent = obj->parent();
-                Q_ASSERT(parent);
-                Q_ASSERT(parent->attached());
-                Q3DSGraphObject *o = parent;
-                while (o && o->type() != Q3DSGraphObject::Layer)
-                    o = o->parent();
-
-                Q3DSLayerNode *layer3DS = static_cast<Q3DSLayerNode *>(o);
+                Q_ASSERT(obj->parent() && obj->parent()->attached());
+                Q3DSLayerNode *layer3DS = findLayerForObjectInScene(obj);
                 if (layer3DS)
-                    addLayerContent(obj, parent, layer3DS);
+                    addLayerContent(obj, obj->parent(), layer3DS);
             }
             // ### layers need further considerations, not handled yet
         }
     } else if (change == Q3DSGraphObject::DirtyNodeRemoved) {
         if (obj->isNode()) {
             if (obj->type() != Q3DSGraphObject::Layer) {
-                Q3DSGraphObject *parent = obj->parent();
-                Q_ASSERT(parent);
-                Q3DSGraphObject *o = parent;
-                while (o && o->type() != Q3DSGraphObject::Layer)
-                    o = o->parent();
-
+                Q_ASSERT(obj->parent());
                 qCDebug(lcScene) << "Dyn.removing" << obj->attached()->entity;
                 Q3DSUipPresentation::forAllObjectsInSubTree(obj, [this](Q3DSGraphObject *objOrChild) {
                     Q3DSGraphObjectAttached *data = objOrChild->attached();
@@ -8109,10 +8113,11 @@ void Q3DSSceneManager::handleSceneChange(Q3DSScene *, Q3DSGraphObject::DirtyFlag
                         objOrChild->removeEventHandler(QString(), data->eventObserverIndex);
                         data->eventObserverIndex = -1;
                     }
+                    m_pendingObjectVisibility.remove(objOrChild);
                 });
                 delete obj->attached()->entity;
 
-                Q3DSLayerNode *layer3DS = static_cast<Q3DSLayerNode *>(o);
+                Q3DSLayerNode *layer3DS = findLayerForObjectInScene(obj);
                 if (layer3DS)
                     removeLayerContent(obj, layer3DS);
             }
@@ -8216,8 +8221,52 @@ void Q3DSSceneManager::handleSlideGraphChange(Q3DSSlide *master, Q3DSGraphObject
 
 void Q3DSSceneManager::handleSlideObjectChange(Q3DSSlide *slide, const Q3DSSlide::SlideObjectChange &change)
 {
-    Q_UNUSED(slide);
-    Q_UNUSED(change);
+    auto findSlidePlayer = [this](Q3DSGraphObject *obj) {
+        Q3DSSlidePlayer *slidePlayer = m_slidePlayer;
+        if (obj->attached() && obj->attached()->component)
+            slidePlayer = obj->attached()->component->masterSlide()->attached<Q3DSSlideAttached>()->slidePlayer;
+        return slidePlayer;
+    };
+
+    switch (change.type) {
+    case Q3DSSlide::SlideObjectAdded: // addObject() was called
+    {
+        findSlidePlayer(change.obj)->objectAddedToSlide(change.obj, slide);
+        // ensure the layer gets dirtied because if the object becomes visible
+        // ( = is on the current or master slide), then layer caching needs to
+        // recognize that the layer needs to re-render
+        Q3DSLayerNode *layer3DS = findLayerForObjectInScene(change.obj);
+        if (layer3DS)
+            markLayerAsContentChanged(layer3DS);
+    }
+        break;
+    case Q3DSSlide::SlideObjectRemoved: // removeObject() was called
+    {
+        findSlidePlayer(change.obj)->objectRemovedFromSlide(change.obj, slide);
+        Q3DSLayerNode *layer3DS = findLayerForObjectInScene(change.obj);
+        if (layer3DS)
+            markLayerAsContentChanged(layer3DS);
+    }
+        break;
+
+    case Q3DSSlide::SlidePropertyChangesAdded: // addPropertyChanges() was called
+        break;
+    case Q3DSSlide::SlidePropertyChangesRemoved: // removePropertyChanges() was called
+        break;
+
+    case Q3DSSlide::SlideAnimationAdded: // addAnimation() was called
+        break;
+    case Q3DSSlide::SlideAnimationRemoved: // removeAnimation() was called
+        break;
+
+    case Q3DSSlide::SlideActionAdded: // addAction() was called
+        break;
+    case Q3DSSlide::SlideActionRemoved: // removeAction() was called
+        break;
+
+    default:
+        break;
+    }
 }
 
 QT_END_NAMESPACE

@@ -107,6 +107,9 @@ public:
     void objectAboutToBeAddedToScene(Q3DSGraphObject *obj);
     void objectAboutToBeRemovedFromScene(Q3DSGraphObject *obj);
 
+    void objectAddedToSlide(Q3DSGraphObject *obj, Q3DSSlide *slide);
+    void objectRemovedFromSlide(Q3DSGraphObject *obj, Q3DSSlide *slide);
+
 public Q_SLOTS:
     void play();
     void stop();
@@ -149,6 +152,7 @@ private:
     void updateObjectVisibility(Q3DSGraphObject *obj, bool visible);
     bool isSlideVisible(Q3DSSlide *slide);
     void processPropertyChanges(Q3DSSlide *currentSlide);
+    void evaluateDynamicObjectVisibility(Q3DSGraphObject *obj);
 
     struct Data {
         Q3DSSlideDeck *slideDeck = nullptr;
