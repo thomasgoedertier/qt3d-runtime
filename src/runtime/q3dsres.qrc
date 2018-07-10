@@ -3,6 +3,7 @@
         <file>shaders/compositor_core.vert</file>
         <file>shaders/compositor_core.frag</file>
         <file>shaders/compositor.vert</file>
+        <file>shaders/compositor_ms.vert</file>
         <file>shaders/compositor.frag</file>
         <file>shaders/compositor_ms2.frag</file>
         <file>shaders/compositor_ms2_core.frag</file>

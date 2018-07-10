@@ -3364,22 +3364,35 @@ void Q3DSSceneManager::updateLayerCompositorProgram(Q3DSLayerNode *layer3DS)
         if (programIsNew)
             shaderProgram = new Qt3DRender::QShaderProgram;
 
+        const bool gles = m_gfxLimits.format.renderableType() == QSurfaceFormat::OpenGLES;
+        const bool msaa = data->msaaSampleCount > 1 && !data->effectActive;
+
+        // 1. compositor.vert + compositor.frag -> GLSL 100
+        // 2. compositor_core.vert + compositor_core.frag -> 330 core
+        // 3. compositor_ms.vert + compositor_ms2|ms4.frag -> GLSL 310 (MSAA)
+        // 4. compositor_core.vert + compositor_ms2|ms4_core.frag -> 330 core (MSAA)
+        //
+        // (3. uses a separate vertex shader only to avoid linking together 100 and 310 which is not supported as per spec)
+
         QString vertSuffix;
         QString fragSuffix;
-        if (m_gfxLimits.format.renderableType() == QSurfaceFormat::OpenGLES) {
-            vertSuffix = QLatin1String(".vert");
+        if (gles) {
+            vertSuffix = msaa ? QLatin1String("_ms.vert") : QLatin1String(".vert");
             fragSuffix = QLatin1String(".frag");
         } else {
             vertSuffix = QLatin1String("_core.vert");
             fragSuffix = QLatin1String("_core.frag");
         }
 
-        if (programIsNew) // the vs never changes
-            shaderProgram->setVertexShaderCode(Qt3DRender::QShaderProgram::loadSource(QUrl(QLatin1String("qrc:/q3ds/shaders/compositor") + vertSuffix)));
+        const QString vertSrc = QLatin1String("qrc:/q3ds/shaders/compositor") + vertSuffix;
+        shaderProgram->setVertexShaderCode(Qt3DRender::QShaderProgram::loadSource(QUrl(vertSrc)));
 
-        QString fragSrc = QLatin1String("qrc:/q3ds/shaders/compositor") + fragSuffix;
-        if (data->msaaSampleCount > 1 && !data->effectActive)
+        QString fragSrc;
+        if (msaa)
             fragSrc = QLatin1String("qrc:/q3ds/shaders/compositor_ms") + QString::number(data->msaaSampleCount) + fragSuffix;
+        else
+            fragSrc = QLatin1String("qrc:/q3ds/shaders/compositor") + fragSuffix;
+
         shaderProgram->setFragmentShaderCode(Qt3DRender::QShaderProgram::loadSource(QUrl(fragSrc)));
 
         if (programIsNew)
