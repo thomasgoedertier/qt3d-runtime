@@ -1,0 +1,15 @@
+// Creates a new object with deferred scene and slide association
+
+// Create a cone
+object(kone, kone, Model, null, null)
+set(kone, sourcepath, #Cone)
+object(konemat, konemat, DefaultMaterial, kone, null)
+
+// Add to scene, not visible at this stage due to no slide assoc.
+setparent(kone, Layer)
+
+// Now add to slide, it will show up
+objslideadd(kone, Slide1)
+
+// the material is not important in practice but register it to be consistent
+objslideadd(konemat, Slide1)

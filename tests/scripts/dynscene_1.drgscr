@@ -1,0 +1,20 @@
+// Creates a subtree, all belong to a given slide, and adds to the scene at the end
+
+// Group
+object(grp, grp, Group, null, Slide1)
+set(grp, position, 50 0 0)
+
+// Text child
+object(txt, txt, Text, grp, Slide1)
+set(txt, textstring, Kocka!)
+set(txt, textcolor, 1 0 0)
+
+// Model child
+object(kube, kube, Model, grp, Slide1)
+set(kube, sourcepath, #Cube)
+set(kube, position, 0 -100 0)
+set(kube, rotation, 30 40 0)
+object(ka, ka, DefaultMaterial, kube, Slide1)
+
+// Add to scene
+setparent(grp, Layer)

@@ -1,0 +1,15 @@
+// Like newobj but associates with a slide first. Regardless, the object should only show up when both scene and slide are done
+
+// Create a cone, not attached to a scene or slide yet
+object(kone, kone, Model, null, null)
+set(kone, sourcepath, #Cone)
+object(konemat, konemat, DefaultMaterial, kone, null)
+
+// Now add to slide
+objslideadd(kone, Slide1)
+
+// the material is not important in practice but register it to be consistent
+objslideadd(konemat, Slide1)
+
+// Add to scene, it shows up at this point
+setparent(kone, Layer)

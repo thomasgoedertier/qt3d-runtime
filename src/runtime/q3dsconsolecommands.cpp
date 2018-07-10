@@ -525,8 +525,8 @@ void Q3DSConsoleCommands::setupConsole(Q3DSConsole *console)
                 auto it = m_program.begin();
                 while (it != m_program.end()) {
                     *it = it->trimmed();
-                    if (it->isEmpty())
-                        m_program.erase(it);
+                    if (it->isEmpty() || it->startsWith("//"))
+                        it = m_program.erase(it);
                     else
                         ++it;
                 }

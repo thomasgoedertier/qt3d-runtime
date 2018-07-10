@@ -1,0 +1,16 @@
+// Assuming dynscene_1 has run, this shows how the mesh and materials could get replaced for a model
+
+// Temporarily disconnect from the scene
+setparent(kube, null)
+
+// Remove old material children
+kill(ka)
+
+// Add new ones (no point in this example since the old and new mesh both have 1 submesh but shows the concept)
+object(ka, ka, DefaultMaterial, kube, Slide1)
+
+// Change the mesh
+set(kube, sourcepath, #Sphere)
+
+// Reconnect to scene
+setparent(kube, Layer)
