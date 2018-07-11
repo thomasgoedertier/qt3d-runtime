@@ -1,0 +1,17 @@
+object(newlayer, newlayer, Layer, null, Slide1)
+
+object(newlayer_cam, newlayer_cam, Camera, newlayer, Slide1)
+// the default position does not work since the property is shared with nodes and those use 0 0 0 as the default,
+// unlike the expected 0 0 -600 for cameras. so must specify it explicitly.
+set(newlayer_cam, position, 0 0 -600)
+
+// must have a light to see something
+object(newlayer_light, newlayer_light, Light, newlayer, Slide1)
+
+// add some text
+object(newlayer_text, newlayer_text, Text, newlayer, Slide1)
+set(newlayer_text, textstring, New Layer!)
+set(newlayer_text, textcolor, 0 1 0)
+
+// use prependChildNode, i.e. add as the top-most (front) layer
+setparent(newlayer, Scene, null)

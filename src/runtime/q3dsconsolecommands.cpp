@@ -148,7 +148,7 @@ void Q3DSConsoleCommands::setupConsole(Q3DSConsole *console)
                                "\n"
                                "object(id, name, type, parentObj, slide) - Creates a new object. (type == Model, DefaultMaterial, ...; parent and slide may be null) [R]\n"
                                "primitive(id, name, source, parentObj, slide) - Shortcut to add a model with a default material. (source == #Cube, #Cone, etc.) [R]\n"
-                               "setparent(obj, parentObj) - Sets the parent (may be null). [R]\n"
+                               "setparent(obj, parentObj, [insertAfterObj]) - Sets the parent (may be null). Appends to child list, unless insertAfterObj is set. [R]\n"
                                "kill(obj) - Removes a node from the scene graph (and from the slides' object list). [R]\n"
                                "objslideadd(obj, slide) - Associates the object with the given slide. [R]\n"
                                "objslideremove(obj, slide) - Removes the object from the slide's objject list. [R]\n"
@@ -442,14 +442,29 @@ void Q3DSConsoleCommands::setupConsole(Q3DSConsole *console)
         if (splitArgs.count() >= 2) {
             Q3DSGraphObject *obj = resolveObj(splitArgs[0]);
             Q3DSGraphObject *parent = resolveObj(splitArgs[1]);
+            Q3DSGraphObject *insertAfterObj = nullptr;
+            bool insertAfterRequested = false;
+            if (splitArgs.count() >= 3) {
+                insertAfterRequested = true;
+                insertAfterObj = resolveObj(splitArgs[2]); // can be null
+            }
             if (obj) {
                 if (parent) {
-                    if (obj->parent() != parent) {
-                        if (obj->parent())
-                            obj->parent()->removeChildNode(obj);
+                    if (obj->parent())
+                        obj->parent()->removeChildNode(obj);
+                    // A typical setParent operation only allows appending
+                    // to the children list. This is often too restrictive,
+                    // so add a way to insert after a specified child
+                    // (which may be null, when inserting as first child).
+                    if (!insertAfterRequested) {
                         parent->appendChildNode(obj);
-                        m_console->addMessageFmt(responseColor, "Reparented");
+                    } else {
+                        if (insertAfterObj)
+                            parent->insertChildNodeAfter(obj, insertAfterObj);
+                        else
+                            parent->prependChildNode(obj);
                     }
+                    m_console->addMessageFmt(responseColor, "Reparented");
                 } else {
                     if (obj->parent()) {
                         obj->parent()->removeChildNode(obj);

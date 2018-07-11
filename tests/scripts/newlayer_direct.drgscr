@@ -1,0 +1,13 @@
+// Here the layer and its children are connected one by one to the scene right away as they are created.
+// will end up as the bottom layer (last child of Scene)
+
+object(newlayer, newlayer, Layer, Scene, Slide1)
+
+object(newlayer_cam, newlayer_cam, Camera, newlayer, Slide1)
+set(newlayer_cam, position, 0 0 -600)
+
+object(newlayer_light, newlayer_light, Light, newlayer, Slide1)
+
+object(newlayer_text, newlayer_text, Text, newlayer, Slide1)
+set(newlayer_text, textstring, New Layer!)
+set(newlayer_text, textcolor, 0 1 0)

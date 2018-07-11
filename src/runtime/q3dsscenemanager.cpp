@@ -468,6 +468,11 @@ Q3DSSceneManager::~Q3DSSceneManager()
     delete m_frameUpdater;
     delete m_profiler;
     delete m_inputManager;
+
+    if (m_scene && m_sceneChangeObserverIndex >= 0)
+        m_scene->removeSceneChangeObserver(m_sceneChangeObserverIndex);
+    if (m_masterSlide && m_slideGraphChangeObserverIndex >= 0)
+        m_masterSlide->removeSlideGraphChangeObserver(m_slideGraphChangeObserverIndex);
 }
 
 void Q3DSSceneManager::updateSizes(const QSize &size, qreal dpr, const QRect &viewport, bool forceSynchronous)
@@ -754,15 +759,12 @@ Q3DSSceneManager::Scene Q3DSSceneManager::buildScene(Q3DSUipPresentation *presen
     m_fsQuadTag = new Qt3DRender::QLayer(m_rootEntity);
     m_fsQuadTag->setObjectName(QLatin1String("Fullscreen quad pass"));
 
-    // Prepare image objects. This must be done up-front.
-    m_presentation->forAllImages([this](Q3DSImage *image) { initImage(image); });
-
     // Build the (offscreen) Qt3D scene
-    Qt3DRender::QFrameGraphNode *layerContainerFg = new Qt3DRender::QFrameGraphNode(frameGraphRoot);
-    new Qt3DRender::QNoDraw(layerContainerFg); // in case there are no layers at all
+    m_layerContainerFg = new Qt3DRender::QFrameGraphNode(frameGraphRoot);
+    new Qt3DRender::QNoDraw(m_layerContainerFg); // in case there are no layers at all
     Q3DSUipPresentation::forAllLayers(m_scene, [=](Q3DSLayerNode *layer3DS) {
         if (layer3DS->sourcePath().isEmpty())
-            buildLayer(layer3DS, layerContainerFg, m_outputPixelSize);
+            buildLayer(layer3DS, m_layerContainerFg, m_outputPixelSize);
         else
             buildSubPresentationLayer(layer3DS, m_outputPixelSize);
     });
@@ -833,12 +835,12 @@ Q3DSSceneManager::Scene Q3DSSceneManager::buildScene(Q3DSUipPresentation *presen
     setPendingVisibilities();
 
     // Listen to future changes to the scene graph.
-    m_scene->addSceneChangeObserver(std::bind(&Q3DSSceneManager::handleSceneChange,
-                                              this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
+    m_sceneChangeObserverIndex = m_scene->addSceneChangeObserver(
+                std::bind(&Q3DSSceneManager::handleSceneChange, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
 
     // And the "slide graph" (more like slide list).
-    m_masterSlide->addSlideGraphChangeObserver(std::bind(&Q3DSSceneManager::handleSlideGraphChange,
-                                                         this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
+    m_slideGraphChangeObserverIndex = m_masterSlide->addSlideGraphChangeObserver(
+                std::bind(&Q3DSSceneManager::handleSlideGraphChange, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
 
     // And for events too.
     m_scene->addEventHandler(QString(), std::bind(&Q3DSSceneManager::handleEvent, this, std::placeholders::_1));
@@ -1188,6 +1190,12 @@ void Q3DSSceneManager::buildLayer(Q3DSLayerNode *layer3DS,
     layerData->sizeManagedTextures << colorTex << dsTexOrRb;
 
     layer3DS->setAttached(layerData);
+
+    // Prepare image objects. This must be done up-front.
+    Q3DSUipPresentation::forAllObjectsInSubTree(layer3DS, [this](Q3DSGraphObject *obj) {
+        if (obj->type() == Q3DSGraphObject::Image)
+            initImage(static_cast<Q3DSImage *>(obj));
+    });
 
     // Now add the scene contents.
     Q3DSGraphObject *obj = layer3DS->firstChild();
@@ -3281,6 +3289,14 @@ static void setLayerBlending(Qt3DRender::QBlendEquation *blendFunc,
 void Q3DSSceneManager::buildLayerQuadEntity(Q3DSLayerNode *layer3DS, Qt3DCore::QEntity *parentEntity,
                                             Qt3DRender::QLayer *tag, BuildLayerQuadFlags flags, int layerDepth)
 {
+    // Generates the layer's compositorEntity and the components on it.
+
+    // Watch out for parenting: this entity will get destroyed and then
+    // recreated eventually, therefore it and its components must not take
+    // ownership of longer living objects.
+
+    qCDebug(lcScene, "Generating compositor quad for %s with logical depth %d", layer3DS->id().constData(), layerDepth);
+
     Q3DSLayerAttached *data = static_cast<Q3DSLayerAttached *>(layer3DS->attached());
     Q_ASSERT(data);
     Qt3DCore::QEntity *layerQuadEntity = new Qt3DCore::QEntity;
@@ -3340,6 +3356,10 @@ void Q3DSSceneManager::buildLayerQuadEntity(Q3DSLayerNode *layer3DS, Qt3DCore::Q
 
     if (!flags.testFlag(LayerQuadCustomShader)) {
         updateLayerCompositorProgram(layer3DS);
+
+        if (!data->compositorSourceParam->parent())
+            data->compositorSourceParam->setParent(data->layerSceneRootEntity);
+
         renderPass->addParameter(data->compositorSourceParam);
     }
 
@@ -3406,10 +3426,11 @@ void Q3DSSceneManager::buildCompositor(Qt3DRender::QFrameGraphNode *parent, Qt3D
     // MatteRoot - NoDraw
     //           - [Clear - NoDraw]
     // Viewport - CameraSelector - [Scissor] - ClearBuffers - NoDraw
-    //                           - LayerFilter for layer quad entity 0
-    //                           - LayerFilter for layer quad entity 1
-    //                             ...
-    // With standard blend modes only this is simplified to a single LayerFilter and QLayer tag.
+    //                           - "m_compositorRoot" (destroyed and recreated on-the-fly when needed)
+    //                               - LayerFilter for layer quad entity 0
+    //                               - LayerFilter for layer quad entity 1
+    //                                 ...
+    // With standard blend modes only the list is simplified to a single LayerFilter and QLayer tag.
 
     // If Matte is enabled in the ViewerSettings, then we need clear with the matte color first
     // then later restrict the scene clear color to the vieport rect with a scissor test
@@ -3454,6 +3475,29 @@ void Q3DSSceneManager::buildCompositor(Qt3DRender::QFrameGraphNode *parent, Qt3D
 
     new Qt3DRender::QNoDraw(clearBuffers);
 
+    m_compositorFgContainer = cameraSelector;
+    m_compositorParentEntity = parentEntity;
+    rebuildCompositorLayerChain();
+}
+
+void Q3DSSceneManager::rebuildCompositorLayerChain()
+{
+    // The order of layers in the object tree is front-to-back which is somewhat
+    // unintuitive. Anyways, while it might seem that the Z value in the quad's
+    // transform (based on a unique layerDepth) is sufficient to ensure the
+    // correct ordering during composition (and so a full rebuild of the frame
+    // and scene graph for the compositor quads is not necessary after the
+    // initial buildCompositor() run), that isn't true for advanced blend mode
+    // emulation because that depends heavily on back-to-front order in the
+    // framegraph. Therefore we'll keep rebuilding the layer quads and
+    // corresponding framegraph entries whenever the list of layers change.
+
+    delete m_compositorRoot;
+    qDeleteAll(m_compositorEntities);
+    m_compositorEntities.clear();
+
+    m_compositorRoot = new Qt3DRender::QFrameGraphNode(m_compositorFgContainer);
+
     QVarLengthArray<Q3DSLayerNode *, 16> layers;
     Q3DSUipPresentation::forAllLayers(m_scene, [&layers](Q3DSLayerNode *layer3DS) {
         layers.append(layer3DS);
@@ -3478,10 +3522,13 @@ void Q3DSSceneManager::buildCompositor(Qt3DRender::QFrameGraphNode *parent, Qt3D
     }
 
     if (!needsAdvanced) {
-        Qt3DRender::QLayerFilter *layerFilter = new Qt3DRender::QLayerFilter(cameraSelector);
-        Qt3DRender::QLayer *tag = new Qt3DRender::QLayer(parentEntity);
+        // standard case: 1 LayerFilter leaf to the framegraph, N entities (with quad mesh) to the scenegraph
+        Qt3DRender::QLayerFilter *layerFilter = new Qt3DRender::QLayerFilter(m_compositorRoot);
+        Qt3DRender::QLayer *tag = new Qt3DRender::QLayer; // just let it be parented to the LayerFilter
         tag->setObjectName(QLatin1String("Compositor quad pass"));
         layerFilter->addLayer(tag);
+        // This works also when 'layers' is empty since we have a single leaf
+        // (the LayerFilter) that will get no match for its filter.
 
         int layerDepth = 1;
         for (Q3DSLayerNode *layer3DS : layers) {
@@ -3489,7 +3536,8 @@ void Q3DSSceneManager::buildCompositor(Qt3DRender::QFrameGraphNode *parent, Qt3D
             if (layer3DS->layerBackground() == Q3DSLayerNode::Transparent)
                 flags |= LayerQuadBlend;
 
-            buildLayerQuadEntity(layer3DS, parentEntity, tag, flags, layerDepth++);
+            buildLayerQuadEntity(layer3DS, m_compositorParentEntity, tag, flags, layerDepth++);
+            m_compositorEntities.append(layer3DS->attached<Q3DSLayerAttached>()->compositorEntity);
         }
     } else {
         qCDebug(lcPerf, "Some layers use an advanced blend mode in presentation %s. "
@@ -3542,7 +3590,7 @@ void Q3DSSceneManager::buildCompositor(Qt3DRender::QFrameGraphNode *parent, Qt3D
                     data->advBlend.tempRt->addOutput(tempTexOutput);
                 }
 
-                Qt3DRender::QBlitFramebuffer *bgBlit = new Qt3DRender::QBlitFramebuffer(cameraSelector);
+                Qt3DRender::QBlitFramebuffer *bgBlit = new Qt3DRender::QBlitFramebuffer(m_compositorRoot);
                 bgBlit->setDestination(data->advBlend.tempRt);
                 new Qt3DRender::QNoDraw(bgBlit);
 
@@ -3566,14 +3614,15 @@ void Q3DSSceneManager::buildCompositor(Qt3DRender::QFrameGraphNode *parent, Qt3D
                 // Set some initial sizes.
                 setSizeDependentValues(layer3DS);
 
-                Qt3DRender::QLayerFilter *layerFilter = new Qt3DRender::QLayerFilter(cameraSelector);
-                Qt3DRender::QLayer *tag = new Qt3DRender::QLayer(parentEntity);
+                Qt3DRender::QLayerFilter *layerFilter = new Qt3DRender::QLayerFilter(m_compositorRoot);
+                Qt3DRender::QLayer *tag = new Qt3DRender::QLayer;
                 tag->setObjectName(QLatin1String("Adv. blend mode compositor quad pass"));
                 layerFilter->addLayer(tag);
 
                 // Now we do not need normal blending and will provide a custom shader program.
                 BuildLayerQuadFlags flags = LayerQuadCustomShader;
-                buildLayerQuadEntity(layer3DS, parentEntity, tag, flags, layerDepth++);
+                buildLayerQuadEntity(layer3DS, m_compositorParentEntity, tag, flags, layerDepth++);
+                m_compositorEntities.append(data->compositorEntity);
                 Qt3DRender::QRenderPass *renderPass = data->compositorRenderPass;
 
                 switch (layer3DS->blendType()) {
@@ -3602,8 +3651,8 @@ void Q3DSSceneManager::buildCompositor(Qt3DRender::QFrameGraphNode *parent, Qt3D
             } else {
                 data->usesDefaultCompositorProgram = true;
 
-                Qt3DRender::QLayerFilter *layerFilter = new Qt3DRender::QLayerFilter(cameraSelector);
-                Qt3DRender::QLayer *tag = new Qt3DRender::QLayer(parentEntity);
+                Qt3DRender::QLayerFilter *layerFilter = new Qt3DRender::QLayerFilter(m_compositorRoot);
+                Qt3DRender::QLayer *tag = new Qt3DRender::QLayer;
                 tag->setObjectName(QLatin1String("Compositor quad pass (adv.blend path)"));
                 layerFilter->addLayer(tag);
 
@@ -3611,10 +3660,17 @@ void Q3DSSceneManager::buildCompositor(Qt3DRender::QFrameGraphNode *parent, Qt3D
                 if (layer3DS->layerBackground() == Q3DSLayerNode::Transparent)
                     flags |= LayerQuadBlend;
 
-                buildLayerQuadEntity(layer3DS, parentEntity, tag, flags, layerDepth++);
+                buildLayerQuadEntity(layer3DS, m_compositorParentEntity, tag, flags, layerDepth++);
+                m_compositorEntities.append(data->compositorEntity);
             }
         }
     }
+
+    // When dynamically introducing a new layer, it is essential to re-run the
+    // transform calculations for all layers because the logical depth
+    // (layerDepth) based on which Z is generated may change for some of them.
+    for (Q3DSLayerNode *layer3DS : layers)
+        layer3DS->attached<Q3DSLayerAttached>()->updateCompositorCalculations();
 }
 
 void Q3DSSceneManager::buildGuiPass(Qt3DRender::QFrameGraphNode *parent, Qt3DCore::QEntity *parentEntity)
@@ -7026,27 +7082,28 @@ void Q3DSSceneManager::setPendingVisibilities()
             Q3DSEffectInstance *effect = static_cast<Q3DSEffectInstance *>(it.key());
             Q3DSEffectAttached *data = effect->attached<Q3DSEffectAttached>();
             if (data) {
-                it.key()->attached()->visibilityTag = (it.value() && effect->eyeballEnabled()) ? Q3DSGraphObjectAttached::Visible
-                                                                                       : Q3DSGraphObjectAttached::Hidden;
+                data->visibilityTag = (it.value() && effect->eyeballEnabled()) ? Q3DSGraphObjectAttached::Visible
+                                                                               : Q3DSGraphObjectAttached::Hidden;
                 updateEffectStatus(effect->attached<Q3DSEffectAttached>()->layer3DS);
             }
         } else if (it.key()->type() == Q3DSGraphObject::Layer) {
             Q3DSLayerNode *layer3DS = static_cast<Q3DSLayerNode *>(it.key());
             Q3DSLayerAttached *data = static_cast<Q3DSLayerAttached *>(layer3DS->attached());
-            if (data && data->compositorEntity) { // may not exist if this is still buildLayer()
+            if (data) {
                 const bool enabled = it.value() && layer3DS->flags().testFlag(Q3DSNode::Active);
-                it.key()->attached()->visibilityTag = enabled ? Q3DSGraphObjectAttached::Visible
-                                                              : Q3DSGraphObjectAttached::Hidden;
+                data->visibilityTag = enabled ? Q3DSGraphObjectAttached::Visible
+                                              : Q3DSGraphObjectAttached::Hidden;
                 updateGlobals(layer3DS, UpdateGlobalsRecursively | UpdateGlobalsSkipTransform);
-                data->compositorEntity->setEnabled(enabled);
+                if (data->compositorEntity) // may not exist if this is still buildLayer()
+                    data->compositorEntity->setEnabled(enabled);
             }
         } else if (it.key()->type() == Q3DSGraphObject::Camera) {
             Q3DSCameraNode *cam3DS = static_cast<Q3DSCameraNode *>(it.key());
             Q3DSCameraAttached *data = static_cast<Q3DSCameraAttached *>(cam3DS->attached());
             if (data) {
                 const bool visible = (it.value() && cam3DS->flags().testFlag(Q3DSNode::Active));
-                it.key()->attached()->visibilityTag = visible ? Q3DSGraphObjectAttached::Visible
-                                                              : Q3DSGraphObjectAttached::Hidden;
+                data->visibilityTag = visible ? Q3DSGraphObjectAttached::Visible
+                                              : Q3DSGraphObjectAttached::Hidden;
                 updateGlobals(cam3DS, UpdateGlobalsRecursively | UpdateGlobalsSkipTransform);
                 // leave rechoosing the camera to handleNodeGlobalChange()
             }
@@ -8089,37 +8146,43 @@ void Q3DSSceneManager::handleSceneChange(Q3DSScene *, Q3DSGraphObject::DirtyFlag
                 Q3DSLayerNode *layer3DS = findLayerForObjectInScene(obj);
                 if (layer3DS)
                     addLayerContent(obj, obj->parent(), layer3DS);
+            } else if (obj->type() == Q3DSGraphObject::Layer) {
+                addLayer(static_cast<Q3DSLayerNode *>(obj));
             }
-            // ### layers need further considerations, not handled yet
         }
     } else if (change == Q3DSGraphObject::DirtyNodeRemoved) {
         if (obj->isNode()) {
-            if (obj->type() != Q3DSGraphObject::Layer) {
-                Q_ASSERT(obj->parent());
+            Q_ASSERT(obj->parent());
+            const bool isLayer = obj->type() == Q3DSGraphObject::Layer;
+            if (isLayer)
+                qCDebug(lcScene) << "Dyn.removing layer" << obj->id();
+            else
                 qCDebug(lcScene) << "Dyn.removing" << obj->attached()->entity;
-                Q3DSUipPresentation::forAllObjectsInSubTree(obj, [this](Q3DSGraphObject *objOrChild) {
-                    Q3DSGraphObjectAttached *data = objOrChild->attached();
-                    if (!data)
-                        return;
-                    Q3DSSlidePlayer *slidePlayer = m_slidePlayer;
-                    if (data->component)
-                        slidePlayer = data->component->masterSlide()->attached<Q3DSSlideAttached>()->slidePlayer;
-                    slidePlayer->objectAboutToBeRemovedFromScene(objOrChild);
-                    if (data->propertyChangeObserverIndex >= 0) {
-                        objOrChild->removePropertyChangeObserver(data->propertyChangeObserverIndex);
-                        data->propertyChangeObserverIndex = -1;
-                    }
-                    if (data->eventObserverIndex >= 0) {
-                        objOrChild->removeEventHandler(QString(), data->eventObserverIndex);
-                        data->eventObserverIndex = -1;
-                    }
-                    m_pendingObjectVisibility.remove(objOrChild);
-                });
+            Q3DSUipPresentation::forAllObjectsInSubTree(obj, [this](Q3DSGraphObject *objOrChild) {
+                Q3DSGraphObjectAttached *data = objOrChild->attached();
+                if (!data)
+                    return;
+                Q3DSSlidePlayer *slidePlayer = m_slidePlayer;
+                if (data->component)
+                    slidePlayer = data->component->masterSlide()->attached<Q3DSSlideAttached>()->slidePlayer;
+                slidePlayer->objectAboutToBeRemovedFromScene(objOrChild);
+                if (data->propertyChangeObserverIndex >= 0) {
+                    objOrChild->removePropertyChangeObserver(data->propertyChangeObserverIndex);
+                    data->propertyChangeObserverIndex = -1;
+                }
+                if (data->eventObserverIndex >= 0) {
+                    objOrChild->removeEventHandler(QString(), data->eventObserverIndex);
+                    data->eventObserverIndex = -1;
+                }
+                m_pendingObjectVisibility.remove(objOrChild);
+            });
+            if (!isLayer) {
                 delete obj->attached()->entity;
-
                 Q3DSLayerNode *layer3DS = findLayerForObjectInScene(obj);
                 if (layer3DS)
                     removeLayerContent(obj, layer3DS);
+            } else {
+                rebuildCompositorLayerChain();
             }
         }
         // bye bye attached; it will get recreated in case obj gets added back later on
@@ -8176,6 +8239,13 @@ void Q3DSSceneManager::addLayerContent(Q3DSGraphObject *obj, Q3DSGraphObject *pa
         case Q3DSGraphObject::Effect:
             needsEffectUpdate = true;
             break;
+
+        case Q3DSGraphObject::Scene:
+            Q_FALLTHROUGH();
+        case Q3DSGraphObject::Layer:
+            qWarning("addLayerContent: Invalid child object %s", objOrChild->id().constData());
+            return;
+
         default:
             break;
         }
@@ -8198,6 +8268,28 @@ void Q3DSSceneManager::removeLayerContent(Q3DSGraphObject *obj, Q3DSLayerNode *l
     markLayerAsContentChanged(layer3DS);
     if (obj->type() == Q3DSGraphObject::Light)
         markLayerAsContentChanged(layer3DS, Q3DSLayerNode::LayerContentSubTreeLightsChange);
+}
+
+void Q3DSSceneManager::addLayer(Q3DSLayerNode *layer3DS)
+{
+    // Simply build the layer like buildScene() would. The order in the
+    // framegraph does not matter here (unlike in the composition step), so we
+    // can just append the new subtree root to m_LayerContainerFg.
+
+    if (layer3DS->sourcePath().isEmpty())
+        buildLayer(layer3DS, m_layerContainerFg, m_outputPixelSize);
+    else
+        buildSubPresentationLayer(layer3DS, m_outputPixelSize);
+
+    Q3DSUipPresentation::forAllObjectsInSubTree(layer3DS, [this, layer3DS](Q3DSGraphObject *objOrChild) {
+        Q3DSSlidePlayer *slidePlayer = m_slidePlayer;
+        if (objOrChild->attached() && objOrChild->attached()->component)
+            slidePlayer = objOrChild->attached()->component->masterSlide()->attached<Q3DSSlideAttached>()->slidePlayer;
+
+        slidePlayer->objectAboutToBeAddedToScene(objOrChild);
+    });
+
+    rebuildCompositorLayerChain();
 }
 
 void Q3DSSceneManager::handleSlideGraphChange(Q3DSSlide *master, Q3DSGraphObject::DirtyFlag change, Q3DSSlide *slide)

@@ -850,6 +850,7 @@ private:
     void buildLayerQuadEntity(Q3DSLayerNode *layer3DS, Qt3DCore::QEntity *parentEntity, Qt3DRender::QLayer *tag,
                               BuildLayerQuadFlags flags, int layerDepth = 0);
     void updateLayerCompositorProgram(Q3DSLayerNode *layer3DS);
+    void rebuildCompositorLayerChain();
     void buildCompositor(Qt3DRender::QFrameGraphNode *parent, Qt3DCore::QEntity *parentEntity);
     void buildGuiPass(Qt3DRender::QFrameGraphNode *parent, Qt3DCore::QEntity *parentEntity);
 
@@ -878,6 +879,7 @@ private:
     void handleSceneChange(Q3DSScene *scene, Q3DSGraphObject::DirtyFlag change, Q3DSGraphObject *obj);
     void addLayerContent(Q3DSGraphObject *obj, Q3DSGraphObject *parent, Q3DSLayerNode *layer3DS);
     void removeLayerContent(Q3DSGraphObject *obj, Q3DSLayerNode *layer3DS);
+    void addLayer(Q3DSLayerNode *layer3DS);
     void handleSlideGraphChange(Q3DSSlide *master, Q3DSGraphObject::DirtyFlag change, Q3DSSlide *slide);
     void handleSlideObjectChange(Q3DSSlide *slide, const Q3DSSlide::SlideObjectChange &change);
 
@@ -893,7 +895,9 @@ private:
     Q3DSUipPresentation *m_presentation;
     QSize m_presentationSize;
     Q3DSScene *m_scene;
+    int m_sceneChangeObserverIndex = -1;
     Q3DSSlide *m_masterSlide;
+    int m_slideGraphChangeObserverIndex = -1;
     Q3DSSlide *m_currentSlide;
     Qt3DCore::QEntity *m_rootEntity;
     Q3DSFrameUpdater *m_frameUpdater = nullptr;
@@ -901,6 +905,7 @@ private:
     Q3DSCustomMaterialGenerator *m_customMaterialGen;
     Q3DSTextMaterialGenerator *m_textMatGen;
     Q3DSTextRenderer *m_textRenderer;
+    Qt3DRender::QFrameGraphNode *m_layerContainerFg;
     using SubTreeWithDirtyLight = QPair<Q3DSGraphObject *, bool>;
     QSet<SubTreeWithDirtyLight> m_subTreesWithDirtyLights;
     QSet<Q3DSDefaultMaterial *> m_pendingDefMatRebuild;
@@ -929,6 +934,10 @@ private:
     QSet<Q3DSSceneManager *> m_layerCacheDeps;
     bool m_hasQmlSubPresAsTextureMap = false;
     Q3DSViewportData m_viewportData;
+    Qt3DRender::QFrameGraphNode *m_compositorFgContainer = nullptr;
+    Qt3DRender::QFrameGraphNode *m_compositorRoot = nullptr;
+    Qt3DCore::QEntity *m_compositorParentEntity = nullptr;
+    QVector<Qt3DCore::QEntity *> m_compositorEntities;
 
     friend class Q3DSFrameUpdater;
     friend class Q3DSProfiler;

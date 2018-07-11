@@ -2009,7 +2009,6 @@ public:
                             std::function<void(Q3DSNode *)> f);
     static void forAllLayers(Q3DSScene *scene, std::function<void(Q3DSLayerNode*)> f, bool reverse = false);
     static void forAllModels(Q3DSGraphObject *obj, std::function<void(Q3DSModelNode *)> f, bool includeHidden = false);
-    void forAllImages(std::function<void(Q3DSImage *)> f);
 
     void notifyPropertyChanges(const Q3DSSlide::PropertyChanges &changeList) const;
     void applyPropertyChanges(const Q3DSSlide::PropertyChanges &changeList) const;

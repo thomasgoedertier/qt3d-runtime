@@ -4091,14 +4091,6 @@ void Q3DSUipPresentation::forAllModels(Q3DSGraphObject *obj,
     }
 }
 
-void Q3DSUipPresentation::forAllImages(std::function<void (Q3DSImage *)> f)
-{
-    for (Q3DSGraphObject *obj : qAsConst(d->objects)) {
-        if (obj->type() == Q3DSGraphObject::Image)
-            f(static_cast<Q3DSImage *>(obj));
-    }
-}
-
 Q3DSGraphObject *Q3DSUipPresentation::newObject(const char *type, const QByteArray &id)
 {
     Q3DSGraphObject *obj = nullptr;
