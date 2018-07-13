@@ -850,8 +850,9 @@ void Q3DSProfileView::addFrameGraphWindow()
 
 void Q3DSProfileView::addQt3DSceneGraphNode(Qt3DCore::QEntity *e)
 {
-    QByteArray label = QString(QLatin1String("%1 (0x%2) %3"))
+    QByteArray label = QString(QLatin1String("%1 (%2, 0x%3) %4"))
             .arg(QString::fromUtf8(e->metaObject()->className()))
+            .arg(e->id().id())
             .arg((quintptr) e, 0, 16)
             .arg(e->objectName())
             .toUtf8();
@@ -863,7 +864,7 @@ void Q3DSProfileView::addQt3DSceneGraphNode(Qt3DCore::QEntity *e)
             const int colColPos = compName.lastIndexOf(QLatin1String("::"));
             if (colColPos >= 0)
                 compName = compName.mid(colColPos + 2);
-            s += compName + QLatin1String(" ");
+            s += compName + QLatin1String(" ") + QString::number(c->id().id()) + QLatin1String(" ");
         }
         s += QLatin1String("]");
         label += s.toUtf8();
