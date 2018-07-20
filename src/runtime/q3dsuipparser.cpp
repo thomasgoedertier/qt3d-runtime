@@ -470,7 +470,13 @@ void Q3DSUipParser::parseAddSet(Q3DSSlide *slide, bool isSet, bool isMaster)
         for (const QXmlStreamAttribute &attr : r->attributes()) {
             if (attr.name() == QStringLiteral("ref"))
                 continue;
-            changeList->append(Q3DSPropertyChange(attr.name().toString(), attr.value().toString()));
+            if (attr.name() == QStringLiteral("sourcepath")) {
+                QString absoluteFileName =
+                        m_presentation->assetFileName(attr.value().toString(), nullptr);
+                changeList->append(Q3DSPropertyChange(attr.name().toString(), absoluteFileName));
+            } else {
+                changeList->append(Q3DSPropertyChange(attr.name().toString(), attr.value().toString()));
+            }
         }
         if (!changeList->isEmpty())
             slide->addPropertyChanges(obj, changeList.take());
