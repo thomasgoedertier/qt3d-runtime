@@ -88,8 +88,10 @@ void Q3DSTextRenderer::registerFonts(const QStringList &dirs)
                     }
                     QRawFont rawFont(rawData, 1.0);
                     if (rawFont.isValid()) {
-                        f.font.setStyle(rawFont.style());
-                        f.font.setWeight(rawFont.weight());
+                        if (rawFont.style() != QFont::StyleOblique) {
+                            f.font.setStyle(rawFont.style());
+                            f.font.setWeight(rawFont.weight());
+                        }
                     } else {
                         qWarning("Failed to construct QRawFont from %s", qPrintable(entry));
                     }
