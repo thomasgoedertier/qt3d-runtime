@@ -57,7 +57,8 @@ struct Q3DSV_PRIVATE_EXPORT Q3DSDataInputEntry
         TypeRangedNumber,
         TypeVec2,
         TypeVec3,
-        TypeVariant
+        TypeVariant,
+        TypeBoolean
     };
 
     QString name;

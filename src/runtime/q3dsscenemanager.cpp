@@ -7834,6 +7834,9 @@ void Q3DSSceneManager::setDataInputValue(const QString &dataInputName, const QVa
             case Q3DSDataInputEntry::TypeVec3:
                 type = Q3DS::Vector;
                 break;
+            case Q3DSDataInputEntry::TypeBoolean:
+                type = Q3DS::Boolean;
+                break;
             // for Variant datainput the target type is unknown
             // but values are passed on from this function anyway
             // as QVariants.
