@@ -238,9 +238,15 @@ void SceneExplorerWidget::handleSelectionChanged(const QModelIndex &current, con
 
 void SceneExplorerWidget::handleValueChanged(const QtProperty *property, const QVariant &value)
 {
-    Q_UNUSED(property)
-    Q_UNUSED(value)
-    // TODO handle updating properties from editor
+    auto rootProperty = m_propertyBrowser->properties().at(0);
+    if (!rootProperty)
+        return;
+
+    // Send property updates to m_currentObject
+    Q3DSPropertyChangeList changeList;
+    changeList.append(Q3DSPropertyChange::fromVariant(property->propertyName(), value));
+    m_currentObject->applyPropertyChanges(changeList);
+    m_currentObject->notifyPropertyChanges(changeList);
 }
 
 void SceneExplorerWidget::init()
