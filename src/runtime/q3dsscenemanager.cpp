@@ -8287,7 +8287,7 @@ void Q3DSSceneManager::addLayer(Q3DSLayerNode *layer3DS)
     else
         buildSubPresentationLayer(layer3DS, m_outputPixelSize);
 
-    Q3DSUipPresentation::forAllObjectsInSubTree(layer3DS, [this, layer3DS](Q3DSGraphObject *objOrChild) {
+    Q3DSUipPresentation::forAllObjectsInSubTree(layer3DS, [this](Q3DSGraphObject *objOrChild) {
         Q3DSSlidePlayer *slidePlayer = m_slidePlayer;
         if (objOrChild->attached() && objOrChild->attached()->component)
             slidePlayer = objOrChild->attached()->component->masterSlide()->attached<Q3DSSlideAttached>()->slidePlayer;
