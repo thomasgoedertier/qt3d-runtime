@@ -4496,12 +4496,15 @@ void Q3DSSceneManager::rebuildModelSubMeshes(Q3DSModelNode *model3DS)
     }
 
     QVector<Q3DSGraphObject *> materials;
-    for (int i = 0; i < model3DS->childCount(); ++i) {
-        Q3DSGraphObject *child = model3DS->childAtIndex(i);
-        if (child->type() == Q3DSGraphObject::DefaultMaterial
-                || child->type() == Q3DSGraphObject::CustomMaterial
-                || child->type() == Q3DSGraphObject::ReferencedMaterial)
-            materials.append(child);
+    Q3DSGraphObject *modelChild = model3DS->firstChild();
+    while (modelChild) {
+        if (modelChild->type() == Q3DSGraphObject::DefaultMaterial
+                || modelChild->type() == Q3DSGraphObject::CustomMaterial
+                || modelChild->type() == Q3DSGraphObject::ReferencedMaterial)
+        {
+            materials.append(modelChild);
+        }
+        modelChild = modelChild->nextSibling();
     }
 
     const MeshList meshList = model3DS->mesh();
