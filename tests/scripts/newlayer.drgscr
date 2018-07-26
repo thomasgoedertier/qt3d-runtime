@@ -1,4 +1,5 @@
 object(newlayer, newlayer, Layer, null, Slide1)
+// default layer background is Transparent, this is good
 
 object(newlayer_cam, newlayer_cam, Camera, newlayer, Slide1)
 // the default position does not work since the property is shared with nodes and those use 0 0 0 as the default,
@@ -7,6 +8,13 @@ set(newlayer_cam, position, 0 0 -600)
 
 // must have a light to see something
 object(newlayer_light, newlayer_light, Light, newlayer, Slide1)
+
+// add a simple model
+object(newlayer_cube, newlayer_cube, Model, newlayer, Slide1)
+set(newlayer_cube, sourcepath, #Cube)
+object(newlayer_cube_mat, newlayer_cube_mat, DefaultMaterial, newlayer_cube, Slide1)
+set(newlayer_cube, position, -200 0 0)
+set(newlayer_cube, rotation, 10 20 0)
 
 // add some text
 object(newlayer_text, newlayer_text, Text, newlayer, Slide1)

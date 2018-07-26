@@ -764,6 +764,7 @@ public:
 private:
     Q_DISABLE_COPY(Q3DSSceneManager)
 
+    void prepareLayerContent(Q3DSGraphObject *subTreeRoot);
     void buildLayer(Q3DSLayerNode *layer3DS, Qt3DRender::QFrameGraphNode *parent, const QSize &parentSize);
     void buildSubPresentationLayer(Q3DSLayerNode *layer3DS, const QSize &parentSize);
     Qt3DRender::QRenderTarget *newLayerRenderTarget(const QSize &layerPixelSize, int msaaSampleCount,

@@ -1020,6 +1020,21 @@ static QSize safeLayerPixelSize(Q3DSLayerAttached *data)
     return safeLayerPixelSize(data->layerSize, data->ssaaScaleFactor);
 }
 
+void Q3DSSceneManager::prepareLayerContent(Q3DSGraphObject *subTreeRoot)
+{
+    Q3DSUipPresentation::forAllObjectsInSubTree(subTreeRoot, [this](Q3DSGraphObject *obj) {
+        // First make sure all properties are resolved; f.ex. a model with
+        // sourcepath changed before attaching the node to a scene will not
+        // generate a MeshChanges prop.change, and so the actual mesh will not
+        // be up-to-date without a resolve. Avoid this.
+        obj->resolveReferences(*m_presentation);
+
+        // Prepare image objects. This must be done up-front.
+        if (obj->type() == Q3DSGraphObject::Image)
+            initImage(static_cast<Q3DSImage *>(obj));
+    });
+}
+
 void Q3DSSceneManager::buildLayer(Q3DSLayerNode *layer3DS,
                                   Qt3DRender::QFrameGraphNode *parent,
                                   const QSize &parentSize)
@@ -1191,11 +1206,8 @@ void Q3DSSceneManager::buildLayer(Q3DSLayerNode *layer3DS,
 
     layer3DS->setAttached(layerData);
 
-    // Prepare image objects. This must be done up-front.
-    Q3DSUipPresentation::forAllObjectsInSubTree(layer3DS, [this](Q3DSGraphObject *obj) {
-        if (obj->type() == Q3DSGraphObject::Image)
-            initImage(static_cast<Q3DSImage *>(obj));
-    });
+    // Do some pre-processing on all objects in the subtree.
+    prepareLayerContent(layer3DS);
 
     // Now add the scene contents.
     Q3DSGraphObject *obj = layer3DS->firstChild();
@@ -4617,6 +4629,7 @@ void Q3DSSceneManager::buildModelMaterial(Q3DSModelNode *model3DS)
 
     for (Q3DSModelAttached::SubMesh &sm : modelData->subMeshes) {
         if (sm.resolvedMaterial && !sm.materialComponent) {
+            Q_ASSERT(sm.resolvedMaterial->attached());
             if (sm.resolvedMaterial->type() == Q3DSGraphObject::DefaultMaterial) {
                 Q3DSDefaultMaterial *defaultMaterial = static_cast<Q3DSDefaultMaterial *>(sm.resolvedMaterial);
 
@@ -8147,7 +8160,7 @@ void Q3DSSceneManager::handleSceneChange(Q3DSScene *, Q3DSGraphObject::DirtyFlag
 {
     if (change == Q3DSGraphObject::DirtyNodeAdded) {
         if (obj->isNode()) {
-            if (obj->type() != Q3DSGraphObject::Layer && obj->type() != Q3DSGraphObject::Camera) {
+            if (obj->type() != Q3DSGraphObject::Layer) {
                 Q_ASSERT(obj->parent() && obj->parent()->attached());
                 Q3DSLayerNode *layer3DS = findLayerForObjectInScene(obj);
                 if (layer3DS)
@@ -8216,17 +8229,8 @@ void Q3DSSceneManager::addLayerContent(Q3DSGraphObject *obj, Q3DSGraphObject *pa
     if (parent->type() == Q3DSGraphObject::Layer)
         parentEntity = parent->attached<Q3DSLayerAttached>()->layerSceneRootEntity;
 
-    // First make sure all properties are resolved; f.ex. a model with
-    // sourcepath changed before attaching the node to a scene will not
-    // generate a MeshChanges prop.change, and so the actual mesh will not
-    // be up-to-date without a resolve. Avoid this.
-    Q3DSUipPresentation::forAllObjectsInSubTree(obj, [this](Q3DSGraphObject *objOrChild) {
-        objOrChild->resolveReferences(*m_presentation);
-
-        // Image objects must be prepared in advance.
-        if (objOrChild->type() == Q3DSGraphObject::Image)
-            initImage(static_cast<Q3DSImage *>(objOrChild));
-    });
+    // phase 0
+    prepareLayerContent(obj);
 
     // phase 1
     buildLayerScene(obj, layer3DS, parentEntity);

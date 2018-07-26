@@ -8,6 +8,14 @@ set(newlayer_cam, position, 0 0 -600)
 
 object(newlayer_light, newlayer_light, Light, newlayer, Slide1)
 
+// model-material is tightly coupled, create them in an atomic step to avoid trouble
+object(newlayer_cube, newlayer_cube, Model, null, Slide1)
+set(newlayer_cube, sourcepath, #Cube)
+object(newlayer_cube_mat, newlayer_cube_mat, DefaultMaterial, newlayer_cube, Slide1)
+set(newlayer_cube, position, -200 0 0)
+set(newlayer_cube, rotation, 10 20 0)
+setparent(newlayer_cube, newlayer)
+
 object(newlayer_text, newlayer_text, Text, newlayer, Slide1)
 set(newlayer_text, textstring, New Layer!)
 set(newlayer_text, textcolor, 0 1 0)
