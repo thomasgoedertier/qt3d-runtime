@@ -48,6 +48,7 @@
         <file alias="res/effectlib/funccalculateDiffuseAreaOld.glsllib">../../res/effectlib/funccalculateDiffuseAreaOld.glsllib</file>
         <file alias="res/effectlib/funccalculatePointLightAttenuation.glsllib">../../res/effectlib/funccalculatePointLightAttenuation.glsllib</file>
         <file alias="res/effectlib/funccomputeMicroHit.glsllib">../../res/effectlib/funccomputeMicroHit.glsllib</file>
+        <file alias="res/effectlib/funclambertReflectionBSDF.glsllib">../../res/effectlib/funclambertReflectionBSDF.glsllib</file>
         <file alias="res/effectlib/funcdiffuseReflectionBSDF.glsllib">../../res/effectlib/funcdiffuseReflectionBSDF.glsllib</file>
         <file alias="res/effectlib/funcdiffuseReflectionWrapBSDF.glsllib">../../res/effectlib/funcdiffuseReflectionWrapBSDF.glsllib</file>
         <file alias="res/effectlib/funcgetTransformedUVCoords.glsllib">../../res/effectlib/funcgetTransformedUVCoords.glsllib</file>

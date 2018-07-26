@@ -620,7 +620,7 @@ struct ShaderGenerator : public Q3DSDefaultMaterialShaderGenerator
 
         if (hasLighting) {
             addFunction(fragmentShader, "sampleLightVars");
-            addFunction(fragmentShader, "diffuseReflectionBSDF");
+            addFunction(fragmentShader, "lambertReflectionBSDF");
         }
 
         if (hasLighting && hasLightmaps)
@@ -846,9 +846,9 @@ struct ShaderGenerator : public Q3DSDefaultMaterialShaderGenerator
                     const QByteArray lightColor = m_LightColor.toUtf8();
                     const QByteArray lightDirection = m_LightDirection.toUtf8();
                     fragmentShader << "\tglobal_diffuse_light.rgb += shadowFac * shadow_map_occl * "
-                                      "diffuseReflectionBSDF( world_normal, "
-                                   << "-" << lightDirection.constData() << ".xyz, view_vector, "
-                                   << lightColor.constData() << ".rgb, 0.0 ).rgb;" << "\n";
+                                      "lambertReflectionBSDF( world_normal, "
+                                   << "-" << lightDirection.constData() << ".xyz, "
+                                   << lightColor.constData() << ".rgb ).rgb;" << "\n";
 
                     if (specularEnabled) {
                         outputSpecularEquation(material().specularModel(), fragmentShader,
@@ -900,9 +900,9 @@ struct ShaderGenerator : public Q3DSDefaultMaterialShaderGenerator
                     addTranslucencyIrradiance(fragmentShader, translucencyImage, m_TempStr, true);
 
                     fragmentShader << "\tglobal_diffuse_light.rgb += lightAttenuation * "
-                                      "diffuseReflectionBSDF( world_normal, "
-                                   << normalizedDirection.constData() << ", view_vector, " << lightColor.constData()
-                                   << ".rgb, 0.0 ).rgb;" << "\n";
+                                      "lambertReflectionBSDF( world_normal, "
+                                   << normalizedDirection.constData() << ", " << lightColor.constData()
+                                   << ".rgb ).rgb;" << "\n";
                 } else {
 
                     vertexShader.generateWorldPosition();
@@ -953,9 +953,9 @@ struct ShaderGenerator : public Q3DSDefaultMaterialShaderGenerator
 
                     const QByteArray lightColor = m_LightColor.toUtf8();
                     fragmentShader << "\tglobal_diffuse_light.rgb += lightAttenuation * "
-                                      "diffuseReflectionBSDF( world_normal, "
-                                   << "-" << normalizedDirection.constData() << ", view_vector, "
-                                   << lightColor.constData() << ".rgb, 0.0 ).rgb;" << "\n";
+                                      "lambertReflectionBSDF( world_normal, "
+                                   << "-" << normalizedDirection.constData() << ", "
+                                   << lightColor.constData() << ".rgb ).rgb;" << "\n";
 
                     if (specularEnabled) {
                         outputSpecularEquation(material().specularModel(), fragmentShader,
