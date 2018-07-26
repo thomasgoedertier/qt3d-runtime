@@ -1302,13 +1302,18 @@ void Q3DSEngine::handleKeyPressEvent(QKeyEvent *e)
 
         Qt::KeyboardModifiers mods = e->modifiers();
         if (sm && e->key() == Qt::Key_F10 && mods == Qt::NoModifier) {
-            sm->setProfileUiVisible(!sm->isProfileUiVisible());
+            const bool v = !sm->isProfileUiVisible();
+            sm->setProfileUiVisible(v);
+            if (v)
+                sm->configureProfileUi(m_profileUiScale);
             forwardEvent = false;
         }
 
         if (sm && e->key() == Qt::Key_QuoteLeft) {
             const bool v = !sm->isProfileUiVisible();
             sm->setProfileUiVisible(v, v);
+            if (v)
+                sm->configureProfileUi(m_profileUiScale);
             forwardEvent = false; // prevent the backtick from showing up in the console
         }
 
@@ -1398,8 +1403,11 @@ void Q3DSEngine::handleMouseDoubleClickEvent(QMouseEvent *e)
         && e->button() == Qt::LeftButton
         && !m_uipPresentations.isEmpty())
     {
-        auto m = m_uipPresentations[0].sceneManager;
-        m->setProfileUiVisible(!m->isProfileUiVisible());
+        auto sm = m_uipPresentations[0].sceneManager;
+        const bool v = !sm->isProfileUiVisible();
+        sm->setProfileUiVisible(v);
+        if (v)
+            sm->configureProfileUi(m_profileUiScale);
     }
 }
 
