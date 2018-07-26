@@ -90,7 +90,7 @@ public:
     virtual void handleGoToSlideByDirection(const QString &elementPath, bool next, bool wrap);
     virtual QVariant handleGetAttribute(const QString &elementPath, const QString &attribute);
     virtual void handleSetAttribute(const QString &elementPath, const QString &attributeName, const QVariant &value);
-    virtual void handleSetProfileUiVisible(bool visible, float scale = 1.0f);
+    virtual void handleSetProfileUiVisible(bool visible, float scale);
 
     bool compareElementPath(const QString &a, const QString &b) const;
 

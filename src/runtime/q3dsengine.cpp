@@ -1267,6 +1267,8 @@ void Q3DSEngine::resize(const QSize &size, qreal dpr, bool forceSynchronous)
 {
     m_size = size;
     m_dpr = dpr;
+    if (!isProfileUiVisible())
+        m_profileUiScale = float(m_dpr);
 
     if (!m_uipPresentations.isEmpty()) {
         const QSize presentationSize(m_uipPresentations[0].presentation->presentationWidth(),
@@ -1438,15 +1440,20 @@ void Q3DSEngine::requestGrab()
 
 void Q3DSEngine::setProfileUiVisible(bool visible, bool openLogAndConsole)
 {
-    if (!m_uipPresentations.isEmpty() && m_uipPresentations[0].sceneManager)
-        m_uipPresentations[0].sceneManager->setProfileUiVisible(visible, openLogAndConsole);
+    Q3DSSceneManager *sm = m_uipPresentations[0].sceneManager;
+    if (!m_uipPresentations.isEmpty() && sm) {
+        sm->setProfileUiVisible(visible, openLogAndConsole);
+        if (visible)
+            sm->configureProfileUi(m_profileUiScale);
+    }
 }
 
 void Q3DSEngine::configureProfileUi(float scale)
 {
-    if (!m_uipPresentations.isEmpty() && m_uipPresentations[0].sceneManager) {
+    Q3DSSceneManager *sm = m_uipPresentations[0].sceneManager;
+    if (!m_uipPresentations.isEmpty() && sm) {
         m_profileUiScale = scale;
-        m_uipPresentations[0].sceneManager->configureProfileUi(scale);
+        sm->configureProfileUi(scale);
     }
 }
 

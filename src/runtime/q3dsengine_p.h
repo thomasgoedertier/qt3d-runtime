@@ -276,7 +276,7 @@ private:
 
     QObject m_profileUiEventSource;
     bool m_autoStart = true;
-    float m_profileUiScale = 1;
+    float m_profileUiScale = 1.0f;
     bool m_autoToggleProfileUi = true;
 
     QQmlEngine *m_behaviorQmlEngine = nullptr;
