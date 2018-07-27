@@ -7379,8 +7379,10 @@ void Q3DSSceneManager::updateSubTreeRecursive(Q3DSGraphObject *obj)
                 }
             }
             // regen light/shadow/materials when a light was added/removed under the layer
-            if (data->frameChangeFlags & Q3DSLayerNode::LayerContentSubTreeLightsChange)
+            if (data->frameChangeFlags & Q3DSLayerNode::LayerContentSubTreeLightsChange) {
+                gatherLights(layer3DS);
                 m_subTreesWithDirtyLights.insert(SubTreeWithDirtyLight(layer3DS, true));
+            }
             // LayerContentSubTreeChanges needs no special handling here, just set the dirty like for everything else
             m_wasDirty = true;
             markLayerForObjectDirty(layer3DS);
