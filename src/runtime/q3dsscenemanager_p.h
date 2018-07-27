@@ -818,6 +818,7 @@ private:
     void rebuildModelSubMeshes(Q3DSModelNode *model3DS);
     void buildModelMaterial(Q3DSModelNode *model3DS);
     void retagSubMeshes(Q3DSModelNode *model3DS);
+    bool checkImageTransparency(Q3DSImage *image) const;
     void prepareTextureParameters(Q3DSTextureParameters &textureParameters, const QString &name, Q3DSImage *image3DS);
     QVector<Qt3DRender::QParameter *> prepareDefaultMaterial(Q3DSDefaultMaterial *m, Q3DSReferencedMaterial *rm, Q3DSModelNode *model3DS);
     Qt3DRender::QAbstractTexture *createCustomPropertyTexture(const Q3DSCustomPropertyParameter &p);

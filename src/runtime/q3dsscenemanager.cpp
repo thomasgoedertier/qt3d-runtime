@@ -4804,6 +4804,15 @@ void Q3DSSceneManager::rebuildModelMaterial(Q3DSModelNode *model3DS)
     buildModelMaterial(model3DS);
 }
 
+bool Q3DSSceneManager::checkImageTransparency(Q3DSImage *image) const
+{
+    if (image) {
+        return image->hasTransparency(m_presentation)
+                || !image->subPresentation().isEmpty();
+    }
+    return false;
+}
+
 void Q3DSSceneManager::retagSubMeshes(Q3DSModelNode *model3DS)
 {
     Q3DSModelAttached *data = static_cast<Q3DSModelAttached *>(model3DS->attached());
@@ -4819,9 +4828,9 @@ void Q3DSSceneManager::retagSubMeshes(Q3DSModelNode *model3DS)
             auto defaultMaterial = static_cast<Q3DSDefaultMaterial *>(sm.resolvedMaterial);
             opacity = clampOpacity(opacity * defaultMaterial->opacity() / 100.0f);
             // Check maps for transparency as well
-            hasTransparency = ((defaultMaterial->diffuseMap() && defaultMaterial->diffuseMap()->hasTransparency(m_presentation)) ||
-                               (defaultMaterial->diffuseMap2() && defaultMaterial->diffuseMap2()->hasTransparency(m_presentation)) ||
-                               (defaultMaterial->diffuseMap3() && defaultMaterial->diffuseMap3()->hasTransparency(m_presentation)) ||
+            hasTransparency =  (checkImageTransparency(defaultMaterial->diffuseMap()) ||
+                               checkImageTransparency(defaultMaterial->diffuseMap2()) ||
+                               checkImageTransparency(defaultMaterial->diffuseMap3()) ||
                                defaultMaterial->opacityMap() ||
                                defaultMaterial->translucencyMap() ||
                                defaultMaterial->displacementMap() ||
