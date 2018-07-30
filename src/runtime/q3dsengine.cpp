@@ -613,9 +613,10 @@ bool Q3DSEngine::setDocument(const Q3DSUiaDocument &uiaDocument, QString *error)
     return loadPresentations();
 }
 
-// This method of providing the presentation(s) is incomplete and is only here to
-// support the scene-building-from-C++ experiments. Needs major revisions later on.
-bool Q3DSEngine::setPresentations(const QVector<Q3DSUipPresentation *> &presentations)
+// Used when creating a scene via C++ or QML APIs. Here subpresentations are
+// not supported at all since that concept makes no sense anymore with a fully
+// dynamic scene (and esp. with the component system QML provides).
+bool Q3DSEngine::setPresentation(Q3DSUipPresentation *presentation)
 {
     if (!m_surface) {
         Q3DSUtils::showMessage(tr("setPresentations: Cannot be called without setSurface"));
@@ -625,11 +626,11 @@ bool Q3DSEngine::setPresentations(const QVector<Q3DSUipPresentation *> &presenta
     m_sourceLoadTimer.start();
 
     prepareForReload();
-    if (presentations.isEmpty())
+    if (!presentation)
         return false;
 
     UipPresentation mainPres;
-    mainPres.presentation = presentations[0];
+    mainPres.presentation = presentation;
     if (mainPres.presentation->name().isEmpty())
         mainPres.presentation->setName(QLatin1String("main"));
     mainPres.presentation->setDataInputEntries(&m_dataInputEntries);
@@ -637,21 +638,6 @@ bool Q3DSEngine::setPresentations(const QVector<Q3DSUipPresentation *> &presenta
         m_uipPresentations.append(mainPres);
     else
         return false;
-
-    for (int i = 1; i < presentations.count(); ++i) {
-        // ### this isn't enough, needs ids and such
-        UipPresentation subPres;
-        subPres.presentation = presentations[i];
-        subPres.presentation->setDataInputEntries(&m_dataInputEntries);
-        if (buildSubUipPresentationScene(&subPres)) {
-            m_uipPresentations.append(subPres);
-        } else {
-            m_uipPresentations.clear();
-            return false;
-        }
-    }
-
-    // ### qml?
 
     finalizePresentations();
 

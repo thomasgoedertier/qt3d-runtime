@@ -31,7 +31,7 @@
 
 QT_BEGIN_NAMESPACE
 
-QVector<Q3DSUipPresentation *> ManualPresentationTest::build()
+Q3DSUipPresentation *ManualPresentationTest::build()
 {
     QScopedPointer<Q3DSUipPresentation> mainPres(new Q3DSUipPresentation);
     mainPres->setPresentationWidth(800);
@@ -102,7 +102,7 @@ QVector<Q3DSUipPresentation *> ManualPresentationTest::build()
 
     // done, this is a full presentation with a layer, camera, a light and a cube
 
-    return { mainPres.take() };
+    return mainPres.take();
 }
 
 QT_END_NAMESPACE

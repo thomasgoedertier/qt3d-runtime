@@ -119,8 +119,9 @@ public:
     // Load presentation from a uia document object.
     bool setDocument(const Q3DSUiaDocument &uiaDocument, QString *error = nullptr);
 
-    // Provide pre-constructed presentation(s).
-    bool setPresentations(const QVector<Q3DSUipPresentation *> &presentations);
+    // Provide a pre-constructed presentation. Entry point for programatically
+    // constructed scenes.
+    bool setPresentation(Q3DSUipPresentation *presentations);
 
     qint64 behaviorLoadTimeMsecs() const;
     qint64 totalLoadTimeMsecs() const;

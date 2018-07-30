@@ -37,7 +37,7 @@ QT_BEGIN_NAMESPACE
 class ManualPresentationTest
 {
 public:
-    QVector<Q3DSUipPresentation *> build();
+    Q3DSUipPresentation *build();
 };
 
 QT_END_NAMESPACE

@@ -198,10 +198,10 @@ Q3DSExplorerMainWindow::Q3DSExplorerMainWindow(Q3DSWindow *view, Q3DSRemoteDeplo
         if (!m_manualPresentationTest)
             m_manualPresentationTest = new ManualPresentationTest;
         auto p = m_manualPresentationTest->build();
-        if (view->engine()->setPresentations(p))
+        if (view->engine()->setPresentation(p))
             updatePresentation();
         else
-            qDeleteAll(p);
+            delete p;
     });
     QMenu *profileSubMenu = new QMenu(tr("&Profile and Debug"));
     QAction *showDebugView = profileSubMenu->addAction(tr("Toggle in-scene &debug view"), this, [view] {
