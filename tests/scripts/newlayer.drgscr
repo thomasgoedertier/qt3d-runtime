@@ -2,9 +2,7 @@ object(newlayer, newlayer, Layer, null, Slide1)
 // default layer background is Transparent, this is good
 
 object(newlayer_cam, newlayer_cam, Camera, newlayer, Slide1)
-// the default position does not work since the property is shared with nodes and those use 0 0 0 as the default,
-// unlike the expected 0 0 -600 for cameras. so must specify it explicitly.
-set(newlayer_cam, position, 0 0 -600)
+// defaults to position 0 0 -600
 
 // must have a light to see something
 object(newlayer_light, newlayer_light, Light, newlayer, Slide1)

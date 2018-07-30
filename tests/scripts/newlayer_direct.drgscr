@@ -4,7 +4,6 @@
 object(newlayer, newlayer, Layer, Scene, Slide1)
 
 object(newlayer_cam, newlayer_cam, Camera, newlayer, Slide1)
-set(newlayer_cam, position, 0 0 -600)
 
 object(newlayer_light, newlayer_light, Light, newlayer, Slide1)
 

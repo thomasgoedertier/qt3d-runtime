@@ -2869,6 +2869,7 @@ Q3DSPropertyChange Q3DSLayerNode::setProbe2Pos(float v)
 Q3DSCameraNode::Q3DSCameraNode()
     : Q3DSNode(Q3DSGraphObject::Camera)
 {
+    m_position = QVector3D(0, 0, -600);
 }
 
 template<typename V>

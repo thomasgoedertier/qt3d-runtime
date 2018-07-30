@@ -56,9 +56,8 @@ QVector<Q3DSUipPresentation *> ManualPresentationTest::build()
 
     // each layer uses the first active camera encountered while walking depth-first
     Q3DSCameraNode *camera1 = mainPres->newObject<Q3DSCameraNode>("camera1");
-    // Defaults to a perspective camera with fov 60, near/far 10/5000. This is
-    // good as it is in many cases.
-    camera1->setPosition(QVector3D(0, 0, -600));
+    // Defaults to a perspective camera with position (0, 0, -600), fov 60,
+    // near/far 10/5000. This is good as it is in many cases.
     layer1->appendChildNode(camera1);
 
     // let's have a light
