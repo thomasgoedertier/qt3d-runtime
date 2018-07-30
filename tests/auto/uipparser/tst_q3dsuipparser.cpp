@@ -809,6 +809,10 @@ void tst_Q3DSUipParser::primitiveMeshes()
 
     // test changing using the "dynamic" setter
     cylinder->applyPropertyChanges({ Q3DSPropertyChange::fromVariant("sourcepath", QLatin1String("#Sphere")) });
+    // For objects that are attached (or will be attached) to a real scene the
+    // resolveReferences call is not necessary since scenemanager will do this
+    // internally. Here however we need to invoke it explicitly in order to see
+    // the change right away.
     cylinder->resolveReferences(*pres.data());
     QCOMPARE(cylinder->mesh(), sphere->mesh());
 }

@@ -68,7 +68,6 @@ Q3DSUipPresentation *ManualPresentationTest::build()
     Q3DSModelNode *model1 = mainPres->newObject<Q3DSModelNode>("model1");
     // A model needs a mesh
     model1->setMesh(QLatin1String("#Cube")); // let's use a built-in primitive
-    model1->resolveReferences(*mainPres); // resolve the mesh path to actual data
     layer1->appendChildNode(model1);
 
     Q3DSDefaultMaterial *mat1 = mainPres->newObject<Q3DSDefaultMaterial>("mat1");
