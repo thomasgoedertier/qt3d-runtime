@@ -1369,7 +1369,7 @@ private:
 class Q3DSV_PRIVATE_EXPORT Q3DSModelNode : public Q3DSNode
 {
     Q3DS_OBJECT
-    Q_PROPERTY(QString sourcepath READ sourcePath /* setMesh */)
+    Q_PROPERTY(QString sourcepath READ sourcePath WRITE setMesh)
     Q_PROPERTY(qint32 poseroot READ skeletonRoot WRITE setSkeletonRoot)
     Q_PROPERTY(Tessellation tessellation READ tessellation WRITE setTessellation)
     Q_PROPERTY(float edgetess READ edgeTess WRITE setEdgeTess)
@@ -1388,6 +1388,7 @@ public:
     };
 
     Q3DSModelNode();
+    ~Q3DSModelNode();
 
     void setProperties(const QXmlStreamAttributes &attrs, PropSetFlags flags) override;
     void applyPropertyChanges(const Q3DSPropertyChangeList &changeList) override;
@@ -1408,6 +1409,12 @@ public:
     Q3DSPropertyChange setEdgeTess(float v);
     Q3DSPropertyChange setInnerTess(float v);
 
+    // custom geometry management
+    Q3DSPropertyChange setCustomMesh(Q3DSGeometry *geom); // alternative setter, not exposed via property
+    Q3DSGeometry *customMesh() const { return m_customMesh; }
+    void updateCustomMeshBuffer(int bufferIdx); // syncs buffers[bufferIdx].data, size and drawCount can change
+    void updateCustomMeshBuffer(int bufferIdx, int offset, int size); // only syncs an existing region
+
 private:
     Q_DISABLE_COPY(Q3DSModelNode)
     template<typename V> void setProps(const V &attrs, PropSetFlags flags);
@@ -1418,6 +1425,8 @@ private:
     Tessellation m_tessellation = None;
     float m_edgeTess = 4;
     float m_innerTess = 4;
+    Q3DSGeometry *m_customMesh = nullptr;
+    Q3DSMeshLoader::MeshMapping m_customMeshMapping;
 };
 
 class Q3DSV_PRIVATE_EXPORT Q3DSGroupNode : public Q3DSNode

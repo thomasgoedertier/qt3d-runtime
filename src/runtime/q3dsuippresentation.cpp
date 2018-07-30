@@ -3072,6 +3072,11 @@ Q3DSModelNode::Q3DSModelNode()
 {
 }
 
+Q3DSModelNode::~Q3DSModelNode()
+{
+    delete m_customMesh;
+}
+
 template<typename V>
 void Q3DSModelNode::setProps(const V &attrs, PropSetFlags flags)
 {
@@ -3112,9 +3117,14 @@ void Q3DSModelNode::resolveReferences(Q3DSUipPresentation &pres)
 {
     Q3DSNode::resolveReferences(pres);
     if (!m_mesh_unresolved.isEmpty()) {
-        int part = 1;
-        const QString fn = pres.assetFileName(m_mesh_unresolved, &part);
-        m_mesh = pres.mesh(fn, part);
+        if (m_mesh_unresolved != QStringLiteral("#Custom")) {
+            int part = 1;
+            const QString fn = pres.assetFileName(m_mesh_unresolved, &part);
+            m_mesh = pres.mesh(fn, part);
+        } else {
+            // ### should this be cached? (would need a cache key then)
+            m_mesh = Q3DSMeshLoader::loadMesh(*m_customMesh, &m_customMeshMapping);
+        }
     }
 }
 
@@ -3141,6 +3151,27 @@ Q3DSPropertyChange Q3DSModelNode::setEdgeTess(float v)
 Q3DSPropertyChange Q3DSModelNode::setInnerTess(float v)
 {
     return createPropSetter(m_innerTess, v, "innertess");
+}
+
+Q3DSPropertyChange Q3DSModelNode::setCustomMesh(Q3DSGeometry *geom)
+{
+    m_customMesh = geom; // takes ownership
+
+    // like setMesh but note that the m_mesh_unresolved value does not change
+    // between setCustomMesh calls, yet there may be a change in the custom
+    // geometry. so generate a prop.change always.
+    m_mesh_unresolved = QLatin1String("#Custom");
+    return Q3DSPropertyChange(QLatin1String("sourcepath"));
+}
+
+void Q3DSModelNode::updateCustomMeshBuffer(int bufferIdx)
+{
+    Q3DSMeshLoader::updateMeshBuffer(*m_customMesh, m_customMeshMapping, bufferIdx);
+}
+
+void Q3DSModelNode::updateCustomMeshBuffer(int bufferIdx, int offset, int size)
+{
+    Q3DSMeshLoader::updateMeshBuffer(*m_customMesh, m_customMeshMapping, bufferIdx, offset, size);
 }
 
 Q3DSGroupNode::Q3DSGroupNode()

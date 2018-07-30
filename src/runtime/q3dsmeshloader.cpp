@@ -372,7 +372,7 @@ static const char *getNormalAttrName() { return "attr_norm"; }
 static const char *getUVAttrName() { return "attr_uv0"; }
 //static const char *getUV2AttrName() { return "attr_uv1"; }
 static const char *getTexTanAttrName() { return "attr_textan"; }
-//static const char *getTexBinormalAttrName() { return "attr_binormal"; }
+static const char *getTexBinormalAttrName() { return "attr_binormal"; }
 //static const char *getWeightAttrName() { return "attr_weight"; }
 //static const char *getBoneIndexAttrName() { return "attr_boneid"; }
 static const char *getColorAttrName() { return "attr_color"; }
@@ -728,12 +728,16 @@ MeshList loadMeshData(const QByteArray &meshData, quint32 flags, bool useQt3DAtt
         }
         // Index Buffer (with offset)
         Qt3DRender::QAttribute::VertexBaseType type = convertRenderComponentToVertexBaseType(mesh->m_IndexBuffer.m_ComponentType);
-        auto indexAttribute = new Qt3DRender::QAttribute(indexBuffer, type, 1, source.m_Count, source.m_Offset * static_cast<uint>(RenderComponentTypes::getSizeOf(mesh->m_IndexBuffer.m_ComponentType)));
+        auto indexAttribute = new Qt3DRender::QAttribute(indexBuffer,
+                                                         type,
+                                                         1,
+                                                         source.m_Count, // this count is ignored by Qt3D, the geomrenderer's (subMesh) vertexCount is used instead
+                                                         source.m_Offset * static_cast<uint>(RenderComponentTypes::getSizeOf(mesh->m_IndexBuffer.m_ComponentType)));
         indexAttribute->setAttributeType(Qt3DRender::QAttribute::IndexAttribute);
         geometry->addAttribute(indexAttribute);
         subMesh->setGeometry(geometry);
         subMesh->setObjectName(subsetName);
-        subMesh->setVertexCount(source.m_Count);
+        subMesh->setVertexCount(source.m_Count); // this is the element count passed to the draw call
         subMesh->setPrimitiveType(convertRenderDrawModeToPrimitiveType(mesh->m_DrawMode));
         subsets.append(subMesh);
     }
@@ -823,6 +827,115 @@ MeshList loadMeshDataFromMulti(const QString &path, int id, bool useQt3DAttribut
     return meshList;
 }
 
+int componentByteSize(Q3DSGeometry::Attribute::ComponentType type)
+{
+    switch (type) {
+    case Q3DSGeometry::Attribute::ByteType:
+    case Q3DSGeometry::Attribute::UnsignedByteType:
+        return 1;
+    case Q3DSGeometry::Attribute::ShortType:
+    case Q3DSGeometry::Attribute::UnsignedShortType:
+        return 2;
+    case Q3DSGeometry::Attribute::IntType:
+    case Q3DSGeometry::Attribute::UnsignedIntType:
+        return 4;
+    case Q3DSGeometry::Attribute::HalfFloatType:
+        return 2;
+    case Q3DSGeometry::Attribute::FloatType:
+        return 4;
+    case Q3DSGeometry::Attribute::DoubleType:
+        return 8;
+    default:
+        return 0;
+    }
+}
+
+QString q3dsAttributeName(Q3DSGeometry::Attribute::Semantic semantic)
+{
+    switch (semantic) {
+    case Q3DSGeometry::Attribute::PositionSemantic:
+        return QString::fromLatin1(getPositionAttrName());
+    case Q3DSGeometry::Attribute::NormalSemantic:
+        return QString::fromLatin1(getNormalAttrName());
+    case Q3DSGeometry::Attribute::TexCoordSemantic:
+        return QString::fromLatin1(getUVAttrName());
+    case Q3DSGeometry::Attribute::TangentSemantic:
+        return QString::fromLatin1(getTexTanAttrName());
+    case Q3DSGeometry::Attribute::BinormalSemantic:
+        return QString::fromLatin1(getTexBinormalAttrName());
+    default:
+        return QString();
+    }
+}
+
+Q3DSMesh *loadMeshDataFromCustomGeometry(const Q3DSGeometry &geom, Q3DSMeshLoader::MeshMapping *mapping)
+{
+    // build buffers
+    const int bufferCount = geom.bufferCount();
+    Qt3DRender::QBuffer *indexBuffer = nullptr;
+    const Qt3DRender::QBuffer::UsageType bufUsage = geom.usageType() == Q3DSGeometry::StaticMesh
+            ? Qt3DRender::QBuffer::StaticDraw
+            : Qt3DRender::QBuffer::DynamicDraw;
+    for (int i = 0; i < bufferCount; ++i) {
+        const Q3DSGeometry::Buffer *bufDesc = geom.buffer(i);
+        Qt3DRender::QBuffer *buffer = new Qt3DRender::QBuffer;
+        buffer->setUsage(bufUsage);
+        buffer->setData(bufDesc->data);
+        mapping->bufferMap[i] = buffer;
+    }
+
+    Qt3DRender::QGeometry *geometry = new Qt3DRender::QGeometry;
+
+    int attributeCount = geom.attributeCount();
+    // vertex attributes
+    for (int i = 0; i < attributeCount; ++i) {
+        const Q3DSGeometry::Attribute *attrDesc = geom.attribute(i);
+        if (attrDesc->semantic == Q3DSGeometry::Attribute::IndexSemantic)
+            continue;
+
+        Qt3DRender::QBuffer *vertexBuffer = mapping->bufferMap[attrDesc->bufferIndex];
+        const int vertexCount = vertexBuffer->data().size() / componentByteSize(attrDesc->componentType);
+        Qt3DRender::QAttribute *attr = new Qt3DRender::QAttribute(vertexBuffer,
+                                                                  q3dsAttributeName(attrDesc->semantic),
+                                                                  Qt3DRender::QAttribute::VertexBaseType(attrDesc->componentType),
+                                                                  attrDesc->componentCount,
+                                                                  vertexCount, // not used for drawing but some Qt3D stuff may rely on it
+                                                                  attrDesc->offset,
+                                                                  attrDesc->stride);
+        attr->setAttributeType(Qt3DRender::QAttribute::VertexAttribute);
+        mapping->attributeMap[i] = attr;
+        geometry->addAttribute(attr);
+        if (attrDesc->semantic == Q3DSGeometry::Attribute::PositionSemantic)
+            geometry->setBoundingVolumePositionAttribute(attr);
+    }
+
+    // index attribute
+    if (indexBuffer) {
+        for (int i = 0; i < attributeCount; ++i) {
+            if (geom.attribute(i)->semantic == Q3DSGeometry::Attribute::IndexSemantic) {
+                const Q3DSGeometry::Attribute *attrDesc = geom.attribute(i);
+                const int elemCount = indexBuffer->data().size() / componentByteSize(attrDesc->componentType);
+                Qt3DRender::QAttribute *attr = new Qt3DRender::QAttribute(indexBuffer,
+                                                                          Qt3DRender::QAttribute::VertexBaseType(attrDesc->componentType),
+                                                                          1,
+                                                                          elemCount, // not used for drawing but some Qt3D stuff may rely on it
+                                                                          0);
+                attr->setAttributeType(Qt3DRender::QAttribute::IndexAttribute);
+                mapping->attributeMap[i] = attr;
+                geometry->addAttribute(attr);
+                break;
+            }
+        }
+    }
+
+    Q3DSMesh *mesh = new Q3DSMesh;
+    mesh->setGeometry(geometry);
+    mesh->setVertexCount(geom.drawCount()); // vertex or element count
+    mesh->setPrimitiveType(Qt3DRender::QGeometryRenderer::PrimitiveType(geom.primitiveType()));
+    mapping->mesh = mesh;
+    return mesh;
+}
+
 } // end anonymous namespace
 
 MeshList Q3DSMeshLoader::loadMesh(const QString &meshPath, int partId, bool useQt3DAttributes)
@@ -845,6 +958,121 @@ MeshList Q3DSMeshLoader::loadMesh(const QString &meshPath, int partId, bool useQ
     }
 
     return loadMeshDataFromMulti(resolvedPath, id, useQt3DAttributes);
+}
+
+MeshList Q3DSMeshLoader::loadMesh(const Q3DSGeometry &geom, MeshMapping *mapping)
+{
+    Q3DSMesh *mesh = loadMeshDataFromCustomGeometry(geom, mapping);
+    if (mesh)
+        return { mesh };
+    else
+        return MeshList();
+}
+
+void Q3DSMeshLoader::updateMeshBuffer(const Q3DSGeometry &geom, const MeshMapping &mapping, int bufferIdx)
+{
+    // update the QBuffer
+    const QByteArray &newData(geom.buffer(bufferIdx)->data);
+    Qt3DRender::QBuffer *buf = mapping.bufferMap[bufferIdx];
+    buf->setData(newData);
+
+    // sync the draw count
+    mapping.mesh->setVertexCount(geom.drawCount());
+
+    // update the counts in the QAttributes because while these are not used
+    // when issuing the actual draw calls, some other things in Qt 3D may rely on them
+    const int attrCount = geom.attributeCount();
+    for (int i = 0; i < attrCount; ++i) {
+        if (geom.attribute(i)->bufferIndex == bufferIdx) {
+            Qt3DRender::QAttribute *attr = mapping.attributeMap[i];
+            uint stride = attr->byteStride();
+            attr->setCount(newData.size() / stride);
+        }
+    }
+
+    mapping.mesh->setPrimitiveType(Qt3DRender::QGeometryRenderer::PrimitiveType(geom.primitiveType()));
+}
+
+void Q3DSMeshLoader::updateMeshBuffer(const Q3DSGeometry &geom, const MeshMapping &mapping, int bufferIdx, int offset, int size)
+{
+    const QByteArray &newData(geom.buffer(bufferIdx)->data);
+    Qt3DRender::QBuffer *buf = mapping.bufferMap[bufferIdx];
+    if (size == newData.size())
+        buf->updateData(offset, newData);
+    else
+        buf->updateData(offset, newData.left(size));
+}
+
+int Q3DSGeometry::bufferCount() const
+{
+    return m_bufferCount;
+}
+
+const Q3DSGeometry::Buffer *Q3DSGeometry::buffer(int idx) const
+{
+    return &m_buffers[idx];
+}
+
+Q3DSGeometry::Buffer *Q3DSGeometry::buffer(int idx)
+{
+    return &m_buffers[idx];
+}
+
+void Q3DSGeometry::addBuffer(Buffer buf)
+{
+    Q_ASSERT(m_bufferCount < MAX_BUFFERS);
+    m_buffers[m_bufferCount++] = buf;
+}
+
+int Q3DSGeometry::attributeCount() const
+{
+    return m_attributeCount;
+}
+
+const Q3DSGeometry::Attribute *Q3DSGeometry::attribute(int idx) const
+{
+    return &m_attributes[idx];
+}
+
+Q3DSGeometry::Attribute *Q3DSGeometry::attribute(int idx)
+{
+    return &m_attributes[idx];
+}
+
+void Q3DSGeometry::addAttribute(Q3DSGeometry::Attribute attr)
+{
+    Q_ASSERT(m_attributeCount < MAX_ATTRIBUTES);
+    m_attributes[m_attributeCount++] = attr;
+}
+
+int Q3DSGeometry::drawCount() const
+{
+    return m_drawCount;
+}
+
+void Q3DSGeometry::setDrawCount(int count)
+{
+    m_drawCount = count;
+}
+
+Q3DSGeometry::PrimitiveType Q3DSGeometry::primitiveType() const
+{
+    return m_primitiveType;
+}
+
+void Q3DSGeometry::setPrimitiveType(PrimitiveType type)
+{
+    m_primitiveType = type;
+}
+
+Q3DSGeometry::UsageType Q3DSGeometry::usageType() const
+{
+    return m_usageType;
+}
+
+void Q3DSGeometry::setUsageType(UsageType type)
+{
+    m_usageType = type;
 }
 
 QT_END_NAMESPACE

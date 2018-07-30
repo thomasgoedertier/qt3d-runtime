@@ -65,6 +65,94 @@ void buildDynamicSpawner(Q3DSUipPresentation *pres, Q3DSLayerNode *layer, Q3DSSl
     layer->appendChildNode(text);
 }
 
+void buildCustomMesh(Q3DSUipPresentation *pres, Q3DSLayerNode *layer, Q3DSSlide *slide)
+{
+    Q3DSModelNode *model = pres->newObject<Q3DSModelNode>("custommeshmodel");
+    Q3DSDefaultMaterial *mat = pres->newObject<Q3DSDefaultMaterial>("custommeshmat");
+    model->appendChildNode(mat);
+    model->setPosition(QVector3D(-300, 200, 0));
+
+    // a triangle, non-indexed
+    Q3DSGeometry *geom = new Q3DSGeometry;
+    geom->setUsageType(Q3DSGeometry::DynamicMesh);
+    geom->setPrimitiveType(Q3DSGeometry::Triangles);
+    geom->setDrawCount(3);
+
+    // need position and normal data at minimum for a non-textured default material
+    Q3DSGeometry::Buffer b;
+    const int stride = (3 + 3) * sizeof(float);
+    b.data.resize(geom->drawCount() * stride);
+    float *p = reinterpret_cast<float *>(b.data.data());
+    // the built-in primitives like the cube go from -50..50, follow this scale for now
+    // front face is CCW
+    *p++ = -50.0f; *p++ = -50.0f; *p++ = 0.0f; /* normal */ *p++ = 0.0f; *p++ = 0.0f; *p++ = 1.0f;
+    *p++ = 50.0f; *p++ = -50.0f; *p++ = 0.0f; /* normal */ *p++ = 0.0f; *p++ = 0.0f; *p++ = 1.0f;
+    *p++ = 0.0f; *p++ = 50.0f; *p++ = 0.0f; /* normal */ *p++ = 0.0f; *p++ = 0.0f; *p++ = 1.0f;
+    geom->addBuffer(b);
+
+    Q3DSGeometry::Attribute a;
+    a.bufferIndex = 0;
+    a.semantic = Q3DSGeometry::Attribute::PositionSemantic;
+    a.componentCount = 3;
+    a.offset = 0;
+    a.stride = stride;
+    geom->addAttribute(a);
+
+    a.bufferIndex = 0;
+    a.semantic = Q3DSGeometry::Attribute::NormalSemantic;
+    a.componentCount = 3;
+    a.offset = 3 * sizeof(float);
+    a.stride = stride;
+    geom->addAttribute(a);
+
+    model->setCustomMesh(geom);
+
+    slide->addObject(model);
+    slide->addObject(mat);
+
+    Q3DSAnimationTrack anim(Q3DSAnimationTrack::Linear, model, QLatin1String("rotation.y"));
+    anim.setKeyFrames({ { 0, 0 }, { 1, 45 }, { 2, 0 }, { 3, -45 }, { 4, 0 }, { 5, 45 }, { 6, 0 }, { 7, -45 }, { 8, 0 } });
+    slide->addAnimation(anim);
+
+    layer->appendChildNode(model);
+
+    // now demonstrate dynamic buffer updates
+    Q3DSTextNode *text = pres->newObject<Q3DSTextNode>("dynbuftext");
+    text->setText(QLatin1String("Move first vertex"));
+    text->setPosition(QVector3D(-300, -300, 0));
+    text->setColor(Qt::lightGray);
+    text->addEventHandler(Q3DSGraphObjectEvents::pressureDownEvent(), [geom, model](const Q3DSGraphObject::Event &) {
+        // change the first vertex's y
+        float *p = reinterpret_cast<float *>(geom->buffer(0)->data.data());
+        *(p + 1) -= 10.0f;
+        model->updateCustomMeshBuffer(0, 0, 3 * sizeof(float));
+    });
+    slide->addObject(text);
+    layer->appendChildNode(text);
+
+    text = pres->newObject<Q3DSTextNode>("dynbuftext2");
+    text->setText(QLatin1String("Add more vertices"));
+    text->setPosition(QVector3D(300, -300, 0));
+    text->setColor(Qt::lightGray);
+    text->addEventHandler(Q3DSGraphObjectEvents::pressureDownEvent(), [geom, model](const Q3DSGraphObject::Event &) {
+        // add a new triangle
+        QByteArray *buf = &geom->buffer(0)->data;
+        buf->resize(buf->size() + 3 * stride);
+        // figure out the last triangle's first vertex's x
+        float *p = reinterpret_cast<float *>(buf->data() + (geom->drawCount() - 1) * stride);
+        float x = *p + 50.0f;
+        p += 6;
+        // add 3 new vertices at the end
+        *p++ = x; *p++ = -50.0f; *p++ = 0.0f; /* normal */ *p++ = 0.0f; *p++ = 0.0f; *p++ = 1.0f;
+        *p++ = x + 100.0f; *p++ = -50.0f; *p++ = 0.0f; /* normal */ *p++ = 0.0f; *p++ = 0.0f; *p++ = 1.0f;
+        *p++ = x + 50.0f; *p++ = 50.0f; *p++ = 0.0f; /* normal */ *p++ = 0.0f; *p++ = 0.0f; *p++ = 1.0f;
+        geom->setDrawCount(geom->drawCount() + 3);
+        model->updateCustomMeshBuffer(0);
+    });
+    slide->addObject(text);
+    layer->appendChildNode(text);
+}
+
 Q3DSUipPresentation *build()
 {
     QScopedPointer<Q3DSUipPresentation> mainPres(new Q3DSUipPresentation);
@@ -135,6 +223,8 @@ Q3DSUipPresentation *build()
 
     buildDynamicSpawner(mainPres.data(), layer1, slide1);
 
+    buildCustomMesh(mainPres.data(), layer1, slide1);
+
     return mainPres.take();
 }
 
@@ -142,6 +232,8 @@ int main(int argc, char *argv[])
 {
     QCoreApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
     QGuiApplication app(argc, argv);
+
+    QSurfaceFormat::setDefaultFormat(Q3DS::surfaceFormat());
 
     Q3DSEngine::Flags flags = Q3DSEngine::EnableProfiling;
 
