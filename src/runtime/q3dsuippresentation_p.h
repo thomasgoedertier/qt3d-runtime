@@ -1846,7 +1846,8 @@ class Q3DSV_PRIVATE_EXPORT Q3DSEffectInstance : public Q3DSGraphObject
 {
     Q3DS_OBJECT
     Q_PROPERTY(QString class READ clazz)
-    Q_PROPERTY(bool eyeball READ eyeballEnabled)
+    Q_PROPERTY(bool eyeball READ eyeballEnabled WRITE setEyeballEnabled)
+    Q_PROPERTY(const Q3DSEffect * effect READ effect)
 public:
     enum EffectInstancePropertyChanges {
         EyeBallChanges = 1 << 0
@@ -1864,6 +1865,8 @@ public:
     QString clazz() const { return m_effect_unresolved; }
     const Q3DSEffect *effect() const { return &m_effect; }
     bool eyeballEnabled() const { return m_eyeballEnabled; }
+
+    Q3DSPropertyChange setEyeballEnabled(bool v);
 
     const Q3DSPropertyChangeList &masterRollbackList() const { return m_masterRollbackList; }
 
@@ -1883,7 +1886,7 @@ class Q3DSV_PRIVATE_EXPORT Q3DSBehaviorInstance : public Q3DSGraphObject
 {
     Q3DS_OBJECT
     Q_PROPERTY(QString class READ clazz)
-    Q_PROPERTY(bool eyeball READ eyeballEnabled)
+    Q_PROPERTY(bool eyeball READ eyeballEnabled WRITE setEyeballEnabled)
     Q_PROPERTY(const Q3DSBehavior * behavior READ behavior)
 public:
     enum BehaviorInstancePropertyChanges {
@@ -1905,6 +1908,8 @@ public:
     const Q3DSBehavior *behavior() const { return &m_behavior; }
     QString clazz() const { return m_behavior_unresolved; }
     bool eyeballEnabled() const { return m_eyeballEnabled; }
+
+    Q3DSPropertyChange setEyeballEnabled(bool v);
 
 private:
     Q_DISABLE_COPY(Q3DSBehaviorInstance)

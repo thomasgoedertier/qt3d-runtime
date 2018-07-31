@@ -2323,6 +2323,11 @@ int Q3DSEffectInstance::mapChangeFlags(const Q3DSPropertyChangeList &changeList)
     return changeFlags;
 }
 
+Q3DSPropertyChange Q3DSEffectInstance::setEyeballEnabled(bool v)
+{
+    return createPropSetter(m_eyeballEnabled, v, "eyeball");
+}
+
 Q3DSBehaviorInstance::Q3DSBehaviorInstance()
     : Q3DSGraphObject(Q3DSGraphObject::Behavior)
 {
@@ -2411,6 +2416,11 @@ int Q3DSBehaviorInstance::mapChangeFlags(const Q3DSPropertyChangeList &changeLis
             changeFlags |= EyeBallChanges;
     }
     return changeFlags;
+}
+
+Q3DSPropertyChange Q3DSBehaviorInstance::setEyeballEnabled(bool v)
+{
+    return createPropSetter(m_eyeballEnabled, v, "eyeball");
 }
 
 Q3DSNode::Q3DSNode(Type type)
