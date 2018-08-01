@@ -1309,12 +1309,12 @@ void tst_Q3DSUipParser::customPropertyTextureSourceResolve()
     auto eff = pres->object<Q3DSEffectInstance>(QByteArrayLiteral("FullScreenTextureOverlay_001"));
     QVERIFY(eff);
 
-    QCOMPARE(eff->propertyNames().count(), 10); // 8 standard, 2 dynamic
+    QCOMPARE(eff->propertyNames().count(), 9); // 7 standard, 2 dynamic
     QCOMPARE(eff->dynamicPropertyNames().count(), 2);
     QCOMPARE(eff->dynamicPropertyValues().count(), 2);
 
     QSet<QString> expectedNames { QLatin1String("id"), QLatin1String("name"), QLatin1String("starttime"), QLatin1String("endtime"),
-                                  QLatin1String("dynamicProperties"), QLatin1String("class"), QLatin1String("eyeball"), QLatin1String("effect"),
+                                  QLatin1String("dynamicProperties"), QLatin1String("class"), QLatin1String("eyeball"),
                                   QLatin1String("Overlay"), QLatin1String("overlay_repeat") };
     QSet<QString> actualNames;
     for (const QString &s : eff->propertyNames())

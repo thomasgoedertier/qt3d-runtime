@@ -375,6 +375,10 @@ public:
     QVector<QByteArray> dynamicPropertyNames() const;
     QVector<QVariant> dynamicPropertyValues() const;
 
+    // keep in mind that certain objects, e.g. effects, remove all dynamic
+    // properties upon certain conditions
+    void clearDynamicProperties();
+
     // NOTE: Unlike setProperty(), applyDynamicProperties() won't modify
     // (or add) a property that doesn't already exists.
     Q3DSPropertyChangeList applyDynamicProperties(const QVariantMap &v);
@@ -1792,8 +1796,7 @@ private:
 class Q3DSV_PRIVATE_EXPORT Q3DSCustomMaterialInstance : public Q3DSGraphObject
 {
     Q3DS_OBJECT
-    Q_PROPERTY(QString class READ clazz)
-    Q_PROPERTY(const Q3DSCustomMaterial * material READ material /* resolveReferences */)
+    Q_PROPERTY(QString class READ sourcePath)
     Q_PROPERTY(Q3DSImage * lightmapindirect READ lightmapIndirectMap WRITE setLightmapIndirectMap)
     Q_PROPERTY(Q3DSImage * lightmapradiosity READ lightmapRadiosityMap WRITE setLightmapRadiosityMap)
     Q_PROPERTY(Q3DSImage * lightmapshadow READ lightmapShadowMap WRITE setLightmapShadowMap)
@@ -1807,8 +1810,7 @@ public:
     void resolveReferences(Q3DSUipPresentation &pres) override;
 
     // Properties
-    QString clazz() const { return m_material_unresolved; }
-    const Q3DSCustomMaterial *material() const { return &m_material; }
+    QString sourcePath() const { return m_material_unresolved; }
     // lightmaps
     Q3DSImage *lightmapIndirectMap() const { return m_lightmapIndirectMap; }
     Q3DSImage *lightmapRadiosityMap() const { return m_lightmapRadiosityMap; }
@@ -1820,6 +1822,8 @@ public:
     Q3DSPropertyChange setLightmapRadiosityMap(Q3DSImage *v);
     Q3DSPropertyChange setLightmapShadowMap(Q3DSImage *v);
     Q3DSPropertyChange setLightProbe(Q3DSImage *v);
+
+    const Q3DSCustomMaterial *material() const { return &m_material; }
 
 private:
     Q_DISABLE_COPY(Q3DSCustomMaterialInstance)
@@ -1845,12 +1849,12 @@ private:
 class Q3DSV_PRIVATE_EXPORT Q3DSEffectInstance : public Q3DSGraphObject
 {
     Q3DS_OBJECT
-    Q_PROPERTY(QString class READ clazz)
+    Q_PROPERTY(QString class READ sourcePath WRITE setSourcePath)
     Q_PROPERTY(bool eyeball READ eyeballEnabled WRITE setEyeballEnabled)
-    Q_PROPERTY(const Q3DSEffect * effect READ effect)
 public:
     enum EffectInstancePropertyChanges {
-        EyeBallChanges = 1 << 0
+        EyeBallChanges = 1 << 0,
+        SourceChanges = 1 << 1
     };
 
     Q3DSEffectInstance();
@@ -1862,11 +1866,13 @@ public:
     int mapChangeFlags(const Q3DSPropertyChangeList &changeList) override;
 
     // Properties
-    QString clazz() const { return m_effect_unresolved; }
-    const Q3DSEffect *effect() const { return &m_effect; }
+    QString sourcePath() const { return m_effect_unresolved; }
     bool eyeballEnabled() const { return m_eyeballEnabled; }
 
+    Q3DSPropertyChange setSourcePath(const QString &v);
     Q3DSPropertyChange setEyeballEnabled(bool v);
+
+    const Q3DSEffect *effect() const { return &m_effect; }
 
     const Q3DSPropertyChangeList &masterRollbackList() const { return m_masterRollbackList; }
 
@@ -1885,9 +1891,8 @@ private:
 class Q3DSV_PRIVATE_EXPORT Q3DSBehaviorInstance : public Q3DSGraphObject
 {
     Q3DS_OBJECT
-    Q_PROPERTY(QString class READ clazz)
+    Q_PROPERTY(QString class READ sourcePath)
     Q_PROPERTY(bool eyeball READ eyeballEnabled WRITE setEyeballEnabled)
-    Q_PROPERTY(const Q3DSBehavior * behavior READ behavior)
 public:
     enum BehaviorInstancePropertyChanges {
         EyeBallChanges = 1 << 0
@@ -1905,11 +1910,12 @@ public:
     void setQmlErrorString(const QString &error) { m_qmlErrorString = error; }
 
     // Properties
-    const Q3DSBehavior *behavior() const { return &m_behavior; }
-    QString clazz() const { return m_behavior_unresolved; }
+    QString sourcePath() const { return m_behavior_unresolved; }
     bool eyeballEnabled() const { return m_eyeballEnabled; }
 
     Q3DSPropertyChange setEyeballEnabled(bool v);
+
+    const Q3DSBehavior *behavior() const { return &m_behavior; }
 
 private:
     Q_DISABLE_COPY(Q3DSBehaviorInstance)
@@ -2004,9 +2010,9 @@ public:
 
     void registerImageBuffer(const QString &sourcePath, bool hasTransparency);
 
-    Q3DSCustomMaterial customMaterial(const QByteArray &id) const;
-    Q3DSEffect effect(const QByteArray &id) const;
-    Q3DSBehavior behavior(const QByteArray &id) const;
+    Q3DSCustomMaterial customMaterial(const QString &idOrFilename);
+    Q3DSEffect effect(const QString &idOrFilename);
+    Q3DSBehavior behavior(const QString &idOrFilename);
     MeshList mesh(const QString &assetFilename, int part = 1);
 
     typedef QHash<QString, bool> ImageBufferMap;
@@ -2064,9 +2070,9 @@ private:
     Q_DISABLE_COPY(Q3DSUipPresentation)
 
     void setLoadTime(qint64 ms);
-    bool loadCustomMaterial(const QStringRef &id, const QStringRef &name, const QString &assetFilename);
-    bool loadEffect(const QStringRef &id, const QStringRef &name, const QString &assetFilename);
-    bool loadBehavior(const QStringRef &id, const QStringRef &name, const QString &assetFilename);
+    bool loadCustomMaterial(const QByteArray &id, const QString &assetFilename);
+    bool loadEffect(const QByteArray &id, const QString &assetFilename);
+    bool loadBehavior(const QByteArray &id, const QString &assetFilename);
     Q3DSGraphObject *getObject(const QByteArray &id) const;
     Q3DSGraphObject *getObjectByName(const QString &name) const;
 

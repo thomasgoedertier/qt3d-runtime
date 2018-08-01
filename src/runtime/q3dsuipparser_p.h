@@ -74,7 +74,7 @@ private:
     Q3DSGraphObject::DataInputControlledProperties getDataInputControlledProperties();
     void resolveReferences(Q3DSGraphObject *obj);
 
-    typedef std::function<bool(const QStringRef &, const QStringRef &, const QString &)> ExternalFileLoadCallback;
+    typedef std::function<bool(const QByteArray &, const QString &)> ExternalFileLoadCallback;
     void parseExternalFileRef(ExternalFileLoadCallback callback);
 
     QScopedPointer<Q3DSUipPresentation> m_presentation;

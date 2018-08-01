@@ -3843,7 +3843,7 @@ void Q3DSSceneManager::buildLayerScene(Q3DSGraphObject *obj, Q3DSLayerNode *laye
             // already done, nothing to do here
             break;
         case Q3DSGraphObject::Effect:
-            buildEffect(static_cast<Q3DSEffectInstance *>(obj), layer3DS);
+            initEffect(static_cast<Q3DSEffectInstance *>(obj), layer3DS);
             break;
         case Q3DSGraphObject::Behavior:
             initBehaviorInstance(static_cast<Q3DSBehaviorInstance *>(obj));
@@ -5670,7 +5670,7 @@ void Q3DSSceneManager::updateCustomMaterial(Q3DSCustomMaterialInstance *m, Q3DSR
     }
 }
 
-void Q3DSSceneManager::buildEffect(Q3DSEffectInstance *eff3DS, Q3DSLayerNode *layer3DS)
+void Q3DSSceneManager::initEffect(Q3DSEffectInstance *eff3DS, Q3DSLayerNode *layer3DS)
 {
     Q3DSLayerAttached *layerData = static_cast<Q3DSLayerAttached *>(layer3DS->attached());
     Q3DSEffectAttached *effData = new Q3DSEffectAttached;
@@ -5691,6 +5691,10 @@ void Q3DSSceneManager::buildEffect(Q3DSEffectInstance *eff3DS, Q3DSLayerNode *la
                                    "Effect buffer for layer %s", layer3DS->id().constData());
         layerData->sizeManagedTextures.append(layerData->effLayerTexture);
     }
+
+    effData->propertyChangeObserverIndex = eff3DS->addPropertyChangeObserver(
+                std::bind(&Q3DSSceneManager::handlePropertyChange, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
+    effData->eventObserverIndex = eff3DS->addEventHandler(QString(), std::bind(&Q3DSSceneManager::handleEvent, this, std::placeholders::_1));
 }
 
 static inline void setTextureInfoUniform(Qt3DRender::QParameter *param, Qt3DRender::QAbstractTexture *texture)
@@ -5821,7 +5825,7 @@ static inline void setupStencilTest(Qt3DRender::QStencilTest *stencilTest, const
 
 // The main entry point for activating/deactivating effects on a layer. Called
 // upon scene building and every time an effect gets hidden/shown (eyeball).
-void Q3DSSceneManager::updateEffectStatus(Q3DSLayerNode *layer3DS)
+void Q3DSSceneManager::updateEffectStatus(Q3DSLayerNode *layer3DS, bool force)
 {
     Q3DSLayerAttached *layerData = static_cast<Q3DSLayerAttached *>(layer3DS->attached());
     const int count = layerData->effectData.effects.count();
@@ -5846,7 +5850,7 @@ void Q3DSSceneManager::updateEffectStatus(Q3DSLayerNode *layer3DS)
         }
     }
 
-    if (!change)
+    if (!change && !force)
         return; // nothing has changed
 
     // Activating/deactivating an effect in the chain needs resetting
@@ -7440,8 +7444,11 @@ void Q3DSSceneManager::updateSubTreeRecursive(Q3DSGraphObject *obj)
         Q3DSEffectAttached *data = static_cast<Q3DSEffectAttached *>(eff3DS->attached());
         if (data && (data->frameDirty & Q3DSGraphObjectAttached::EffectDirty)) {
             const bool activeFlagChanges = data->frameChangeFlags & Q3DSEffectInstance::EyeBallChanges;
-            if (activeFlagChanges) // active/deactivate effects
-                updateEffectStatus(eff3DS->attached<Q3DSEffectAttached>()->layer3DS);
+            const bool sourceChanges = data->frameChangeFlags & Q3DSEffectInstance::SourceChanges;
+            if (sourceChanges)
+                eff3DS->resolveReferences(*m_presentation); // make sure the new effect is loaded
+            if (activeFlagChanges || sourceChanges) // active/deactivate effects by rebuilding the chain
+                updateEffectStatus(data->layer3DS, sourceChanges);
             // send changed parameter values to the shader
             updateEffect(eff3DS);
             m_wasDirty = true;
@@ -8157,67 +8164,99 @@ static Q3DSLayerNode *findLayerForObjectInScene(Q3DSGraphObject *obj)
     return static_cast<Q3DSLayerNode *>(p);
 }
 
-void Q3DSSceneManager::handleSceneChange(Q3DSScene *, Q3DSGraphObject::DirtyFlag change, Q3DSGraphObject *obj)
-{
-    if (change == Q3DSGraphObject::DirtyNodeAdded) {
-        if (obj->isNode()) {
-            if (obj->type() != Q3DSGraphObject::Layer) {
-                Q_ASSERT(obj->parent() && obj->parent()->attached());
-                Q3DSLayerNode *layer3DS = findLayerForObjectInScene(obj);
-                if (layer3DS)
-                    addLayerContent(obj, obj->parent(), layer3DS);
-            } else if (obj->type() == Q3DSGraphObject::Layer) {
-                addLayer(static_cast<Q3DSLayerNode *>(obj));
-            }
-        }
-    } else if (change == Q3DSGraphObject::DirtyNodeRemoved) {
-        if (obj->isNode()) {
-            Q_ASSERT(obj->parent());
-            const bool isLayer = obj->type() == Q3DSGraphObject::Layer;
-            if (isLayer)
-                qCDebug(lcScene) << "Dyn.removing layer" << obj->id();
-            else
-                qCDebug(lcScene) << "Dyn.removing" << obj->attached()->entity;
-            Q3DSUipPresentation::forAllObjectsInSubTree(obj, [this](Q3DSGraphObject *objOrChild) {
-                Q3DSGraphObjectAttached *data = objOrChild->attached();
-                if (!data)
-                    return;
-                Q3DSSlidePlayer *slidePlayer = m_slidePlayer;
-                if (data->component)
-                    slidePlayer = data->component->masterSlide()->attached<Q3DSSlideAttached>()->slidePlayer;
-                slidePlayer->objectAboutToBeRemovedFromScene(objOrChild);
-                if (data->propertyChangeObserverIndex >= 0) {
-                    objOrChild->removePropertyChangeObserver(data->propertyChangeObserverIndex);
-                    data->propertyChangeObserverIndex = -1;
-                }
-                if (data->eventObserverIndex >= 0) {
-                    objOrChild->removeEventHandler(QString(), data->eventObserverIndex);
-                    data->eventObserverIndex = -1;
-                }
-                m_pendingObjectVisibility.remove(objOrChild);
-            });
-            if (!isLayer) {
-                delete obj->attached()->entity;
-                Q3DSLayerNode *layer3DS = findLayerForObjectInScene(obj);
-                if (layer3DS)
-                    removeLayerContent(obj, layer3DS);
-            } else {
-                rebuildCompositorLayerChain();
-            }
-        }
-        // bye bye attached; it will get recreated in case obj gets added back later on
-        if (obj->attached()) {
-            delete obj->attached();
-            obj->setAttached(nullptr);
-        }
-    }
-}
-
 static void markLayerAsContentChanged(Q3DSLayerNode *layer3DS, int change = Q3DSLayerNode::LayerContentSubTreeChanges)
 {
     Q3DSLayerAttached *data = layer3DS->attached<Q3DSLayerAttached>();
     data->frameDirty |= Q3DSGraphObjectAttached::LayerDirty;
     data->frameChangeFlags |= change;
+}
+
+void Q3DSSceneManager::handleSceneChange(Q3DSScene *, Q3DSGraphObject::DirtyFlag change, Q3DSGraphObject *obj)
+{
+    if (change == Q3DSGraphObject::DirtyNodeAdded) {
+
+        // Adding a layer or adding something inside a layer are two distinct
+        // cases: the former is similar to the initial scene building in the
+        // .uip world's buildScene(), while the latter is more akin to a subset
+        // of buildLayer().
+
+        if (obj->type() != Q3DSGraphObject::Layer) {
+            Q_ASSERT(obj->parent() && obj->parent()->attached());
+            Q3DSLayerNode *layer3DS = findLayerForObjectInScene(obj);
+            if (layer3DS)
+                addLayerContent(obj, obj->parent(), layer3DS);
+        } else {
+            addLayer(static_cast<Q3DSLayerNode *>(obj));
+        }
+    } else if (change == Q3DSGraphObject::DirtyNodeRemoved) {
+
+        // Removing has no counterpart in the static .uip-based world. Here
+        // we'll need to tear down everything, removing references and
+        // rebuilding things as needed, and destroying the attached objects.
+
+        Q_ASSERT(obj->parent());
+        qCDebug(lcScene) << "Dyn.removing subtree with root" << obj->id();
+        bool needsEffectUpdate = false;
+
+        Q3DSUipPresentation::forAllObjectsInSubTree(obj, [this, &needsEffectUpdate](Q3DSGraphObject *objOrChild) {
+            Q3DSGraphObjectAttached *data = objOrChild->attached();
+            if (!data)
+                return;
+
+            Q3DSSlidePlayer *slidePlayer = m_slidePlayer;
+            if (data->component)
+                slidePlayer = data->component->masterSlide()->attached<Q3DSSlideAttached>()->slidePlayer;
+
+            slidePlayer->objectAboutToBeRemovedFromScene(objOrChild);
+
+            if (data->propertyChangeObserverIndex >= 0) {
+                objOrChild->removePropertyChangeObserver(data->propertyChangeObserverIndex);
+                data->propertyChangeObserverIndex = -1;
+            }
+            if (data->eventObserverIndex >= 0) {
+                objOrChild->removeEventHandler(QString(), data->eventObserverIndex);
+                data->eventObserverIndex = -1;
+            }
+
+            m_pendingObjectVisibility.remove(objOrChild);
+
+            if (objOrChild->type() == Q3DSGraphObject::Effect) {
+                Q3DSEffectInstance *eff3DS = static_cast<Q3DSEffectInstance *>(objOrChild);
+                Q3DSLayerNode *layer3DS = findLayerForObjectInScene(eff3DS);
+                if (layer3DS) {
+                    layer3DS->attached<Q3DSLayerAttached>()->effectData.effects.removeOne(eff3DS);
+                    needsEffectUpdate = true;
+                }
+            }
+        });
+
+        if (obj->type() == Q3DSGraphObject::Layer) {
+            // obj is now unreachable walking down from the Scene root (the
+            // only thing that's still set is obj's parent ptr). Therefore the
+            // compositor will not see this layer anymore.
+            rebuildCompositorLayerChain();
+        } else {
+            Q3DSLayerNode *layer3DS = findLayerForObjectInScene(obj);
+            if (layer3DS) {
+                markLayerAsContentChanged(layer3DS);
+                if (obj->type() == Q3DSGraphObject::Light)
+                    markLayerAsContentChanged(layer3DS, Q3DSLayerNode::LayerContentSubTreeLightsChange);
+                if (needsEffectUpdate)
+                    updateEffectStatus(layer3DS, true);
+            }
+            // bye bye QEntity - takes care of the child entities as well
+            if (obj->isNode())
+                delete obj->attached()->entity;
+        }
+
+        // bye bye attached; it will get recreated in case obj gets added back later on
+        Q3DSUipPresentation::forAllObjectsInSubTree(obj, [this](Q3DSGraphObject *objOrChild) {
+            if (objOrChild->attached()) {
+                delete objOrChild->attached();
+                objOrChild->setAttached(nullptr);
+            }
+        });
+    }
 }
 
 void Q3DSSceneManager::addLayerContent(Q3DSGraphObject *obj, Q3DSGraphObject *parent, Q3DSLayerNode *layer3DS)
@@ -8235,20 +8274,16 @@ void Q3DSSceneManager::addLayerContent(Q3DSGraphObject *obj, Q3DSGraphObject *pa
 
     // phase 1
     buildLayerScene(obj, layer3DS, parentEntity);
-    qCDebug(lcScene) << "Dyn.added" << obj->attached()->entity;
+    qCDebug(lcScene) << "Dyn.added subtree with root" << obj->id();
 
     // phase 2
-    bool needsEffectUpdate = false;
-    Q3DSUipPresentation::forAllObjectsInSubTree(obj, [this, layer3DS, &needsEffectUpdate](Q3DSGraphObject *objOrChild) {
+    Q3DSUipPresentation::forAllObjectsInSubTree(obj, [this, layer3DS](Q3DSGraphObject *objOrChild) {
         switch (objOrChild->type()) {
         case Q3DSGraphObject::Model:
             buildModelMaterial(static_cast<Q3DSModelNode *>(objOrChild));
             break;
         case Q3DSGraphObject::Light:
             markLayerAsContentChanged(layer3DS, Q3DSLayerNode::LayerContentSubTreeLightsChange);
-            break;
-        case Q3DSGraphObject::Effect:
-            needsEffectUpdate = true;
             break;
 
         case Q3DSGraphObject::Scene:
@@ -8267,18 +8302,9 @@ void Q3DSSceneManager::addLayerContent(Q3DSGraphObject *obj, Q3DSGraphObject *pa
 
         slidePlayer->objectAboutToBeAddedToScene(objOrChild);
     });
-    if (needsEffectUpdate)
-        updateEffectStatus(layer3DS);
 
     // ensure layer gets dirtied
     markLayerAsContentChanged(layer3DS);
-}
-
-void Q3DSSceneManager::removeLayerContent(Q3DSGraphObject *obj, Q3DSLayerNode *layer3DS)
-{
-    markLayerAsContentChanged(layer3DS);
-    if (obj->type() == Q3DSGraphObject::Light)
-        markLayerAsContentChanged(layer3DS, Q3DSLayerNode::LayerContentSubTreeLightsChange);
 }
 
 void Q3DSSceneManager::addLayer(Q3DSLayerNode *layer3DS)

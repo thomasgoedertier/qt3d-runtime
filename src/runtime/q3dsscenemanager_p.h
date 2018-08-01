@@ -827,8 +827,7 @@ private:
     void updateTextureParameters(Q3DSTextureParameters &textureParameters, Q3DSImage *image);
     void updateDefaultMaterial(Q3DSDefaultMaterial *m, Q3DSReferencedMaterial *rm, Q3DSModelNode *model3DS);
     void updateCustomMaterial(Q3DSCustomMaterialInstance *m, Q3DSReferencedMaterial *rm, Q3DSModelNode *model3DS);
-    void buildEffect(Q3DSEffectInstance *eff3DS, Q3DSLayerNode *layer3DS);
-    void updateEffectStatus(Q3DSLayerNode *layer3DS);
+    void updateEffectStatus(Q3DSLayerNode *layer3DS, bool force = false);
     void ensureEffectSource(Q3DSLayerNode *layer3DS);
     void cleanupEffectSource(Q3DSLayerNode *layer3DS);
     void activateEffect(Q3DSEffectInstance *eff3DS, Q3DSLayerNode *layer3DS, EffectActivationFlags flags, Qt3DRender::QAbstractTexture *prevOutput);
@@ -844,6 +843,7 @@ private:
     QVector<Q3DSNodeAttached::LightsData *> getLightsDataForNode(Q3DSGraphObject *object);
     QVector<Qt3DRender::QParameter *> prepareSeparateLightUniforms(const QVector<Q3DSLightSource> &allLights, const QString &lightsUniformName);
 
+    void initEffect(Q3DSEffectInstance *eff3DS, Q3DSLayerNode *layer3DS);
     void initBehaviorInstance(Q3DSBehaviorInstance *behaviorInstance);
     void initImage(Q3DSImage *image);
     void initDefaultMaterial(Q3DSDefaultMaterial *m);
@@ -880,7 +880,6 @@ private:
     void handleNodeGlobalChange(Q3DSNode *node);
     void handleSceneChange(Q3DSScene *scene, Q3DSGraphObject::DirtyFlag change, Q3DSGraphObject *obj);
     void addLayerContent(Q3DSGraphObject *obj, Q3DSGraphObject *parent, Q3DSLayerNode *layer3DS);
-    void removeLayerContent(Q3DSGraphObject *obj, Q3DSLayerNode *layer3DS);
     void addLayer(Q3DSLayerNode *layer3DS);
     void handleSlideGraphChange(Q3DSSlide *master, Q3DSGraphObject::DirtyFlag change, Q3DSSlide *slide);
     void handleSlideObjectChange(Q3DSSlide *slide, const Q3DSSlide::SlideObjectChange &change);

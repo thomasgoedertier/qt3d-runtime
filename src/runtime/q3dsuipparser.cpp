@@ -221,13 +221,13 @@ void Q3DSUipParser::parseClasses()
     while (r->readNextStartElement()) {
         if (r->name() == QStringLiteral("CustomMaterial")) {
             parseExternalFileRef(std::bind(&Q3DSUipPresentation::loadCustomMaterial, m_presentation.data(),
-                                           std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
+                                           std::placeholders::_1, std::placeholders::_2));
         } else if (r->name() == QStringLiteral("Effect")) {
             parseExternalFileRef(std::bind(&Q3DSUipPresentation::loadEffect, m_presentation.data(),
-                                           std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
+                                           std::placeholders::_1, std::placeholders::_2));
         } else if (r->name() == QStringLiteral("Behavior")) {
             parseExternalFileRef(std::bind(&Q3DSUipPresentation::loadBehavior, m_presentation.data(),
-                                           std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
+                                           std::placeholders::_1, std::placeholders::_2));
         } else if (r->name() == QStringLiteral("RenderPlugin")) {
             r->raiseError(QObject::tr("RenderPlugin not supported"));
         } else {
@@ -241,12 +241,13 @@ void Q3DSUipParser::parseExternalFileRef(ExternalFileLoadCallback callback)
     QXmlStreamReader *r = reader();
     auto a = r->attributes();
 
-    QStringRef id = a.value(QStringLiteral("id"));
-    QStringRef name = a.value(QStringLiteral("name"));
-    QStringRef sourcePath = a.value(QStringLiteral("sourcepath"));
+    const QStringRef id = a.value(QStringLiteral("id"));
+    const QStringRef sourcePath = a.value(QStringLiteral("sourcepath"));
 
+    // custommaterial/effect/behavior all expect ids to be prefixed with #
+    const QByteArray decoratedId = QByteArrayLiteral("#") + id.toUtf8();
     const QString src = m_presentation->assetFileName(sourcePath.toString(), nullptr);
-    if (!callback(id, name, src))
+    if (!callback(decoratedId, src))
         r->raiseError(QObject::tr("Failed to load external file %1").arg(src));
 
     r->skipCurrentElement();

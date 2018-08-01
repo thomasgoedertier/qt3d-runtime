@@ -849,6 +849,16 @@ QVariantMap Q3DSGraphObject::dynamicProperties() const
     return dynProps;
 }
 
+void Q3DSGraphObject::clearDynamicProperties()
+{
+    Q3DSObjectExtraMetaData::Data *d = extraMetaData()->data.data();
+    if (!d)
+        return;
+
+    d->propertyNames.clear();
+    d->propertyValues.clear();
+}
+
 Q3DSPropertyChangeList Q3DSGraphObject::applyDynamicProperties(const QVariantMap &v)
 {
     Q3DSPropertyChangeList changeList;
@@ -2176,8 +2186,11 @@ void mapCustomPropertyFileNames(QVariantMap *propTab, const T &propMeta, const Q
 void Q3DSCustomMaterialInstance::resolveReferences(Q3DSUipPresentation &pres)
 {
     // changing the material class dynamically is not supported. do it only once.
-    if (!m_materialIsResolved && m_material_unresolved.startsWith('#')) {
-        m_material = pres.customMaterial(m_material_unresolved.mid(1).toUtf8());
+    if (!m_materialIsResolved && !m_material_unresolved.isEmpty()) {
+        QString idOrFilename = m_material_unresolved;
+        if (!idOrFilename.startsWith(QLatin1Char('#')))
+            idOrFilename = pres.assetFileName(idOrFilename, nullptr);
+        m_material = pres.customMaterial(idOrFilename);
         m_materialIsResolved = true;
         if (!m_material.isNull()) {
             // Now add the (dynamic) properties with the default values first.
@@ -2242,7 +2255,8 @@ template<typename V>
 void Q3DSEffectInstance::setProps(const V &attrs, PropSetFlags flags)
 {
     const QString typeName = QStringLiteral("Effect");
-    parseProperty(attrs, flags, typeName, QStringLiteral("class"), &m_effect_unresolved);
+    if (parseProperty(attrs, flags, typeName, QStringLiteral("class"), &m_effect_unresolved))
+        m_effectIsResolved = false;
 
     parseProperty(attrs, flags, typeName, QStringLiteral("eyeball"), &m_eyeballEnabled);
 
@@ -2281,35 +2295,57 @@ void Q3DSEffectInstance::applyPropertyChanges(const Q3DSPropertyChangeList &chan
     }
 
     if (!propChanges.isEmpty())
-        applyDynamicProperties(propChanges); // Only updates dynamic properties, if they already exists!
+        applyDynamicProperties(propChanges);
 }
 
 void Q3DSEffectInstance::resolveReferences(Q3DSUipPresentation &pres)
 {
-    // changing the effect class dynamically is not supported. do it only once.
-    if (!m_effectIsResolved && m_effect_unresolved.startsWith('#')) {
-        m_effect = pres.effect(m_effect_unresolved.mid(1).toUtf8());
-        m_effectIsResolved = true;
-        if (!m_effect.isNull()) {
-            // Now add the (dynamic) properties with the default values first.
-            const auto props = m_effect.properties();
-            for (auto it = props.cbegin(); it != props.cend(); ++it) {
-                // Fix up the filenames to that no further adjustment is necessary from this point on.
-                QVariant value = Q3DS::convertToVariant(it->defaultValue, *it);
-                mapCustomPropertyFileNames(it.key(), &value, props, pres);
-                setProperty(it.key().toLatin1(), value);
-            }
+    // Only do the rest if sourcepath actually changed because the custom
+    // property processing must only be done when there was a real change.
+    if (m_effectIsResolved)
+        return;
 
-            // Now go update any pending property values
-            QVariantMap propChanges;
-            for (const Q3DSPropertyChange &change : m_pendingCustomProperties) {
-                const Q3DS::PropertyType type = props.value(change.nameStr()).type;
-                propChanges[change.nameStr()] = Q3DS::convertToVariant(change.valueStr(), type);
-            }
-            mapCustomPropertyFileNames(&propChanges, props, pres);
-            applyDynamicProperties(propChanges);
-            m_pendingCustomProperties.clear();
+    m_effectIsResolved = true;
+
+    if (m_effect_unresolved.isEmpty())
+        return;
+
+    // keep the # if it's an id since it is otherwise treated as a filename
+    // (that needs resolving when relative)
+    QString idOrFilename = m_effect_unresolved;
+    if (!idOrFilename.startsWith(QLatin1Char('#')))
+        idOrFilename = pres.assetFileName(idOrFilename, nullptr);
+
+    m_effect = pres.effect(idOrFilename);
+    if (m_effect.isNull())
+        return;
+
+    // Remove all existing dynamic properties. This may seem unnecessary but
+    // unfortunately it is needed since changing the source (class property) to
+    // a different effect brings in a different set of custom properties, and
+    // having the old ones lingering around causes trouble (or is inefficient
+    // at best).
+    clearDynamicProperties();
+
+    // Add the effect's dynamic properties with the default values first.
+    const auto props = m_effect.properties();
+    for (auto it = props.cbegin(); it != props.cend(); ++it) {
+        // Fix up the filenames to that no further adjustment is necessary from this point on.
+        QVariant value = Q3DS::convertToVariant(it->defaultValue, *it);
+        mapCustomPropertyFileNames(it.key(), &value, props, pres);
+        setProperty(it.key().toLatin1(), value);
+    }
+
+    // Now go update any pending property values (from the .uip parsing).
+    if (!m_pendingCustomProperties.isEmpty()) {
+        QVariantMap propChanges;
+        for (const Q3DSPropertyChange &change : m_pendingCustomProperties) {
+            const Q3DS::PropertyType type = props.value(change.nameStr()).type;
+            propChanges[change.nameStr()] = Q3DS::convertToVariant(change.valueStr(), type);
         }
+        mapCustomPropertyFileNames(&propChanges, props, pres);
+        applyDynamicProperties(propChanges);
+        m_pendingCustomProperties.clear(); // clear, we won't apply these values again in case the source changes
     }
 }
 
@@ -2319,8 +2355,19 @@ int Q3DSEffectInstance::mapChangeFlags(const Q3DSPropertyChangeList &changeList)
     for (auto it = changeList.cbegin(), itEnd = changeList.cend(); it != itEnd; ++it) {
         if (it->nameStr() == QStringLiteral("eyeball"))
             changeFlags |= EyeBallChanges;
+        else if (it->nameStr() == QStringLiteral("class"))
+            changeFlags |= SourceChanges;
     }
     return changeFlags;
+}
+
+Q3DSPropertyChange Q3DSEffectInstance::setSourcePath(const QString &v)
+{
+    Q3DSPropertyChange r = createPropSetter(m_effect_unresolved, v, "sourcepath");
+    const bool valueChanged = !r.nameStr().isEmpty();
+    if (valueChanged)
+        m_effectIsResolved = false;
+    return r;
 }
 
 Q3DSPropertyChange Q3DSEffectInstance::setEyeballEnabled(bool v)
@@ -2375,14 +2422,17 @@ void Q3DSBehaviorInstance::applyPropertyChanges(const Q3DSPropertyChangeList &ch
     }
 
     if (!propChanges.isEmpty())
-        applyDynamicProperties(propChanges); // Only updates dynamic properties, if they already exists!
+        applyDynamicProperties(propChanges);
 }
 
 void Q3DSBehaviorInstance::resolveReferences(Q3DSUipPresentation &pres)
 {
     // changing the behavior class dynamically is not supported. do it only once.
-    if (!m_behaviorIsResolved && m_behavior_unresolved.startsWith('#')) {
-        m_behavior = pres.behavior(m_behavior_unresolved.mid(1).toUtf8());
+    if (!m_behaviorIsResolved && !m_behavior_unresolved.isEmpty()) {
+        QString idOrFilename = m_behavior_unresolved;
+        if (!idOrFilename.startsWith(QLatin1Char('#')))
+            idOrFilename = pres.assetFileName(idOrFilename, nullptr);
+        m_behavior = pres.behavior(idOrFilename);
         m_behaviorIsResolved = true;
         if (!m_behavior.isNull()) {
             // Now add the (dynamic) properties with the default values first.
@@ -3130,7 +3180,7 @@ void Q3DSModelNode::resolveReferences(Q3DSUipPresentation &pres)
         if (m_mesh_unresolved != QStringLiteral("#Custom")) {
             int part = 1;
             const QString fn = pres.assetFileName(m_mesh_unresolved, &part);
-            m_mesh = pres.mesh(fn, part);
+            m_mesh = pres.mesh(fn, part); // this caches; cheap if already used the same mesh somewhere
         } else {
             // ### should this be cached? (would need a cache key then)
             m_mesh = Q3DSMeshLoader::loadMesh(*m_customMesh, &m_customMeshMapping);
@@ -3897,58 +3947,63 @@ void Q3DSUipPresentation::unregisterObject(const QByteArray &id)
     d->objects.remove(id);
 }
 
-bool Q3DSUipPresentation::loadCustomMaterial(const QStringRef &id, const QStringRef &, const QString &assetFilename)
+template<typename T, typename ParserT>
+bool loadMeta(const QByteArray &id, const QString &assetFilename, QHash<QByteArray, T> *dst)
 {
-    Q3DSCustomMaterialParser p;
+    ParserT p;
     bool ok = false;
-    Q3DSCustomMaterial mat = p.parse(assetFilename, &ok);
+    T eff = p.parse(assetFilename, &ok);
     if (!ok) {
-        qWarning("Failed to parse custom material %s", qPrintable(assetFilename));
+        qWarning("Failed to parse metadata %s", qPrintable(assetFilename));
         return false;
     }
-    d->customMaterials.insert(id.toUtf8(), mat);
+    dst->insert(id, eff);
     return true;
 }
 
-Q3DSCustomMaterial Q3DSUipPresentation::customMaterial(const QByteArray &id) const
+bool Q3DSUipPresentation::loadCustomMaterial(const QByteArray &id, const QString &assetFilename)
 {
-    return d->customMaterials.value(id);
+    return loadMeta<Q3DSCustomMaterial, Q3DSCustomMaterialParser>(id, assetFilename, &d->customMaterials);
 }
 
-bool Q3DSUipPresentation::loadEffect(const QStringRef &id, const QStringRef &, const QString &assetFilename)
+Q3DSCustomMaterial Q3DSUipPresentation::customMaterial(const QString &idOrFilename)
 {
-    Q3DSEffectParser p;
-    bool ok = false;
-    Q3DSEffect eff = p.parse(assetFilename, &ok);
-    if (!ok) {
-        qWarning("Failed to parse effect %s", qPrintable(assetFilename));
-        return false;
-    }
-    d->effects.insert(id.toUtf8(), eff);
-    return true;
+    const QByteArray key = idOrFilename.toUtf8();
+    if (!key.startsWith('#') && !d->customMaterials.contains(key))
+        loadCustomMaterial(key, idOrFilename);
+
+    return d->customMaterials.value(key);
 }
 
-Q3DSEffect Q3DSUipPresentation::effect(const QByteArray &id) const
+bool Q3DSUipPresentation::loadEffect(const QByteArray &id, const QString &assetFilename)
 {
-    return d->effects.value(id);
+    return loadMeta<Q3DSEffect, Q3DSEffectParser>(id, assetFilename, &d->effects);
 }
 
-bool Q3DSUipPresentation::loadBehavior(const QStringRef &id, const QStringRef &, const QString &assetFilename)
+Q3DSEffect Q3DSUipPresentation::effect(const QString &idOrFilename)
 {
-    Q3DSBehaviorParser p;
-    bool ok = false;
-    Q3DSBehavior eff = p.parse(assetFilename, &ok);
-    if (!ok) {
-        qWarning("Failed to parse behavior %s", qPrintable(assetFilename));
-        return false;
-    }
-    d->behaviors.insert(id.toUtf8(), eff);
-    return true;
+    // We either have an id (starting with #) for an already loaded effect (when
+    // defined in .uip), or a filename which may or may not be already parsed.
+
+    const QByteArray key = idOrFilename.toUtf8();
+    if (!key.startsWith('#') && !d->effects.contains(key))
+        loadEffect(key, idOrFilename);
+
+    return d->effects.value(key);
 }
 
-Q3DSBehavior Q3DSUipPresentation::behavior(const QByteArray &id) const
+bool Q3DSUipPresentation::loadBehavior(const QByteArray &id, const QString &assetFilename)
 {
-    return d->behaviors.value(id);
+    return loadMeta<Q3DSBehavior, Q3DSBehaviorParser>(id, assetFilename, &d->behaviors);
+}
+
+Q3DSBehavior Q3DSUipPresentation::behavior(const QString &idOrFilename)
+{
+    const QByteArray key = idOrFilename.toUtf8();
+    if (!key.startsWith('#') && !d->behaviors.contains(key))
+        loadBehavior(key, idOrFilename);
+
+    return d->behaviors.value(key);
 }
 
 MeshList Q3DSUipPresentation::mesh(const QString &assetFilename, int part)
