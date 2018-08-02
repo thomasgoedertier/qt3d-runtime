@@ -2122,7 +2122,8 @@ template<typename V>
 void Q3DSCustomMaterialInstance::setProps(const V &attrs, PropSetFlags flags)
 {
     const QString typeName = QStringLiteral("CustomMaterial");
-    parseProperty(attrs, flags, typeName, QStringLiteral("class"), &m_material_unresolved);
+    if (parseProperty(attrs, flags, typeName, QStringLiteral("class"), &m_material_unresolved))
+        m_materialIsResolved = false;
 
     parseImageProperty(attrs, flags, typeName, QStringLiteral("lightmapindirect"), &m_lightmapIndirectMap_unresolved);
     parseImageProperty(attrs, flags, typeName, QStringLiteral("lightmapradiosity"), &m_lightmapRadiosityMap_unresolved);
@@ -2183,41 +2184,86 @@ void mapCustomPropertyFileNames(QVariantMap *propTab, const T &propMeta, const Q
     }
 }
 
+static void importCustomProperties(Q3DSGraphObject *obj,
+                                   const QMap<QString, Q3DSMaterial::PropertyElement> &customPropMeta,
+                                   Q3DSPropertyChangeList *pendingCustomProperties,
+                                   Q3DSUipPresentation &pres)
+{
+    // Remove all existing dynamic properties. This may seem unnecessary but
+    // unfortunately it is needed since changing the source (class property) to
+    // a different effect brings in a different set of custom properties, and
+    // having the old ones lingering around causes trouble (or is inefficient
+    // at best).
+    obj->clearDynamicProperties();
+
+    // Add the effect's dynamic properties with the default values first.
+    for (auto it = customPropMeta.cbegin(); it != customPropMeta.cend(); ++it) {
+        // Fix up the filenames to that no further adjustment is necessary from this point on.
+        QVariant value = Q3DS::convertToVariant(it->defaultValue, *it);
+        mapCustomPropertyFileNames(it.key(), &value, customPropMeta, pres);
+        obj->setProperty(it.key().toLatin1(), value);
+    }
+
+    // Now go update any pending property values (from the .uip parsing).
+    if (!pendingCustomProperties->isEmpty()) {
+        QVariantMap propChanges;
+        for (const Q3DSPropertyChange &change : *pendingCustomProperties) {
+            const Q3DS::PropertyType type = customPropMeta.value(change.nameStr()).type;
+            propChanges[change.nameStr()] = Q3DS::convertToVariant(change.valueStr(), type);
+        }
+        mapCustomPropertyFileNames(&propChanges, customPropMeta, pres);
+        obj->applyDynamicProperties(propChanges);
+        pendingCustomProperties->clear(); // clear, we won't apply these values again in case the source changes
+    }
+}
+
 void Q3DSCustomMaterialInstance::resolveReferences(Q3DSUipPresentation &pres)
 {
-    // changing the material class dynamically is not supported. do it only once.
-    if (!m_materialIsResolved && !m_material_unresolved.isEmpty()) {
-        QString idOrFilename = m_material_unresolved;
-        if (!idOrFilename.startsWith(QLatin1Char('#')))
-            idOrFilename = pres.assetFileName(idOrFilename, nullptr);
-        m_material = pres.customMaterial(idOrFilename);
-        m_materialIsResolved = true;
-        if (!m_material.isNull()) {
-            // Now add the (dynamic) properties with the default values first.
-            const auto props = m_material.properties();
-            for (auto it = props.cbegin(); it != props.cend(); ++it) {
-                // Fix up the filenames to that no further adjustment is necessary from this point on.
-                QVariant value = Q3DS::convertToVariant(it->defaultValue, *it);
-                mapCustomPropertyFileNames(it.key(), &value, props, pres);
-                setProperty(it.key().toLatin1(), value);
-            }
+    // Only do the rest if sourcepath actually changed because the custom
+    // property processing must only be done when there was a real change.
+    if (m_materialIsResolved)
+        return;
 
-            // Now go update any pending property values
-            QVariantMap propChanges;
-            for (const Q3DSPropertyChange &change : m_pendingCustomProperties) {
-                const Q3DS::PropertyType type = props.value(change.nameStr()).type;
-                propChanges[change.nameStr()] = Q3DS::convertToVariant(change.valueStr(), type);
-            }
-            mapCustomPropertyFileNames(&propChanges, props, pres);
-            applyDynamicProperties(propChanges);
-            m_pendingCustomProperties.clear();
-        }
-    }
+    m_materialIsResolved = true;
+
+    if (m_material_unresolved.isEmpty())
+        return;
+
+    // keep the # if it's an id since it is otherwise treated as a filename
+    // (that needs resolving when relative)
+    QString idOrFilename = m_material_unresolved;
+    if (!idOrFilename.startsWith(QLatin1Char('#')))
+        idOrFilename = pres.assetFileName(idOrFilename, nullptr);
+
+    m_material = pres.customMaterial(idOrFilename);
+    if (m_material.isNull())
+        return;
+
+    importCustomProperties(this, m_material.properties(), &m_pendingCustomProperties, pres);
 
     resolveRef(m_lightmapIndirectMap_unresolved, Q3DSGraphObject::Image, &m_lightmapIndirectMap, pres);
     resolveRef(m_lightmapRadiosityMap_unresolved, Q3DSGraphObject::Image, &m_lightmapRadiosityMap, pres);
     resolveRef(m_lightmapShadowMap_unresolved, Q3DSGraphObject::Image, &m_lightmapShadowMap, pres);
     resolveRef(m_lightProbe_unresolved, Q3DSGraphObject::Image, &m_lightProbe, pres);
+}
+
+int Q3DSCustomMaterialInstance::mapChangeFlags(const Q3DSPropertyChangeList &changeList)
+{
+    int changeFlags = Q3DSGraphObject::mapChangeFlags(changeList);
+    for (auto it = changeList.cbegin(), itEnd = changeList.cend(); it != itEnd; ++it) {
+        if (it->nameStr() == QStringLiteral("class"))
+            changeFlags |= SourceChanges;
+    }
+    return changeFlags;
+}
+
+Q3DSPropertyChange Q3DSCustomMaterialInstance::setSourcePath(const QString &v)
+{
+    Q3DSPropertyChange r = createPropSetter(m_material_unresolved, v, "class");
+    const bool valueChanged = !r.nameStr().isEmpty();
+    if (valueChanged)
+        m_materialIsResolved = false;
+    return r;
 }
 
 Q3DSPropertyChange Q3DSCustomMaterialInstance::setLightmapIndirectMap(Q3DSImage *v)
@@ -2320,33 +2366,7 @@ void Q3DSEffectInstance::resolveReferences(Q3DSUipPresentation &pres)
     if (m_effect.isNull())
         return;
 
-    // Remove all existing dynamic properties. This may seem unnecessary but
-    // unfortunately it is needed since changing the source (class property) to
-    // a different effect brings in a different set of custom properties, and
-    // having the old ones lingering around causes trouble (or is inefficient
-    // at best).
-    clearDynamicProperties();
-
-    // Add the effect's dynamic properties with the default values first.
-    const auto props = m_effect.properties();
-    for (auto it = props.cbegin(); it != props.cend(); ++it) {
-        // Fix up the filenames to that no further adjustment is necessary from this point on.
-        QVariant value = Q3DS::convertToVariant(it->defaultValue, *it);
-        mapCustomPropertyFileNames(it.key(), &value, props, pres);
-        setProperty(it.key().toLatin1(), value);
-    }
-
-    // Now go update any pending property values (from the .uip parsing).
-    if (!m_pendingCustomProperties.isEmpty()) {
-        QVariantMap propChanges;
-        for (const Q3DSPropertyChange &change : m_pendingCustomProperties) {
-            const Q3DS::PropertyType type = props.value(change.nameStr()).type;
-            propChanges[change.nameStr()] = Q3DS::convertToVariant(change.valueStr(), type);
-        }
-        mapCustomPropertyFileNames(&propChanges, props, pres);
-        applyDynamicProperties(propChanges);
-        m_pendingCustomProperties.clear(); // clear, we won't apply these values again in case the source changes
-    }
+    importCustomProperties(this, m_effect.properties(), &m_pendingCustomProperties, pres);
 }
 
 int Q3DSEffectInstance::mapChangeFlags(const Q3DSPropertyChangeList &changeList)
@@ -2363,7 +2383,7 @@ int Q3DSEffectInstance::mapChangeFlags(const Q3DSPropertyChangeList &changeList)
 
 Q3DSPropertyChange Q3DSEffectInstance::setSourcePath(const QString &v)
 {
-    Q3DSPropertyChange r = createPropSetter(m_effect_unresolved, v, "sourcepath");
+    Q3DSPropertyChange r = createPropSetter(m_effect_unresolved, v, "class");
     const bool valueChanged = !r.nameStr().isEmpty();
     if (valueChanged)
         m_effectIsResolved = false;

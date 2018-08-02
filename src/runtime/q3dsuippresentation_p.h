@@ -1796,18 +1796,23 @@ private:
 class Q3DSV_PRIVATE_EXPORT Q3DSCustomMaterialInstance : public Q3DSGraphObject
 {
     Q3DS_OBJECT
-    Q_PROPERTY(QString class READ sourcePath)
+    Q_PROPERTY(QString class READ sourcePath WRITE setSourcePath)
     Q_PROPERTY(Q3DSImage * lightmapindirect READ lightmapIndirectMap WRITE setLightmapIndirectMap)
     Q_PROPERTY(Q3DSImage * lightmapradiosity READ lightmapRadiosityMap WRITE setLightmapRadiosityMap)
     Q_PROPERTY(Q3DSImage * lightmapshadow READ lightmapShadowMap WRITE setLightmapShadowMap)
     Q_PROPERTY(Q3DSImage * iblprobe READ lightProbe WRITE setLightProbe)
 public:
+    enum CustomMaterialPropertyChanges {
+        SourceChanges = 1 << 0
+    };
+
     Q3DSCustomMaterialInstance();
     Q3DSCustomMaterialInstance(const Q3DSCustomMaterial &material);
 
     void setProperties(const QXmlStreamAttributes &attrs, PropSetFlags flags) override;
     void applyPropertyChanges(const Q3DSPropertyChangeList &changeList) override;
     void resolveReferences(Q3DSUipPresentation &pres) override;
+    int mapChangeFlags(const Q3DSPropertyChangeList &changeList) override;
 
     // Properties
     QString sourcePath() const { return m_material_unresolved; }
@@ -1818,6 +1823,7 @@ public:
     // IBL override
     Q3DSImage *lightProbe() const { return m_lightProbe; }
 
+    Q3DSPropertyChange setSourcePath(const QString &v);
     Q3DSPropertyChange setLightmapIndirectMap(Q3DSImage *v);
     Q3DSPropertyChange setLightmapRadiosityMap(Q3DSImage *v);
     Q3DSPropertyChange setLightmapShadowMap(Q3DSImage *v);

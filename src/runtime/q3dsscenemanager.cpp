@@ -7426,11 +7426,17 @@ void Q3DSSceneManager::updateSubTreeRecursive(Q3DSGraphObject *obj)
         Q3DSCustomMaterialInstance *mat3DS = static_cast<Q3DSCustomMaterialInstance *>(obj);
         Q3DSCustomMaterialAttached *data = static_cast<Q3DSCustomMaterialAttached *>(mat3DS->attached());
         if (data && (data->frameDirty & Q3DSGraphObjectAttached::CustomMaterialDirty)) {
+            const bool sourceChanges = data->frameChangeFlags & Q3DSCustomMaterialInstance::SourceChanges;
+            if (sourceChanges)
+                mat3DS->resolveReferences(*m_presentation); // make sure the new material is loaded
             for (auto it = data->perModelData.begin(), itEnd = data->perModelData.end(); it != itEnd; ++it) {
                 Q3DSModelNode *model3DS = it.key();
                 Q3DSModelAttached *modelData = static_cast<Q3DSModelAttached *>(model3DS->attached());
                 it->combinedOpacity = modelData->globalOpacity;
-                updateCustomMaterial(mat3DS, nullptr, model3DS);
+                if (sourceChanges)
+                    rebuildModelMaterial(model3DS);
+                else
+                    updateCustomMaterial(mat3DS, nullptr, model3DS);
                 retagSubMeshes(model3DS);
             }
             m_wasDirty = true;
