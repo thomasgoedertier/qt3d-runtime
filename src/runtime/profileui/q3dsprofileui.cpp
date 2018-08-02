@@ -36,6 +36,7 @@
 #include "q3dsimagemanager_p.h"
 #include "q3dsgraphicslimits_p.h"
 #include "q3dslogging_p.h"
+#include "q3dsutils_p.h"
 #include <QLoggingCategory>
 #include <QGuiApplication>
 #include <QMetaObject>
@@ -1138,6 +1139,15 @@ void Q3DSProfileUi::setVisible(bool visible)
 
     qCDebug(lcProf, "Visible = %d", m_visible);
     m_guiMgr->setEnabled(m_visible);
+
+    if (m_visible) {
+        m_hadDialogsEnabled = Q3DSUtils::dialogsEnabled();
+        if (m_hadDialogsEnabled)
+            Q3DSUtils::setDialogsEnabled(false);
+    } else {
+        if (m_hadDialogsEnabled)
+            Q3DSUtils::setDialogsEnabled(true);
+    }
 }
 
 void Q3DSProfileUi::openLogAndConsole()

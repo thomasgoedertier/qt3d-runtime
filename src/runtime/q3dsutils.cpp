@@ -45,6 +45,11 @@ void Q3DSUtils::setDialogsEnabled(bool enable)
     q3ds_dialogsEnabled = enable;
 }
 
+bool Q3DSUtils::dialogsEnabled()
+{
+    return q3ds_dialogsEnabled;
+}
+
 Q3DSUtilsMessageRedirect::Q3DSUtilsMessageRedirect(QString *dst)
     : m_dst(dst)
 {

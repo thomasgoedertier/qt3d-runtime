@@ -73,6 +73,7 @@ private:
     Q3DSProfileView *m_view;
     bool m_inited = false;
     bool m_visible = false;
+    bool m_hadDialogsEnabled = false;
 };
 
 QT_END_NAMESPACE

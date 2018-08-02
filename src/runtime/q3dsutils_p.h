@@ -63,6 +63,7 @@ class Q3DSV_PRIVATE_EXPORT Q3DSUtils
 {
 public:
     static void setDialogsEnabled(bool enable);
+    static bool dialogsEnabled();
     static void showMessage(const QString &msg);
     static QString getInput(const QString &msg);
     static QString resourcePrefix();
