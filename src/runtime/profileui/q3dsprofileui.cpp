@@ -583,13 +583,13 @@ void Q3DSProfileView::addQt3DObjectsWindow()
 
 void Q3DSProfileView::addLayerWindow()
 {
-    ImGui::SetNextWindowSize(ImVec2(640, 200), ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowSize(ImVec2(680, 200), ImGuiCond_FirstUseEver);
     ImGui::Begin("Layers", &m_layerWindowOpen, ImGuiWindowFlags_NoSavedSettings);
 
     addPresentationSelector();
 
     ImGui::Text("Layers");
-    ImGui::Columns(7, "layercols");
+    ImGui::Columns(8, "layercols");
     ImGui::Separator();
     ImGui::Text("ID"); ImGui::NextColumn();
     ImGui::Text("Visible"); ImGui::NextColumn();
@@ -601,11 +601,22 @@ void Q3DSProfileView::addLayerWindow()
     ImGui::Text("AA");
     addTip("Multisample / Supersample / Progressive / Temporal antialiasing");
     ImGui::NextColumn();
+    ImGui::Text("Effects");
+    addTip("Post-processing effects specify one or more additional passes that "
+           "draw a textured quad with custom shaders active. This involves additional "
+           "textures and extra texturing and fragment shading work, the cost of which "
+           "is dependent on the size of the layer and the complexity of the custom "
+           "fragment shaders.\n"
+           "[TD] means some effect causes continuous updates to the layer, disabling "
+           "layer caching.");
+    ImGui::NextColumn();
     ImGui::Text("Dirty"); ImGui::NextColumn();
     ImGui::Text("Cached");
     addTip("When in cached mode, a layer does not render its content into the "
            "associated offscreen render target. Rather, the previous content is "
-           "used for composition. This can only happen while Dirty is false.");
+           "used for composition. This can only happen when Dirty is false and "
+           "there are no time-dependent effects. Relying on the output of "
+           "sub-presentations, esp. as texture maps, can also disable caching.");
     ImGui::NextColumn();
     ImGui::Separator();
 
@@ -634,6 +645,9 @@ void Q3DSProfileView::addLayerWindow()
                 + QByteArrayLiteral("\nTAA: ") + (layer3DS->layerFlags().testFlag(Q3DSLayerNode::TemporalAA) ? "Yes": "No");
         ImGui::Text("%s", aa.constData());
         ImGui::NextColumn();
+        const bool timeDep = data->effectActive && data->effectData.combinedEffectFlags.testFlag(Q3DSEffect::ReliesOnTime);
+        ImGui::Text("%d active%s", data->effectActive ? data->effectData.activeEffectCount : 0, timeDep ? " [TD]" : "");
+        ImGui::NextColumn();
         ImGui::Text("%s", data->wasDirty ? "true" : "false");
         ImGui::NextColumn();
         if (data->layerFgRoot) {
@@ -650,8 +664,8 @@ void Q3DSProfileView::addLayerWindow()
     ImGui::Text("Total active layers: %d", activeCount);
     addTip("Layers are rendered into textures and then composed together by drawing textured quads. "
            "Therefore a large number of layers lead to lower performance. The size matters too since "
-           "a larger layer means more fragment processing work for the GPU. Antialiasing methods can also "
-           "heavily affect the performance.");
+           "a larger layer means more fragment processing work for the GPU. Antialiasing methods and "
+           "post-processing effects can also heavily affect the performance.");
 
     ImGui::End();
 }

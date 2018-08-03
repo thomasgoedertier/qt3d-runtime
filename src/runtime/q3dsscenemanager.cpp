@@ -5850,6 +5850,8 @@ void Q3DSSceneManager::updateEffectStatus(Q3DSLayerNode *layer3DS, bool force)
         }
     }
 
+    layerData->effectData.activeEffectCount = activeEffectCount;
+
     if (!change && !force)
         return; // nothing has changed
 
