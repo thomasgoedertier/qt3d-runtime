@@ -459,7 +459,10 @@ void Q3DSStudio3DItem::itemChange(QQuickItem::ItemChange change,
 void Q3DSStudio3DItem::startEngine()
 {
     // set root entity
-    m_engine->start();
+    if (m_engine)
+        m_engine->start();
+    else
+        qWarning("No engine (no window for item?), cannot start");
 }
 
 void Q3DSStudio3DItem::destroyEngine()
@@ -548,6 +551,7 @@ void Q3DSStudio3DItem::releaseEngineAndRenderer()
         EngineReleaser *er = new EngineReleaser(m_engine);
         RendererReleaser *rr = new RendererReleaser(m_renderer, er);
         window()->scheduleRenderJob(rr, QQuickWindow::BeforeSynchronizingStage);
+        m_renderer->invalidateItem();
         m_renderer = nullptr;
         m_engine = nullptr;
     }

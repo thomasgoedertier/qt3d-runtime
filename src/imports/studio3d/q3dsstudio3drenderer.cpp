@@ -94,7 +94,13 @@ Q3DSStudio3DRenderer::~Q3DSStudio3DRenderer()
 
 void Q3DSStudio3DRenderer::renderOffscreen()
 {
+    // m_item may be destroyed already
+    if (m_itemInvalid.load())
+        return;
+
     QQuickWindow *w = m_item->window();
+    if (!w)
+        return;
 
     const QSize size = m_item->boundingRect().size().toSize() * w->effectiveDevicePixelRatio();
     if (m_fbo.isNull() || m_fbo->size() != size) {

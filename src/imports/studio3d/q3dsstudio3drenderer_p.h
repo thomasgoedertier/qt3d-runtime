@@ -42,7 +42,7 @@
 //
 
 #include <QObject>
-#include <QUrl>
+#include <QAtomicInt>
 #include <QOpenGLFramebufferObject>
 #include <QSGTexture>
 
@@ -68,6 +68,8 @@ public:
     Q3DSStudio3DRenderer(Q3DSStudio3DItem *item, Q3DSStudio3DNode *node, Qt3DCore::QAspectEngine *aspectEngine);
     ~Q3DSStudio3DRenderer();
 
+    void invalidateItem() { m_itemInvalid.store(1); }
+
 private slots:
     void renderOffscreen();
 
@@ -80,6 +82,7 @@ private:
 
     QScopedPointer<QSGTexture> m_texture;
     QScopedPointer<QOpenGLFramebufferObject> m_fbo;
+    QAtomicInt m_itemInvalid;
 };
 
 QT_END_NAMESPACE
