@@ -6899,7 +6899,7 @@ void Q3DSSceneManager::updateModel(Q3DSModelNode *model3DS)
 
     if (data->frameChangeFlags & Q3DSModelNode::MeshChanges) {
         model3DS->resolveReferences(*m_presentation); // make mesh() return the new submesh list
-        qCDebug(lcPerf, "Rebuilding submeshes for %s", model3DS->id().constData());
+        qCDebug(lcPerf, "Rebuilding submeshes for %s due to mesh change", model3DS->id().constData());
         rebuildModelSubMeshes(model3DS);
         rebuildModelMaterial(model3DS);
     }
@@ -8254,6 +8254,7 @@ void Q3DSSceneManager::handleSceneChange(Q3DSScene *, Q3DSGraphObject::DirtyFlag
             // compositor will not see this layer anymore.
             rebuildCompositorLayerChain();
         } else {
+            // ensure the containing layer stays up-to-date
             Q3DSLayerNode *layer3DS = findLayerForObjectInScene(obj);
             if (layer3DS) {
                 markLayerAsContentChanged(layer3DS);
@@ -8262,6 +8263,20 @@ void Q3DSSceneManager::handleSceneChange(Q3DSScene *, Q3DSGraphObject::DirtyFlag
                 if (needsEffectUpdate)
                     updateEffectStatus(layer3DS, true);
             }
+
+            // special handling for materials
+            if (obj->type() == Q3DSGraphObject::DefaultMaterial
+                    || obj->type() == Q3DSGraphObject::CustomMaterial
+                    || obj->type() == Q3DSGraphObject::ReferencedMaterial)
+            {
+                if (obj->parent()->type() == Q3DSGraphObject::Model) {
+                    Q3DSModelNode *model3DS = static_cast<Q3DSModelNode *>(obj->parent());
+                    qCDebug(lcPerf, "Rebuilding submeshes for %s due to removing material", model3DS->id().constData());
+                    rebuildModelSubMeshes(model3DS);
+                    rebuildModelMaterial(model3DS);
+                }
+            }
+
             // bye bye QEntity - takes care of the child entities as well
             if (obj->isNode())
                 delete obj->attached()->entity;
@@ -8320,6 +8335,21 @@ void Q3DSSceneManager::addLayerContent(Q3DSGraphObject *obj, Q3DSGraphObject *pa
 
         slidePlayer->objectAboutToBeAddedToScene(objOrChild);
     });
+
+    // special cases
+    if (obj->type() == Q3DSGraphObject::DefaultMaterial
+            || obj->type() == Q3DSGraphObject::CustomMaterial
+            || obj->type() == Q3DSGraphObject::ReferencedMaterial)
+    {
+        if (parent->type() == Q3DSGraphObject::Model) {
+            Q3DSModelNode *model3DS = static_cast<Q3DSModelNode *>(parent);
+            qCDebug(lcPerf, "Rebuilding submeshes for %s due to adding material", model3DS->id().constData());
+            rebuildModelSubMeshes(model3DS);
+            rebuildModelMaterial(model3DS);
+        } else {
+            qCDebug(lcScene, "Material %s is not under a Model and will be ignored", obj->id().constData());
+        }
+    }
 
     // ensure layer gets dirtied
     markLayerAsContentChanged(layer3DS);
