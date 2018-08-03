@@ -366,6 +366,7 @@ public:
     struct EffectData {
         Qt3DRender::QFrameGraphNode *effectRoot = nullptr;
         QVector<Q3DSEffectInstance *> effects;
+        Q3DSEffect::Flags combinedEffectFlags;
         Qt3DRender::QAbstractTexture *sourceTexture = nullptr;
         bool ownsSourceTexture = false;
         Qt3DRender::QFrameGraphNode *resolve = nullptr;

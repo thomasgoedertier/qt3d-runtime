@@ -5866,6 +5866,8 @@ void Q3DSSceneManager::updateEffectStatus(Q3DSLayerNode *layer3DS, bool force)
         deactivateEffect(eff3DS, layer3DS);
     }
 
+    layerData->effectData.combinedEffectFlags = 0;
+
     cleanupEffectSource(layer3DS);
 
     if (activeEffectCount) {
@@ -5881,6 +5883,7 @@ void Q3DSSceneManager::updateEffectStatus(Q3DSLayerNode *layer3DS, bool force)
                 if (i == lastActiveIndex)
                     flags |= Q3DSSceneManager::EffIsLast;
                 activateEffect(eff3DS, layer3DS, flags, prevOutput);
+                layerData->effectData.combinedEffectFlags |= eff3DS->effect()->flags();
                 prevOutput = eff3DS->attached<Q3DSEffectAttached>()->outputTexture;
             }
         }
@@ -7217,7 +7220,14 @@ void Q3DSSceneManager::prepareNextFrame()
         if (m_hasQmlSubPresAsTextureMap)
             subDirty = true;
 
-        if (!layerData->wasDirty && !m_layerUncachePending && !subDirty) {
+        // Layers having an active post-processing effect relying on time (like
+        // the AppFrame uniform) cannot be cached since the effect needs
+        // continuous updates (and in 3DS2 the effect's output is part of the
+        // layer's final texture that is "cached").
+        const bool hasTimeDependentEffect = layerData->effectActive
+                && layerData->effectData.combinedEffectFlags.testFlag(Q3DSEffect::ReliesOnTime);
+
+        if (!layerData->wasDirty && !m_layerUncachePending && !subDirty && !hasTimeDependentEffect) {
             ++layerData->nonDirtyRenderCount;
             if (layerData->nonDirtyRenderCount > LAYER_CACHING_THRESHOLD) {
                 layerData->nonDirtyRenderCount = 0;
