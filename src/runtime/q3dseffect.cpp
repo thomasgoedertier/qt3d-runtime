@@ -62,6 +62,11 @@ const QVector<Q3DSMaterial::Pass> &Q3DSEffect::passes() const
     return m_passes;
 }
 
+Q3DSEffect::Flags Q3DSEffect::flags() const
+{
+    return m_flags;
+}
+
 QString Q3DSEffect::addPropertyUniforms(const QString &shaderSrc) const
 {
     QString s;
@@ -227,8 +232,16 @@ void Q3DSEffectParser::parseShaders(Q3DSEffect &effect)
     if (shaderCount == 0)
         r->raiseError(QObject::tr("At least one Shader is required for a valid Material"));
 
-    for (Q3DSMaterial::Shader &shader : effect.m_shaders)
+    for (Q3DSMaterial::Shader &shader : effect.m_shaders) {
         combineShaderCode(&shader, sharedShaderCode, sharedVertexShaderCode, sharedFragmentShaderCode);
+        // see if we need to set the ReliesOnTime flag. A bit fragile but no better way.
+        const QString timeDependentUniform = QLatin1String("uniform float AppFrame");
+        if (shader.vertexShader.contains(timeDependentUniform)
+                || shader.fragmentShader.contains(timeDependentUniform))
+        {
+            effect.m_flags |= Q3DSEffect::ReliesOnTime;
+        }
+    }
 }
 
 void Q3DSEffectParser::parsePasses(Q3DSEffect &effect)

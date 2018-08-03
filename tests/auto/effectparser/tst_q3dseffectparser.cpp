@@ -46,6 +46,7 @@ private Q_SLOTS:
     void testRepeatedLoad();
     void testValidateData();
     void testGlobalSharedShaderSnippet();
+    void testFlags();
 };
 
 tst_Q3DSEffectParser::tst_Q3DSEffectParser()
@@ -175,6 +176,25 @@ void tst_Q3DSEffectParser::testGlobalSharedShaderSnippet()
         if (!shader.fragmentShader.isEmpty())
             QVERIFY(shader.fragmentShader.startsWith(globalSharedCode));
     }
+}
+
+void tst_Q3DSEffectParser::testFlags()
+{
+    Q3DSEffectParser parser;
+    bool ok = false;
+    Q3DSEffect effect = parser.parse(QStringLiteral(":/data/Sepia.effect"), &ok);
+    QVERIFY(ok);
+    QVERIFY(!effect.isNull());
+    QVERIFY(!effect.flags().testFlag(Q3DSEffect::ReliesOnTime));
+
+    // Corona is one of the few effects that rely on AppFrame meaning a layer
+    // having that effect needs continuous updates even when nothing changes in
+    // the layer.
+    ok = false;
+    effect = parser.parse(QStringLiteral(":/data/Corona.effect"), &ok);
+    QVERIFY(ok);
+    QVERIFY(!effect.isNull());
+    QVERIFY(effect.flags().testFlag(Q3DSEffect::ReliesOnTime));
 }
 
 QTEST_APPLESS_MAIN(tst_Q3DSEffectParser)

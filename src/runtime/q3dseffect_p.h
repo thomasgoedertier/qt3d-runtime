@@ -49,7 +49,13 @@ QT_BEGIN_NAMESPACE
 class Q3DSV_PRIVATE_EXPORT Q3DSEffect
 {
 public:
+    enum Flag {
+        ReliesOnTime = 0x01
+    };
+    Q_DECLARE_FLAGS(Flags, Flag)
+
     Q3DSEffect();
+
     bool isNull();
 
     const QMap<QString, Q3DSMaterial::PropertyElement>& properties() const;
@@ -59,6 +65,8 @@ public:
 
     QString addPropertyUniforms(const QString &shaderSrc) const;
 
+    Flags flags() const;
+
 private:
     QMap<QString, Q3DSMaterial::PropertyElement> m_properties;
 
@@ -66,9 +74,12 @@ private:
     QMap<QString, Q3DSMaterial::PassBuffer> m_buffers; // value type is the base class, subclasses have no data
     QVector<Q3DSMaterial::Pass> m_passes;
 
+    Flags m_flags;
+
     friend class Q3DSEffectParser;
 };
 
+Q_DECLARE_OPERATORS_FOR_FLAGS(Q3DSEffect::Flags)
 Q_DECLARE_TYPEINFO(Q3DSEffect, Q_MOVABLE_TYPE);
 
 class Q3DSV_PRIVATE_EXPORT Q3DSEffectParser : public Q3DSAbstractXmlParser
