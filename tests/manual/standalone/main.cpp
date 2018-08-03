@@ -80,7 +80,7 @@ void buildCustomMesh(Q3DSUipPresentation *pres, Q3DSLayerNode *layer, Q3DSSlide 
 
     // need position and normal data at minimum for a non-textured default material
     Q3DSGeometry::Buffer b;
-    const int stride = (3 + 3) * sizeof(float);
+    static const int stride = (3 + 3) * sizeof(float);
     b.data.resize(geom->drawCount() * stride);
     float *p = reinterpret_cast<float *>(b.data.data());
     // the built-in primitives like the cube go from -50..50, follow this scale for now
