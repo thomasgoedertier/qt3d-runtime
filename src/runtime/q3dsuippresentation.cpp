@@ -3203,7 +3203,8 @@ void Q3DSModelNode::resolveReferences(Q3DSUipPresentation &pres)
             m_mesh = pres.mesh(fn, part); // this caches; cheap if already used the same mesh somewhere
         } else {
             // ### should this be cached? (would need a cache key then)
-            m_mesh = Q3DSMeshLoader::loadMesh(*m_customMesh, &m_customMeshMapping);
+            if (m_customMesh)
+                m_mesh = Q3DSMeshLoader::loadMesh(*m_customMesh, &m_customMeshMapping);
         }
     }
 }
@@ -3235,6 +3236,9 @@ Q3DSPropertyChange Q3DSModelNode::setInnerTess(float v)
 
 Q3DSPropertyChange Q3DSModelNode::setCustomMesh(Q3DSGeometry *geom)
 {
+    if (m_customMesh != geom)
+        delete m_customMesh;
+
     m_customMesh = geom; // takes ownership
 
     // like setMesh but note that the m_mesh_unresolved value does not change
