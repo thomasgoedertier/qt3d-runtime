@@ -4775,9 +4775,16 @@ void Q3DSSceneManager::buildModelMaterial(Q3DSModelNode *model3DS)
                     param->setParent(layerData->entity);
                 }
 
-                // ### TODO support more than one pass
-                auto pass = customMaterial->material()->passes().first();
-                sm.materialComponent = m_customMaterialGen->generateMaterial(customMaterial, sm.referencingMaterial, params, lightNodes, modelData->layer3DS, pass);
+                const QVector<Q3DSMaterial::Pass> &passes(customMaterial->material()->passes());
+                if (!passes.isEmpty()) {
+                    // ### TODO support more than one pass
+                    auto pass = passes.first();
+                    sm.materialComponent = m_customMaterialGen->generateMaterial(customMaterial, sm.referencingMaterial, params, lightNodes, modelData->layer3DS, pass);
+                } else {
+                    qCDebug(lcScene, "Custom material %s has no passes. Using dummy material. Object %s will not show.",
+                            customMaterial->id().constData(), model3DS->id().constData());
+                    sm.materialComponent = new Qt3DRender::QMaterial;
+                }
                 sm.entity->addComponent(sm.materialComponent);
             }
         }
