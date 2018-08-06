@@ -1752,7 +1752,7 @@ void Q3DSSceneManager::setLayerProperties(Q3DSLayerNode *layer3DS)
     if (layer3DS->lightProbe()) {
         // initialize light probe parameters if necessary
         if (!data->iblProbeData.lightProbeTexture) {
-            data->iblProbeData.lightProbeTexture = Q3DSImageManager::instance().newTextureForImageFile(
+            data->iblProbeData.lightProbeTexture = Q3DSImageManager::instance().newTextureForImage(
                         m_rootEntity, Q3DSImageManager::GenerateMipMapsForIBL,
                         m_profiler, "iblProbe texture for image %s", layer3DS->lightProbe()->id().constData());
         }
@@ -1812,7 +1812,7 @@ void Q3DSSceneManager::setLayerProperties(Q3DSLayerNode *layer3DS)
         if (layer3DS->lightProbe2()) {
             // Initialize light probe 2 parameters
             if (!data->iblProbeData.lightProbe2Texture) {
-                data->iblProbeData.lightProbe2Texture = Q3DSImageManager::instance().newTextureForImageFile(
+                data->iblProbeData.lightProbe2Texture = Q3DSImageManager::instance().newTextureForImage(
                             m_rootEntity, Q3DSImageManager::GenerateMipMapsForIBL,
                             m_profiler, "iblProbe2 texture for image %s", layer3DS->lightProbe2()->id().constData());
             }
@@ -4865,6 +4865,11 @@ void Q3DSSceneManager::retagSubMeshes(Q3DSModelNode *model3DS)
 
 void Q3DSSceneManager::prepareTextureParameters(Q3DSTextureParameters &textureParameters, const QString &name, Q3DSImage *image3DS)
 {
+    if (!image3DS->attached()) {
+        qCDebug(lcScene, "Image %s is not initialized, is it added to the scene? Expect bad things to happen.",
+                image3DS->id().constData());
+    }
+
     textureParameters.sampler = new Qt3DRender::QParameter;
     textureParameters.sampler->setName(name + QLatin1String("_sampler"));
 
@@ -4877,12 +4882,14 @@ void Q3DSSceneManager::prepareTextureParameters(Q3DSTextureParameters &texturePa
     textureParameters.size = new Qt3DRender::QParameter;
     textureParameters.size->setName(name + QLatin1String("_size"));
 
-    textureParameters.texture = Q3DSImageManager::instance().newTextureForImageFile(
+    textureParameters.texture = Q3DSImageManager::instance().newTextureForImage(
                 m_rootEntity, 0, m_profiler, "Texture for image %s", image3DS->id().constData());
 }
 
 void Q3DSSceneManager::updateTextureParameters(Q3DSTextureParameters &textureParameters, Q3DSImage *image)
 {
+    // note that this function is called frequently (whenever any Image parameter changes)
+
     if (!image->subPresentation().isEmpty()) {
         if (textureParameters.subPresId != image->subPresentation()) {
             textureParameters.subPresId = image->subPresentation();
@@ -4896,6 +4903,9 @@ void Q3DSSceneManager::updateTextureParameters(Q3DSTextureParameters &texturePar
         }
     } else if (!image->sourcePath().isEmpty()) {
         Q3DSImageManager::instance().setSource(textureParameters.texture, QUrl::fromLocalFile(image->sourcePath()));
+        textureParameters.sampler->setValue(QVariant::fromValue(textureParameters.texture));
+    } else if (!image->customImage().isNull()) {
+        Q3DSImageManager::instance().setSource(textureParameters.texture, image->customImage());
         textureParameters.sampler->setValue(QVariant::fromValue(textureParameters.texture));
     } else {
         textureParameters.sampler->setValue(QVariant::fromValue(dummyTexture()));
@@ -5191,7 +5201,7 @@ QVector<Qt3DRender::QParameter *> Q3DSSceneManager::prepareDefaultMaterial(Q3DSD
         iblOverrideImage = m->lightProbe();
     if (iblOverrideImage) {
         if (!data->lightProbeOverrideTexture) {
-            data->lightProbeOverrideTexture = Q3DSImageManager::instance().newTextureForImageFile(
+            data->lightProbeOverrideTexture = Q3DSImageManager::instance().newTextureForImage(
                         m_rootEntity, Q3DSImageManager::GenerateMipMapsForIBL,
                         m_profiler, "Texture for image %s", iblOverrideImage->id().constData());
             data->lightProbeSampler = new Qt3DRender::QParameter;
@@ -5402,8 +5412,8 @@ Qt3DRender::QAbstractTexture *Q3DSSceneManager::createCustomPropertyTexture(cons
     if (source.isEmpty()) {
         texture = dummyTexture();
     } else {
-        texture = Q3DSImageManager::instance().newTextureForImageFile(m_rootEntity, 0, m_profiler,
-                                                                      "Custom property texture %s", qPrintable(source));
+        texture = Q3DSImageManager::instance().newTextureForImage(m_rootEntity, 0, m_profiler,
+                                                                  "Custom property texture %s", qPrintable(source));
         qCDebug(lcScene, "Creating custom property texture %s", qPrintable(source));
         Q3DSImageManager::instance().setSource(texture, QUrl::fromLocalFile(source));
     }
@@ -5550,7 +5560,7 @@ QVector<Qt3DRender::QParameter *> Q3DSSceneManager::prepareCustomMaterial(Q3DSCu
         iblOverrideImage = m->lightProbe();
     if (iblOverrideImage) {
         if (!data->lightProbeOverrideTexture) {
-            data->lightProbeOverrideTexture = Q3DSImageManager::instance().newTextureForImageFile(
+            data->lightProbeOverrideTexture = Q3DSImageManager::instance().newTextureForImage(
                         m_rootEntity, Q3DSImageManager::GenerateMipMapsForIBL,
                         m_profiler, "Texture for image %s", iblOverrideImage->id().constData());
             data->lightProbeSampler = new Qt3DRender::QParameter;

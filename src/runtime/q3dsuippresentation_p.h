@@ -55,6 +55,7 @@
 #include <QVector3D>
 #include <QMatrix4x4>
 #include <QColor>
+#include <QImage>
 #include <QVariant>
 
 #include <functional>
@@ -822,6 +823,10 @@ public:
     Q3DSPropertyChange setPivotV(float v);
     Q3DSPropertyChange setSubPresentation(const QString &v);
 
+    // custom image management
+    Q3DSPropertyChange setCustomImage(const QImage &v); // alternative setter
+    QImage customImage() const { return m_customImage; }
+
 private:
     Q_DISABLE_COPY(Q3DSImage)
     template<typename V> void setProps(const V &attrs, PropSetFlags flags);
@@ -841,6 +846,7 @@ private:
     QMatrix4x4 m_textureTransform;
     bool m_hasTransparency = false;
     bool m_scannedForTransparency = false;
+    QImage m_customImage;
 };
 
 class Q3DSV_PRIVATE_EXPORT Q3DSNode : public Q3DSGraphObject

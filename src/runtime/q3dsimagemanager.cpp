@@ -55,9 +55,9 @@ void Q3DSImageManager::invalidate()
     m_iblTime = 0;
 }
 
-Qt3DRender::QAbstractTexture *Q3DSImageManager::newTextureForImageFile(Qt3DCore::QEntity *parent,
-                                                                       ImageFlags flags,
-                                                                       Q3DSProfiler *profiler, const char *profDesc, ...)
+Qt3DRender::QAbstractTexture *Q3DSImageManager::newTextureForImage(Qt3DCore::QEntity *parent,
+                                                                   ImageFlags flags,
+                                                                   Q3DSProfiler *profiler, const char *profDesc, ...)
 {
     auto tex = new Qt3DRender::QTexture2D(parent);
 
@@ -259,6 +259,11 @@ void Q3DSImageManager::setSource(Qt3DRender::QAbstractTexture *tex, const QUrl &
     // loaded data.
     QVector<Qt3DRender::QTextureImageDataPtr> imageData = load(source, info.flags, &info.wasCached);
 
+    for (Qt3DRender::QAbstractTextureImage *oldImage : tex->textureImages()) {
+        tex->removeTextureImage(oldImage);
+        delete oldImage;
+    }
+
     if (!imageData.isEmpty()) {
         info.size = QSize(imageData[0]->width(), imageData[0]->height());
         info.format = Qt3DRender::QAbstractTexture::TextureFormat(imageData[0]->format());
@@ -290,7 +295,7 @@ void Q3DSImageManager::setSource(Qt3DRender::QAbstractTexture *tex, const QUrl &
         info.format = Qt3DRender::QAbstractTexture::RGBA8_UNorm;
         m_metadata.insert(tex, info);
 
-        QImage dummy(info.size, QImage::Format_ARGB32_Premultiplied);
+        QImage dummy(info.size, QImage::Format_ARGB32);
         dummy.fill(Qt::magenta);
         auto dummyData = Qt3DRender::QTextureImageDataPtr::create();
         dummyData->setImage(dummy);
@@ -298,6 +303,40 @@ void Q3DSImageManager::setSource(Qt3DRender::QAbstractTexture *tex, const QUrl &
         tex->addTextureImage(new TextureImage(source, 0, dummyData));
         qWarning("Using placeholder texture in place of %s", qPrintable(source.toLocalFile()));
     }
+}
+
+void Q3DSImageManager::setSource(Qt3DRender::QAbstractTexture *tex, const QImage &image)
+{
+    auto data = Qt3DRender::QTextureImageDataPtr::create();
+
+    if (!image.isNull()) {
+        data->setImage(image.mirrored());
+    } else {
+        QImage dummy(image.size(), QImage::Format_ARGB32);
+        dummy.fill(Qt::magenta);
+        data->setImage(dummy);
+    }
+
+    for (Qt3DRender::QAbstractTextureImage *oldImage : tex->textureImages()) {
+        tex->removeTextureImage(oldImage);
+        delete oldImage;
+    }
+
+    const QUrl dummySource = QUrl::fromLocalFile(QString::number(image.cacheKey()));
+    tex->addTextureImage(new TextureImage(dummySource, 0, data));
+
+    TextureInfo info;
+    auto it = m_metadata.find(tex);
+    if (it != m_metadata.end())
+        info = *it;
+
+    Q_ASSERT(!info.flags.testFlag(GenerateMipMapsForIBL)); // not supported atm
+
+    info.source = dummySource;
+    info.size = image.size();
+    info.format = Qt3DRender::QAbstractTexture::RGBA8_UNorm; // ### not always true
+
+    m_metadata.insert(tex, info);
 }
 
 // The metadata getters must work also with textures not registered to the

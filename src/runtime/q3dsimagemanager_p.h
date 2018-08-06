@@ -44,6 +44,7 @@
 #include "q3dsruntimeglobal_p.h"
 #include <QHash>
 #include <QUrl>
+#include <QImage>
 #include <Qt3DRender/QAbstractTexture>
 #include <Qt3DRender/QTextureImageData>
 
@@ -66,10 +67,11 @@ public:
     static Q3DSImageManager &instance();
     void invalidate();
 
-    Qt3DRender::QAbstractTexture *newTextureForImageFile(Qt3DCore::QEntity *parent,
-                                                         ImageFlags flags,
-                                                         Q3DSProfiler *profiler = nullptr, const char *profName = nullptr, ...);
+    Qt3DRender::QAbstractTexture *newTextureForImage(Qt3DCore::QEntity *parent,
+                                                     ImageFlags flags,
+                                                     Q3DSProfiler *profiler = nullptr, const char *profName = nullptr, ...);
     void setSource(Qt3DRender::QAbstractTexture *tex, const QUrl &source);
+    void setSource(Qt3DRender::QAbstractTexture *tex, const QImage &image);
 
     QSize size(Qt3DRender::QAbstractTexture *tex) const;
     Qt3DRender::QAbstractTexture::TextureFormat format(Qt3DRender::QAbstractTexture *tex) const;

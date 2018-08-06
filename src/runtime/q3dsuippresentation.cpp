@@ -1707,7 +1707,18 @@ void Q3DSImage::calculateTextureTransform()
 
 Q3DSPropertyChange Q3DSImage::setSourcePath(const QString &v)
 {
+    if (!m_customImage.isNull())
+        m_customImage = QImage();
+
     return createPropSetter(m_sourcePath, v, "sourcepath");
+}
+
+Q3DSPropertyChange Q3DSImage::setCustomImage(const QImage &v)
+{
+    if (!m_sourcePath.isEmpty())
+        m_sourcePath = QString();
+
+    return createPropSetter(m_customImage, v, "sourcepath");
 }
 
 Q3DSPropertyChange Q3DSImage::setScaleU(float v)

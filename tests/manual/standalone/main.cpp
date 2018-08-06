@@ -28,6 +28,8 @@
 ****************************************************************************/
 
 #include <QGuiApplication>
+#include <QImage>
+#include <QPainter>
 
 #include <private/q3dsengine_p.h>
 #include <private/q3dswindow_p.h>
@@ -153,6 +155,61 @@ void buildCustomMesh(Q3DSUipPresentation *pres, Q3DSLayerNode *layer, Q3DSSlide 
     layer->appendChildNode(text);
 }
 
+int imageCount = 0;
+
+void buildModelWithCustomImage(Q3DSUipPresentation *pres, Q3DSLayerNode *layer, Q3DSSlide *slide)
+{
+    Q3DSModelNode *model = pres->newObject<Q3DSModelNode>("customimagemodel");
+    model->setMesh(QLatin1String("#Rectangle"));
+
+    Q3DSDefaultMaterial *mat = pres->newObject<Q3DSDefaultMaterial>("customimagemat");
+
+    Q3DSImage *customImage = pres->newObject<Q3DSImage>("customimage1");
+    // An Image must also be connected to the scene, like other object; this
+    // does not prevent it being referenced from multiple places if desired.
+    mat->appendChildNode(customImage);
+
+    // This Image object will use a QImage as its source instead of specifying a filename in sourcePath.
+    auto genNewImage = [customImage] {
+        QImage img(256, 256, QImage::Format_ARGB32);
+        QPainter p(&img);
+        p.fillRect(QRect(0, 0, 256, 256), Qt::green);
+        p.setPen(Qt::blue);
+        p.setBrush(Qt::blue);
+        p.drawEllipse(QPoint(128, 200), 100, 50);
+        p.setPen(Qt::red);
+        QFont font;
+        font.setPointSize(72);
+        font.setBold(true);
+        p.setFont(font);
+        p.drawText(50, 100, QString(QLatin1String("%1")).arg(++imageCount));
+        p.end();
+
+        // tell the Q3DSImage to use this QImage instead of specifying a file in sourcePath
+        customImage->notifyPropertyChanges({ customImage->setCustomImage(img) });
+    };
+
+    genNewImage();
+    mat->setDiffuseMap(customImage);
+
+    model->appendChildNode(mat);
+    model->setPosition(QVector3D(300, 200, 0));
+
+    Q3DSTextNode *text = pres->newObject<Q3DSTextNode>("customimagetext");
+    text->setText(QLatin1String("Change image"));
+    text->setPosition(QVector3D(300, 300, 0));
+    text->setColor(Qt::lightGray);
+    text->addEventHandler(Q3DSGraphObjectEvents::pressureDownEvent(), [genNewImage](const Q3DSGraphObject::Event &) {
+        genNewImage();
+    });
+    slide->addObject(text);
+    layer->appendChildNode(text);
+
+    slide->addObject(model);
+    slide->addObject(mat);
+    layer->appendChildNode(model);
+}
+
 Q3DSUipPresentation *build()
 {
     QScopedPointer<Q3DSUipPresentation> mainPres(new Q3DSUipPresentation);
@@ -224,6 +281,8 @@ Q3DSUipPresentation *build()
     buildDynamicSpawner(mainPres.data(), layer1, slide1);
 
     buildCustomMesh(mainPres.data(), layer1, slide1);
+
+    buildModelWithCustomImage(mainPres.data(), layer1, slide1);
 
     return mainPres.take();
 }
