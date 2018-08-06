@@ -176,7 +176,7 @@ void Q3DSRemoteDeploymentServer::readProject()
         QFile tmpFile(filePath);
         QDir tmpFileDir = QFileInfo(tmpFile).absoluteDir();
         if (!tmpFileDir.exists())
-            tmpFileDir.mkpath(".");
+            tmpFileDir.mkpath(QStringLiteral("."));
         if (!tmpFile.open(QIODevice::WriteOnly)) {
             delete m_temporaryDir;
             m_temporaryDir = 0;

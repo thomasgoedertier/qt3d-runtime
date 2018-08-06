@@ -8298,7 +8298,7 @@ void Q3DSSceneManager::handleSceneChange(Q3DSScene *, Q3DSGraphObject::DirtyFlag
         }
 
         // bye bye attached; it will get recreated in case obj gets added back later on
-        Q3DSUipPresentation::forAllObjectsInSubTree(obj, [this](Q3DSGraphObject *objOrChild) {
+        Q3DSUipPresentation::forAllObjectsInSubTree(obj, [](Q3DSGraphObject *objOrChild) {
             if (objOrChild->attached()) {
                 delete objOrChild->attached();
                 objOrChild->setAttached(nullptr);
