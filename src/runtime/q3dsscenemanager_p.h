@@ -551,7 +551,9 @@ Q_DECLARE_TYPEINFO(Q3DSCustomPropertyParameter, Q_MOVABLE_TYPE);
 class Q3DSCustomMaterialAttached : public Q3DSMaterialAttached
 {
 public:
+    bool classChanged = false;
     QHash<QString, Q3DSCustomPropertyParameter> params;
+
     // Lightmaps
     Q3DSTextureParameters lightmapIndirectParams;
     Q3DSTextureParameters lightmapRadiosityParams;

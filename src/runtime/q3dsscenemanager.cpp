@@ -5478,7 +5478,13 @@ QVector<Qt3DRender::QParameter *> Q3DSSceneManager::prepareCustomMaterial(Q3DSCu
     // Generate QParameters
     QVector<Qt3DRender::QParameter *> paramList;
 
-    if (firstRun) {
+    bool customPropertyListChange = false;
+    if (data->classChanged) {
+        data->classChanged = false;
+        customPropertyListChange = true;
+    }
+
+    if (firstRun || customPropertyListChange) {
         forAllCustomProperties(m, [&paramList, data](const QString &propKey, const QVariant &, const Q3DSMaterial::PropertyElement &propMeta) {
             QVariant v(0); // initial value is something dummy, ignore propValue for now
             Qt3DRender::QParameter *param = new Qt3DRender::QParameter;
@@ -7446,8 +7452,10 @@ void Q3DSSceneManager::updateSubTreeRecursive(Q3DSGraphObject *obj)
         Q3DSCustomMaterialAttached *data = static_cast<Q3DSCustomMaterialAttached *>(mat3DS->attached());
         if (data && (data->frameDirty & Q3DSGraphObjectAttached::CustomMaterialDirty)) {
             const bool sourceChanges = data->frameChangeFlags & Q3DSCustomMaterialInstance::SourceChanges;
-            if (sourceChanges)
+            if (sourceChanges) {
+                data->classChanged = true;
                 mat3DS->resolveReferences(*m_presentation); // make sure the new material is loaded
+            }
             for (auto it = data->perModelData.begin(), itEnd = data->perModelData.end(); it != itEnd; ++it) {
                 Q3DSModelNode *model3DS = it.key();
                 Q3DSModelAttached *modelData = static_cast<Q3DSModelAttached *>(model3DS->attached());
